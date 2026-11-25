@@ -1,0 +1,56 @@
+name: CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  OPENROUTER_API_KEY: ''
+
+jobs:
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Isolate test data
+        run: echo "SQUAD_DATA_DIR=$(mktemp -d)" >> "$GITHUB_ENV"
+      - name: Install pinned toolchain and development tools
+        run: ./setup.sh --yes --no-build
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Build
+        run: cargo build --workspace --locked
+      - name: Test
+        run: cargo test --workspace --locked
+      - name: Nextest
+        run: cargo nextest run --workspace --locked
+      - name: Documentation tests
+        run: cargo test --workspace --doc --locked
+
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell scripts
+        run: shellcheck setup.sh scripts/test-setup.sh
+
+  setup:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test installer without host changes
+        run: ./scripts/test-setup.sh
+      - name: Exercise dependency installation
+        run: ./setup.sh --yes --no-build
