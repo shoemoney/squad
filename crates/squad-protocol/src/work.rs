@@ -6,6 +6,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum WorkKind {
+    #[serde(rename = "grill.question")]
+    GrillQuestion,
+    #[serde(rename = "grill.answer")]
+    GrillAnswer,
+    #[serde(rename = "grill.rebuild")]
+    GrillRebuild,
     #[serde(rename = "reply")]
     Reply,
     #[serde(rename = "debate.turn")]
@@ -78,6 +84,18 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer | WorkKind::GrillRebuild => {
+                ensure(
+                    matches!(self.target, Target::Member(_))
+                        && self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.case_id.is_none()
+                        && self.round.is_some_and(|r| (1..=10).contains(&r))
+                        && self.attempt <= 2,
+                    "invalid grill work",
+                )?;
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -143,6 +161,10 @@ impl Work {
             }
         }
         let ceiling = match self.kind {
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer => {
+                constants::DEBATE_TURN_VISIBLE_TOKENS
+            }
+            WorkKind::GrillRebuild => constants::PLAN_VISIBLE_TOKENS,
             WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,

@@ -68,6 +68,10 @@ impl<'a> Registry<'a> {
             return Err(crate::openrouter::TransportError::InvalidModel);
         }
         let (kind, deadline) = match grant.work.kind {
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer => {
+                (TaskKind::DebateTurn, DeadlineClass::DebateTurn)
+            }
+            WorkKind::GrillRebuild => (TaskKind::Plan, DeadlineClass::DebateTurn),
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),

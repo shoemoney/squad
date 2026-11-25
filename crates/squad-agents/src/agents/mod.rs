@@ -43,6 +43,9 @@ pub async fn stream_attempt(
     forward_deltas: bool,
 ) -> Result<StreamOutput, ExecutionError> {
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
+        WorkKind::GrillQuestion | WorkKind::GrillAnswer | WorkKind::GrillRebuild => {
+            DeadlineClass::DebateTurn
+        }
         WorkKind::Reply => DeadlineClass::Ordinary,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,

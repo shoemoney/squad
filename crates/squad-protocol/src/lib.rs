@@ -34,3 +34,6 @@ pub use requests::*;
 pub use work::*;
 pub type MemberNick = Nick;
 pub type DateTime = chrono::DateTime<chrono::Utc>;
+
+pub mod grill;
+pub use grill::*;

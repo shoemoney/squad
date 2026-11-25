@@ -64,7 +64,7 @@ fn base(config: &SquadConfig) -> Inputs {
 impl PromptPack {
     /// Keep exactly the slots used by the selected composition. This also keeps
     /// member personas out of every judge composition.
-    fn selected(
+    pub(super) fn selected(
         &self,
         id: &str,
         mut values: Inputs,
@@ -333,7 +333,7 @@ impl PromptPack {
     }
 }
 
-fn member_inputs(
+pub(super) fn member_inputs(
     config: &SquadConfig,
     work: &Work,
     binding: &ExecutorBinding,
