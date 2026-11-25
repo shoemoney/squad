@@ -54,9 +54,17 @@ from wave 4.
 
 ## Validation
 
-The initial runtime checkpoint passed its two-round RoomHandle workflow. Subsequent
-focused validation passed all 15 core GRILL workflows and the real-runtime TUI test.
-Final workspace gates are recorded after completion in the branch's final report.
+Final gates passed on dev2 at code commit `f7df318`:
+
+- `CARGO_BUILD_JOBS=8 cargo test --workspace --no-fail-fast`: **908 passed,
+  0 failed, 2 pre-existing ignored**. Includes 15 GRILL room workflows, the
+  real-runtime TUI workflow and all other mode suites.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passed.
+- `cargo fmt --all --check`: passed.
+
+The two existing ignored tests concern the manual six-worker first-delta performance
+threshold and ordinary dispatch's missing priced reservation. No GRILL tests are
+ignored and no tests were deleted or disabled by this work.
 
 The earlier foundation suites remain enabled: typed payloads and work validation,
 maximum-path script, migration 0006 with later carrier rebuilds, floor records,
