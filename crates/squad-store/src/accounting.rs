@@ -302,20 +302,9 @@ fn reserve_dispatch(db: &Connection, grant: &ExecutionGrant, day: &str, max: i64
     let unit =
         reservation_micros(input as f64 * price("prompt")? + output as f64 * price("completion")?)
             .map_err(|_| unknown())?;
-    let limit: u32 = match grant.work.kind {
-        WorkKind::Judge
-        | WorkKind::JudgeTournament
-        | WorkKind::CensusMerge
-        | WorkKind::CensusFinal
-        | WorkKind::CrosscheckGoal
-        | WorkKind::CrosscheckNormalize
-        | WorkKind::CrosscheckRule
-        | WorkKind::SurveyExtract
-        | WorkKind::SurveyReport
-        | WorkKind::ProbeReport => 3,
-        _ => 2,
-    };
-    let remaining = limit.saturating_sub(grant.work.attempt - 1);
+    let limit = u32::from(constants::attempt_limit(&grant.work.kind));
+    // The attempt about to run is always reserved, so the amount cannot go negative.
+    let remaining = limit.saturating_sub(grant.work.attempt.saturating_sub(1)).max(1);
     let pool = format!("dispatch:{}", grant.work.work_id);
     transfer_unstarted(db, grant.work.work_id, day)?;
     let prior: Option<i64> = db

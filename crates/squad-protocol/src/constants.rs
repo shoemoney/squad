@@ -108,6 +108,22 @@ pub const FINAL_JUDGE_ATTEMPTS: u8 = 3;
 /// judge.round attempts including schema repairs.
 pub const ROUND_JUDGE_ATTEMPTS: u8 = 2;
 
+/// Permitted provider attempts for a work kind. The single source for retry
+/// policy and for the dispatch reservation, so the two cannot drift apart.
+pub fn attempt_limit(kind: &crate::WorkKind) -> u8 {
+    use crate::WorkKind;
+    match kind {
+        WorkKind::JudgeRound => ROUND_JUDGE_ATTEMPTS,
+        WorkKind::Judge
+        | WorkKind::CrosscheckGoal
+        | WorkKind::CrosscheckNormalize
+        | WorkKind::CrosscheckRule => FINAL_JUDGE_ATTEMPTS,
+        WorkKind::SurveyExtract | WorkKind::SurveyReport => 3,
+        WorkKind::ProbeReport => FINAL_JUDGE_ATTEMPTS,
+        _ => DEBATE_TURN_ATTEMPTS,
+    }
+}
+
 /// Tournament judge attempts including schema repairs.
 pub const TOURNAMENT_JUDGE_ATTEMPTS: u8 = 3;
 
