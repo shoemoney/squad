@@ -303,9 +303,9 @@
   - [ ] M4.P5.L6.T2 — `squad-tui/src/fx/dispatch.rs`: launch streak, spoke burst with narrow fallback, quote lasso.
   - [ ] M4.P5.L6.T3 — `squad-tui/src/fx/command.rs`: `/stop` brake, colour-only `/clear` wipe followed by a hard cut; preserve protected message-body glyphs during the pass.
 - **M4.P5.L7 — Debate effects**
-  - [ ] M4.P5.L7.T1 — `squad-tui/src/fx/particles.rs`: fixed pool of 256, gravity integrator, blank-cell-only drawing, seeded determinism test.
-  - [ ] M4.P5.L7.T2 — `squad-tui/src/fx/debate.rs`: versus card settling inline, score slam, tug bar, lead flip; snapshots.
-  - [ ] M4.P5.L7.T3 — `squad-tui/src/fx/filter.rs`: gay, metal and duotone filters as pure `(x, y, t) -> Color`, with 16-colour and `NO_COLOR` variants.
+  - [x] M4.P5.L7.T1 — `squad-tui/src/fx/particles.rs`: fixed pool of 256, gravity integrator, blank-cell-only drawing, seeded determinism test.
+  - [x] M4.P5.L7.T2 — `squad-tui/src/fx/debate.rs`: versus card settling inline, score slam, tug bar, lead flip; snapshots.
+  - [x] M4.P5.L7.T3 — `squad-tui/src/fx/filter.rs`: gay, metal and duotone filters as pure `(x, y, t) -> Color`, with 16-colour and `NO_COLOR` variants.
 - **M4.P5.L8 — Showpiece: round banner transition**
   - [ ] M4.P5.L8.T1 — `squad-tui/src/fx/banner.rs`: consume the shared `squad-core` banner text cache per (text, font, width); horizon unfold, glint, hold, settle, immediate settle on first token.
   - [ ] M4.P5.L8.T2 — `squad-tui/tests/fx_banner.rs`: snapshots at 0, 120, 280, 600, 900, 1600, 1900 ms for `ROUND 3`, `FINAL ROUND`, `OPENING` at 120x40 and 80x24, in all colour tiers.
