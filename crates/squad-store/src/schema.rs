@@ -9,15 +9,23 @@ pub fn configure(connection: &Connection) -> rusqlite::Result<()> {
 /// Apply the initial schema atomically, once. Foreign keys remain enabled.
 pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
     configure(connection)?;
-    let tx = connection.transaction()?;
-    let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    if version == 0 {
-        tx.execute_batch(INITIAL)?;
-        tx.pragma_update(None, "user_version", 1)?;
-    } else if version != 1 {
-        return Err(rusqlite::Error::InvalidQuery);
-    }
-    tx.commit()
+    let version: i64 = connection.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    if version > 2 { return Err(rusqlite::Error::InvalidQuery); }
+    // SQLite's documented table-rebuild procedure preserves incoming FKs.
+    connection.pragma_update(None, "foreign_keys", false)?;
+    let result = (|| {
+        let tx = connection.transaction()?;
+        if version == 0 { tx.execute_batch(INITIAL)?; }
+        if version < 2 {
+            tx.execute_batch(include_str!("../migrations/0002_crosscheck.sql"))?;
+            tx.pragma_update(None, "user_version", 2)?;
+        }
+        let violations: bool = tx.prepare("PRAGMA foreign_key_check")?.exists([])?;
+        if violations { return Err(rusqlite::Error::InvalidQuery); }
+        tx.commit()
+    })();
+    connection.pragma_update(None, "foreign_keys", true)?;
+    result
 }
 /// Validate a mode-specific reference against the shared contest table.
 /// Generic carriers do not confer admission or permission to execute that mode.

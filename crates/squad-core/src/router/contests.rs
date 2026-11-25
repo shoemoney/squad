@@ -54,7 +54,15 @@ impl Router {
                     InternalRequest::Transition {
                         envelope_id,
                         submission,
-                    } => super::debates::transition(tx, group, envelope_id, submission)?,
+                    } => {
+                        if let ContestTransition::Crosscheck(signal)=&submission.transition {
+                            let state=squad_store::crosscheck::state(tx,submission.contest_id)?;
+                            if state.state_version!=submission.expected_state_version {return Err(super::debates::invalid());}
+                            let setup:CrosscheckSetup=super::crosscheck::map(tx,state.contest_id,"crosscheck.setup")?;
+                            let next=crate::orchestrator::crosscheck::advance(&state,signal,setup.goal.is_none()).map_err(|_|super::debates::invalid())?;
+                            super::crosscheck::save(tx,group,&next,Some(state.state_version))?;
+                        } else { super::debates::transition(tx, group, envelope_id, submission)?; }
+                    },
                     InternalRequest::Produce { envelope } => {
                         if let EnvelopePayload::DebatePreflight(plan) = envelope.content {
                             return super::preflight::propose(tx, group, id, plan, max, threshold);
@@ -304,6 +312,7 @@ fn barrier(
     commit: BarrierCommit,
     bindings: &std::collections::BTreeMap<String, ExecutorBinding>,
 ) -> Result<()> {
+    if squad_store::schema::validate_contest_kind(tx,commit.contest_id,ContestKind::Crosscheck)? { return super::crosscheck::barrier(tx,group,commit); }
     let state = squad_store::contests::debate(tx, commit.contest_id)?;
     if state.state_version != commit.expected_state_version
         || state.state.is_terminal()
@@ -405,6 +414,10 @@ impl Router {
             "contest-engine".into(),
             digest,
             move |tx, group| {
+                if squad_store::schema::validate_contest_kind(tx,step.contest_id,ContestKind::Crosscheck)? {
+                    super::crosscheck::allocate(tx,group,step,projections,work,private_maps,&bindings)?;
+                    return Ok(group.accepted(request_id));
+                }
                 let state = squad_store::contests::debate(tx, step.contest_id)?;
                 if state.state.is_terminal()
                     || (!work.is_empty()

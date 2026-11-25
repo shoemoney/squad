@@ -138,6 +138,27 @@ pub struct Completion {
 pub enum EnvelopePayload {
     #[serde(rename = "user.message")]
     UserMessage(UserMessage),
+    #[serde(rename = "crosscheck.setup")]
+    CrosscheckSetup(CrosscheckSetup),
+    #[serde(rename = "crosscheck.state")]
+    CrosscheckState(CrosscheckState),
+    #[serde(rename = "crosscheck.preflight")]
+    CrosscheckPreflight(CrosscheckPreflight),
+    #[serde(rename = "crosscheck.goal")]
+    CrosscheckGoal(CrosscheckGoal),
+    #[serde(rename = "crosscheck.inventory")]
+    CrosscheckInventory(CrosscheckInventory),
+    #[serde(rename = "crosscheck.grid")]
+    CrosscheckGrid(CrosscheckGrid),
+    #[serde(rename = "crosscheck.review")]
+    CrosscheckReview(CrosscheckReview),
+    #[serde(rename = "crosscheck.audit")]
+    CrosscheckAudit(CrosscheckAudit),
+    #[serde(rename = "crosscheck.acceptance")]
+    CrosscheckAcceptance(CrosscheckAcceptance),
+    #[serde(rename = "crosscheck.report")]
+    CrosscheckReport(CrosscheckReport),
+
     #[serde(rename = "agent.reply")]
     AgentReply(Completion),
     #[serde(rename = "message.final")]
@@ -659,6 +680,11 @@ fn validate_envelope(
             "invalid opening",
         )?,
         EnvelopePayload::DebateSetup(setup) => setup.validate()?,
+        EnvelopePayload::CrosscheckSetup(v) => v.validate()?,
+        EnvelopePayload::CrosscheckState(v) => v.validate()?,
+        EnvelopePayload::CrosscheckPreflight(v) => v.validate()?,
+        EnvelopePayload::CrosscheckInventory(v) => v.response.validate()?,
+        EnvelopePayload::CrosscheckGoal(_) | EnvelopePayload::CrosscheckGrid(_) | EnvelopePayload::CrosscheckReview(_) | EnvelopePayload::CrosscheckAudit(_) | EnvelopePayload::CrosscheckAcceptance(_) | EnvelopePayload::CrosscheckReport(_) => {},
         EnvelopePayload::DebateState(state) => state.validate()?,
         EnvelopePayload::DebateTurn(turn) => {
             generation(&turn.generation)?;
@@ -761,7 +787,7 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            submission.kind == ContestKind::Debate,
+            matches!((&submission.kind, &submission.transition), (ContestKind::Debate, ContestTransition::Debate(_)) | (ContestKind::Crosscheck, ContestTransition::Crosscheck(_))),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {

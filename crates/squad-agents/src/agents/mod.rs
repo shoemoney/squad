@@ -1,5 +1,6 @@
 //! Per-kind executors share attempt-scoped streaming and ingress fencing.
 pub mod member;
+pub mod crosscheck;
 use crate::{
     accounting::{AttemptAccounting, acknowledged},
     openrouter::*,
@@ -43,6 +44,8 @@ pub async fn stream_attempt(
     forward_deltas: bool,
 ) -> Result<StreamOutput, ExecutionError> {
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
+        WorkKind::CrosscheckMember => DeadlineClass::DebateTurn,
+        WorkKind::CrosscheckJudge => DeadlineClass::FinalJudge,
         WorkKind::Reply => DeadlineClass::Ordinary,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,

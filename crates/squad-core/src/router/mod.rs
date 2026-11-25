@@ -4,6 +4,7 @@ pub mod authorization;
 pub mod cases;
 pub mod clear;
 pub mod contests;
+pub(crate) mod crosscheck;
 pub mod debates;
 pub mod ephemeral;
 pub mod executor;
@@ -242,6 +243,8 @@ impl Router {
         let digest = squad_store::commit::digest(&request)?;
         let roster = self.roster.clone();
         let bindings = self.bindings.clone();
+        let self_threshold = self.confirmation_threshold;
+        let max = self.daily_max;
         let clear = matches!(request, Request::Clear { .. });
         let defaults = self.variable_defaults;
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
@@ -252,6 +255,7 @@ impl Router {
                     let authoritative=match parse(input.text.as_str(),&meta,&ctx) {Ok(parsed)=>parsed,Err(e)=>return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)})};
                     if authoritative!=parsed {return Err(StoreError::Domain(ErrorCode::INVALID_COMMAND,"Parsed input does not match authoritative state"));}
                     if matches!(parsed,ParsedInput::QuestionFirst {..}) {picks::collect(tx,group,id,input,parsed,&bindings)?;return Ok(group.accepted(id));}
+                    if matches!(parsed,ParsedInput::Crosscheck{..}) { return crosscheck::prepare(tx,group,id,input,parsed,&bindings,max,self_threshold,preconfirmed); }
                     if let ParsedInput::Debate {input:conversation,..}=&parsed {
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
                         let request=Request::UserMessage {input,parsed,preconfirmed};
@@ -523,7 +527,7 @@ impl Router {
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
-                        EnvelopePayload::ContestArtifact(artifact)=>squad_store::contest_steps::artifact(tx,artifact,seq)?,
+                        EnvelopePayload::ContestArtifact(artifact)=>{ if matches!(work.kind,WorkKind::CrosscheckMember|WorkKind::CrosscheckJudge) {crosscheck::validate_artifact(tx,&work,artifact)?;} squad_store::contest_steps::artifact(tx,artifact,seq)?; },
                         _ => return Err(authorization::forbidden()),
                     }
                     let status=if matches!(&output,EnvelopePayload::DebateRoundScore(score) if score.scores.is_none()){WorkStatus::Failed}else{WorkStatus::Completed};
