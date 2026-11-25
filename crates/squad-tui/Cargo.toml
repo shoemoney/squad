@@ -20,6 +20,7 @@ unicode-width = "0.2"
 unicode-segmentation = "1"
 
 [dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }
 insta = { workspace = true }
 proptest = { workspace = true }
 criterion = "0.7"
