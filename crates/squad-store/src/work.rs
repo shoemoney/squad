@@ -81,13 +81,29 @@ pub fn insert(
             |r| r.get(0),
         )?;
         if let Some(raw) = raw {
-            let plan: DebatePreflight = decode(raw)?;
-            let total = crate::accounting::reservation_micros(plan.estimate.reserved_usd)
+            let (plan_id, reserved_usd, reserved_calls) =
+                if work.kind.census_composition().is_some() {
+                    let plan: ContestPreflight = decode(raw)?;
+                    let setup = crate::census::setup(db, contest)?;
+                    (
+                        plan.plan_id,
+                        plan.estimate.reserved_usd,
+                        setup.reserved_calls(),
+                    )
+                } else {
+                    let plan: DebatePreflight = decode(raw)?;
+                    (
+                        plan.plan_id,
+                        plan.estimate.reserved_usd,
+                        plan.reserved_calls(),
+                    )
+                };
+            let total = crate::accounting::reservation_micros(reserved_usd)
                 .map_err(|_| invalid("Invalid plan reservation"))?;
             // Equal integral shares of the frozen aggregate attempt reserve.
             // The sub-call rounding remainder stays reserved at plan scope.
-            let share = total / i64::from(plan.reserved_calls());
-            meta["planId"] = serde_json::json!(plan.plan_id);
+            let share = total / i64::from(reserved_calls);
+            meta["planId"] = serde_json::json!(plan_id);
             meta["attemptReservationMicros"] = serde_json::json!(share);
         }
     }

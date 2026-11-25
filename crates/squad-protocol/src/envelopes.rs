@@ -751,13 +751,46 @@ fn validate_envelope(
             )?;
             completed(&ruling.completed, ruling.content.as_str())?;
         }
-        EnvelopePayload::CensusSetup(s) => { ensure(base.sender == Actor::System && human_only, "census setup requires system")?; s.validate()?; }
-        EnvelopePayload::CensusState(s) => { ensure(base.sender == Actor::System && human_only, "census state requires system")?; s.validate()?; }
-        EnvelopePayload::CensusPlan(_) | EnvelopePayload::CensusCaseMaterial(_) => ensure(base.sender == Actor::System && human_only, "census material requires system")?,
-        EnvelopePayload::CensusHunt(h) => { ensure(base.sender == Actor::Member(h.member.clone()) && human_only, "hunt requires assigned member")?; h.output.validate()?; }
-        EnvelopePayload::CensusLedger(_) => ensure(base.sender == Actor::Judge && human_only, "ledger requires judge")?,
-        EnvelopePayload::CensusRating(r) => ensure(base.sender == Actor::Member(r.member.clone()) && human_only, "rating requires assigned member")?,
-        EnvelopePayload::CensusReport(r) => { ensure(base.sender == Actor::System && human_only, "report requires system")?; r.validate()?; }
+        EnvelopePayload::CensusSetup(s) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "census setup requires system",
+            )?;
+            s.validate()?;
+        }
+        EnvelopePayload::CensusState(s) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "census state requires system",
+            )?;
+            s.validate()?;
+        }
+        EnvelopePayload::CensusPlan(_) | EnvelopePayload::CensusCaseMaterial(_) => ensure(
+            base.sender == Actor::System && human_only,
+            "census material requires system",
+        )?,
+        EnvelopePayload::CensusHunt(h) => {
+            ensure(
+                base.sender == Actor::Member(h.member.clone()) && human_only,
+                "hunt requires assigned member",
+            )?;
+            h.output.validate()?;
+        }
+        EnvelopePayload::CensusLedger(_) => ensure(
+            base.sender == Actor::Judge && human_only,
+            "ledger requires judge",
+        )?,
+        EnvelopePayload::CensusRating(r) => ensure(
+            base.sender == Actor::Member(r.member.clone()) && human_only,
+            "rating requires assigned member",
+        )?,
+        EnvelopePayload::CensusReport(r) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "report requires system",
+            )?;
+            r.validate()?;
+        }
         EnvelopePayload::ContestSetup(setup) => {
             ensure(
                 setup.kind != ContestKind::Debate
@@ -785,7 +818,11 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            matches!((&submission.kind, &submission.transition), (ContestKind::Debate, ContestTransition::Debate(_)) | (ContestKind::Census, ContestTransition::Census(_))),
+            matches!(
+                (&submission.kind, &submission.transition),
+                (ContestKind::Debate, ContestTransition::Debate(_))
+                    | (ContestKind::Census, ContestTransition::Census(_))
+            ),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {

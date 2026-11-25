@@ -25,3 +25,5 @@ pub mod writer;
 pub use error::{Result, StoreError};
 pub use writer::Store;
 pub mod contest_steps;
+
+pub mod census;

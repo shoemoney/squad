@@ -136,6 +136,14 @@ pub fn failed(
         // receives a repair attempt. The shared policy still chooses the outcome.
         let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
         let decision=crate::orchestrator::rounds::failure_policy(work_id,&work.kind,attempt,budget,repair_used,failure_class);
+        if work.kind.census_composition().is_some() && attempt < if work.kind.census_judge(){3}else{2} {
+            if let Some(repair)=repair {
+                if !work.kind.census_judge() || repair.attempt!=attempt+1 || failure.code!=ErrorCode::JUDGE_INVALID_MODE_OUTPUT {return Err(super::authorization::forbidden());}
+                squad_store::judge_repairs::save(tx,work_id,work.case_id.ok_or(StoreError::Unavailable)?,&repair)?;
+            }
+            tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL WHERE work_id=?",[work_id.to_string()])?;
+            return Ok(group.accepted(id));
+        }
         if let Some(repair) = repair {
             if !matches!(decision, crate::orchestrator::types::AttemptDecision::Retry { repair: true, .. }) { return Err(super::authorization::forbidden()); }
             let limit = u32::from(if work.kind == WorkKind::JudgeRound { constants::ROUND_JUDGE_ATTEMPTS } else { constants::FINAL_JUDGE_ATTEMPTS });

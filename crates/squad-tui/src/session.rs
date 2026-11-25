@@ -150,6 +150,7 @@ pub struct Session {
     pub debate_messages: BTreeSet<MessageId>,
     pub debate_streams: BTreeMap<MessageId, Delta>,
     pub cases: BTreeMap<CaseId, crate::widgets::case::CaseView>,
+    pub census: BTreeMap<ContestId, crate::widgets::census::CensusView>,
     pub stream_started: BTreeMap<MessageId, Duration>,
     pub stream_rates: BTreeMap<Nick, f64>,
 }
@@ -166,6 +167,7 @@ impl Session {
         self.debate_streams.clear();
         self.debate_messages.clear();
         self.cases.clear();
+        self.census.clear();
         self.pick = None;
         self.transcript.clear();
         // Reduce history, then restore the newer authoritative room snapshot.
@@ -216,6 +218,7 @@ impl Session {
     fn restore_contest(&mut self, state: ContestState) {
         let id = match &state {
             ContestState::Generic(s) => s.contest_id,
+            ContestState::Census(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Selection(s) => {
                 if s.state == ContestSelectionStatus::AwaitingPick {
@@ -624,6 +627,20 @@ impl Session {
                     eligible: p.eligible.clone(),
                 });
             }
+            EnvelopePayload::CensusSetup(s) => {
+                self.census.entry(s.contest_id).or_default();
+                cue=Some(FxCue::ModeBannerReady{contest_id:s.contest_id.to_string().parse().expect("UUID"),mode:crate::fx::ReportMode::Census});
+            }
+            EnvelopePayload::CensusPlan(p) => {self.census.entry(p.contest_id).or_default().plans.push(p.clone());}
+            EnvelopePayload::CensusState(s) => {
+                self.census.entry(s.contest_id).or_default().state=Some(s.clone());
+                self.restore_contest(ContestState::Census(s.clone()));
+                self.snapshot.context.active_contest=(!s.status.is_terminal()).then(||ContestState::Census(s.clone()));
+            }
+            EnvelopePayload::CensusReport(r) => {
+                self.census.entry(r.contest_id).or_default().reports.push(r.clone());
+                cue=Some(FxCue::CensusEstimateReady{contest_id:r.contest_id.to_string().parse().expect("UUID"),pass:u32::from(r.pass)});
+            }
             EnvelopePayload::DebatePreflight(p) => self
                 .snapshot
                 .preflights
@@ -647,6 +664,7 @@ impl Session {
                 self.debate_streams.clear();
                 self.debate_messages.clear();
                 self.cases.clear();
+        self.census.clear();
                 self.pick = None;
                 self.snapshot.context.records.clear();
                 self.snapshot.context.active_contest = None;
@@ -710,6 +728,7 @@ impl Session {
 }
 pub fn contest_active(s: &ContestState) -> bool {
     match s {
+        ContestState::Census(s) => !s.status.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing

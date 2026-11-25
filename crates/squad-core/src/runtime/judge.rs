@@ -22,6 +22,9 @@ impl squad_agents::worker::WorkExecutor for Executor {
         grant: ExecutionGrant,
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
+        if grant.work.kind.census_judge() {
+            return self.0.runner.execute(context, grant, cancel);
+        }
         self.0.execute(context, grant, cancel)
     }
 }
@@ -33,6 +36,26 @@ impl JudgeAttemptRunner for Runner {
         cancel: CancellationToken,
     ) -> JudgeExecutionFuture<'a> {
         Box::pin(async move {
+            if grant.work.kind.census_composition().is_some() {
+                let model = self
+                    .models
+                    .get(grant.binding.model.as_str())
+                    .ok_or(ReaderError::NotRunnable)?;
+                let registry = squad_agents::registry::Registry::new(&self.config)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let request = registry
+                    .work_request(None, model, &grant)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let executor = squad_agents::agents::census::CensusExecutor {
+                    client: self.client.clone(),
+                    request,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
             let prepared = self.prepare(context, &mut grant).await;
             let (request, debaters, tally, invocation, rubric) = match prepared {
                 Ok(prepared) => prepared,

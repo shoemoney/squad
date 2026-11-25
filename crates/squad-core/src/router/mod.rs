@@ -2,6 +2,7 @@
 pub mod accounting;
 pub mod authorization;
 pub mod cases;
+pub mod census;
 pub mod clear;
 pub mod contests;
 pub mod debates;
@@ -131,6 +132,9 @@ impl Router {
             && let Some(scope) = &mut self.engine_scope
         {
             for event in &outcome.events {
+                if let EnvelopePayload::CensusState(s) = &event.content {
+                    scope.insert(s.contest_id);
+                }
                 if let EnvelopePayload::DebateState(s) = &event.content {
                     scope.insert(s.debate_id);
                 }
@@ -244,6 +248,9 @@ impl Router {
         let bindings = self.bindings.clone();
         let clear = matches!(request, Request::Clear { .. });
         let defaults = self.variable_defaults;
+        let config = self.engine_config.clone();
+        let max = self.daily_max;
+        let threshold = self.confirmation_threshold;
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
             match request {
                 Request::UserMessage {input,parsed,preconfirmed}=> {
@@ -257,6 +264,9 @@ impl Router {
                         let request=Request::UserMessage {input,parsed,preconfirmed};
                         debates::prepare(tx,group,id,&request,&bindings)?;
                         return Ok(group.accepted(id));
+                    }
+                    if matches!(parsed,ParsedInput::Census {..}) {
+                        return census::prepare(tx,group,id,input,parsed,preconfirmed,&bindings,config.as_ref().ok_or(StoreError::Domain(ErrorCode::NOT_READY,"Census requires runtime configuration"))?,max,threshold);
                     }
                     if let ParsedInput::Judge {input:conversation,question,..}=&parsed {
                         let binding=bindings.get("judge").ok_or(StoreError::Domain(ErrorCode::CONFIG_INVALID,"Judge binding is unavailable"))?;
@@ -288,6 +298,7 @@ impl Router {
                             continue;
                         }
                         let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING') AND EXISTS(SELECT 1 FROM json_each(json_extract(state_json,'$.debaters')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?;
+                        let held=if held.is_some(){held}else{tx.query_row("SELECT c.contest_id FROM contests c JOIN census_runs r ON r.contest_id=c.contest_id WHERE c.active=1 AND json_extract(c.state_json,'$.status') NOT IN ('PREFLIGHT','WAITING_FOR_PLAN') AND EXISTS(SELECT 1 FROM json_each(json_extract(r.setup_json,'$.participants')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?};
                         let held=held.map(|id|id.parse().map_err(|_|StoreError::Unavailable)).transpose()?;
                         let projection=squad_store::history::attributed(&event,ContextId(nick.to_string()),"ordinary.input",HistoryRole::User,None,content.clone());
                         if let Some(contest)=held {squad_store::history::defer(tx,contest,&projection)?;}else{squad_store::history::project(tx,&projection)?;}
@@ -295,8 +306,14 @@ impl Router {
                         squad_store::work::insert(tx,&work,&bindings[nick.as_str()],held)?;
                     }
                 }
-                Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,false),
-                Request::DebateCancel {debate_id,plan_id,..}|Request::ContestCancel {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,true),
+                Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>{
+                    if squad_store::schema::validate_contest_kind(tx,debate_id,ContestKind::Census)? { return census::resolve(tx,group,id,debate_id,plan_id,false); }
+                    return preflight::resolve(tx,group,id,debate_id,plan_id,false);
+                },
+                Request::DebateCancel {debate_id,plan_id,..}|Request::ContestCancel {contest_id:debate_id,plan_id,..}=>{
+                    if squad_store::schema::validate_contest_kind(tx,debate_id,ContestKind::Census)? { return census::resolve(tx,group,id,debate_id,plan_id,true); }
+                    return preflight::resolve(tx,group,id,debate_id,plan_id,true);
+                },
                 Request::ContestPick {contest_id,nicks,..}=>{
                     let ctx=snapshot(tx,roster.clone())?;
                     if ctx.pending_pick.as_ref().is_none_or(|p|p.contest_id!=contest_id) {return Err(StoreError::Domain(ErrorCode::CONTEST_NOT_FOUND,"Contest not found"));}
@@ -312,6 +329,7 @@ impl Router {
                     let state=squad_store::contests::debate(tx,debate_id)?;
                     debates::transition(tx,group,id,ContestTransitionSubmission {contest_id:debate_id,kind:ContestKind::Debate,expected_state_version:state.state_version,transition:ContestTransition::Debate(DebateTransition::JudgeOnlyRequested)})?;
                 },
+                Request::CensusContinue {contest_id,expected_state_version,plan_event_id,replacement_text,..}=>census::continue_plan(tx,group,id,contest_id,expected_state_version,plan_event_id,replacement_text)?,
                 Request::SetVars {updates,..}=>variables::apply(tx,group,id,&updates)?,
                 Request::Stop {target,..}=>stop::apply(tx,group,id,target)?,
                 Request::Retry {work_id,..}=>retry::apply(tx,group,id,work_id)?,
@@ -523,6 +541,7 @@ impl Router {
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
+                        EnvelopePayload::ContestArtifact(artifact) if work.kind.census_composition().is_some()=>squad_store::census::accept(tx,&work,artifact,seq)?,
                         EnvelopePayload::ContestArtifact(artifact)=>squad_store::contest_steps::artifact(tx,artifact,seq)?,
                         _ => return Err(authorization::forbidden()),
                     }
@@ -815,6 +834,8 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
                 });
             }
             ctx.active_contest = Some(ContestState::Selection(state));
+        } else if let Ok(state) = serde_json::from_str::<CensusState>(&raw) {
+            ctx.active_contest = Some(ContestState::Census(state));
         } else {
             ctx.active_contest = Some(ContestState::Debate(serde_json::from_str(&raw)?));
         }

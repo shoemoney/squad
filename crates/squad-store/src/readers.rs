@@ -107,6 +107,7 @@ impl WorkReader for ScopedReaders {
             let record = owned(db, owner, id)?;
             if record.status != WorkStatus::Running || !record.runnable { return Err(ReaderError::NotRunnable); }
             let work = record.executable.ok_or(ReaderError::NotRunnable)?;
+            if work.kind.census_composition().is_some() { return crate::census::input(db,id).map_err(map_error); }
             let mut values = std::collections::BTreeMap::new();
             if let Some(case) = work.case_id {
                 if !matches!(owner, ExecutorKey::Case(owned) if *owned == case) { return Err(ReaderError::Forbidden); }

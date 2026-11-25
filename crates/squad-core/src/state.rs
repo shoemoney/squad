@@ -149,6 +149,8 @@ pub fn snapshot(
                 serde_json::from_str(&json)
                     .map(ContestState::Debate)
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
+            } else if kind == "census" {
+                serde_json::from_str(&json).map(ContestState::Census)
             } else {
                 serde_json::from_str(&json)
                     .map(ContestState::Selection)

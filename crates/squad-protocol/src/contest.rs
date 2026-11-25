@@ -255,7 +255,11 @@ impl ContestTransitionSubmission {
             self.kind == ContestKind::Debate,
             "transition kind does not match debate",
         )?;
-        let ContestTransition::Debate(transition) = self.transition else { return Err(crate::validation::ValidationError { message: "expected debate transition".into() }); };
+        let ContestTransition::Debate(transition) = self.transition else {
+            return Err(crate::validation::ValidationError {
+                message: "expected debate transition".into(),
+            });
+        };
         Ok((self.contest_id, self.expected_state_version, transition))
     }
 }
