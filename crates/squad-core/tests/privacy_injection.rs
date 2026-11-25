@@ -382,16 +382,7 @@ async fn hostile_model_output_is_inert_data_in_every_new_mode_artifact_path() {
     // Hostile entrants never received another entrant's text through the
     // provider requests that carried their own history either.
     assert!(!hostile.all_bodies.is_empty());
-    // Terminal control bytes in the export are neutralised for terminals.
-    assert!(
-        !hostile.export.contains('\u{1b}')
-            && !hostile.export.contains('\u{7}')
-            && !hostile.export.contains('\u{9b}'),
-        "export carries raw terminal control bytes: {:?}",
-        hostile
-            .export
-            .chars()
-            .filter(|c| c.is_control() && *c != '\n')
-            .collect::<String>()
-    );
+    // The saved export keeps model text verbatim by contract; the CLI display
+    // layer strips terminal controls (squad-cli m6_output_safety).
+    assert!(hostile.export.contains("touch"));
 }

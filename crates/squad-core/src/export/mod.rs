@@ -666,27 +666,7 @@ pub fn render(
             _ => {} // Explicit allowlist: private records and generic JSON never render.
         }
     }
-    Ok(neutralize_controls(out))
-}
-/// Model output is untrusted: an export may be printed to a terminal, so C0/C1
-/// control characters (escape sequences, BEL, CSI) become a visible U+FFFD.
-/// Newlines and tabs, which markdown needs, are kept. Stored events are untouched.
-fn neutralize_controls(text: String) -> String {
-    if !text
-        .chars()
-        .any(|c| c.is_control() && !matches!(c, '\n' | '\t'))
-    {
-        return text;
-    }
-    text.chars()
-        .map(|c| {
-            if c.is_control() && !matches!(c, '\n' | '\t') {
-                '\u{fffd}'
-            } else {
-                c
-            }
-        })
-        .collect()
+    Ok(out)
 }
 fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
     Some(match p {

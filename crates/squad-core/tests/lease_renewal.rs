@@ -21,7 +21,7 @@ fn lease(f: &Fixture, work: WorkId) -> (String, Option<String>) {
 fn renewal_is_a_third_of_the_lease_contract() {
     assert_eq!(constants::WORK_LEASE_MS, 60_000);
     assert_eq!(constants::WORK_LEASE_RENEWAL_MS, 20_000);
-    assert!(constants::WORK_LEASE_RENEWAL_MS * 3 <= constants::WORK_LEASE_MS);
+    const { assert!(constants::WORK_LEASE_RENEWAL_MS * 3 <= constants::WORK_LEASE_MS) };
 }
 
 #[tokio::test(start_paused = true)]
