@@ -14,8 +14,9 @@ Sources: 01900000-0000-7000-8000-000000000002
 Pass 1 · @member0 · lens failure modes · 0
 findings
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule
-unresolved.
+Found 1; estimated 0.0 to 0.0 still unfound.
+Plausible range: Chao (1987) log-normal
+interval around the Chao1 estimate.
 Models share blind spots; the true number
 still unfound is at least this estimate.
 - Confirmed: Missing rollback — A failed
@@ -29,7 +30,8 @@ Covered citation · Recovery section: Restore
 from backup
 Missing: @member2 · census.hunt
 Chao1 provenance: f1=1, f2=0,
-branch=zero_doubletons, unrounded U=0; input
+branch=zero_doubletons, unrounded U=0;
+found=1, estimateLow=0, estimateHigh=0; input
 gaps: g1
 Discovery curve
 Pass 1 · plan 1: new 1, cumulative 1,
@@ -48,8 +50,9 @@ Sources: 01900000-0000-7000-8000-000000000002
 Pass 1 · @member0 · lens failure modes · 0
 findings
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule
-unresolved.
+Found 1; estimated 0.0 to 0.0 still unfound.
+Plausible range: Chao (1987) log-normal
+interval around the Chao1 estimate.
 Models share blind spots; the true number
 still unfound is at least this estimate.
 - Confirmed: Missing rollback — A failed
@@ -62,7 +65,8 @@ Covered citation · Recovery section: Restore
 from backup
 Missing: @member2 · census.hunt
 Chao1 provenance: f1=1, f2=0,
-branch=zero_doubletons, unrounded U=0; input
+branch=zero_doubletons, unrounded U=0;
+found=1, estimateLow=0, estimateHigh=0; input
 gaps: g1
 Discovery curve
 Pass 1 · plan 1: new 1, cumulative 1,
@@ -79,7 +83,8 @@ Plan 2: Revised database plan.
 Sources: 01900000-0000-7000-8000-000000000002
 Pass 1 · @member0 · lens failure modes · 0 findings
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Found 1; estimated 0.0 to 0.0 still unfound.
+Plausible range: Chao (1987) log-normal interval around the Chao1 estimate.
 Models share blind spots; the true number still unfound is at least this estimate.
 - Confirmed: Missing rollback — A failed release may cause an outage
 Finders (1): F7: member-by-gap details · lens: failure modes · accepted ratings: 3
@@ -88,7 +93,8 @@ Priority: Prevent a prolonged outage
 Singleton: the other members missed this gap.
 Covered citation · Recovery section: Restore from backup
 Missing: @member2 · census.hunt
-Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; input gaps: g1
+Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; found=1,
+estimateLow=0, estimateHigh=0; input gaps: g1
 Discovery curve
 Pass 1 · plan 1: new 1, cumulative 1, singletons 1
 Send singletons to $grill. Stop census first to release its active-contest claim.
@@ -102,7 +108,8 @@ Plan 2: Revised database plan.
 Sources: 01900000-0000-7000-8000-000000000002
 Pass 1 · @member0 · lens failure modes · 0 findings
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Found 1; estimated 0.0 to 0.0 still unfound.
+Plausible range: Chao (1987) log-normal interval around the Chao1 estimate.
 Models share blind spots; the true number still unfound is at least this estimate.
 - Confirmed: Missing rollback — A failed release may cause an outage
 Finders (1): member0 · lens: failure modes · accepted ratings: 3 (covered 1, trivial 0)
@@ -110,7 +117,8 @@ Priority: Prevent a prolonged outage
 Singleton: the other members missed this gap.
 Covered citation · Recovery section: Restore from backup
 Missing: @member2 · census.hunt
-Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; input gaps: g1
+Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; found=1,
+estimateLow=0, estimateHigh=0; input gaps: g1
 Discovery curve
 Pass 1 · plan 1: new 1, cumulative 1, singletons 1
 Send singletons to $grill. Stop census first to release its active-contest claim.

@@ -6,9 +6,19 @@ pub fn report_text(report: &CensusReport) -> String {
 }
 pub fn report_text_with_details(report: &CensusReport, details: bool) -> String {
     let mut out = format!(
-        "CENSUS · pass {} · plan version {}\n\n{}\n{}\n\n",
-        report.pass, report.plan_version, CENSUS_RANGE_UNAVAILABLE, CENSUS_CAVEAT
+        "CENSUS · pass {} · plan version {}\n\n{}\n",
+        report.pass,
+        report.plan_version,
+        report.headline()
     );
+    if report.estimate_low.is_some() {
+        let _ = writeln!(out, "{CENSUS_RANGE_NOTE}");
+    }
+    let _ = writeln!(out, "{CENSUS_CAVEAT}");
+    if report.quiet() {
+        let _ = writeln!(out, "{CENSUS_QUIET}");
+    }
+    out.push('\n');
     for gap in &report.gaps {
         let _ = writeln!(
             out,
@@ -64,11 +74,16 @@ pub fn report_text_with_details(report: &CensusReport, details: bool) -> String 
     }
     let _ = writeln!(
         out,
-        "\nChao1 provenance: f1={}, f2={}, branch={}, unrounded U={}; input gaps: {}",
+        "\nChao1 provenance: f1={}, f2={}, branch={}, unrounded U={}; found={}, estimateLow={}, estimateHigh={}; input gaps: {}",
         report.f1,
         report.f2,
         report.formula_branch,
         report.unseen,
+        report.found(),
+        report.estimate_low.map_or("null".into(), |v| v.to_string()),
+        report
+            .estimate_high
+            .map_or("null".into(), |v| v.to_string()),
         report
             .input_gap_ids
             .iter()

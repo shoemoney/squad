@@ -236,7 +236,11 @@ async fn complete_pass_wait_continue_restart_and_clear() {
     let report: CensusReport = serde_json::from_str(&raw).unwrap();
     assert_eq!(report.f1, 0);
     assert_eq!(report.gaps[0].finders.len(), 6);
-    assert_eq!(report.estimate_low, None);
+    assert_eq!(report.estimate_low, Some(0.0));
+    assert_eq!(
+        report.headline(),
+        "Found 1; estimated 0.0 to 0.0 still unfound."
+    );
     assert!(!report.quiet());
     report.validate().unwrap();
     room.shutdown().await.unwrap();
@@ -543,7 +547,12 @@ async fn restart_mid_hunt_reuses_accepted_outputs_and_stop_fences_work() {
         .export(ExportScope::Census, Some(contest.parse().unwrap()))
         .await
         .unwrap();
-    assert!(export.contains(CENSUS_RANGE_UNAVAILABLE));
+    assert!(export.contains("Found 1; estimated 0.0 to 0.0 still unfound."));
+    assert!(export.contains(CENSUS_RANGE_NOTE));
+    assert!(export.contains(CENSUS_CAVEAT));
+    assert!(export.contains("estimateLow=0, estimateHigh=0"));
+    assert!(export.contains("f1=0, f2=0"));
+    assert!(!export.to_lowercase().contains("confidence"));
     assert!(export.contains("Finder"));
     assert!(!export.contains("tieBreakSeed"));
     assert!(!export.contains("census.prompts"));

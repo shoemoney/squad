@@ -17,9 +17,7 @@
 
 - How should one `@judge` message quoting verdicts from multiple cases select its case?
 - How should multiple tournament forfeits in the same round be ordered to choose the single eliminated entrant?
-- What deterministic method converts the census Chao1 point estimate into the required `{lo}` to `{hi}` range, including zero-doubleton and zero-discovery cases?
 
 **Hardening and launch**
 
-- What deterministic rule produces the census estimate range `{lo}` to `{hi}` from the specified Chao1 value, and which value is compared with 2 for the quiet condition? FEATURES2.md specifies the point estimate and requires a range but does not define either rule.
 - When crosscheck has fewer than five closed cells, what sampling rule should each auditor use? FEATURES2.md requires five sampled closures per auditor but does not define this case.

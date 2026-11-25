@@ -8,7 +8,7 @@ fn text(value: &str) -> Text {
     Text::new(value).unwrap()
 }
 #[test]
-fn committed_states_and_unavailable_range_snapshot() {
+fn committed_states_and_nothing_found_snapshot() {
     let id: ContestId = "01900000-0000-7000-8000-000000000001".parse().unwrap();
     let mut result = String::new();
     for status in [
@@ -132,8 +132,8 @@ fn finder_drilldown_sources_and_lenses_at_both_widths() {
         f2: 0,
         formula_branch: text("zero_doubletons"),
         unseen: 0.0,
-        estimate_low: None,
-        estimate_high: None,
+        estimate_low: Some(0.0),
+        estimate_high: Some(0.0),
         discovery: vec![CensusDiscovery {
             pass: 1,
             plan_version: 1,

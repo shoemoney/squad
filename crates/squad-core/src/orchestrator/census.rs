@@ -229,6 +229,12 @@ pub fn report(
         cumulative_confirmed: known.len() as u32,
         singletons: f1,
     });
+    let found = gaps
+        .iter()
+        .filter(|g| g.disposition == CensusDisposition::Confirmed)
+        .count() as u32
+        + additions.len() as u32;
+    let range = census_range(f1, f2, found);
     CensusReport {
         contest_id: id,
         pass,
@@ -241,8 +247,8 @@ pub fn report(
         f2,
         formula_branch: Text::new(branch).expect("branch"),
         unseen,
-        estimate_low: None,
-        estimate_high: None,
+        estimate_low: range.map(|r| r.0),
+        estimate_high: range.map(|r| r.1),
         discovery,
     }
 }

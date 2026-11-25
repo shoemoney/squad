@@ -12,6 +12,7 @@ macOS arm64 installation evidence remain pending the owner's decision.
 
 ### Added
 
+- Census estimate range: Chao (1987) log-normal plausible range around the Chao1 estimate, `Nothing found yet.` when empty, and a real `Census is quiet. Good place to stop.` condition (upper bound below 2, no new gap, full participation, no unresolved ratings).
 - Six-crate Rust workspace (protocol, store, agents, core, TUI, CLI), licensed
   Apache-2.0, with a single `squad` binary.
 - CLI surface: `squad` (TUI), `send` (text and `--json` records, `--yes`

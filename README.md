@@ -710,7 +710,7 @@ Find omissions in a plan. Members hunt blind, the judge merges and the members r
 
 The report shows `f1`, `f2`, which formula branch was used, the unrounded `U`, and the input gap ids.
 
-**Estimate range and caveat:** this build does **not** show a low-to-high range. The report says `Estimate range unavailable; range rule unresolved.` and then gives this caveat:
+**Estimate range and caveat:** the report shows `Found {n}; estimated {lo} to {hi} still unfound.` with both numbers rounded to one decimal. The range is the Chao (1987) log-normal interval around `U`: with variance `f2·[½(f1/f2)² + (f1/f2)³ + ¼(f1/f2)⁴]` when `f2 > 0` (else `f1(f1−1)/2 + f1(2f1−1)²/4 − f1⁴/(4·Ŝ)`, `Ŝ` = found + `U`), `K = exp(1.96·√ln(1 + var/U²))`, `lo = U/K`, `hi = U·K`. It is a plausible range, not a statistical guarantee. `U = 0` gives `0.0 to 0.0`. With nothing confirmed it says `Nothing found yet.` The unrounded bounds, `f1`, `f2`, the branch and the input gaps are stored in the report and the export. Caveat on every report:
 
 > Models share blind spots; the true number still unfound is at least this estimate.
 
@@ -724,7 +724,7 @@ The report shows `f1`, `f2`, which formula branch was used, the unrounded `U`, a
 
 **Singleton hint:** a confirmed gap found by exactly one member is tagged `Singleton: the other members missed this gap.` The report then suggests sending singletons to `$grill`.
 
-**Quiet condition:** not implemented in this build. The protocol has a `quiet()` check, but it always returns `false`, and only tests call it. Deciding when to stop is your call, using the discovery curve.
+**Quiet condition:** `Census is quiet. Good place to stop.` appears only when the upper bound is below 2, the pass found no new confirmed gap, every required member took part, and no rating evidence is unresolved.
 
 **Failures:**
 - No hunts at all fails the census with `no_hunts`.

@@ -9,10 +9,11 @@ Pass 1 · plan version 1 · Hunting
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Nothing found yet.
 Models share blind spots; the true number still unfound is at least this estimate.
 Missing: @member0 · census.hunt
-Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; found=0,
+estimateLow=null, estimateHigh=null; input gaps:
 Discovery curve
 Pass 1 · plan 1: new 0, cumulative 0, singletons 0
 Send singletons to $grill. Stop census first to release its active-contest claim.
@@ -23,10 +24,11 @@ Pass 1 · plan version 1 · Rating
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Nothing found yet.
 Models share blind spots; the true number still unfound is at least this estimate.
 Missing: @member0 · census.hunt
-Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; found=0,
+estimateLow=null, estimateHigh=null; input gaps:
 Discovery curve
 Pass 1 · plan 1: new 0, cumulative 0, singletons 0
 Send singletons to $grill. Stop census first to release its active-contest claim.
@@ -37,10 +39,11 @@ Pass 1 · plan version 1 · WaitingForPlan
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Nothing found yet.
 Models share blind spots; the true number still unfound is at least this estimate.
 Missing: @member0 · census.hunt
-Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; found=0,
+estimateLow=null, estimateHigh=null; input gaps:
 Discovery curve
 Pass 1 · plan 1: new 0, cumulative 0, singletons 0
 Send singletons to $grill. Stop census first to release its active-contest claim.
@@ -53,10 +56,11 @@ Pass 1 · plan version 1 · Stopped
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Nothing found yet.
 Models share blind spots; the true number still unfound is at least this estimate.
 Missing: @member0 · census.hunt
-Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; found=0,
+estimateLow=null, estimateHigh=null; input gaps:
 Discovery curve
 Pass 1 · plan 1: new 0, cumulative 0, singletons 0
 Send singletons to $grill. Stop census first to release its active-contest claim.
@@ -67,10 +71,11 @@ Pass 1 · plan version 1 · Failed
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Nothing found yet.
 Models share blind spots; the true number still unfound is at least this estimate.
 Missing: @member0 · census.hunt
-Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; found=0,
+estimateLow=null, estimateHigh=null; input gaps:
 Discovery curve
 Pass 1 · plan 1: new 0, cumulative 0, singletons 0
 Send singletons to $grill. Stop census first to release its active-contest claim.
@@ -82,10 +87,11 @@ Pass limit reached
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
-Estimate range unavailable; range rule unresolved.
+Nothing found yet.
 Models share blind spots; the true number still unfound is at least this estimate.
 Missing: @member0 · census.hunt
-Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; found=0,
+estimateLow=null, estimateHigh=null; input gaps:
 Discovery curve
 Pass 1 · plan 1: new 0, cumulative 0, singletons 0
 Send singletons to $grill. Stop census first to release its active-contest claim.

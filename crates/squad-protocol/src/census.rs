@@ -14,7 +14,10 @@ pub const CENSUS_LENSES: [&str; 6] = [
     "external and legal factors",
     "the day after success",
 ];
-pub const CENSUS_RANGE_UNAVAILABLE: &str = "Estimate range unavailable; range rule unresolved.";
+pub const CENSUS_NOTHING_FOUND: &str = "Nothing found yet.";
+pub const CENSUS_QUIET: &str = "Census is quiet. Good place to stop.";
+pub const CENSUS_RANGE_NOTE: &str =
+    "Plausible range: Chao (1987) log-normal interval around the Chao1 estimate.";
 pub const CENSUS_CAVEAT: &str =
     "Models share blind spots; the true number still unfound is at least this estimate.";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -411,14 +414,66 @@ impl CensusReport {
                     .all(|g| unique(&g.finders) && g.finder_count == g.finders.len() as u32),
             "invalid authoritative census tally",
         )?;
+        let expected = census_range(f1, f2, self.found());
         ensure(
-            self.estimate_low.is_none() && self.estimate_high.is_none(),
-            "estimate range rule is unresolved",
+            self.estimate_low == expected.map(|r| r.0)
+                && self.estimate_high == expected.map(|r| r.1),
+            "invalid census estimate range",
         )
     }
-    pub fn quiet(&self) -> bool {
-        false
+    /// Confirmed gaps found this pass: confirmed ledger gaps plus rating-stage additions.
+    pub fn found(&self) -> u32 {
+        self.gaps
+            .iter()
+            .filter(|g| g.disposition == CensusDisposition::Confirmed)
+            .count() as u32
+            + self.additions.len() as u32
     }
+    /// `Found {n}; estimated {lo} to {hi} still unfound.`, or `Nothing found yet.`
+    pub fn headline(&self) -> String {
+        match (self.estimate_low, self.estimate_high) {
+            (Some(lo), Some(hi)) if self.found() > 0 => format!(
+                "Found {}; estimated {lo:.1} to {hi:.1} still unfound.",
+                self.found()
+            ),
+            _ => CENSUS_NOTHING_FOUND.into(),
+        }
+    }
+    /// Quiet only when the upper bound is below 2, the pass found no new confirmed
+    /// gap, every required participant finished, and no rating evidence is unresolved.
+    pub fn quiet(&self) -> bool {
+        let no_new_gap = self.discovery.last().is_some_and(|d| d.new_confirmed == 0);
+        self.found() > 0
+            && self.estimate_high.is_some_and(|hi| hi < 2.0)
+            && no_new_gap
+            && self.missing.is_empty()
+            && !self
+                .gaps
+                .iter()
+                .any(|g| g.disposition == CensusDisposition::Unresolved)
+    }
+}
+/// Chao (1987) log-normal plausible range around the Chao1 unseen estimate.
+/// `None` when nothing is confirmed (`s_obs == 0`); `(0, 0)` when `U == 0`.
+pub fn census_range(f1: u32, f2: u32, s_obs: u32) -> Option<(f64, f64)> {
+    if s_obs == 0 {
+        return None;
+    }
+    let (u, _) = census_chao1(f1, f2);
+    if u <= 0.0 {
+        return Some((0.0, 0.0));
+    }
+    let (a, b) = (f64::from(f1), f64::from(f2));
+    let var = if f2 > 0 {
+        let r = a / b;
+        b * (0.5 * r.powi(2) + r.powi(3) + 0.25 * r.powi(4))
+    } else {
+        let s_hat = f64::from(s_obs) + u;
+        a * (a - 1.0) / 2.0 + a * (2.0 * a - 1.0).powi(2) / 4.0 - a.powi(4) / (4.0 * s_hat)
+    }
+    .max(0.0);
+    let k = (1.96 * (1.0 + var / (u * u)).ln().sqrt()).exp();
+    Some((u / k, u * k))
 }
 pub fn census_chao1(f1: u32, f2: u32) -> (f64, &'static str) {
     if f2 > 0 {

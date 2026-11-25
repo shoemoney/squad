@@ -8,7 +8,8 @@ Pass 1 · plan 1 · Complete
 
 CENSUS · pass 1 · plan version 1
 
-Estimate range unavailable; range rule unresolved.
+Found 1; estimated 0.0 to 0.0 still unfound.
+Plausible range: Chao (1987) log-normal interval around the Chao1 estimate.
 Models share blind spots; the true number still unfound is at least this estimate.
 
 - Confirmed: No rollback plan — A bad release may cause an outage
@@ -17,7 +18,7 @@ Models share blind spots; the true number still unfound is at least this estimat
   Singleton: the other members missed this gap.
   Covered citation · Recovery section: Restore from backup
 
-Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; input gaps: g1
+Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; found=1, estimateLow=0, estimateHigh=0; input gaps: g1
 
 Discovery curve
 Pass 1 · plan 1: new 1, cumulative 1, singletons 1
