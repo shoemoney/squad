@@ -446,6 +446,11 @@ impl Router {
                     )?;
                     authorization::output(&work, &owner, &output)?;
                     squad_store::cases::validate_invocation(tx,&work,&output)?;
+                    if let EnvelopePayload::SurveyClaims(claims)=&mut output {
+                        let sources=squad_store::survey::setup(tx,claims.contest_id)?;
+                        claims.extraction.validate(&sources.answers).map_err(|_|authorization::forbidden())?;
+                        for claim in &mut claims.extraction.claims {claim.id=uuid::Uuid::new_v4().to_string();}
+                    }
                     if matches!(work.kind,WorkKind::SurveyExtract|WorkKind::SurveyVote|WorkKind::SurveyRevote|WorkKind::SurveyReport) {survey::validate_output(tx,&work,&output)?;}
                     if let EnvelopePayload::AgentReply(reply) = output {
                         output = EnvelopePayload::MessageFinal(reply);

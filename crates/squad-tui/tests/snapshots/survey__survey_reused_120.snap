@@ -1,6 +1,6 @@
 ---
 source: crates/squad-tui/tests/survey.rs
-expression: "snapshot(120,false)"
+expression: "snapshot(120, false)"
 ---
                                           ____  _   _ ______     _________   __
                                          / ___|| | | |  _ \ \   / / ____\ \ / /
@@ -13,6 +13,10 @@ What would establish the claim?
 
 Source: existing parallel answers
 
+
+### First ballot · @alpha
+
+- c1: Agree · confidence 4/5 · A reproducible observation supports this claim.
 
 ### Second ballot · @alpha
 

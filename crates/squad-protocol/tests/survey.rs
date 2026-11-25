@@ -1,3 +1,4 @@
+#![cfg(feature = "mode-survey")]
 use squad_protocol::*;
 #[test]
 fn ballot_coverage_and_change_evidence_are_strict() {
@@ -63,4 +64,33 @@ fn extraction_rejects_foreign_origins_duplicate_text_and_overflow() {
         })
         .collect();
     assert!(e.validate(&[a]).is_err());
+}
+#[test]
+fn survey_state_and_anonymous_projection_reject_missing_nullable_and_private_fields() {
+    let id = ContestId::new();
+    let event = EventId::new();
+    let mut state = SurveyState {
+        contest_id: id,
+        state: SurveyStatus::Voting,
+        state_version: 1,
+        step_id: None,
+        artifact_event_ids: vec![event],
+        terminal_reason: None,
+    };
+    state.validate().unwrap();
+    state.artifact_event_ids.push(event);
+    assert!(state.validate().is_err());
+    state.artifact_event_ids.pop();
+    let mut value = serde_json::to_value(&state).unwrap();
+    value.as_object_mut().unwrap().remove("terminalReason");
+    assert!(validation::decode::<SurveyState>(&value).is_err());
+    let mut claim = serde_json::json!({"claimId":"c1","claim":"Claim","agreeReasons":[],"disagreeReasons":[],"unsureReasons":[]});
+    validation::decode::<SurveyAnonymousClaim>(&claim).unwrap();
+    for field in ["author", "origins", "voteCount", "confidence"] {
+        claim[field] = serde_json::json!(1);
+        assert!(validation::decode::<SurveyAnonymousClaim>(&claim).is_err());
+        claim.as_object_mut().unwrap().remove(field);
+    }
+    assert!(validation::decode::<SurveyVote>(&serde_json::json!({"contestId":id,"stepId":StepId::new(),"voter":"alpha","ballot":{"votes":[]}})).is_err());
+    assert!(validation::decode::<SurveyReportText>(&serde_json::json!({"consensus":[],"contested":[],"loneInsights":[],"loneDissents":[],"rejectedOutliers":[],"limitations":"Caveat","tallies":[],"riskAcceptance":true})).is_err());
 }

@@ -49,9 +49,9 @@ pub fn admit(
     config: Option<&SquadConfig>,
 ) -> Result<RequestResult> {
     let ParsedInput::Survey {
+        input: conversation,
         participants,
         source,
-        ..
     } = parsed
     else {
         return Err(invalid());
@@ -95,6 +95,7 @@ pub fn admit(
         collect,
     };
     setup.validate().map_err(|_| invalid())?;
+    super::variables::apply(tx, group, id, &conversation.variable_updates)?;
     let tokens = config
         .map(|c| crate::orchestrator::blind::tokens(c, bindings))
         .unwrap_or_else(|| setup.participants.iter().map(ToString::to_string).collect());
@@ -132,7 +133,10 @@ pub fn admit(
         }
         max_call = max_call.max(cost);
     }
-    let reserved = (max_call * 1e6).ceil() as i64 * i64::from(attempts);
+    let reserved = squad_store::accounting::reservation_micros(max_call)
+        .map_err(|_| invalid())?
+        .checked_mul(i64::from(attempts))
+        .ok_or_else(invalid)?;
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
     squad_store::accounting::admit(tx, &day, reserved, max)?;
     let plan = ContestPreflight {
@@ -249,6 +253,14 @@ pub fn resolve(
     };
     if cancel || expired {
         state.state = SurveyStatus::Stopped;
+        state.terminal_reason = Some(
+            Text::new(if expired {
+                "Survey preflight expired"
+            } else {
+                "Survey preflight cancelled"
+            })
+            .expect("literal"),
+        );
     } else {
         let amount = squad_store::accounting::reservation_micros(plan.estimate.reserved_usd)
             .map_err(|_| invalid())?;
@@ -368,7 +380,12 @@ pub fn allocate(
             let values=maps.get(&key).ok_or_else(invalid)?;
             let data=values["mode_data_json"].as_str().ok_or_else(invalid)?.to_owned();
             if let Some(case)=w.case_id {
-                tx.execute("INSERT INTO cases(case_id,context_id,epoch,contest_id,judge_model,material_json,opened_event_seq,state_json) VALUES (?, ?, (SELECT epoch FROM room_meta), ?, ?, ?, ?, '{}')",params![case.to_string(),w.context_id.0,step.contest_id.to_string(),bindings.get("judge").ok_or_else(invalid)?.model.as_str(),data,seq.get()])?;
+                let d:serde_json::Value=serde_json::from_str(&data)?;
+                let material=if expected==WorkKind::SurveyExtract {SurveyCaseMaterial::Extraction{setup:setup.clone()}}else{SurveyCaseMaterial::Report{setup:setup.clone(),claims:serde_json::from_value(d["claims"].clone())?,first:serde_json::from_value(d["first"].clone())?,second:serde_json::from_value(d["second"].clone())?,map:serde_json::from_value(d["map"].clone())?}};
+                let opened=CaseOpened{case_id:case,judge_invocation_id:request_id,work_id:Some(w.work_id),judge_model:bindings.get("judge").ok_or_else(invalid)?.model.clone(),material:CaseMaterial::Survey{material},debate_id:None,contest_id:Some(step.contest_id)};
+                let case_seq=group.push(tx,envelope(request_id,Actor::System,vec![Recipient::Me],EnvelopePayload::CaseOpened(opened.clone())))?;
+                squad_store::cases::open(tx,&opened,case_seq)?;
+                squad_store::contests::associate(tx,step.contest_id,ContestKind::Survey,case_seq)?;
             }
             let p=HistoryProjection{context_id:w.context_id.clone(),origin_event_id:source.base.id,projection_key:Text::new("survey.input").expect("literal"),role:HistoryRole::User,name:Some("squad".into()),content:data,meta:HistoryMetadata::Anonymous{anonymous:True}};
             w.history_through=squad_store::history::project(tx,&p)?.ok_or_else(invalid)?;
@@ -448,6 +465,7 @@ pub fn barrier(
     squad_store::contests::associate(tx, state.contest_id, ContestKind::Survey, seq)?;
     let setup = squad_store::survey::setup(tx, state.contest_id)?;
     let failed = rows.iter().any(|(_, s)| s != "completed");
+    let previous = state.state;
     state.state = match state.state {
         SurveyStatus::Collecting => {
             let mut setup = setup.clone();
@@ -546,8 +564,14 @@ pub fn barrier(
         _ => return Err(invalid()),
     };
     if state.state == SurveyStatus::Failed {
-        state.terminal_reason =
-            Some(Text::new("Survey judge exhausted its attempts").expect("literal"));
+        state.terminal_reason = Some(
+            Text::new(if previous == SurveyStatus::Collecting {
+                "No usable survey answers"
+            } else {
+                "Survey judge exhausted its attempts"
+            })
+            .expect("literal"),
+        );
     }
     let version = state.state_version;
     state.state_version += 1;

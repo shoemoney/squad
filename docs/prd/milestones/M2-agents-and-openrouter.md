@@ -149,10 +149,10 @@
   - [ ] M2.P2.L9.T6 — Test plan-bearing quote and ordinary-history canaries, exclusion of self-authored inventory cells, fresh auditor readers, frozen samples after recovery, and the one-active-generation rule in crate `squad-core`, file `crates/squad-core/tests/agents_crosscheck.rs`.
 
 - **M2.P2.L10 — Execute survey work**
-  - [ ] M2.P2.L10.T1 — Execute optional ordinary collection and survey vote and revote Work through the owning templates and result paths in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L10.T2 — Execute survey extraction and report Work with private case provenance and application-supplied tallies in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L10.T3 — Capture requests to verify the claim bound, vote enums, confidence range, anonymous reasons, and absence of other whole answers, authorship, and vote counts from voting contexts in crate `squad-agents`, file `crates/squad-agents/tests/agents_survey.rs`.
-  - [ ] M2.P2.L10.T4 — Test reuse of an existing parallel answer set without replacement calls, step-bound voting contexts, frozen revote inputs, and no broadcast of private report provenance in crate `squad-core`, file `crates/squad-core/tests/agents_survey.rs`.
+  - [x] M2.P2.L10.T1 — Execute optional ordinary collection and survey vote and revote Work through the owning templates and result paths in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L10.T2 — Execute survey extraction and report Work with private case provenance and application-supplied tallies in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L10.T3 — Capture requests to verify the claim bound, vote enums, confidence range, anonymous reasons, and absence of other whole answers, authorship, and vote counts from voting contexts in crate `squad-agents`, file `crates/squad-agents/tests/agents_survey.rs`.
+  - [x] M2.P2.L10.T4 — Test reuse of an existing parallel answer set without replacement calls, step-bound voting contexts, frozen revote inputs, and no broadcast of private report provenance in crate `squad-core`, file `crates/squad-core/tests/agents_survey.rs`.
 
 - **M2.P2.L11 — Execute probe work**
   - [ ] M2.P2.L11.T1 — Execute probe explanation, check, and prediction Work using the committed role assignment and owning templates in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.

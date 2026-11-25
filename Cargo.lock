@@ -3146,6 +3146,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "unicode-width",
+ "uuid",
  "wiremock",
 ]
 

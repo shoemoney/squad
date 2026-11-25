@@ -163,6 +163,9 @@ pub fn accept(db: &Connection, work: &Work, output: &EnvelopePayload, seq: Curso
         _ => return Err(invalid()),
     }
     crate::contests::associate(db, id, ContestKind::Survey, seq)?;
+    if let Some(case) = work.case_id {
+        crate::cases::seal(db, case, seq)?;
+    }
     crate::work::finish(db, work.work_id, WorkStatus::Completed, seq)?;
     crate::contest_steps::settle(db, work.step_id.ok_or_else(invalid)?, &work.target, None)
 }

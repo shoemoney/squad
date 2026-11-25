@@ -164,7 +164,7 @@ pub fn map(
                 .filter(|n| !origins.contains(n))
                 .collect::<Vec<_>>();
             let mut bands = vec![];
-            if final_tally.agree >= m.saturating_sub(1)
+            if (final_tally.agree == m || (m > 1 && final_tally.agree == m - 1))
                 && final_tally.unsure == 0
                 && final_tally.missing == 0
             {
@@ -174,6 +174,7 @@ pub fn map(
                 bands.push(SurveyBand::Contested);
             }
             if origins.len() == 1
+                && !others.is_empty()
                 && others
                     .iter()
                     .all(|n| final_item(n).is_some_and(|v| v.vote == SurveyChoice::Agree))
@@ -254,7 +255,32 @@ impl Router {
                 let state = self
                     .store
                     .call(move |db| squad_store::survey::state(db, id))?;
-                if state.state.is_terminal() || state.state == SurveyStatus::Preflight {
+                if state.state.is_terminal() {
+                    break;
+                }
+                if state.state == SurveyStatus::Preflight {
+                    let plan = self.store.call(move |db| {
+                        let raw: String = db.query_row(
+                            "SELECT plan_json FROM contests WHERE contest_id=?",
+                            [id.to_string()],
+                            |r| r.get(0),
+                        )?;
+                        Ok(serde_json::from_str::<ContestPreflight>(&raw)?)
+                    })?;
+                    if chrono::Utc::now() >= plan.expires_at {
+                        let request = EventId::new();
+                        let plan_id = plan.plan_id;
+                        outcomes.push(self.store.commit(
+                            request,
+                            "contest-engine".into(),
+                            squad_store::commit::digest(&(id, plan_id, "expired"))?,
+                            move |tx, group| {
+                                crate::router::survey::resolve(
+                                    tx, group, request, id, plan_id, false,
+                                )
+                            },
+                        )?);
+                    }
                     break;
                 }
                 if state.state == SurveyStatus::WaitingForParticipants {

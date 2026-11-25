@@ -197,10 +197,10 @@
   - [ ] M4.P3.L10.T6 — Expose crosscheck banner and cell-filling hooks for M4.P5 in `crates/squad-tui/src/widgets/crosscheck.rs`, retaining textual statuses and complete cell detail with effects off.
 
 - **M4.P3.L11 — Render survey**
-  - [ ] M4.P3.L11.T1 — Implement new-question and existing-answer previews, optional collection, neutral claim extraction, and stable claim identity across steps in `crates/squad-tui/src/widgets/survey.rs`.
-  - [ ] M4.P3.L11.T2 — Render blind-vote and re-vote progress, AGREE / DISAGREE / UNSURE, reasons, confidence, selected split claims, and evidence that would change a member's mind in `crates/squad-tui/src/widgets/survey.rs`.
-  - [ ] M4.P3.L11.T3 — Render the five-band map, empty-band labels, split reasons, switchers, origins, settling questions, and labeled vote bars with first-vote/re-vote drilldowns in `crates/squad-tui/src/widgets/survey.rs`, using core classifications and preserving missing votes separately.
-  - [ ] M4.P3.L11.T4 — Expose survey banner and bar-splitting hooks for M4.P5 in `crates/squad-tui/src/widgets/survey.rs`, retaining all bands, counts, reasons, and no-winner presentation with effects off.
+  - [x] M4.P3.L11.T1 — Implement new-question and existing-answer previews, optional collection, neutral claim extraction, and stable claim identity across steps in `crates/squad-tui/src/widgets/survey.rs`.
+  - [x] M4.P3.L11.T2 — Render blind-vote and re-vote progress, AGREE / DISAGREE / UNSURE, reasons, confidence, selected split claims, and evidence that would change a member's mind in `crates/squad-tui/src/widgets/survey.rs`.
+  - [x] M4.P3.L11.T3 — Render the five-band map, empty-band labels, split reasons, switchers, origins, settling questions, and labeled vote bars with first-vote/re-vote drilldowns in `crates/squad-tui/src/widgets/survey.rs`, using core classifications and preserving missing votes separately.
+  - [x] M4.P3.L11.T4 — Expose survey banner and bar-splitting hooks for M4.P5 in `crates/squad-tui/src/widgets/survey.rs`, retaining all bands, counts, reasons, and no-winner presentation with effects off.
 
 - **M4.P3.L12 — Render probe**
   - [ ] M4.P3.L12.T1 — Implement brief preview, authoritative random role split, odd-member sit-out notice, and separate blind explanation and check groups in `crates/squad-tui/src/widgets/probe.rs`.
@@ -259,8 +259,8 @@
   - [ ] M4.P4.L6.T5 — Verify census and crosscheck display the authoritative call counts, pass count, optional extraction call, estimates, and remaining daily amount from M5 fixtures in `crates/squad-tui/tests/census.rs` and `crates/squad-tui/tests/crosscheck.rs`.
 
 - **M4.P4.L7 — Verify survey and probe presentation**
-  - [ ] M4.P4.L7.T1 — Snapshot survey question-first and existing-answer paths, stable claim IDs, vote reasons and confidence, selected re-vote claims, five bands including empty bands, switchers, and settling questions at both viewports in `crates/squad-tui/tests/survey.rs`.
-  - [ ] M4.P4.L7.T2 — Verify survey's authoritative counts and band assignments, first-vote/re-vote comparison, missing-vote distinction, rejected-outlier wording, and absence of winner or scoreboard changes in `crates/squad-tui/tests/survey.rs`.
+  - [x] M4.P4.L7.T1 — Snapshot survey question-first and existing-answer paths, stable claim IDs, vote reasons and confidence, selected re-vote claims, five bands including empty bands, switchers, and settling questions at both viewports in `crates/squad-tui/tests/survey.rs`.
+  - [x] M4.P4.L7.T2 — Verify survey's authoritative counts and band assignments, first-vote/re-vote comparison, missing-vote distinction, rejected-outlier wording, and absence of winner or scoreboard changes in `crates/squad-tui/tests/survey.rs`.
   - [ ] M4.P4.L7.T3 — Snapshot probe role split, odd-member sit-out, explanation assumptions, check measurements, locked predictions, cannot-predict and skipped entries, tree, matrix, and unexpected-result branch at both viewports in `crates/squad-tui/tests/probe.rs`.
   - [ ] M4.P4.L7.T4 — Verify probe branch wrapping, dropped-check reasons, inseparable explanations, authoritative participating count, and absence of execution or truth declarations in `crates/squad-tui/tests/probe.rs`.
   - [ ] M4.P4.L7.T5 — Verify survey's new-answer and existing-answer preflight counts and probe's adjusted participant count and estimate against M5 fixtures in `crates/squad-tui/tests/survey.rs` and `crates/squad-tui/tests/probe.rs`.

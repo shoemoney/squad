@@ -61,3 +61,31 @@ fn migration_preserves_released_records_and_enforces_ballot_evidence_and_identit
         0
     );
 }
+#[test]
+fn every_mode_competes_for_the_same_active_claim() {
+    let mut db = Connection::open_in_memory().unwrap();
+    schema::migrate(&mut db).unwrap();
+    for first in [
+        "debate",
+        "tournament",
+        "grill",
+        "census",
+        "crosscheck",
+        "survey",
+        "probe",
+    ] {
+        db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES ('one',?,1,1,'{}',1)",[first]).unwrap();
+        for second in [
+            "debate",
+            "tournament",
+            "grill",
+            "census",
+            "crosscheck",
+            "survey",
+            "probe",
+        ] {
+            assert!(db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES ('two',?,1,1,'{}',1)",[second]).is_err());
+        }
+        db.execute("DELETE FROM contests", []).unwrap();
+    }
+}

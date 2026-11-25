@@ -21,6 +21,7 @@ chrono = "0.4"
 rusqlite = { version = "0.38", features = ["bundled"] }
 tracing.workspace = true
 regex = "1"
+uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 tracing-subscriber = { workspace = true, features = ["fmt"] }

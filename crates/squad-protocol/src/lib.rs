@@ -17,6 +17,7 @@ pub mod constants;
 pub mod cursor;
 pub mod debate;
 pub mod envelopes;
+#[cfg(feature = "mode-survey")]
 pub mod survey;
 pub mod validation;
 pub mod verdict;
@@ -32,6 +33,7 @@ pub use parser::{
     VariableUpdate, parse,
 };
 pub use requests::*;
+#[cfg(feature = "mode-survey")]
 pub use survey::*;
 pub use work::*;
 pub type MemberNick = Nick;

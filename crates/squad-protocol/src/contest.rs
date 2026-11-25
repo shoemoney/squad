@@ -111,6 +111,7 @@ pub enum ContestState {
     Generic(GenericContestState),
     Selection(ContestSelectionState),
     Debate(DebateState),
+    #[cfg(feature = "mode-survey")]
     Survey(SurveyState),
 }
 
@@ -228,6 +229,7 @@ pub struct ContestTransitionSubmission {
 )]
 pub enum ContestTransition {
     Debate(DebateTransition),
+    #[cfg(feature = "mode-survey")]
     Survey(SurveyTransition),
 }
 impl ContestKind {
@@ -243,7 +245,7 @@ impl ContestKind {
         }
     }
     pub fn is_built(self) -> bool {
-        self == Self::Debate
+        self == Self::Debate || (cfg!(feature = "mode-survey") && self == Self::Survey)
     }
 }
 impl ContestTransitionSubmission {
@@ -255,10 +257,14 @@ impl ContestTransitionSubmission {
             self.kind == ContestKind::Debate,
             "transition kind does not match debate",
         )?;
-        let ContestTransition::Debate(transition) = self.transition else {
-            return Err(crate::validation::ValidationError {
-                message: "expected debate transition".into(),
-            });
+        let transition = match self.transition {
+            ContestTransition::Debate(transition) => transition,
+            #[cfg(feature = "mode-survey")]
+            _ => {
+                return Err(crate::validation::ValidationError {
+                    message: "expected debate transition".into(),
+                });
+            }
         };
         Ok((self.contest_id, self.expected_state_version, transition))
     }

@@ -40,7 +40,7 @@ pub struct SurveySetup {
 impl SurveySetup {
     pub fn validate(&self) -> ValidationResult {
         ensure(
-            (2..=12).contains(&self.participants.len())
+            (1..=12).contains(&self.participants.len())
                 && self.participants.iter().collect::<BTreeSet<_>>().len()
                     == self.participants.len(),
             "invalid survey participants",
@@ -77,6 +77,24 @@ pub struct SurveyState {
     pub artifact_event_ids: Vec<EventId>,
     #[schemars(extend("x-required-nullable" = true))]
     pub terminal_reason: Option<Text>,
+}
+impl SurveyState {
+    pub fn validate(&self) -> ValidationResult {
+        ensure(
+            self.state_version > 0
+                && self
+                    .artifact_event_ids
+                    .iter()
+                    .collect::<BTreeSet<_>>()
+                    .len()
+                    == self.artifact_event_ids.len(),
+            "invalid survey state references",
+        )?;
+        ensure(
+            self.state.is_terminal() || self.terminal_reason.is_none(),
+            "nonterminal survey has terminal reason",
+        )
+    }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -175,6 +193,7 @@ pub struct SurveyBallotItem {
     pub claim_id: String,
     pub vote: SurveyChoice,
     pub reason: String,
+    #[schemars(range(min = 1, max = 5))]
     pub confidence: u8,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub change_evidence: Option<String>,
@@ -249,9 +268,50 @@ pub struct SurveyAnonymousClaim {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SurveySelection {
+    pub tallies: Vec<SurveyClaimMap>,
     pub contest_id: ContestId,
     pub step_id: StepId,
     pub claims: Vec<SurveyAnonymousClaim>,
+}
+impl SurveySelection {
+    pub fn validate(&self) -> ValidationResult {
+        ensure(
+            self.claims.len() <= 5
+                && self
+                    .claims
+                    .iter()
+                    .map(|c| &c.claim_id)
+                    .collect::<BTreeSet<_>>()
+                    .len()
+                    == self.claims.len(),
+            "invalid survey selection",
+        )?;
+        ensure(
+            self.tallies
+                .iter()
+                .map(|t| &t.claim_id)
+                .collect::<BTreeSet<_>>()
+                .len()
+                == self.tallies.len(),
+            "duplicate survey tallies",
+        )?;
+        for c in &self.claims {
+            ensure(
+                !c.claim_id.trim().is_empty()
+                    && !c.claim.trim().is_empty()
+                    && self.tallies.iter().any(|t| t.claim_id == c.claim_id),
+                "selection references unknown claim",
+            )?;
+            for reasons in [&c.agree_reasons, &c.disagree_reasons, &c.unsure_reasons] {
+                ensure(
+                    reasons.iter().all(|r| !r.trim().is_empty())
+                        && reasons.iter().collect::<BTreeSet<_>>().len() == reasons.len(),
+                    "duplicate or empty anonymous reason",
+                )?;
+            }
+        }
+        Ok(())
+    }
 }
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

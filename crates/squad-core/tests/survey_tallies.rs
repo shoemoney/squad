@@ -195,3 +195,22 @@ fn report_may_not_invent_band_assignments_or_drop_contested_settling_questions()
     });
     assert!(report.validate(&map).is_err());
 }
+#[test]
+fn nested_blind_projections_redact_identity_prose_without_changing_claim_ids() {
+    let tokens = vec![
+        "member0".into(),
+        "Anthropic".into(),
+        "Claude".into(),
+        "Thoughtful persona".into(),
+    ];
+    let v = serde_json::json!({"question":"MEMBER0 asks", "claims":[{"claimId":"member0-id","claim":"CLAUDE says this.","agreeReasons":["ANTHROPIC and Thoughtful persona agree."]}]});
+    let b = blind::value(v.clone(), &tokens);
+    assert_eq!(b["claims"][0]["claimId"], "member0-id");
+    assert_eq!(b["claims"][0]["claim"], "[redacted] says this.");
+    assert!(
+        !b["claims"][0]["agreeReasons"]
+            .to_string()
+            .contains("ANTHROPIC")
+    );
+    assert_eq!(v["question"], "MEMBER0 asks");
+}

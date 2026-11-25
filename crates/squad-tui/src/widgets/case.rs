@@ -6,7 +6,9 @@ use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
 };
-use squad_protocol::{CaseFollowup, CaseMaterial, CaseOpened, CaseRuling, EventId};
+use squad_protocol::{
+    CaseFollowup, CaseMaterial, CaseOpened, CaseRuling, EventId, SurveyCaseMaterial,
+};
 
 #[derive(Clone, Debug)]
 pub enum CaseEntry {
@@ -92,6 +94,13 @@ pub fn render(view: &CaseView, area: Rect, buf: &mut Buffer, palette: &Palette) 
         c.line("Follow-up to accepted verdict", body);
     }
     match &view.opened.material {
+        CaseMaterial::Survey { material } => {
+            let setup = match material {
+                SurveyCaseMaterial::Extraction { setup }
+                | SurveyCaseMaterial::Report { setup, .. } => setup,
+            };
+            c.line(&format!("Survey · {}", setup.question), body);
+        }
         CaseMaterial::Standalone { messages, question } => {
             c.line(&format!("Question: {question}"), accent);
             for quote in messages {

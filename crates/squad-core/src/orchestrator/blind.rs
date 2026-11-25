@@ -50,32 +50,34 @@ pub fn redact(text: &str, tokens: &[String]) -> String {
         .into_owned()
 }
 pub fn value(mut value: serde_json::Value, tokens: &[String]) -> serde_json::Value {
-    fn visit(v: &mut serde_json::Value, tokens: &[String]) {
+    fn visit(v: &mut serde_json::Value, tokens: &[String], prose: bool) {
         match v {
-            serde_json::Value::String(s) => *s = redact(s, tokens),
+            serde_json::Value::String(s) if prose => *s = redact(s, tokens),
             serde_json::Value::Array(a) => {
                 for v in a {
-                    visit(v, tokens)
+                    visit(v, tokens, prose)
                 }
             }
             serde_json::Value::Object(o) => {
                 for (k, v) in o {
-                    if matches!(
-                        k.as_str(),
-                        "claim"
-                            | "question"
-                            | "reason"
-                            | "agreeReasons"
-                            | "disagreeReasons"
-                            | "unsureReasons"
-                    ) {
-                        visit(v, tokens)
-                    }
+                    visit(
+                        v,
+                        tokens,
+                        matches!(
+                            k.as_str(),
+                            "claim"
+                                | "question"
+                                | "reason"
+                                | "agreeReasons"
+                                | "disagreeReasons"
+                                | "unsureReasons"
+                        ),
+                    )
                 }
             }
             _ => {}
         }
     }
-    visit(&mut value, tokens);
+    visit(&mut value, tokens, false);
     value
 }

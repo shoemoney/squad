@@ -138,18 +138,25 @@ pub struct Completion {
 pub enum EnvelopePayload {
     #[serde(rename = "user.message")]
     UserMessage(UserMessage),
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.setup")]
     SurveySetup(SurveySetup),
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.state")]
     SurveyState(SurveyState),
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.claims")]
     SurveyClaims(SurveyClaims),
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.vote")]
     SurveyVote(SurveyVote),
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.selection")]
     SurveySelection(SurveySelection),
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.revote")]
     SurveyRevote(SurveyRevote),
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.report")]
     SurveyReport(SurveyReport),
     #[serde(rename = "agent.reply")]
@@ -413,6 +420,8 @@ pub struct BudgetStateEvent {
 // Keep the shared by-value API specified by section 02.
 #[allow(clippy::large_enum_variant)]
 pub enum CaseMaterial {
+    #[cfg(feature = "mode-survey")]
+    Survey { material: SurveyCaseMaterial },
     Standalone {
         messages: Vec<ResolvedQuote>,
         question: Text,
@@ -729,6 +738,18 @@ fn validate_envelope(
         EnvelopePayload::CaseOpened(case) => {
             same_contest(case.debate_id, case.contest_id)?;
             match &case.material {
+                #[cfg(feature = "mode-survey")]
+                CaseMaterial::Survey { material } => {
+                    let setup = match material {
+                        SurveyCaseMaterial::Extraction { setup }
+                        | SurveyCaseMaterial::Report { setup, .. } => setup,
+                    };
+                    setup.validate()?;
+                    ensure(
+                        case.contest_id == Some(setup.contest_id) && case.debate_id.is_none(),
+                        "survey case identity mismatch",
+                    )?;
+                }
                 CaseMaterial::Standalone { messages, .. } => ensure(
                     !messages.is_empty() && messages.len() <= 12 && case.debate_id.is_none(),
                     "invalid standalone case",
@@ -749,6 +770,7 @@ fn validate_envelope(
             )?;
             completed(&ruling.completed, ruling.content.as_str())?;
         }
+        #[cfg(feature = "mode-survey")]
         EnvelopePayload::SurveySetup(setup) => {
             ensure(
                 base.sender == Actor::System && human_only,
@@ -756,22 +778,33 @@ fn validate_envelope(
             )?;
             setup.validate()?;
         }
-        EnvelopePayload::SurveyState(state) => ensure(
-            base.sender == Actor::System && human_only && state.state_version > 0,
-            "invalid survey state",
-        )?,
-        EnvelopePayload::SurveySelection(_) => ensure(
-            base.sender == Actor::System && human_only,
-            "survey selection is human only",
-        )?,
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveyState(state) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "invalid survey state sender",
+            )?;
+            state.validate()?;
+        }
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveySelection(selection) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "survey selection is human only",
+            )?;
+            selection.validate()?;
+        }
+        #[cfg(feature = "mode-survey")]
         EnvelopePayload::SurveyClaims(value) => ensure(
             base.sender == Actor::Judge && human_only && value.extraction.claims.len() <= 25,
             "invalid survey extraction",
         )?,
+        #[cfg(feature = "mode-survey")]
         EnvelopePayload::SurveyVote(value) | EnvelopePayload::SurveyRevote(value) => ensure(
             base.sender == Actor::Member(value.voter.clone()) && human_only,
             "invalid survey voter",
         )?,
+        #[cfg(feature = "mode-survey")]
         EnvelopePayload::SurveyReport(value) => {
             ensure(
                 base.sender == Actor::Judge && human_only,
@@ -788,9 +821,8 @@ fn validate_envelope(
             )?;
         }
         EnvelopePayload::ContestState(state) => match state {
-            ContestState::Survey(state) => {
-                ensure(state.state_version > 0, "invalid survey version")?
-            }
+            #[cfg(feature = "mode-survey")]
+            ContestState::Survey(state) => state.validate()?,
             ContestState::Debate(state) => state.validate()?,
             ContestState::Generic(state) => ensure(
                 state.kind != ContestKind::Debate && unique(&state.artifact_event_ids),
@@ -807,14 +839,14 @@ fn validate_envelope(
                 "invalid selection state",
             )?,
         },
-        EnvelopePayload::ContestTransition(submission) => ensure(
-            matches!(
-                (&submission.transition, submission.kind),
-                (ContestTransition::Debate(_), ContestKind::Debate)
-                    | (ContestTransition::Survey(_), ContestKind::Survey)
-            ),
-            "transition kind mismatch",
-        )?,
+        EnvelopePayload::ContestTransition(submission) => {
+            let kind = match &submission.transition {
+                ContestTransition::Debate(_) => ContestKind::Debate,
+                #[cfg(feature = "mode-survey")]
+                ContestTransition::Survey(_) => ContestKind::Survey,
+            };
+            ensure(submission.kind == kind, "transition kind mismatch")?;
+        }
         EnvelopePayload::ContestPreflight(preflight) => {
             preflight.estimate.validate()?;
             ensure(
@@ -840,6 +872,7 @@ fn validate_envelope(
         )?,
         EnvelopePayload::ContestPicked(pick) => ensure(
             pick.kind.is_built()
+                && pick.kind != ContestKind::Survey
                 && distinct_members(&pick.nicks)
                 && unique(&pick.source_message_ids)
                 && pick.nicks.len() == pick.source_message_ids.len()

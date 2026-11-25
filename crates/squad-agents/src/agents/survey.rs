@@ -111,7 +111,11 @@ impl WorkExecutor for SurveyExecutor {
                 finish_reason: output.finish_reason,
                 usage: output.usage,
             };
-            let validated = validate(&grant.work, &data, &output.content, completed);
+            let word_limit = values
+                .get("step_word_limit")
+                .and_then(|v| v.parse::<usize>().ok())
+                .ok_or(ReaderError::Forbidden)?;
+            let validated = validate(&grant.work, &data, &output.content, completed, word_limit);
             match validated {
                 Ok(output) => acknowledged(
                     context
@@ -125,7 +129,7 @@ impl WorkExecutor for SurveyExecutor {
                         })
                         .await,
                 ),
-                Err(()) => {
+                Err(InvalidSurveyOutput) => {
                     let repair = if judge && grant.work.attempt < 3 {
                         Some(JudgeRepairData {
                             attempt: grant.work.attempt + 1,
@@ -168,21 +172,60 @@ impl WorkExecutor for SurveyExecutor {
         })
     }
 }
+#[derive(Debug, Clone, Copy)]
+pub struct InvalidSurveyOutput;
+impl std::fmt::Display for InvalidSurveyOutput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Survey output violates its assigned schema")
+    }
+}
+impl std::error::Error for InvalidSurveyOutput {}
 pub fn validate(
     work: &Work,
     data: &Value,
     raw: &str,
     completed: CompletedGeneration,
-) -> Result<EnvelopePayload, ()> {
-    let value: Value = serde_json::from_str(raw).map_err(|_| ())?;
-    let contest_id = work.contest_id.ok_or(())?;
-    let step_id = work.step_id.ok_or(())?;
+    word_limit: usize,
+) -> Result<EnvelopePayload, InvalidSurveyOutput> {
+    let value: Value = serde_json::from_str(raw).map_err(|_| InvalidSurveyOutput)?;
+    fn words(v: &Value) -> usize {
+        match v {
+            Value::Array(a) => a.iter().map(words).sum(),
+            Value::Object(o) => o
+                .iter()
+                .map(|(k, v)| {
+                    if matches!(
+                        k.as_str(),
+                        "claim"
+                            | "reason"
+                            | "changeEvidence"
+                            | "explanation"
+                            | "settlingQuestion"
+                            | "limitations"
+                    ) {
+                        v.as_str().map_or(0, |s| s.split_whitespace().count())
+                    } else {
+                        words(v)
+                    }
+                })
+                .sum(),
+            _ => 0,
+        }
+    }
+    if words(&value) > word_limit {
+        return Err(InvalidSurveyOutput);
+    }
+    let contest_id = work.contest_id.ok_or(InvalidSurveyOutput)?;
+    let step_id = work.step_id.ok_or(InvalidSurveyOutput)?;
     match work.kind {
         WorkKind::SurveyExtract => {
-            let extraction: SurveyExtraction = validation::decode(&value).map_err(|_| ())?;
+            let extraction: SurveyExtraction =
+                validation::decode(&value).map_err(|_| InvalidSurveyOutput)?;
             let answers: Vec<ContestAnswer> =
-                serde_json::from_value(data["answers"].clone()).map_err(|_| ())?;
-            extraction.validate(&answers).map_err(|_| ())?;
+                serde_json::from_value(data["answers"].clone()).map_err(|_| InvalidSurveyOutput)?;
+            extraction
+                .validate(&answers)
+                .map_err(|_| InvalidSurveyOutput)?;
             Ok(EnvelopePayload::SurveyClaims(SurveyClaims {
                 contest_id,
                 step_id,
@@ -191,18 +234,24 @@ pub fn validate(
             }))
         }
         WorkKind::SurveyVote | WorkKind::SurveyRevote => {
-            let ballot: SurveyBallot = validation::decode(&value).map_err(|_| ())?;
+            let ballot: SurveyBallot =
+                validation::decode(&value).map_err(|_| InvalidSurveyOutput)?;
             let ids = data["claims"]
                 .as_array()
-                .ok_or(())?
+                .ok_or(InvalidSurveyOutput)?
                 .iter()
-                .map(|v| v["claimId"].as_str().map(String::from).ok_or(()))
+                .map(|v| {
+                    v["claimId"]
+                        .as_str()
+                        .map(String::from)
+                        .ok_or(InvalidSurveyOutput)
+                })
                 .collect::<Result<Vec<_>, _>>()?;
             ballot
                 .validate(&ids, work.kind == WorkKind::SurveyRevote)
-                .map_err(|_| ())?;
+                .map_err(|_| InvalidSurveyOutput)?;
             let Target::Member(voter) = &work.target else {
-                return Err(());
+                return Err(InvalidSurveyOutput);
             };
             let vote = SurveyVote {
                 contest_id,
@@ -218,10 +267,11 @@ pub fn validate(
             })
         }
         WorkKind::SurveyReport => {
-            let report: SurveyReportText = validation::decode(&value).map_err(|_| ())?;
+            let report: SurveyReportText =
+                validation::decode(&value).map_err(|_| InvalidSurveyOutput)?;
             let map: Vec<SurveyClaimMap> =
-                serde_json::from_value(data["map"].clone()).map_err(|_| ())?;
-            report.validate(&map).map_err(|_| ())?;
+                serde_json::from_value(data["map"].clone()).map_err(|_| InvalidSurveyOutput)?;
+            report.validate(&map).map_err(|_| InvalidSurveyOutput)?;
             Ok(EnvelopePayload::SurveyReport(SurveyReport {
                 contest_id,
                 step_id,
@@ -230,6 +280,6 @@ pub fn validate(
                 report,
             }))
         }
-        _ => Err(()),
+        _ => Err(InvalidSurveyOutput),
     }
 }

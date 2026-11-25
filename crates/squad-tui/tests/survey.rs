@@ -115,9 +115,12 @@ fn fixture(collect: bool) -> SurveyView {
             limitations: "Shared model blind spots; missing ballots remain missing.".into(),
         },
     };
+    let mut first = vote.clone();
+    first.ballot.votes[0].change_evidence = None;
     let mut v = SurveyView::default();
     for p in [
         EnvelopePayload::SurveySetup(s),
+        EnvelopePayload::SurveyVote(first),
         EnvelopePayload::SurveyRevote(vote),
         EnvelopePayload::SurveyReport(report),
     ] {
@@ -206,7 +209,7 @@ fn reducer_emits_only_live_committed_cues_and_replay_is_static() {
         &mut q,
     );
     assert_eq!(q.len(), 1);
-    let report = committed(v.artifacts[2].clone(), 2);
+    let report = committed(v.artifacts[3].clone(), 2);
     s.reduce(
         FeedItem::Committed(report.clone()),
         FeedOrigin::Live,
@@ -224,4 +227,6 @@ fn reducer_emits_only_live_committed_cues_and_replay_is_static() {
     );
     assert!(quiet.is_empty());
     assert_eq!(replay.contests.len(), 1);
+    assert!(replay.snapshot.scoreboard.is_empty());
+    assert!(replay.snapshot.trophies.is_empty());
 }

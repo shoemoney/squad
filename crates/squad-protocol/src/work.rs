@@ -8,12 +8,16 @@ use serde::{Deserialize, Serialize};
 pub enum WorkKind {
     #[serde(rename = "reply")]
     Reply,
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.extract")]
     SurveyExtract,
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.vote")]
     SurveyVote,
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.revote")]
     SurveyRevote,
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.report")]
     SurveyReport,
     #[serde(rename = "debate.turn")]
@@ -86,6 +90,7 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
+            #[cfg(feature = "mode-survey")]
             WorkKind::SurveyExtract
             | WorkKind::SurveyReport
             | WorkKind::SurveyVote
@@ -103,6 +108,20 @@ impl Work {
                         && judge == self.case_id.is_some(),
                     "survey actor mismatch",
                 )?;
+                if !judge {
+                    let Target::Member(nick) = &self.target else {
+                        unreachable!()
+                    };
+                    ensure(
+                        self.context_id.0
+                            == format!(
+                                "contest:{}:{}:{nick}",
+                                self.contest_id.expect("checked"),
+                                self.step_id.expect("checked")
+                            ),
+                        "survey ballot requires fresh context",
+                    )?;
+                }
                 ensure(
                     self.attempt <= if judge { 3 } else { 2 },
                     "survey attempt limit",
@@ -173,7 +192,9 @@ impl Work {
             }
         }
         let ceiling = match self.kind {
+            #[cfg(feature = "mode-survey")]
             WorkKind::SurveyExtract | WorkKind::SurveyReport => 4096,
+            #[cfg(feature = "mode-survey")]
             WorkKind::SurveyVote | WorkKind::SurveyRevote => 2048,
             WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,

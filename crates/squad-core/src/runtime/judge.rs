@@ -274,6 +274,7 @@ impl Runner {
             )
         } else {
             match &material {
+                CaseMaterial::Survey { .. } => return Err(ReaderError::Forbidden),
                 CaseMaterial::Standalone { messages, question } => self.pack.judge_inputs(
                     &self.config,
                     &grant.work,

@@ -219,14 +219,54 @@ async fn question_first_survey_runs_real_engine_and_private_fanouts() {
             }
         })
         .unwrap();
+    assert_eq!(
+        uuid::Uuid::parse_str(&report.map[0].claim_id)
+            .unwrap()
+            .get_version_num(),
+        4
+    );
     assert_eq!(report.map[0].final_tally.agree, 6);
     assert_eq!(report.report.consensus.len(), 1);
+    let mut groups =
+        std::collections::BTreeMap::<i64, (u32, std::collections::BTreeSet<u32>)>::new();
+    for e in &events {
+        let start = e.commit.seq.get() - i64::from(e.commit.commit_index);
+        let group = groups
+            .entry(start)
+            .or_insert((e.commit.commit_size, Default::default()));
+        assert_eq!(group.0, e.commit.commit_size);
+        assert!(group.1.insert(e.commit.commit_index));
+    }
+    for (size, indexes) in groups.values() {
+        assert_eq!(indexes.len(), *size as usize);
+    }
+
     for b in f.fake.captured_bodies().await {
         let text = b["messages"].to_string();
+        if text.contains("extract atomic claims") {
+            assert_eq!(
+                b["response_format"]["json_schema"]["schema"]["properties"]["claims"]["maxItems"],
+                25
+            );
+        }
+        if b["model"] == "fixture/judge" {
+            assert!(!text.contains("PERSONA_"));
+            assert_eq!(b["messages"].as_array().unwrap().len(), 2);
+        }
         if text.contains("independent claim vote") || text.contains("reconsider selected claims") {
             assert!(!text.contains("PRIVATE_WHOLE_ANSWER"));
             assert!(!text.contains("sourceAnswerIds"));
             assert!(!text.contains("finalTally"));
+            let schema = &b["response_format"]["json_schema"]["schema"];
+            assert_eq!(schema["properties"]["votes"]["maxItems"], 1);
+            assert_eq!(
+                schema["$defs"]["SurveyBallotItem"]["properties"]["confidence"]["minimum"],
+                1
+            );
+            assert_eq!(
+                schema["$defs"]["SurveyBallotItem"]["properties"]["confidence"]["maximum"],
+                5
+            );
             assert_eq!(b["messages"].as_array().unwrap().len(), 2);
         }
     }
@@ -645,4 +685,407 @@ async fn empty_claims_skip_ballots_and_release_unused_reservations() {
     f.assert_ledger();
     assert_eq!(room.state().await.daily_spend.reserved_usd, 0.0);
     room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn survey_preflight_survives_restart_and_confirmation_dispatches_once() {
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.0;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room
+        .submit(request(&f.config, "@all $survey Which checks help?"))
+        .await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = result
+    else {
+        panic!("{result:?}")
+    };
+    assert_eq!(plan.estimate.model_calls, 20);
+    assert_eq!(plan.settings["reservedAttempts"], 42);
+    assert!(f.fake.captured_bodies().await.is_empty());
+    assert_eq!(room.state().await.pending_preflights.len(), 1);
+    room.shutdown().await.unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(room.state().await.pending_preflights.len(), 1);
+    let confirm = squad_protocol::Request::ContestConfirm {
+        request_id: EventId::new(),
+        contest_id: plan.contest_id,
+        plan_id: plan.plan_id,
+    };
+    assert!(matches!(
+        room.submit(confirm.clone()).await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| f.count("survey.report") == 1).await;
+    room.submit(confirm).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 20);
+    assert!(room.state().await.pending_preflights.is_empty());
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn parser_authorized_single_member_survey_uses_adjusted_counts() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room
+        .submit(request(&f.config, "@member0 $survey Which checks help?"))
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("survey.report") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 5);
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+#[derive(Clone)]
+struct PausedStage(&'static str);
+impl Respond for PausedStage {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        let response = Answers.respond(r);
+        if String::from_utf8_lossy(&r.body).contains(self.0) {
+            response.set_delay(Duration::from_secs(2))
+        } else {
+            response
+        }
+    }
+}
+#[tokio::test]
+async fn stop_fences_each_typed_survey_kind_and_clear_is_foreign_key_safe() {
+    for (kind, stage) in [
+        ("survey.extract", "extract atomic claims"),
+        ("survey.vote", "independent claim vote"),
+        ("survey.revote", "reconsider selected claims"),
+        ("survey.report", "write the human's claim map"),
+    ] {
+        let f = Fixture::new().await;
+        Mock::given(method("POST"))
+            .and(path("/api/v1/chat/completions"))
+            .respond_with(PausedStage(stage))
+            .with_priority(1)
+            .mount(&f.fake.server)
+            .await;
+        let room = f.open(OpenMode::Interactive).await;
+        room.submit(request(&f.config, "@all $survey Which checks help?"))
+            .await;
+        f.wait(|| {
+            f.db()
+                .query_row(
+                    "SELECT COUNT(*) FROM work WHERE kind=? AND status='running'",
+                    [kind],
+                    |r| r.get::<_, i64>(0),
+                )
+                .unwrap()
+                > 0
+        })
+        .await;
+        let (wid, target, case): (String, String, Option<String>) = f
+            .db()
+            .query_row(
+                "SELECT work_id,target,case_id FROM work WHERE kind=? AND status='running' LIMIT 1",
+                [kind],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        let wid: WorkId = wid.parse().unwrap();
+        let owner = if let Some(case) = case {
+            ExecutorKey::Case(case.parse().unwrap())
+        } else {
+            ExecutorKey::Member(target.parse().unwrap())
+        };
+        let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
+        let own = squad_store::readers::ScopedReaders::new(store.clone(), owner.clone(), 1);
+        let foreign = squad_store::readers::ScopedReaders::new(
+            store,
+            if matches!(owner, ExecutorKey::Case(_)) {
+                ExecutorKey::Case(CaseId::new())
+            } else {
+                ExecutorKey::Member(nick("intruder"))
+            },
+            1,
+        );
+        assert!(matches!(
+            foreign.get(wid).await,
+            Err(ReaderError::Forbidden)
+        ));
+        assert!(foreign.for_work(wid).await.is_err());
+        assert!(foreign.prompt_values_for_work(wid).await.is_err());
+        let history = own.for_work(wid).await.unwrap();
+        assert_eq!(history.len(), 1);
+        assert!(matches!(history[0].meta, HistoryMetadata::Anonymous { .. }));
+        assert!(matches!(
+            room.submit(squad_protocol::Request::Stop {
+                request_id: EventId::new(),
+                target: None
+            })
+            .await,
+            RequestResult::Accepted { .. }
+        ));
+        assert_eq!(
+            f.db()
+                .query_row(
+                    "SELECT COUNT(*) FROM work WHERE status IN ('queued','running')",
+                    [],
+                    |r| r.get::<_, i64>(0)
+                )
+                .unwrap(),
+            0
+        );
+        assert_eq!(f.count("survey.report"), 0);
+        f.assert_ledger();
+        assert!(matches!(
+            room.submit(squad_protocol::Request::Clear {
+                request_id: EventId::new()
+            })
+            .await,
+            RequestResult::Accepted { .. }
+        ));
+        assert_eq!(
+            f.db()
+                .query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r
+                    .get::<_, i64>(
+                    0
+                ))
+                .unwrap(),
+            0
+        );
+        assert!(matches!(own.get(wid).await, Err(ReaderError::StaleWork)));
+        room.shutdown().await.unwrap();
+    }
+}
+#[derive(Clone)]
+struct PausedMember;
+impl Respond for PausedMember {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        let b: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+        let response = Answers.respond(r);
+        if b["model"] == "fixture/member5"
+            && b["messages"].to_string().contains("independent claim vote")
+        {
+            response.set_delay(Duration::from_secs(2))
+        } else {
+            response
+        }
+    }
+}
+#[tokio::test]
+async fn recovery_mid_ballot_keeps_accepted_ballots_and_selected_sources() {
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .respond_with(PausedMember)
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@all $survey Which checks help?"))
+        .await;
+    f.wait(|| f.count("survey.vote") == 5).await;
+    let claim: String = f
+        .db()
+        .query_row("SELECT claim_id FROM survey_claims", [], |r| r.get(0))
+        .unwrap();
+    let source: String = f
+        .db()
+        .query_row("SELECT setup_json FROM survey_sources", [], |r| r.get(0))
+        .unwrap();
+    room.shutdown().await.unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| f.count("survey.report") == 1).await;
+    assert_eq!(
+        f.db()
+            .query_row("SELECT claim_id FROM survey_claims", [], |r| r
+                .get::<_, String>(0))
+            .unwrap(),
+        claim
+    );
+    assert_eq!(
+        f.db()
+            .query_row("SELECT setup_json FROM survey_sources", [], |r| r
+                .get::<_, String>(0))
+            .unwrap(),
+        source
+    );
+    for i in 0..5 {
+        let model = format!("fixture/member{i}");
+        let bodies = f.fake.captured_bodies().await;
+        assert_eq!(
+            bodies
+                .iter()
+                .filter(|b| b["model"] == model
+                    && b["messages"].to_string().contains("independent claim vote"))
+                .count(),
+            1
+        );
+    }
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn expired_preflight_releases_the_active_claim_on_restart_without_dispatch() {
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room
+        .submit(request(&f.config, "@all $survey Which checks help?"))
+        .await;
+    assert!(matches!(result, RequestResult::PendingConfirmation { .. }));
+    room.shutdown().await.unwrap();
+    f.db().execute("UPDATE contests SET expires_at='2000-01-01T00:00:00Z',plan_json=json_set(plan_json,'$.expiresAt','2000-01-01T00:00:00Z')",[]).unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    assert!(room.state().await.active_contest.is_none());
+    assert!(room.state().await.pending_preflights.is_empty());
+    assert!(f.fake.captured_bodies().await.is_empty());
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn recovery_at_artifact_barrier_assignment_and_report_commit_boundaries() {
+    let cases = [
+        (
+            "BEFORE INSERT ON events WHEN NEW.kind='contest.report' AND json_extract(NEW.payload,'$.data.surveyStage')='COLLECTING'",
+            "COLLECTING",
+            6,
+            0,
+        ),
+        (
+            "BEFORE INSERT ON work WHEN NEW.kind='survey.vote'",
+            "VOTING",
+            6,
+            0,
+        ),
+        (
+            "BEFORE UPDATE OF status ON work WHEN NEW.kind='survey.vote' AND NEW.status='running'",
+            "VOTING",
+            6,
+            6,
+        ),
+        (
+            "BEFORE INSERT ON events WHEN NEW.kind='survey.state' AND json_extract(NEW.payload,'$.state')='COMPLETE'",
+            "REPORTING",
+            6,
+            6,
+        ),
+    ];
+    for (point, stage, answers, vote_work) in cases {
+        let f = Fixture::new().await;
+        std::fs::create_dir_all(&f.config.data_dir).unwrap();
+        let mut db = rusqlite::Connection::open(f.config.data_dir.join("squad.db")).unwrap();
+        squad_store::schema::migrate(&mut db).unwrap();
+        db.execute_batch(&format!("CREATE TRIGGER survey_crash {point} BEGIN SELECT RAISE(ABORT,'fixture interruption'); END;")).unwrap();
+        drop(db);
+        let room = f.open(OpenMode::Interactive).await;
+        room.submit(request(&f.config, "@all $survey Which checks help?"))
+            .await;
+        f.wait(|| {
+            let db = f.db();
+            let state: Option<String> = db
+                .query_row(
+                    "SELECT json_extract(state_json,'$.state') FROM contests",
+                    [],
+                    |r| r.get(0),
+                )
+                .ok();
+            let work: i64 = db
+                .query_row(
+                    "SELECT COUNT(*) FROM work WHERE kind='survey.vote'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            let pending: i64 = db
+                .query_row(
+                    "SELECT COUNT(*) FROM work WHERE status='running'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            let report = if stage == "REPORTING" {
+                f.count("survey.report") == 1
+            } else {
+                true
+            };
+            state.as_deref() == Some(stage)
+                && f.count("message.final") == answers
+                && work == vote_work
+                && pending == 0
+                && report
+        })
+        .await;
+        let db = f.db();
+        let mut q = db
+            .prepare("SELECT work_id FROM work ORDER BY rowid")
+            .unwrap();
+        let work = q
+            .query_map([], |r| r.get::<_, String>(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        drop(q);
+        drop(db);
+        let sources: String = f
+            .db()
+            .query_row("SELECT setup_json FROM survey_sources", [], |r| r.get(0))
+            .unwrap();
+        room.shutdown().await.unwrap();
+        f.db().execute_batch("DROP TRIGGER survey_crash").unwrap();
+        let room = f.open(OpenMode::Interactive).await;
+        f.wait(|| {
+            f.count("survey.report") == 1
+                && f.db()
+                    .query_row("SELECT active FROM contests", [], |r| r.get::<_, i64>(0))
+                    .unwrap()
+                    == 0
+        })
+        .await;
+        assert_eq!(f.fake.captured_bodies().await.len(), 20, "boundary {point}");
+        let after: SurveySetup = serde_json::from_str(
+            &f.db()
+                .query_row("SELECT setup_json FROM survey_sources", [], |r| {
+                    r.get::<_, String>(0)
+                })
+                .unwrap(),
+        )
+        .unwrap();
+        let before: SurveySetup = serde_json::from_str(&sources).unwrap();
+        assert_eq!(after.question, before.question);
+        assert_eq!(after.question_message_id, before.question_message_id);
+        assert_eq!(after.participants, before.participants);
+        if !before.answers.is_empty() {
+            assert_eq!(after.answers, before.answers);
+        } else {
+            let db = f.db();
+            let mut q = db
+                .prepare("SELECT message_id FROM work WHERE kind='reply' ORDER BY rowid")
+                .unwrap();
+            let expected = q
+                .query_map([], |r| r.get::<_, String>(0))
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap();
+            assert_eq!(
+                after
+                    .answers
+                    .iter()
+                    .map(|a| a.message_id.to_string())
+                    .collect::<Vec<_>>(),
+                expected
+            );
+        }
+        for id in &work {
+            assert_eq!(
+                f.db()
+                    .query_row("SELECT COUNT(*) FROM work WHERE work_id=?", [id], |r| r
+                        .get::<_, i64>(0))
+                    .unwrap(),
+                1
+            );
+        }
+        assert_eq!(f.count("survey.claims"), 1);
+        assert_eq!(f.count("survey.selection"), 1);
+        f.assert_ledger();
+        room.shutdown().await.unwrap();
+    }
 }

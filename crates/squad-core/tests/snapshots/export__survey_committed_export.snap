@@ -1,0 +1,78 @@
+---
+source: crates/squad-core/tests/export.rs
+expression: output
+---
+# Squad transcript
+
+## SURVEY 01900000-0000-7000-8000-000000000100
+
+Is the proposal feasible?
+
+Source: existing parallel answers
+
+### Source @alpha · 01900000-0000-7000-8000-000000000047
+
+It fits the capacity budget.
+
+### Source @beta · 01900000-0000-7000-8000-000000000048
+
+A load test is needed.
+
+### c1 · The proposal is feasible.
+
+Origins: 01900000-0000-7000-8000-000000000047
+
+### First ballot · @alpha
+
+- c1: Agree · confidence 4/5 · The capacity measurement matters.
+### First ballot · @beta
+
+- c1: Disagree · confidence 4/5 · The capacity measurement matters.
+### Selected claims and anonymous reasons
+
+c1 · The proposal is feasible.
+
+AGREE: Fits the budget
+
+DISAGREE: Requires a load test
+
+UNSURE: 
+
+### Second ballot · @alpha
+
+- c1: Disagree · confidence 4/5 · The capacity measurement matters.
+  Change evidence: A successful load test would change my mind.
+## Survey claim map
+
+### Consensus
+
+None
+
+### Contested
+
+None
+
+### Lone insights
+
+None
+
+### Lone dissents
+
+None
+
+### Rejected outliers · likely errors, verify
+
+- c1: Likely error: verify with an independent load test.
+  Settling question: Which load profile matches production?
+### c1
+
+First: AGREE 1 · DISAGREE 1 · UNSURE 0 · MISSING 0
+
+Final: AGREE 0 · DISAGREE 2 · UNSURE 0 · MISSING 0
+
+Switch @alpha: Agree → Disagree
+Not re-voted (retained first ballot): beta
+
+Limitations: Models can share blind spots. Beta did not re-vote; its first ballot remains recorded.
+
+Survey state: Complete
