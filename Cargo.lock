@@ -3114,6 +3114,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "squad-agents",
  "squad-core",
  "squad-protocol",
  "squad-store",
@@ -3122,6 +3123,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "wiremock",
 ]
 
 [[package]]
