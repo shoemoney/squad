@@ -299,9 +299,9 @@
   - [ ] M4.P5.L5.T2 — `squad-tui/src/fx/status.rs`: orbit glyph, throughput bar from real token rate, backoff ring, pip stack; snapshots.
   - [ ] M4.P5.L5.T3 — `squad-tui/src/fx/meter.rs`: cost odometer, daily-spend heat states at 75/90/100%, record tick; snapshots.
 - **M4.P5.L6 — Transcript effects**
-  - [ ] M4.P5.L6.T1 — `squad-tui/src/fx/bubble.rs`: rail drop, comet cursor, seal, rail fracture; snapshots at four timestamps each.
-  - [ ] M4.P5.L6.T2 — `squad-tui/src/fx/dispatch.rs`: launch streak, spoke burst with narrow fallback, quote lasso.
-  - [ ] M4.P5.L6.T3 — `squad-tui/src/fx/command.rs`: `/stop` brake, colour-only `/clear` wipe followed by a hard cut; preserve protected message-body glyphs during the pass.
+  - [x] M4.P5.L6.T1 — `squad-tui/src/fx/bubble.rs`: rail drop, comet cursor, seal, rail fracture; snapshots at four timestamps each.
+  - [x] M4.P5.L6.T2 — `squad-tui/src/fx/dispatch.rs`: launch streak, spoke burst with narrow fallback, quote lasso.
+  - [x] M4.P5.L6.T3 — `squad-tui/src/fx/command.rs`: `/stop` brake, colour-only `/clear` wipe followed by a hard cut; preserve protected message-body glyphs during the pass.
 - **M4.P5.L7 — Debate effects**
   - [ ] M4.P5.L7.T1 — `squad-tui/src/fx/particles.rs`: fixed pool of 256, gravity integrator, blank-cell-only drawing, seeded determinism test.
   - [ ] M4.P5.L7.T2 — `squad-tui/src/fx/debate.rs`: versus card settling inline, score slam, tug bar, lead flip; snapshots.

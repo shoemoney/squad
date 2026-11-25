@@ -1,0 +1,26 @@
+---
+source: crates/squad-tui/tests/fx_dispatch.rs
+expression: "format!(\"{buf:#?}\")"
+---
+Buffer {
+    area: Rect { x: 0, y: 0, width: 40, height: 10 },
+    content: [
+        "                                        ",
+        "   human quote 界                       ", // hidden by multi-width symbols: [(16, " ")]
+        "                               claude   ",
+        "                                        ",
+        "   Other body stays readable            ",
+        "                               gemini   ",
+        "                                        ",
+        "                                        ",
+        " ▸                                      ",
+        " ━━━━━━━━━━━━━━━━━━━━━━━━━━             ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 8, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 9, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+        x: 27, y: 9, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
