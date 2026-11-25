@@ -1,8 +1,8 @@
 //! M3.P1.L2.T4: stop-all, stop-one, permitted ordinary retry and regeneration through `RoomHandle`.
-#[path = "room_support.rs"]
-mod support;
 #[path = "support/m6_room.rs"]
 mod live;
+#[path = "room_support.rs"]
+mod support;
 use squad_protocol::*;
 use support::*;
 
@@ -29,7 +29,10 @@ async fn stop_all_cancels_every_queued_work_item_and_reports_one_receipt() {
     let root = tempfile::tempdir().unwrap();
     let launcher = Launcher::default();
     let (room, _) = open(root.path(), &launcher, OpenMode::OneShot).await;
-    accepted(room.submit_commit_only(message("@all queued", EventId::new())).await);
+    accepted(
+        room.submit_commit_only(message("@all queued", EventId::new()))
+            .await,
+    );
     assert_eq!(statuses(&launcher).len(), 2);
     let id = EventId::new();
     let result = room
@@ -49,7 +52,13 @@ async fn stop_all_cancels_every_queued_work_item_and_reports_one_receipt() {
     assert_eq!(*request_id, id);
     assert_eq!(event_ids.len(), 2, "one cancellation event per work item");
     assert!(statuses(&launcher).iter().all(|(_, s)| s == "cancelled"));
-    assert!(room.state().await.participants.iter().all(|p| p.queue_depth == 0));
+    assert!(
+        room.state()
+            .await
+            .participants
+            .iter()
+            .all(|p| p.queue_depth == 0)
+    );
     // Replaying the same receipt neither errors nor cancels anything again.
     assert_eq!(
         room.submit(Request::Stop {
@@ -78,7 +87,10 @@ async fn stop_one_cancels_only_the_named_member() {
     let root = tempfile::tempdir().unwrap();
     let launcher = Launcher::default();
     let (room, _) = open(root.path(), &launcher, OpenMode::OneShot).await;
-    accepted(room.submit_commit_only(message("@all queued", EventId::new())).await);
+    accepted(
+        room.submit_commit_only(message("@all queued", EventId::new()))
+            .await,
+    );
     accepted(
         room.submit(Request::Stop {
             request_id: EventId::new(),
@@ -112,12 +124,17 @@ async fn retry_allows_only_failed_ordinary_work_and_allocates_a_new_identity() {
     let root = tempfile::tempdir().unwrap();
     let launcher = Launcher::default();
     let (room, _) = open(root.path(), &launcher, OpenMode::OneShot).await;
-    accepted(room.submit_commit_only(message("@a retry", EventId::new())).await);
+    accepted(
+        room.submit_commit_only(message("@a retry", EventId::new()))
+            .await,
+    );
     let (work, trigger): (WorkId, String) = store(&launcher)
         .call(|db| {
-            Ok(db.query_row("SELECT work_id,trigger_event_id FROM work", [], |r| {
-                Ok((r.get::<_, String>(0)?.parse().unwrap(), r.get(1)?))
-            })?)
+            Ok(
+                db.query_row("SELECT work_id,trigger_event_id FROM work", [], |r| {
+                    Ok((r.get::<_, String>(0)?.parse().unwrap(), r.get(1)?))
+                })?,
+            )
         })
         .unwrap();
     // Queued work cannot be retried.
@@ -154,7 +171,8 @@ async fn retry_allows_only_failed_ordinary_work_and_allocates_a_new_identity() {
     accepted(result.clone());
     let rows: Vec<(String, String, String)> = store(&launcher)
         .call(|db| {
-            let mut q = db.prepare("SELECT work_id,status,trigger_event_id FROM work ORDER BY rowid")?;
+            let mut q =
+                db.prepare("SELECT work_id,status,trigger_event_id FROM work ORDER BY rowid")?;
             q.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(Into::into)
@@ -219,7 +237,10 @@ async fn regeneration_supersedes_the_reply_and_refuses_ineligible_targets() {
             _ => None,
         })
         .expect("supersession marker is committed");
-    assert_eq!(marker.superseded_message_id, first.completed.generation.message_id);
+    assert_eq!(
+        marker.superseded_message_id,
+        first.completed.generation.message_id
+    );
     assert_eq!(marker.member.as_str(), "member0");
     let replacement = events
         .iter()
@@ -230,7 +251,10 @@ async fn regeneration_supersedes_the_reply_and_refuses_ineligible_targets() {
         .find(|m| m.completed.generation.message_id == marker.replacement_message_id)
         .expect("replacement final");
     assert_eq!(replacement.content, "second draft");
-    assert_eq!(replacement.in_reply_to_message_id, first.in_reply_to_message_id);
+    assert_eq!(
+        replacement.in_reply_to_message_id,
+        first.in_reply_to_message_id
+    );
     // The superseded message cannot be regenerated twice.
     assert_eq!(
         rejected_code(
