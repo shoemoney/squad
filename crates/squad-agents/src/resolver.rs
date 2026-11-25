@@ -344,16 +344,21 @@ async fn pin_cached<S: ResolutionStore>(
         let cached = store
             .cached_alias(provider, configured)
             .map_err(|_| ResolutionError::Persistence)?;
-        if let Some(entry) = cached.filter(|entry| {
-            !entry.model.id.starts_with('~')
-                && now
-                    .checked_sub(entry.resolved_at)
-                    .is_some_and(|age| age < ttl)
-        }) {
+        // A cached alias target must still be listed: a delisted slug would fail
+        // every call with COST_UNKNOWN until the TTL expires, so re-resolve once.
+        if let Some(model) = cached
+            .filter(|entry| {
+                !entry.model.id.starts_with('~')
+                    && now
+                        .checked_sub(entry.resolved_at)
+                        .is_some_and(|age| age < ttl)
+            })
+            .and_then(|entry| catalog.get(&entry.model.id).cloned())
+        {
             return Ok(PinnedModel {
                 nick: nick.into(),
                 configured: configured.into(),
-                model: Some(entry.model),
+                model: Some(model),
                 error: None,
                 probes: vec![],
             });
