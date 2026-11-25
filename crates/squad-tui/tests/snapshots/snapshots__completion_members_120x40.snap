@@ -1,0 +1,44 @@
+---
+source: crates/squad-tui/tests/snapshots.rs
+expression: screen
+---
+ SQUAD   /   main   ·   six minds, one room
+$0.00 ???????? $0.00 · pending $0.00 · remaining $0.00
+claude
+idle W0 L0
+n/a tok · n/a
+gemini
+idle W0 L0
+n/a tok · n/a
+grok
+idle W0 L0
+n/a tok · n/a
+openai
+idle W0 L0
+n/a tok · n/a
+
+
+                                                       ____   ___  _   _   _    ____
+                                                      / ___| / _ \| | | | / \  |  _ \
+                                                      \___ \| | | | | | |/ _ \ | | | |
+                                                       ___) | |_| | |_| / ___ \| |_| |
+                                                      |____/ \__\_\\___/_/   \_\____/
+
+
+
+
+
+
+
+
+
+  @claude
+  @gemini
+  @grok
+  @openai
+  @all
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────
+> @
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit
