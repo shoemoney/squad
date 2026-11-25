@@ -176,7 +176,7 @@
   - [x] M1.P3.L4.T11 — Implement Stop handlers with fencing, NOTHING_TO_STOP, pending-pick cancellation, hold release and terminal arbitration in `crates/squad-core/src/router/stop.rs`; test with the real store.
   - [x] M1.P3.L4.T12 — Implement ordinary Retry allocation, failed-work eligibility and idempotency in `crates/squad-core/src/router/retry.rs`.
   - [x] M1.P3.L4.T13 — Implement debate confirm, cancel and expiry handlers with durable `debate.preflight.result`, stale-plan checks and judge-only restoration in `crates/squad-core/src/router/preflight.rs`; persist generic non-debate preflight results without admitting unbuilt modes.
-  - [ ] M1.P3.L4.T14 — Implement the bus-log tap for request, commit and ExecutorKey mailbox diagnostics, preserving trace identities and default body redaction, in `crates/squad-core/src/bus/diagnostics.rs`.
+  - [x] M1.P3.L4.T14 — Implement the bus-log tap for request, commit and ExecutorKey mailbox diagnostics, preserving trace identities and default body redaction, in `crates/squad-core/src/bus/diagnostics.rs`.
 
 - **M1.P3.L5 — Commit shared contest projections**
   - [x] M1.P3.L5.T1 — Implement transactional active-contest claims and generic kind-checked event associations in `crates/squad-store/src/contests.rs`; M1 admits debate only.
@@ -184,13 +184,13 @@
 
 - **M1.P3.L6 — Commit daily spending**
   - [x] M1.P3.L6.T1 — Implement shared `spend_daily` updates with deterministic micro-dollar arithmetic and per-attempt local-day attribution in crate `squad-store`, file `crates/squad-store/src/accounting.rs`.
-  - [ ] M1.P3.L6.T2 — Capture actual reported costs for successful, failed and cancelled calls in the result transaction, applying reconciliation differences once in crate `squad-store`, file `crates/squad-store/src/accounting.rs`.
-  - [ ] M1.P3.L6.T3 — Persist unknown-cost calls, retain unresolved reservations and emit daily projection fields for the pending segment and `~` indicator in crate `squad-core`, file `crates/squad-core/src/router/accounting.rs`.
-  - [ ] M1.P3.L6.T4 — Recheck daily admission before provider start and contest reservation, reject with `DAILY_MAX_REACHED`, and allow in-flight completion and late accounting in crate `squad-core`, file `crates/squad-core/src/router/accounting.rs`.
+  - [x] M1.P3.L6.T2 — Capture actual reported costs for successful, failed and cancelled calls in the result transaction, applying reconciliation differences once in crate `squad-store`, file `crates/squad-store/src/accounting.rs`.
+  - [x] M1.P3.L6.T3 — Persist unknown-cost calls, retain unresolved reservations and emit daily projection fields for the pending segment and `~` indicator in crate `squad-core`, file `crates/squad-core/src/router/accounting.rs`.
+  - [x] M1.P3.L6.T4 — Recheck daily admission before provider start and contest reservation, reject with `DAILY_MAX_REACHED`, and allow in-flight completion and late accounting in crate `squad-core`, file `crates/squad-core/src/router/accounting.rs`.
   - [x] M1.P3.L6.T5 — Transfer unstarted reservations across local midnight and preserve prior-day actual costs and unresolved attempts in crate `squad-store`, file `crates/squad-store/src/accounting.rs` and file `crates/squad-store/tests/daily_spend.rs`.
 
 - **M1.P3.L7 — Commit generic assignments and artifacts**
-  - [ ] M1.P3.L7.T1 — Implement generic active-contest claims, confirmation/result persistence and stale-plan checks without interpreting unbuilt mode payloads in `crates/squad-core/src/router/contests.rs`.
+  - [x] M1.P3.L7.T1 — Implement generic active-contest claims, confirmation/result persistence and stale-plan checks without interpreting unbuilt mode payloads in `crates/squad-core/src/router/contests.rs`.
   - [x] M1.P3.L7.T2 — Persist frozen script steps, per-member payload references, context identities, random assignments and barrier delivery records in crate `squad-store`, file `crates/squad-store/src/contest_steps.rs`.
   - [x] M1.P3.L7.T3 — Implement step-bound history readers that exclude ordinary member history and restricted metadata, including fresh audit contexts, in crate `squad-store`, file `crates/squad-store/src/readers.rs`.
   - [x] M1.P3.L7.T8 — Authorize generic artifact producers against work, step, assignment and case identity, leaving typed coverage checks to mode M5 validators, in `crates/squad-core/src/router/authorization.rs`.
@@ -205,10 +205,10 @@
   - [x] M1.P4.L1.T2 — Implement private work claims, lease fencing and terminal tombstones in crate `squad-store`, file `crates/squad-store/src/work.rs`.
   - [x] M1.P4.L1.T3 — Test stopped workers and crashes between commit, notification and result delivery in crate `squad-core`, file `crates/squad-core/tests/recovery.rs`.
   - [x] M1.P4.L1.T4 — Verify that recovery cannot bypass provider-attempt accounting in crate `squad-store`, file `crates/squad-store/tests/attempt_recovery.rs`.
-  - [ ] M1.P4.L1.T5 — Test stale result rejection after cancellation, supersession and room clear in crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`.
+  - [x] M1.P4.L1.T5 — Test stale result rejection after cancellation, supersession and room clear in crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`.
   - [x] M1.P4.L1.T6 — Implement the advisory room lock and exact conflict message in crate `squad-store`, file `crates/squad-store/src/room_lock.rs`.
-  - [ ] M1.P4.L1.T7 — Recover pending barrier allocations, unfinished `judge.round` work and scored or unscored outcomes without duplicate work or tally contributions in crate `squad-core`, file `crates/squad-core/src/router/recovery.rs` and file `crates/squad-core/tests/recovery.rs`.
-  - [ ] M1.P4.L1.T8 — Test round-score result fencing after stop and clear, preservation of the two-attempt limit, and final-judge admission only after round work settles in crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs` and file `crates/squad-core/tests/router_work.rs`.
+  - [x] M1.P4.L1.T7 — Recover pending barrier allocations, unfinished `judge.round` work and scored or unscored outcomes without duplicate work or tally contributions in crate `squad-core`, file `crates/squad-core/src/router/recovery.rs` and file `crates/squad-core/tests/recovery.rs`.
+  - [x] M1.P4.L1.T8 — Test round-score result fencing after stop and clear, preservation of the two-attempt limit, and final-judge admission only after round work settles in crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs` and file `crates/squad-core/tests/router_work.rs`.
   - [x] M1.P4.L1.T9 — Create and reopen the database, lock, WAL, shared-memory and auxiliary files with the required permissions in crate `squad-store`, file `crates/squad-store/src/open.rs` and file `crates/squad-store/tests/permissions.rs`.
   - [x] M1.P4.L1.T10 — Define the case-executor spawn/retire hook and test recovery and follow-up summons with a double in `crates/squad-core/src/runtime/contexts.rs`; M2 supplies the actual executor.
   - [x] M1.P4.L1.T11 — Use the M1 runtime harness to test OneShot isolation, dormant committed no-wait work until Interactive recovery, and repair recovery without resetting attempt budgets in `crates/squad-core/tests/recovery.rs`.
@@ -234,8 +234,8 @@
 - **M1.P4.L4 — Verify contest and daily accounting boundaries**
   - [ ] M1.P4.L4.T1 — Test competing contest claims, persistent pending picks, rejected picks preserving state, ordinary routing while pending and `pick_cancelled` retention in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`.
   - [x] M1.P4.L4.T5 — Test reported costs, billed failures and cancellations, unknown costs, duplicate reconciliation, transaction rollback, local midnight and clear preserving daily totals in crate `squad-store`, file `crates/squad-store/tests/daily_spend.rs`.
-  - [ ] M1.P4.L4.T6 — Test daily-max refusal before new provider calls and contest admission, in-flight completion after the cap, and admission after a new day or raised configured max in crate `squad-core`, file `crates/squad-core/tests/daily_admission.rs`.
+  - [x] M1.P4.L4.T6 — Test daily-max refusal before new provider calls and contest admission, in-flight completion after the cap, and admission after a new day or raised configured max in crate `squad-core`, file `crates/squad-core/tests/daily_admission.rs`.
 
 
 
-  - [ ] M1.P4.L4.T7 — Verify core/debate visibility and ExecutorKey ownership across ordinary, synthetic step and case work with real SQLite readers in `crates/squad-core/tests/isolation.rs`; reject guessed IDs and metadata leakage.
+  - [x] M1.P4.L4.T7 — Verify core/debate visibility and ExecutorKey ownership across ordinary, synthetic step and case work with real SQLite readers in `crates/squad-core/tests/isolation.rs`; reject guessed IDs and metadata leakage.

@@ -17,20 +17,20 @@
 ## Phase M7.P1 — Documentation and distribution
 
 - **M7.P1.L1 — User documentation**
-  - [ ] M7.P1.L1.T1 — Document `./setup.sh` as the quick start and explain binary, Homebrew, and `cargo install` options for `squad-cli` in `README.md`.
-  - [ ] M7.P1.L1.T2 — Document configuration lookup, environment precedence, roster variables, personas, aliases, concrete versions, and stored `ROUNDS` and `GRILL_ROUNDS` for `squad-protocol`, `squad-agents`, and `squad-core` in `README.md`.
-  - [ ] M7.P1.L1.T3 — Document addressing, quotes, commands, keyboard interaction, and the canonical question-first flow with the direct debate shortcut for `squad-cli` and `squad-tui` in `README.md`.
-  - [ ] M7.P1.L1.T4 — Document estimates, optional judging, cases, daily spending, privacy, recovery, regeneration, export, storage, and `/clear` for `squad-core` in `README.md`.
-  - [ ] M7.P1.L1.T5 — Document development checks, supported platforms, terminal requirements, troubleshooting, and all optional environment variables for the workspace crates in `README.md`.
-  - [ ] M7.P1.L1.T6 — Document actual and pending spend, unknown costs, local-day rollover, machine-wide totals, `DAILY_MAX_REACHED`, in-flight completion, and Squad-only accounting for `squad-core` and `squad-tui` in `README.md`.
-  - [ ] M7.P1.L1.T7 — Document tournament blind judging, private results, eliminations, trophies, grill shared-floor visibility, plan versions, passing, failure handling, call counts, and exports for `squad-core` and `squad-cli` in `README.md`.
-  - [ ] M7.P1.L1.T8 — Document eligible picks, normal room use while pending, wrong-pick feedback, cancellation, restart persistence, and collection costs before preflight for `squad-core` and `squad-tui` in `README.md`.
-  - [ ] M7.P1.L1.T9 — Document one-shot recovery behavior, models and doctor avoiding room open, `--no-wait`, and accepted cursors for `squad-cli` in `README.md`.
-  - [ ] M7.P1.L1.T10 — Document census plan sources, assigned lenses, anonymous ratings, finder counts, estimate range and caveat, patches, quiet condition, discovery curve, singleton hint, and exports in `README.md`.
-  - [ ] M7.P1.L1.T11 — Document crosscheck plan-blind inventory, cross-lens cells, no self-review, fresh audits, explicit human risk acceptance, bounded stop condition, optional extraction charge, and exports in `README.md`.
-  - [ ] M7.P1.L1.T12 — Document survey collection and answer reuse, blind claims and votes, revotes, five report bands, uncertainty, settling questions, and exports in `README.md`.
-  - [ ] M7.P1.L1.T13 — Document probe brief requirements, role split, sit-outs, blind proposals, committed predictions, decision tree, unexpected results, unresolved explanations, proposed checks, and exports in `README.md`.
-  - [ ] M7.P1.L1.T14 — Document persistent `CENSUS_PASSES`, optional `SQUAD_CENSUS_PASSES`, new-mode call counts and skipped-member behavior, the shared engine, and the human-directed recommended pipeline in `README.md`.
+  - [x] M7.P1.L1.T1 — Document `./setup.sh` as the quick start and explain binary, Homebrew, and `cargo install` options for `squad-cli` in `README.md`.
+  - [x] M7.P1.L1.T2 — Document configuration lookup, environment precedence, roster variables, personas, aliases, concrete versions, and stored `ROUNDS` and `GRILL_ROUNDS` for `squad-protocol`, `squad-agents`, and `squad-core` in `README.md`.
+  - [x] M7.P1.L1.T3 — Document addressing, quotes, commands, keyboard interaction, and the canonical question-first flow with the direct debate shortcut for `squad-cli` and `squad-tui` in `README.md`.
+  - [x] M7.P1.L1.T4 — Document estimates, optional judging, cases, daily spending, privacy, recovery, regeneration, export, storage, and `/clear` for `squad-core` in `README.md`.
+  - [x] M7.P1.L1.T5 — Document development checks, supported platforms, terminal requirements, troubleshooting, and all optional environment variables for the workspace crates in `README.md`.
+  - [x] M7.P1.L1.T6 — Document actual and pending spend, unknown costs, local-day rollover, machine-wide totals, `DAILY_MAX_REACHED`, in-flight completion, and Squad-only accounting for `squad-core` and `squad-tui` in `README.md`.
+  - [x] M7.P1.L1.T7 — Document tournament blind judging, private results, eliminations, trophies, grill shared-floor visibility, plan versions, passing, failure handling, call counts, and exports for `squad-core` and `squad-cli` in `README.md`.
+  - [x] M7.P1.L1.T8 — Document eligible picks, normal room use while pending, wrong-pick feedback, cancellation, restart persistence, and collection costs before preflight for `squad-core` and `squad-tui` in `README.md`.
+  - [x] M7.P1.L1.T9 — Document one-shot recovery behavior, models and doctor avoiding room open, `--no-wait`, and accepted cursors for `squad-cli` in `README.md`.
+  - [x] M7.P1.L1.T10 — Document census plan sources, assigned lenses, anonymous ratings, finder counts, estimate range and caveat, patches, quiet condition, discovery curve, singleton hint, and exports in `README.md`.
+  - [x] M7.P1.L1.T11 — Document crosscheck plan-blind inventory, cross-lens cells, no self-review, fresh audits, explicit human risk acceptance, bounded stop condition, optional extraction charge, and exports in `README.md`.
+  - [x] M7.P1.L1.T12 — Document survey collection and answer reuse, blind claims and votes, revotes, five report bands, uncertainty, settling questions, and exports in `README.md`.
+  - [x] M7.P1.L1.T13 — Document probe brief requirements, role split, sit-outs, blind proposals, committed predictions, decision tree, unexpected results, unresolved explanations, proposed checks, and exports in `README.md`.
+  - [x] M7.P1.L1.T14 — Document persistent `CENSUS_PASSES`, optional `SQUAD_CENSUS_PASSES`, new-mode call counts and skipped-member behavior, the shared engine, and the human-directed recommended pipeline in `README.md`.
 
 - **M7.P1.L2 — Release artifacts**
   - [x] M7.P1.L2.T1 — Configure and verify `cargo-dist` builds for the `squad-cli` binary on macOS arm64 and Linux x64 in `dist-workspace.toml`.
