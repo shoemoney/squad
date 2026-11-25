@@ -104,25 +104,25 @@
   - [ ] M2.P2.L4.T3 — Test user-requested retry work without duplicating the human message in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.
 
 - **M2.P2.L5 — Embed and register Prompt pack templates**
-  - [ ] M2.P2.L5.T1 — Embed Prompt pack’s root `prompts/room.system.md` and `prompts/room.user.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T2 — Embed root `prompts/debate.round0.md`, `prompts/debate.round1.md`, `prompts/debate.rebuttal.md`, and `prompts/debate.closing.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T3 — Embed root `prompts/judge.system.md`, `prompts/judge.user.md`, `prompts/judge.repair.md`, `prompts/judge.standalone.md`, and `prompts/judge.followup.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T4 — Embed root `prompts/squad.notice.md`, `prompts/debate.forfeit.md`, and `prompts/debate.verdict.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T5 — Load and embed template IDs, required placeholders, composition rules, and pack version from root `prompts/manifest.json` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T6 — Embed root `prompts/judge.round.md` and register its target-round placeholders and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T7 — Load the Prompt pack’s round-scoring system mode, final score evidence, `tallyOverrideReason` guidance, and verdict-announcement composition with its pack version in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T8 — Embed and register root `prompts/debate.setup.md` and `prompts/debate.opening.md` with their user-role composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T9 — Embed and register root `prompts/census.hunt.md`, `prompts/census.merge.md`, `prompts/census.rate.md`, and `prompts/census.final.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T10 — Embed and register root `prompts/crosscheck.inventory.md`, `prompts/crosscheck.normalize.md`, `prompts/crosscheck.cell.md`, `prompts/crosscheck.audit.md`, and `prompts/crosscheck.rule.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T11 — Embed and register root `prompts/survey.extract.md`, `prompts/survey.vote.md`, `prompts/survey.revote.md`, and `prompts/survey.report.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L5.T12 — Embed and register root `prompts/probe.explain.md`, `prompts/probe.check.md`, `prompts/probe.predict.md`, and `prompts/probe.report.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T1 — Embed Prompt pack’s root `prompts/room.system.md` and `prompts/room.user.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T2 — Embed root `prompts/debate.round0.md`, `prompts/debate.round1.md`, `prompts/debate.rebuttal.md`, and `prompts/debate.closing.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T3 — Embed root `prompts/judge.system.md`, `prompts/judge.user.md`, `prompts/judge.repair.md`, `prompts/judge.standalone.md`, and `prompts/judge.followup.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T4 — Embed root `prompts/squad.notice.md`, `prompts/debate.forfeit.md`, and `prompts/debate.verdict.md` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T5 — Load and embed template IDs, required placeholders, composition rules, and pack version from root `prompts/manifest.json` in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T6 — Embed root `prompts/judge.round.md` and register its target-round placeholders and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T7 — Load the Prompt pack’s round-scoring system mode, final score evidence, `tallyOverrideReason` guidance, and verdict-announcement composition with its pack version in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T8 — Embed and register root `prompts/debate.setup.md` and `prompts/debate.opening.md` with their user-role composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T9 — Embed and register root `prompts/census.hunt.md`, `prompts/census.merge.md`, `prompts/census.rate.md`, and `prompts/census.final.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T10 — Embed and register root `prompts/crosscheck.inventory.md`, `prompts/crosscheck.normalize.md`, `prompts/crosscheck.cell.md`, `prompts/crosscheck.audit.md`, and `prompts/crosscheck.rule.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T11 — Embed and register root `prompts/survey.extract.md`, `prompts/survey.vote.md`, `prompts/survey.revote.md`, and `prompts/survey.report.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L5.T12 — Embed and register root `prompts/probe.explain.md`, `prompts/probe.check.md`, `prompts/probe.predict.md`, and `prompts/probe.report.md` with Prompt pack’s placeholders, schemas, and composition in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
 
 - **M2.P2.L6 — Render and load configured prompts**
-  - [ ] M2.P2.L6.T1 — Implement strict single-pass rendering and `serde_json` serialization in crate `squad-core`, file `crates/squad-core/src/prompts/render.rs`.
-  - [ ] M2.P2.L6.T2 — Implement embedded-default loading, `SQUAD_PROMPTS_DIR` overrides, and startup placeholder validation in crate `squad-core`, file `crates/squad-core/src/prompts/load.rs`.
+  - [x] M2.P2.L6.T1 — Implement strict single-pass rendering and `serde_json` serialization in crate `squad-core`, file `crates/squad-core/src/prompts/render.rs`.
+  - [x] M2.P2.L6.T2 — Implement embedded-default loading, `SQUAD_PROMPTS_DIR` overrides, and startup placeholder validation in crate `squad-core`, file `crates/squad-core/src/prompts/load.rs`.
   - [ ] M2.P2.L6.T3 — Provide the opaque prompt-rendering capability to `squad-agents` without a reverse crate dependency in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
-  - [ ] M2.P2.L6.T4 — Test embedded defaults, partial overrides, unknown and missing placeholders, single-pass insertion, and one-message judge composition using contract fixtures in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
-  - [ ] M2.P2.L6.T5 — Test all four modes’ template registration, partial overrides, strict placeholder validation, and schema-preserving payload serialization in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
+  - [x] M2.P2.L6.T4 — Test embedded defaults, partial overrides, unknown and missing placeholders, single-pass insertion, and one-message judge composition using contract fixtures in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
+  - [x] M2.P2.L6.T5 — Test all four modes’ template registration, partial overrides, strict placeholder validation, and schema-preserving payload serialization in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
 
 - **M2.P2.L7 — Execute tournament and grill work**
   - [ ] M2.P2.L7.T1 — Execute reply-like tournament entry Work with contest identity, ordinary output limits, and own-result inputs through the injected Prompt pack renderer in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
