@@ -18,7 +18,7 @@ async fn fresh_cases_have_two_messages_no_personas_or_foreign_material_and_high_
     for body in f.fake.captured_bodies().await {
         assert_eq!(body["messages"].as_array().unwrap().len(), 2);
         assert_eq!(body["messages"][1]["name"], "squad");
-        assert_eq!(body["reasoning"]["effort"], "high");
+        assert_eq!(body["reasoning"]["max_tokens"], 8192);
         let text = body.to_string();
         assert_ne!(text.contains("A_CANARY"), text.contains("B_CANARY"));
         assert!(!text.contains("PERSONA_"));
@@ -44,7 +44,7 @@ async fn invalid_round_repair_is_private_and_next_attempt_is_a_distinct_charge()
     assert!(!requests[0].to_string().contains("PRIVATE_REJECTED_OUTPUT"));
     assert!(requests[1].to_string().contains("PRIVATE_REJECTED_OUTPUT"));
     for body in requests {
-        assert_eq!(body["reasoning"]["effort"], "low");
+        assert_eq!(body["reasoning"]["max_tokens"], 1024);
         assert_eq!(body["messages"].as_array().unwrap().len(), 2);
     }
     let repair = f
