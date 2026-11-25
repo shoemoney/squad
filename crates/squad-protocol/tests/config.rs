@@ -616,10 +616,13 @@ fn credential_and_syntax_errors_are_redacted() {
         "OpenRouterApiKey([REDACTED])"
     );
     assert!(!format!("{c:?}").contains("fixture-credential"));
-    assert_eq!(
-        c.openrouter_api_key.expose_for_openrouter(),
-        "fixture-credential"
-    );
+    let header = c.openrouter_api_key.authorization_header().unwrap();
+    assert!(header.is_sensitive());
+    assert_eq!(header.to_str().unwrap(), "Bearer fixture-credential");
+    assert!(!format!("{header:?}").contains("fixture-credential"));
+    let mut headers = http::HeaderMap::new();
+    headers.insert(http::header::AUTHORIZATION, header);
+    assert!(!format!("{headers:?}").contains("fixture-credential"));
     f.options.env_file = Some("settings".into());
     f.write(
         "settings",
@@ -759,7 +762,14 @@ fn literal_single_line_crlf_and_empty_overrides() {
     );
     let env = BTreeMap::new();
     let c = SquadConfig::load_with_env(&f.options, &env).unwrap();
-    assert_eq!(c.openrouter_api_key.expose_for_openrouter(), "file-fixture");
+    assert_eq!(
+        c.openrouter_api_key
+            .authorization_header()
+            .unwrap()
+            .to_str()
+            .unwrap(),
+        "Bearer file-fixture"
+    );
 }
 
 #[test]
@@ -799,4 +809,14 @@ fn shared_nick_serde_preserves_validation() {
     for invalid in ["\"me\"", "\"Alice\"", "\"\""] {
         assert!(serde_json::from_str::<Nick>(invalid).is_err());
     }
+}
+
+#[test]
+fn invalid_authorization_header_errors_are_redacted() {
+    let f = Fixture::new();
+    let key = "fixture-invalid-credential\n";
+    let c = f.load(&[("OPENROUTER_API_KEY", key)]).unwrap();
+    let error = c.openrouter_api_key.authorization_header().unwrap_err();
+    assert!(!format!("{error:?} {error} {c:?}").contains(key));
+    assert!(!format!("{error:?} {error}").contains("fixture-invalid-credential"));
 }

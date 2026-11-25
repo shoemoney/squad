@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use crate::limits::*;
+use crate::constants::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SquadConfig {
@@ -28,9 +28,15 @@ pub struct SquadConfig {
 #[derive(Clone, PartialEq, Eq)]
 pub struct OpenRouterApiKey(String);
 impl OpenRouterApiKey {
-    /// Credential access for the OpenRouter authorization header only.
-    pub fn expose_for_openrouter(&self) -> &str {
-        &self.0
+    /// Construct a sensitive OpenRouter authorization header.
+    ///
+    /// Invalid header bytes return a value-free error rather than exposing the key.
+    pub fn authorization_header(
+        &self,
+    ) -> Result<http::HeaderValue, http::header::InvalidHeaderValue> {
+        let mut header = http::HeaderValue::from_str(&format!("Bearer {}", self.0))?;
+        header.set_sensitive(true);
+        Ok(header)
     }
 }
 impl fmt::Debug for OpenRouterApiKey {

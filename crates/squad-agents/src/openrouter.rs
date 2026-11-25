@@ -14,7 +14,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use squad_protocol::limits;
+use squad_protocol::constants as limits;
 use std::{
     fmt,
     pin::Pin,

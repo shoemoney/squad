@@ -4,7 +4,7 @@ use crate::openrouter::{
 };
 use crate::resolver::Model;
 use squad_protocol::config::{AgentConfig, ConfigError, ReasoningEffort, SquadConfig};
-use squad_protocol::limits;
+use squad_protocol::constants as limits;
 
 pub const DEFAULT_MODELS: [(&str, &str); 6] = [
     ("claude", "~anthropic/claude-opus-latest"),
