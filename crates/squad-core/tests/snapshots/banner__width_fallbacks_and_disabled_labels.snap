@@ -1,0 +1,96 @@
+---
+source: crates/squad-core/tests/banner.rs
+expression: output
+---
+On, width 80, Default
+         _____ ___ _   _    _    _       ____   ___  _   _ _   _ ____
+        |  ___|_ _| \ | |  / \  | |     |  _ \ / _ \| | | | \ | |  _ \
+        | |_   | ||  \| | / _ \ | |     | |_) | | | | | | |  \| | | | |
+        |  _|  | || |\  |/ ___ \| |___  |  _ <| |_| | |_| | |\  | |_| |
+        |_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
+
+On, width 56, Compact
+  ___ ___ _  _   _   _      ___  ___  _   _ _  _ ___
+ | __|_ _| \| | /_\ | |    | _ \/ _ \| | | | \| |   \
+ | _| | || .` |/ _ \| |__  |   / (_) | |_| | .` | |) |
+ |_| |___|_|\_/_/ \_\____| |_|_\\___/ \___/|_|\_|___/
+
+On, width 44, Divider
+           ──── FINAL ROUND ────
+
+On, width 24, Divider
+ ──── FINAL ROUND ────
+
+On, width 16, Divider
+─ FINAL ROUND ─
+
+On, width 11, Divider
+FINAL ROUND
+
+On, width 5, Divider
+FINA…
+
+On, width 1, Divider
+…
+
+On, width 0, Label
+
+
+Compact, width 80, Compact
+              ___ ___ _  _   _   _      ___  ___  _   _ _  _ ___
+             | __|_ _| \| | /_\ | |    | _ \/ _ \| | | | \| |   \
+             | _| | || .` |/ _ \| |__  |   / (_) | |_| | .` | |) |
+             |_| |___|_|\_/_/ \_\____| |_|_\\___/ \___/|_|\_|___/
+
+Compact, width 56, Compact
+  ___ ___ _  _   _   _      ___  ___  _   _ _  _ ___
+ | __|_ _| \| | /_\ | |    | _ \/ _ \| | | | \| |   \
+ | _| | || .` |/ _ \| |__  |   / (_) | |_| | .` | |) |
+ |_| |___|_|\_/_/ \_\____| |_|_\\___/ \___/|_|\_|___/
+
+Compact, width 44, Divider
+           ──── FINAL ROUND ────
+
+Compact, width 24, Divider
+ ──── FINAL ROUND ────
+
+Compact, width 16, Divider
+─ FINAL ROUND ─
+
+Compact, width 11, Divider
+FINAL ROUND
+
+Compact, width 5, Divider
+FINA…
+
+Compact, width 1, Divider
+…
+
+Compact, width 0, Label
+
+
+Off, width 80, Label
+                                  FINAL ROUND
+
+Off, width 56, Label
+                      FINAL ROUND
+
+Off, width 44, Label
+                FINAL ROUND
+
+Off, width 24, Label
+      FINAL ROUND
+
+Off, width 16, Label
+  FINAL ROUND
+
+Off, width 11, Label
+FINAL ROUND
+
+Off, width 5, Label
+FINA…
+
+Off, width 1, Label
+…
+
+Off, width 0, Label

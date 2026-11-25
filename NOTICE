@@ -2,3 +2,18 @@ Squad
 Copyright 2026 The Squad Authors
 
 Licensed under the Apache License, Version 2.0.
+
+Embedded FIGlet fonts
+---------------------
+Standard (default): Glenn Chappell and Ian Chai, March 1993, based on Frank's
+signature; Latin extensions by John Cowan; layout update by Paul Burton.
+Small (compact): Glenn Chappell, April 1993, based on Standard; layout update
+by Paul Burton.
+
+The unmodified standard.flf and small.flf files are vendored from the
+figlet-rs 1.0.0 distribution (https://crates.io/crates/figlet-rs/1.0.0).
+Original project: https://github.com/cmatsuoka/figlet (BSD-3-Clause).
+Copyright notices and licence terms are reproduced in
+crates/squad-core/src/banner/fonts/LICENSE-FIGlet.txt and the font headers.
+Their embedded permission to modify requires the modifier's name in a comment.
+These third-party assets retain their original terms.

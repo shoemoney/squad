@@ -12,6 +12,10 @@ squad-protocol = { workspace = true }
 squad-store = { workspace = true }
 squad-agents = { workspace = true }
 figlet-rs = "1"
+unicode-width = "0.2"
+
+[dev-dependencies]
+insta = { workspace = true }
 
 [lints]
 workspace = true
