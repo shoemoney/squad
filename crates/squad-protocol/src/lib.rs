@@ -26,7 +26,10 @@ pub use cursor::*;
 pub use debate::*;
 pub use envelopes::*;
 pub use identities::*;
-pub use parser::{ExportScope, ParsedInput, VariableName, VariableUpdate};
+pub use parser::{
+    ExportScope, ParseContext, ParsedInput, RecordSummary, SubmissionMeta, VariableName,
+    VariableUpdate, parse,
+};
 pub use requests::*;
 pub use work::*;
 pub type MemberNick = Nick;
