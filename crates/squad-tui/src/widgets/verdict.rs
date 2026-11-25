@@ -94,9 +94,7 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
     c.line("", Style::default());
     let mut out = VerdictRects::default();
     let body = Style::default();
-    let accent = Style::default()
-        .fg(palette.chrome())
-        .add_modifier(Modifier::BOLD);
+    let accent = Style::default().add_modifier(Modifier::BOLD);
     let winner = &view.verdict.verdict.winner;
     let winner_slot = usize::from(winner == &view.debaters[1]);
     let winner_style = Style::default()
@@ -124,11 +122,24 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
         "Weighted score",
         Style::default().add_modifier(Modifier::DIM),
     );
-    let total_row = c.line(&paired, winner_style);
+    let total_row = c.line(&paired, Style::default().add_modifier(Modifier::BOLD));
     let offsets = [
         view.debaters[0].as_str().len() + 1,
         view.debaters[0].as_str().len() + 1 + format!("{:.2}", totals[0]).len() + 3,
     ];
+    let segments = [
+        (0, offsets[0] + format!("{:.2}", totals[0]).len()),
+        (offsets[1], paired.len().saturating_sub(offsets[1])),
+    ];
+    for (i, (offset, width)) in segments.into_iter().enumerate() {
+        c.buf.set_style(
+            Rect::new(total_row.x + offset as u16, total_row.y, width as u16, 1)
+                .intersection(total_row),
+            Style::default()
+                .fg(palette.member(view.debaters[i].as_str(), i))
+                .add_modifier(Modifier::BOLD),
+        );
+    }
     for (i, offset) in offsets.into_iter().enumerate() {
         let cell = Rect::new(
             total_row.x + offset as u16,
@@ -168,6 +179,14 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
     if let Some(reason) = &view.verdict.verdict.tally_override_reason {
         c.line(&format!("Tally override: {reason}"), body);
     }
+    c.line("Decision", accent);
+    c.line(&view.verdict.verdict.reasoning, body);
+    let start = c.row;
+    c.line("Takeaway · What to steal from the loser", accent);
+    for takeaway in &view.verdict.verdict.what_to_steal_from_loser {
+        c.line(&format!("• {takeaway}"), body);
+    }
+    out.respect = c.span(start, c.row);
     if view.show_criterion_reasons {
         let wide = c.area.width >= 72 && view.debaters.iter().all(|n| n.as_str().len() <= 17);
         if wide {
@@ -250,14 +269,6 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
             }
         }
     }
-    c.line("Decision", accent);
-    c.line(&view.verdict.verdict.reasoning, body);
-    let start = c.row;
-    c.line("RESPECT · What to steal from the loser", accent);
-    for takeaway in &view.verdict.verdict.what_to_steal_from_loser {
-        c.line(&format!("• {takeaway}"), body);
-    }
-    out.respect = c.span(start, c.row);
     c.line(
         if view.show_criterion_reasons {
             "F7 Collapse details · Follow up with @judge"

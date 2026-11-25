@@ -133,6 +133,13 @@ async fn composed_screens() {
                 );
                 assert!(screen(&mut app, width, height).contains("Winner: @claude"));
                 app.handle(
+                    Event::Key(KeyEvent::new(KeyCode::End, KeyModifiers::NONE)),
+                    Duration::ZERO,
+                );
+                assert!(app.session.transcript.follow);
+                assert!(app.composed.anchor.is_none());
+                assert!(!screen(&mut app, width, height).contains("↓ back to live"));
+                app.handle(
                     Event::Key(KeyEvent::new(KeyCode::F(12), KeyModifiers::NONE)),
                     Duration::ZERO,
                 );

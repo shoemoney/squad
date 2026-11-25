@@ -413,7 +413,14 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
             view.state.debaters[1],
             status_label(&view.state)
         ),
-        accent,
+        if matches!(
+            view.state.state,
+            DebateStatus::Completed | DebateStatus::CompleteUnjudged
+        ) {
+            Style::default().add_modifier(Modifier::DIM)
+        } else {
+            accent
+        },
     );
     if view.collapsed {
         out.content_height = c.row;
@@ -463,7 +470,7 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
         ));
         let rect = if boundary && c.area.width >= 90 {
             c.art(
-                &view.banner(banner.clone(), c.area.width),
+                &view.banner(banner, c.area.width),
                 separator.add_modifier(Modifier::BOLD),
             )
         } else {

@@ -103,7 +103,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 t.get(&view.state.debaters[1]).copied().unwrap_or(0)
             ))
         ))
-        .style(theme.chrome())
+        .style(theme.event_accent())
         .render(
             Rect::new(
                 transcript_area.x,

@@ -5,27 +5,26 @@ expression: output
  SQUAD   /   main   ·   six minds, one room
 $0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
 claude · 4.5         claude vs openai · Round 3 of 3 · total 24 : 21
-idle W0 L0           │▌  answer is lost or charged twice.
-fable · 4.1          │
-idle W0 L0           │▌  @openai · complete
-openai · 5.1         │▌  Opening: protect the human loop. A durable answer is useful only if the person can still type while six models
-idle W0 L0           │▌  stream. Drain a bounded feed batch, paint the newest prepared rows, and service input first. Put a measurable
-gemini · 3-pro       │▌  latency target in the contract.
-idle W0 L0           │
-grok · 4             │Round 1 · claude 8 : 7 openai · total 8 : 7
+idle W0 L0           │▌  latency target in the contract.
+n/a tok · n/a        │
+fable · 4.1          │Round 1 · claude 8 : 7 openai · tally 8 : 7
 idle W0 L0           │── Round 2 / 3 ──
-muse · 3             │▌  @claude · complete
-idle W0 L0           │▌  Your scheduling contract is necessary, but what does it preserve after a crash? Keep transient deltas outside the
-                     │▌  authoritative log. The reducer must replace previews with committed outcomes by message and attempt, so a
-                     │▌  reconnect cannot turn one answer into three copies.
-                     │
-                     │▌  @openai · complete
-                     │▌  Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve
-                     │▌  replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery
-                     │▌  and responsive presentation should share one test harness.
-                     │
-                     │Round 2 · claude 8 : 7 openai · total 16 : 14
-                     │── Round 3 / 3 · Closing ──
+n/a tok · n/a        │▌  @claude · complete
+openai · 5.1         │▌  Your scheduling contract is necessary, but what does it preserve after a crash? Keep transient deltas outside the
+idle W0 L0           │▌  authoritative log. The reducer must replace previews with committed outcomes by message and attempt, so a
+n/a tok · n/a        │▌  reconnect cannot turn one answer into three copies.
+gemini · 3-pro       │
+idle W0 L0           │▌  @openai · complete
+n/a tok · n/a        │▌  Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve
+grok · 4             │▌  replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery
+idle W0 L0           │▌  and responsive presentation should share one test harness.
+n/a tok · n/a        │
+muse · 3             │Round 2 · claude 8 : 7 openai · tally 16 : 14
+idle W0 L0           │                            _____ ___ _   _    _    _       ____   ___  _   _ _   _ ____
+n/a tok · n/a        │                           |  ___|_ _| \ | |  / \  | |     |  _ \ / _ \| | | | \ | |  _ \
+                     │                           | |_   | ||  \| | / _ \ | |     | |_) | | | | | | |  \| | | | |
+                     │                           |  _|  | || |\  |/ ___ \| |___  |  _ <| |_| | |_| | |\  | |_| |
+                     │                           |_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
                      │▌  @claude · complete
                      │▌  Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
                      │▌  reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery
@@ -36,8 +35,9 @@ idle W0 L0           │▌  Your scheduling contract is necessary, but what doe
                      │▌  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
                      │▌  product before a real provider is connected.
                      │
-                     │Round 3 · claude 8 : 7 openai · total 24 : 21
-                     │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
+                     │Round 3 · claude 8 : 7 openai · tally 24 : 21
+                     │Round tally
+                     │claude 24 [━━━━━━━━━━━━━━━━━━━━━━━━] 21 openai
 
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 > Ask the squad…

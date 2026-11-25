@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+expression: expanded
+---
+ SQUAD   /   main   ·   six minds, one room
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · 4.5     │╭────────────────────────────────────────────────────────────╮
+idle W1 L0       ││VERDICT                                                     │
+fable · 4.1      ││Winner: @claude                                             │
+idle W0 L0       ││Weighted score                                              │
+openai · 5.1     ││claude 8.00 : 7.00 openai                                   │
+idle W0 L1       ││Round tally 24 : 21 · Judge demo/judge                      │
+gemini · 3-pro   ││Decision                                                    │
+idle W0 L0       ││Durability wins the foundation; take bounded, input-first   │
+grok · 4         ││scheduling from the other proposal. Together they make a    │
+idle W0 L0       ││responsive room that survives restarts.                     │
+muse · 3         ││Takeaway · What to steal from the loser                     │
+idle W0 L0       ││• Bounded input-first scheduling                            │
+                 ││Fit                                                         │
+                 ││@claude: 8/10                                               │
+                 ││@openai: 7/10                                               │
+                 ││@claude: A concrete, testable proposal supported by the     │
+                 ││discussion.                                                 │
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
+
+
+↓ back to live · End   |   PgUp/PgDn Scroll · F7 Scores · F6 Focus

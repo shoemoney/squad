@@ -4,12 +4,12 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
-claude · 4.5     ││RESPECT · What to steal from the loser                      │
+claude · 4.5     ││Takeaway · What to steal from the loser                     │
 idle W1 L0       ││• Bounded input-first scheduling                            │
 fable · 4.1      ││F7 Expand scores & reasons · Follow up with @judge          │
 idle W0 L0       │╰────────────────────────────────────────────────────────────╯
 openai · 5.1
-idle W0 L1       │grok · complete
+idle W0 L1       │grok
 gemini · 3-pro   │  Grill me on this plan: ship one writer, one reducer, and a
 idle W0 L0       │  twelve-stream release gate. Ask what happens when the
 grok · 4         │  writer stalls; my answer is bounded backpressure and

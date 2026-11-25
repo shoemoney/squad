@@ -115,7 +115,7 @@ fn scrolling_exposes_all_details_with_effects_off() {
 }
 
 #[test]
-fn compact_verdict_keeps_result_within_fifteen_rows() {
+fn compact_verdict_keeps_result_within_eighteen_rows() {
     let (verdict, nicks) = fixture();
     let view = VerdictView::new(&verdict, &nicks)
         .unwrap()
