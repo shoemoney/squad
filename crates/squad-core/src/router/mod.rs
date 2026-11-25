@@ -137,13 +137,18 @@ impl Router {
             }
         }
         let initial = outcome.events.len();
+        let contests:std::collections::BTreeSet<_>=outcome.events.iter().filter_map(|e|if let EnvelopePayload::DebateState(s)=&e.content{Some(s.debate_id)}else{None}).collect();
         match self.drive_contests() {
             Ok(moves) => {
                 for moved in moves {
                     if matches!(
                         moved.result,
                         RequestResult::PendingConfirmation { .. } | RequestResult::Rejected { .. }
-                    ) && human
+                    ) && human && match &moved.result {
+                        RequestResult::PendingConfirmation{preflight:PendingPreflight::Debate(p),..}=>contests.contains(&p.debate_id),
+                        RequestResult::Rejected{error,..}=>error.debate_id.is_some_and(|id|contests.contains(&id)) || moved.events.iter().any(|e|matches!(&e.content,EnvelopePayload::DebateState(s) if contests.contains(&s.debate_id))),
+                        _=>false,
+                    }
                     {
                         outcome.result = moved.result;
                     }

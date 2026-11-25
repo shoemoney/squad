@@ -422,11 +422,11 @@ async fn daily_max_refuses_new_calls_and_new_contest_reservations() {
 async fn alias_failure_degrades_one_member_and_persists_billed_probes_and_catalog_cache() {
     use wiremock::matchers::body_partial_json;
     let mut f = Fixture::new().await;
-    f.config.agents[0].model = "~offline-latest".into();
+    f.config.agents[0].model = "~fixture/offline-latest".into();
     Mock::given(method("POST"))
         .and(path("/api/v1/chat/completions"))
         .and(body_partial_json(
-            serde_json::json!({"model":"~offline-latest"}),
+            serde_json::json!({"model":"~fixture/offline-latest"}),
         ))
         .respond_with(alias_probe("unlisted/model"))
         .with_priority(1)

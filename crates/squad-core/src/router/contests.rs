@@ -112,7 +112,7 @@ fn produce(
             if score.scores.is_some() {
                 return Err(super::authorization::forbidden());
             }
-            let id:Option<String>=tx.query_row("SELECT work_id FROM work WHERE kind='judge.round' AND debate_id=? AND round=? AND attempt=2 AND status='failed'",params![score.debate_id.to_string(),score.round],|r|r.get(0)).optional()?;
+            let id:Option<String>=tx.query_row("SELECT work_id FROM work WHERE kind='judge.round' AND debate_id=? AND round=? AND attempt BETWEEN 1 AND 2 AND status='failed'",params![score.debate_id.to_string(),score.round],|r|r.get(0)).optional()?;
             let id: WorkId = id
                 .ok_or_else(super::debates::invalid)?
                 .parse()
@@ -120,7 +120,8 @@ fn produce(
             let mut work = squad_store::work::template(tx, id)?
                 .ok_or_else(super::debates::invalid)?
                 .0;
-            work.attempt = 2;
+            let record=squad_store::work::record(tx,id)?.ok_or_else(super::debates::invalid)?;
+            work.attempt=record.attempt;
             let mut score = score.clone();
             squad_store::round_scores::canonicalize(tx, &mut score)?;
             event.content = EnvelopePayload::DebateRoundScore(score.clone());

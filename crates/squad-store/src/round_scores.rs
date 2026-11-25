@@ -46,8 +46,9 @@ pub fn canonicalize(db: &Connection, score: &mut DebateRoundScore) -> Result<()>
 pub fn insert(db: &Connection, work: &Work, score: &DebateRoundScore, seq: Cursor) -> Result<()> {
     let state = crate::contests::debate(db, score.debate_id)?;
     let valid_case:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM cases WHERE case_id=? AND contest_id=? AND epoch=(SELECT epoch FROM room_meta))",params![score.case_id.to_string(),score.debate_id.to_string()],|r|r.get(0))?;
+    let terminal_transport=crate::work::record(db,work.work_id)?.is_some_and(|r|r.status==WorkStatus::Failed && r.error.is_some_and(|e|matches!(e.code,ErrorCode::PROVIDER_TIMEOUT|ErrorCode::PROVIDER_ERROR|ErrorCode::DAILY_MAX_REACHED|ErrorCode::CONTEXT_TOO_LARGE|ErrorCode::MODEL_UNAVAILABLE)));
     if !valid_case
-        || (score.scores.is_none() && work.attempt != u32::from(constants::ROUND_JUDGE_ATTEMPTS))
+        || (score.scores.is_none() && work.attempt != u32::from(constants::ROUND_JUDGE_ATTEMPTS) && !terminal_transport)
     {
         return Err(invalid("Round case mismatch or attempts remain"));
     }
