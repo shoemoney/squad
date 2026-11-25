@@ -406,6 +406,8 @@ shellcheck setup.sh scripts/*.sh
 
 The workspace denies `unsafe` code and treats Clippy warnings as errors.
 
+`crates/squad-cli/tests/pty.rs` runs the real `squad` binary in a pseudo-terminal against a loopback OpenRouter fixture. It covers a streamed `@all` round trip, Ctrl+C and SIGINT exits, terminal restoration (alternate screen, cursor, mouse, paste and raw mode), a hangup during a streaming reply followed by recovery on the next start, the missing-key message, the too-small terminal screen and `NO_COLOR`. It needs no network and no real key. Run it alone with `cargo test -p squad-cli --test pty`. It is Unix-only.
+
 ## 🌍 Supported platforms and terminals
 
 | Platform | Setup route |
@@ -420,6 +422,9 @@ Terminal requirements:
 - At least **80 columns by 24 rows**. Smaller windows show `Terminal too small` until you resize.
 - `TERM` must be set and must not be `dumb`.
 - Colour follows `NO_COLOR`, `COLORTERM` and `TERM`. `squad doctor` reports the colour level and the terminal size.
+- With `NO_COLOR` set, the room draws no foreground or background colours.
+- Ctrl+C inside the room quits and exits `0`. A SIGINT sent to the process exits `130`. Both leave the alternate screen, show the cursor and turn raw mode off.
+- A terminal that closes mid-reply sends SIGHUP, which ends the process without a clean room shutdown. The unfinished replies stay queued in the database, and the next start runs them again.
 
 ## 🔧 Troubleshooting
 
