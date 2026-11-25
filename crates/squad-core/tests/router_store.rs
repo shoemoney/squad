@@ -871,3 +871,41 @@ async fn admission_fifo_does_not_depend_on_uuid_random_tails() {
         RequestResult::Internal(InternalResult::NoWork)
     ));
 }
+
+#[test]
+fn storage_ceiling_refuses_new_generation_but_keeps_cleanup_and_history() {
+    let (store, router) = fixture();
+    let mut router = router.with_storage_capacity(1);
+    let id = EventId::new();
+    let outcome = router.process(message("@alice hello", id), None).unwrap();
+    match &outcome.result {
+        RequestResult::Rejected { error, .. } => {
+            assert_eq!(error.code, ErrorCode::STORAGE_LIMIT);
+            assert!(error.text.as_str().contains("/clear") && error.text.as_str().contains("export"));
+        }
+        other => panic!("{other:?}"),
+    }
+    let work: i64 = store
+        .call(|db| Ok(db.query_row("SELECT COUNT(*) FROM work", [], |r| r.get(0))?))
+        .unwrap();
+    assert_eq!(work, 0);
+    let vars = Request::SetVars {
+        request_id: EventId::new(),
+        updates: vec![VariableUpdate {
+            name: VariableName::Rounds,
+            value: 4,
+        }],
+    };
+    accepted(&router.process(vars, None).unwrap().result);
+    let clear = Request::Clear {
+        request_id: EventId::new(),
+    };
+    accepted(&router.process(clear, None).unwrap().result);
+    let mut roomy = fixture().1;
+    accepted(
+        &roomy
+            .process(message("@alice hello", EventId::new()), None)
+            .unwrap()
+            .result,
+    );
+}
