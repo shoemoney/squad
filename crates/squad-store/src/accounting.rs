@@ -465,13 +465,33 @@ pub fn reconcile(db: &Connection, record: &UsageRecord) -> Result<()> {
             usage.cost_usd = prior.cost_usd;
         }
     }
-    let cost = record
+    let mut cost = record
         .usage
         .as_ref()
         .and_then(|usage| usage.cost_usd)
         .map(reported_micros)
         .transpose()
         .map_err(|_| invalid("Invalid reported cost"))?;
+    // A call that failed or was stopped before OpenRouter ever returned a
+    // generation id was never billed: settle it at zero and release its share
+    // now. With an id the cost lookup decides, and a failed lookup stays unknown.
+    if cost.is_none()
+        && old.is_none()
+        && matches!(
+            record.outcome,
+            UsageOutcome::Failed | UsageOutcome::Cancelled
+        )
+        && record.ended_at.is_some()
+    {
+        let stored_id: Option<String> = db.query_row(
+            "SELECT provider_request_id FROM attempts WHERE work_id=? AND attempt=?",
+            params![record.work_id.to_string(), record.attempt],
+            |r| r.get(0),
+        )?;
+        if record.provider_request_id.is_none() && stored_id.is_none() {
+            cost = Some(0);
+        }
+    }
     let outcome = serde_json::to_value(&record.outcome)?;
     let stale_pending = old_ended.is_some() && record.ended_at.is_none();
     if let Some(cost) = cost {

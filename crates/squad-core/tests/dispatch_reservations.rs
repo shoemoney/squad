@@ -333,3 +333,77 @@ async fn a_larger_prompt_reserves_more_and_is_capped_by_the_context_budget() {
         "a prompt estimate above the context budget is clamped to the worst case"
     );
 }
+
+async fn settle(
+    f: &Fixture,
+    outcome: UsageOutcome,
+    id: WorkId,
+    generation: Option<&str>,
+) -> (i64, i64, u32) {
+    let g = f.claim(id, ExecutorKey::Member(nick("member0"))).await;
+    let reserved = totals(f).1;
+    assert!(reserved > 0);
+    let mut record = account(&g, None);
+    record.usage = None;
+    record.outcome = outcome;
+    record.provider_request_id = generation.map(str::to_owned);
+    let submit = f.bus.executor_submit(g.owner.clone());
+    for _ in 0..2 {
+        assert!(matches!(
+            submit
+                .submit(ExecutorRequest::Account {
+                    fence: g.fence,
+                    epoch: g.epoch,
+                    record: record.clone()
+                })
+                .await,
+            RequestResult::Accepted { .. }
+        ));
+    }
+    let (spent, left, unknown) = totals(f);
+    assert_eq!(spent, 0);
+    assert!(left <= reserved);
+    (spent, reserved - left, unknown)
+}
+#[tokio::test]
+async fn calls_that_never_received_a_generation_id_release_their_share_at_once() {
+    // HTTP 4xx/5xx before streaming and network errors finish as Failed; a
+    // stop finishes as Cancelled. None of them was billed.
+    for outcome in [UsageOutcome::Failed, UsageOutcome::Cancelled] {
+        let f = priced(20_000_000).await;
+        let id = f.send("@member0 refused by the provider").await[0];
+        let (_, released, unknown) = settle(&f, outcome, id, None).await;
+        assert!(released > 0, "the attempt's share is released");
+        assert_eq!(unknown, 0, "and no unknown call is left behind");
+    }
+}
+#[tokio::test]
+async fn calls_with_a_generation_id_stay_reserved_until_the_cost_is_known() {
+    for outcome in [UsageOutcome::Failed, UsageOutcome::Cancelled] {
+        let f = priced(20_000_000).await;
+        let id = f.send("@member0 billed maybe").await[0];
+        let (_, released, unknown) = settle(&f, outcome, id, Some("gen-1")).await;
+        assert_eq!(released, 0, "a failed cost lookup keeps the share reserved");
+        assert_eq!(unknown, 1);
+    }
+}
+#[tokio::test]
+async fn unfinished_calls_are_not_released_by_a_pending_snapshot() {
+    let f = priced(20_000_000).await;
+    let id = f.send("@member0 in flight").await[0];
+    let g = f.claim(id, ExecutorKey::Member(nick("member0"))).await;
+    let reserved = totals(&f).1;
+    let mut record = account(&g, None);
+    record.usage = None;
+    record.outcome = UsageOutcome::Unknown;
+    record.ended_at = None;
+    f.bus
+        .executor_submit(g.owner.clone())
+        .submit(ExecutorRequest::Account {
+            fence: g.fence,
+            epoch: g.epoch,
+            record,
+        })
+        .await;
+    assert_eq!(totals(&f), (0, reserved, 1));
+}
