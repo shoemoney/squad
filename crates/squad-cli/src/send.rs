@@ -37,12 +37,16 @@ pub async fn run_until<R: RoomApi>(
     mut confirm: impl FnMut() -> Option<bool>,
     interrupt: impl std::future::Future<Output = io::Result<()>>,
 ) -> Result<u8, RoomError> {
+    let mut tap = crate::buslog::BodyTap::start(room.subscribe());
     let result = tokio::select! {
         result = execute(room, args, output, &mut confirm) => result,
         signal = interrupt => {
             signal.map(|()| 130).map_err(|_| RoomError { code: ErrorCode::NOT_READY, message: "Could not install interrupt handler.".into(), retryable: false })
         }
     };
+    if let Some(tap) = tap.as_mut() {
+        tap.drain();
+    }
     let shutdown = room.shutdown().await;
     match result {
         Ok(code) => {
@@ -222,6 +226,21 @@ async fn execute<R: RoomApi>(
                 output.stdout.flush().map_err(io_error)?;
                 let accepted = if args.yes { Some(true) } else { confirm() };
                 if accepted.is_none() {
+                    // PRD 05: a noninteractive refusal never admits the contest. Cancel the
+                    // stored pending plan so the --yes re-run is not rejected as busy.
+                    let cancel = match &preflight {
+                        PendingPreflight::Debate(p) => Request::DebateCancel {
+                            request_id: EventId::new(),
+                            debate_id: p.debate_id,
+                            plan_id: p.plan_id,
+                        },
+                        PendingPreflight::Contest(p) => Request::ContestCancel {
+                            request_id: EventId::new(),
+                            contest_id: p.contest_id,
+                            plan_id: p.plan_id,
+                        },
+                    };
+                    let _ = room.submit_commit_only(cancel).await;
                     output
                         .error(
                             Some(request_id),

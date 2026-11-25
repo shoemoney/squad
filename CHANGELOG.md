@@ -63,17 +63,14 @@ macOS arm64 installation evidence remain pending the owner's decision.
 
 ### Fixed
 
+- `--bus-log` / `--bus-log-bodies` now write request, commit and wake-up JSON lines (bodies only with the explicit flag); `doctor --bus-log` no longer errors.
+- A refused noninteractive preflight is cancelled, so the `--yes` re-run is admitted instead of failing with `CONTEST_BUSY` / `DEBATE_BUSY`.
 - Startup credential exposure through non-UTF-8 environment errors.
 - Doctor configuration reporting and setup script toolchain handling.
 - Terminal control sequences are stripped from CLI replies and exports.
 
 ### Known issues (found by the release tests, not fixed here)
 
-- `--bus-log` and `--bus-log-bodies` are accepted but write nothing for `send`;
-  `doctor --bus-log` still reports "not implemented yet".
-- A noninteractive refusal ("Re-run with --yes") leaves the pending preflight
-  stored, so the re-run is rejected with `CONTEST_BUSY` or `DEBATE_BUSY` until
-  the plan expires.
 - `squad-core` embeds the repository-root `prompts/` directory, which is not
   part of its package, so a registry package of `squad-core` cannot build.
   `cargo install --path` and cargo-dist builds are unaffected.

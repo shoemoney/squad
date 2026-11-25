@@ -328,7 +328,9 @@ Plain output labels each reply with its nick. It ends with a usage line, for exa
 Usage: 3 calls; known cost $0.012345; unknown-cost calls: 0
 ```
 
-**Cost confirmation.** If a plan is above the threshold and you run it in a terminal, Squad asks `Confirm plan? [y/N]`. Without a terminal and without `--yes`, Squad exits with `Confirmation required. Re-run with --yes in noninteractive mode.`
+**Cost confirmation.** If a plan is above the threshold and you run it in a terminal, Squad asks `Confirm plan? [y/N]`. Without a terminal and without `--yes`, Squad exits with `Confirmation required. Re-run with --yes in noninteractive mode.` The refused plan is cancelled, nothing is admitted or generated, and the `--yes` re-run starts clean.
+
+**`--bus-log <file>`.** Writes one JSON line per bus request, commit and mailbox wake-up to `<file>` (created with owner-only permissions, replaced on each run). Message bodies are redacted. Add `--bus-log-bodies` to also record the human-visible text of user messages and model replies as `body` lines; credentials, authorization headers, reasoning text and internal prompts are never written. `--bus-log-bodies` requires `--bus-log`. `squad doctor --bus-log` creates an empty file, since doctor does not open the room.
 
 **`--no-wait`.** The message is saved and gets a cursor, but no model is called yet. The work waits until the next interactive open. Plain output says `Accepted (cursor N).` With `--json`, the `ack` record includes `cursor`.
 
@@ -431,7 +433,6 @@ Terminal requirements:
 | `Confirmation required. Re-run with --yes in noninteractive mode.` | Add `--yes`, or run the command in a terminal. |
 | `Cannot read environment file: <path>.` | Check the file exists and is readable. |
 | `Terminal too small: WxH. Required: 80×24.` | Resize the terminal window. |
-| `Bus diagnostics: not implemented yet (milestone M3).` | `--bus-log` is not implemented yet. Leave it off. |
 
 Run `squad doctor` first. It checks most of these in one place.
 
@@ -1042,7 +1043,7 @@ Before a contest runs, Squad works out what it will cost and shows you a preflig
 
 - A debate **auto-confirms** when its estimate is at or below `SQUAD_DEBATE_CONFIRM_USD` (default `2`). Above that, the card shows `Y Confirm · N Cancel`.
 - Other preflights show the same card. Anything above the threshold waits for you.
-- `squad send` never confirms on its own. Without `--yes` it stops with `Confirmation required. Re-run with --yes in noninteractive mode.` Add `--yes` to pre-confirm.
+- `squad send` never confirms on its own. Without `--yes` it stops with `Confirmation required. Re-run with --yes in noninteractive mode.` and cancels the pending plan. Add `--yes` to pre-confirm.
 - A preflight expires if you sit on it too long. A debate plan lasts **10 minutes**. The other contest modes last **5 minutes**. An expired debate plan reports `Debate plan expired`.
 - A contest that cannot fit in what is left of today's cap is refused before it starts. See [The daily cap](#-the-daily-cap-and-daily_max_reached).
 

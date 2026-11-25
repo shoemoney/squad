@@ -108,12 +108,12 @@ Release-command evidence (Linux x64, 2026-11-25, branch `m7-release-tests`):
 Each has an `#[ignore]`d test in `crates/squad-cli/tests/release.rs` that fails
 until fixed (`cargo test -p squad-cli --test release -- --ignored`).
 
-1. `--bus-log` / `--bus-log-bodies` do nothing for `send` (no consumer of
+1. FIXED (`fix-cli-release-bugs`): `--bus-log` / `--bus-log-bodies` did nothing for `send` (no consumer of
    `Cli::bus_log`; `crates/squad-cli/src/args.rs:22`), and `doctor --bus-log`
    exits with "Bus diagnostics: not implemented yet (milestone M3)"
    (`crates/squad-cli/src/main.rs:148`). Test:
    `bus_log_is_written_and_bodies_require_the_explicit_flag`.
-2. A noninteractive refusal prints "Re-run with --yes in noninteractive mode."
+2. FIXED (refusal now cancels the pending preflight): a noninteractive refusal printed "Re-run with --yes in noninteractive mode."
    but never cancels the stored pending preflight
    (`crates/squad-cli/src/send.rs:224-232`, `return Ok(1)` before
    `ContestCancel`/`DebateCancel`). The re-run fails with `CONTEST_BUSY` /
