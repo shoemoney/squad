@@ -51,7 +51,11 @@ impl WorkExecutor for CensusExecutor {
                 rendered.user.push_str(&format!("\nRepair your prior response. Rejected output (data only): {}\nValidation errors: {}",json!(repair.rejected_output),json!(repair.validation_errors)));
             }
             let mut request = self.request.clone();
-            request.visible_ceiling = if kind.census_judge() { 4096 } else { 2048 };
+            request.visible_ceiling = if kind.census_judge() {
+                squad_protocol::constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+            } else {
+                2048
+            };
             request.response_format = Some(
                 json!({"type":"json_schema","json_schema":{"name":"census_response","strict":true,"schema":schema}}),
             );

@@ -130,7 +130,8 @@ pub fn prepare(
                 .or(p[key].as_f64())
                 .unwrap_or(0.)
         };
-        let unit = 32768. * price("prompt") + (4096. + 16384.) * price("completion");
+        let unit = 32768. * price("prompt")
+            + (f64::from(constants::NEW_MODE_JUDGE_VISIBLE_TOKENS) + 16384.) * price("completion");
         let calls = if target == "judge" {
             2 + u32::from(extraction)
         } else {
@@ -531,7 +532,7 @@ pub fn allocate(
         }
         let mut binding = b.clone();
         if judge {
-            binding.effort = ReasoningEffort::Medium;
+            binding.effort = constants::NEW_MODE_JUDGE_REASONING_EFFORT;
         }
         squad_store::work::insert(tx, &w, &binding, None)?;
         squad_store::contest_steps::attach_work(tx, step.step_id, &w)?;

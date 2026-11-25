@@ -76,7 +76,7 @@ pub async fn stream_attempt(
         grant.work.kind,
         WorkKind::SurveyExtract | WorkKind::SurveyReport
     ) {
-        ReasoningEffort::Medium
+        squad_protocol::constants::NEW_MODE_JUDGE_REASONING_EFFORT
     } else if grant.work.kind == WorkKind::JudgeRound {
         ReasoningEffort::Low
     } else {

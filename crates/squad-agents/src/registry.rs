@@ -152,9 +152,9 @@ impl<'a> Registry<'a> {
             | TaskKind::CrosscheckJudge
             | TaskKind::SurveyJudge
             | TaskKind::ProbeJudge => (
-                ReasoningEffort::Medium,
+                squad_protocol::constants::NEW_MODE_JUDGE_REASONING_EFFORT,
                 false,
-                4096,
+                squad_protocol::constants::NEW_MODE_JUDGE_VISIBLE_TOKENS,
                 ExecutionPolicy::SingleAttempt(DeadlineClass::FinalJudge),
             ),
             TaskKind::Judge | TaskKind::TournamentJudge => (

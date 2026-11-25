@@ -177,7 +177,7 @@ pub fn prepare(
         .collect::<Result<_>>()?;
     let mut models = bindings.clone();
     if let Some(j) = models.get_mut("judge") {
-        j.effort = ReasoningEffort::Medium;
+        j.effort = constants::NEW_MODE_JUDGE_REASONING_EFFORT;
     }
     let setup = CensusSetup {
         contest_id: contest,
@@ -219,7 +219,11 @@ pub fn prepare(
             [binding.model.as_str()],
             |r| Ok((r.get(0)?, r.get(1)?)),
         )?;
-        let output = if key == "judge" { 4096 } else { 2048 };
+        let output = if key == "judge" {
+            constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+        } else {
+            2048
+        };
         let reasoning = match binding.effort {
             ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
             ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
@@ -1113,7 +1117,7 @@ fn allocate(
         let name = kind.census_composition().ok_or_else(invalid)?;
         let mut binding = setup.models[&target.to_string()].clone();
         if judge {
-            binding.effort = ReasoningEffort::Medium;
+            binding.effort = constants::NEW_MODE_JUDGE_REASONING_EFFORT;
         }
         let item = Work {
             work_id: WorkId::new(),
@@ -1130,7 +1134,11 @@ fn allocate(
             replay: None,
             case_id: case,
             prompt_ref: Some(setup.prompt_refs[name].clone()),
-            max_output_tokens: Some(if judge { 4096 } else { 2048 }),
+            max_output_tokens: Some(if judge {
+                constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+            } else {
+                2048
+            }),
             contest_id: Some(state.contest_id),
             step_id: Some(step_id),
         };

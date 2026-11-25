@@ -409,7 +409,7 @@ pub fn allocate(
             w.history_through=squad_store::history::project(tx,&p)?.ok_or_else(invalid)?;
             squad_store::contest_steps::private_map(tx,step.contest_id,&key,values)?;
             let mut binding=bindings.get(&w.target.to_string()).ok_or_else(invalid)?.clone();
-            if w.target==Target::Judge {binding.effort=ReasoningEffort::Medium;}
+            if w.target==Target::Judge {binding.effort=constants::NEW_MODE_JUDGE_REASONING_EFFORT;}
             squad_store::work::insert(tx,&w,&binding,None)?;
             squad_store::contest_steps::attach_work(tx,step.step_id,&w)?;
             group.push(tx,envelope(request_id,Actor::System,vec![Recipient::Me],EnvelopePayload::WorkState(WorkStateEvent{work_id:w.work_id,trigger_event_id:w.trigger_event_id,target:w.target.clone(),context_id:w.context_id.clone(),attempt:0,status:WorkStatus::Queued,error:None,debate_id:None,case_id:w.case_id,contest_id:w.contest_id})))?;
