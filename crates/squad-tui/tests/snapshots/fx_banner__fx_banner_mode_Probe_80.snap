@@ -1,0 +1,722 @@
+---
+source: crates/squad-tui/tests/fx_banner.rs
+expression: frames
+---
+Full/TrueColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Rgb(240, 197, 59)/Rgb(7, 9, 13)/BOLD 38:Rgb(241, 199, 59)/Rgb(7, 9, 13)/BOLD 39:Rgb(243, 200, 60)/Rgb(7, 9, 13)/BOLD 40:Rgb(246, 202, 60)/Rgb(7, 9, 13)/BOLD 41:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Rgb(255, 210, 63)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/TrueColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Rgb(255, 210, 63)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Indexed t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Indexed(221)/Indexed(16)/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Indexed(221)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Indexed t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Indexed(221)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Ansi t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Yellow/Black/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Yellow/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Ansi t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Yellow/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/NoColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Reset/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/NoColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Reset/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/TrueColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Rgb(255, 210, 63)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Rgb(255, 210, 63)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/TrueColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Rgb(255, 210, 63)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Indexed t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Indexed(221)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Indexed(221)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Indexed t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Indexed(221)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Ansi t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Yellow/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Yellow/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Ansi t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Yellow/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/NoColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Reset/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/NoColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Reset/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/TrueColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Rgb(255, 210, 63)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/TrueColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Rgb(255, 210, 63)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Indexed t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Indexed(221)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Indexed t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Indexed(221)/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Ansi t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Yellow/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Ansi t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Yellow/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/NoColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Reset/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/NoColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                     PROBE|
+ 37:Reset/Reset/BOLD
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||

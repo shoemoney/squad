@@ -307,9 +307,9 @@
   - [x] M4.P5.L7.T2 — `squad-tui/src/fx/debate.rs`: versus card settling inline, score slam, tug bar, lead flip; snapshots.
   - [x] M4.P5.L7.T3 — `squad-tui/src/fx/filter.rs`: gay, metal and duotone filters as pure `(x, y, t) -> Color`, with 16-colour and `NO_COLOR` variants.
 - **M4.P5.L8 — Showpiece: round banner transition**
-  - [ ] M4.P5.L8.T1 — `squad-tui/src/fx/banner.rs`: consume the shared `squad-core` banner text cache per (text, font, width); horizon unfold, glint, hold, settle, immediate settle on first token.
-  - [ ] M4.P5.L8.T2 — `squad-tui/tests/fx_banner.rs`: snapshots at 0, 120, 280, 600, 900, 1600, 1900 ms for `ROUND 3`, `FINAL ROUND`, `OPENING` at 120x40 and 80x24, in all colour tiers.
-  - [ ] M4.P5.L8.T3 — `squad-tui/tests/fx_banner.rs`: assert `VERDICT` entrance occurs on entering `JUDGING`, the verdict arrival does not insert a duplicate banner, and early tokens leave permanent inline art.
+  - [x] M4.P5.L8.T1 — `squad-tui/src/fx/banner.rs`: consume the shared `squad-core` banner text cache per (text, font, width); horizon unfold, glint, hold, settle, immediate settle on first token.
+  - [x] M4.P5.L8.T2 — `squad-tui/tests/fx_banner.rs`: snapshots at 0, 120, 280, 600, 900, 1600, 1900 ms for `ROUND 3`, `FINAL ROUND`, `OPENING` at 120x40 and 80x24, in all colour tiers.
+  - [x] M4.P5.L8.T3 — `squad-tui/tests/fx_banner.rs`: assert `VERDICT` entrance occurs on entering `JUDGING`, the verdict arrival does not insert a duplicate banner, and early tokens leave permanent inline art.
 - **M4.P5.L9 — Showpiece: verdict reveal**
   - [ ] M4.P5.L9.T1 — `squad-tui/src/fx/verdict.rs`: timeline state machine (blackout, criteria rows, suspense hold, winner, confetti, loser section), skip on keypress without consuming the key.
   - [ ] M4.P5.L9.T2 — `squad-tui/tests/fx_verdict.rs`: snapshots at each storyboard timestamp, an equal-round-tally case, and the `lite` and narrow variants.
@@ -325,9 +325,9 @@
   - [ ] M4.P5.L12.T1 — `squad-tui/src/fx/grill.rs`: turn handoff, plan version badge bump and `SURVIVED` treatment keyed to the authoritative completion reason; preserve plan and Q&A glyphs.
   - [ ] M4.P5.L12.T2 — `squad-tui/tests/fx_grill.rs`: snapshots and state-change tests for sequential handoff, `PASS`, rebuild, survived early end, normal completion and leader failure retaining the last good plan.
 - **M4.P5.L13 — Question-first pick effects**
-  - [ ] M4.P5.L13.T1 — `squad-tui/src/fx/banner.rs` and `squad-tui/src/fx/pick.rs`: animate `CHOOSE YOUR DEBATE BROS` and `CHOOSE WHO GETS GRILLED` inline; retain the TUI-owned hint and highlight only eligible candidate rows while the pick is pending.
-  - [ ] M4.P5.L13.T2 — `squad-tui/src/fx/pick.rs`: remove candidate effects on accepted pick, cancellation or failure; use static markers in `lite`, `off` and `NO_COLOR`, and after replay restoration.
-  - [ ] M4.P5.L13.T3 — `squad-tui/tests/fx_pick.rs`: snapshots of both banners and hints at wide and narrow sizes; rejected picks retain highlights, ordinary chat remains usable, accepted picks clear highlights and restored pending picks produce no entrance.
+  - [x] M4.P5.L13.T1 — `squad-tui/src/fx/banner.rs` and `squad-tui/src/fx/pick.rs`: animate `CHOOSE YOUR DEBATE BROS` and `CHOOSE WHO GETS GRILLED` inline; retain the TUI-owned hint and highlight only eligible candidate rows while the pick is pending.
+  - [x] M4.P5.L13.T2 — `squad-tui/src/fx/pick.rs`: remove candidate effects on accepted pick, cancellation or failure; use static markers in `lite`, `off` and `NO_COLOR`, and after replay restoration.
+  - [x] M4.P5.L13.T3 — `squad-tui/tests/fx_pick.rs`: snapshots of both banners and hints at wide and narrow sizes; rejected picks retain highlights, ordinary chat remains usable, accepted picks clear highlights and restored pending picks produce no entrance.
 - **M4.P5.L14 — Effects integration gates**
   - [ ] M4.P5.L14.T1 — `squad-tui/tests/fx_input.rs`: assert animation skip preserves typed keys and the TUI-owned Escape priority and contest-stop confirmation, including a pending pick.
   - [ ] M4.P5.L14.T2 — `squad-tui/tests/fx_invariants.rs`: extend end-state, protected-glyph, resize and replay properties to daily spend, tournament, grill and pick effects.
@@ -335,8 +335,8 @@
 - **M4.P5.L15 — Shared engine cues and four-mode banners**
   - [ ] M4.P5.L15.T1 — `squad-tui/src/fx/cue.rs` and `squad-tui/src/feed.rs`: add `ModeBannerReady`, `CensusEstimateReady`, `CrosscheckCellsReady`, `SurveyTallyReady` and `ProbeTreeReady`; emit them only for accepted live state or committed artifacts, never judge streams, rejected output or repair attempts.
   - [ ] M4.P5.L15.T2 — `squad-tui/src/fx/manager.rs`: key effects by contest and artifact identifiers, suppress duplicate entrances, replace superseded tweens and settle report effects on collapse, stop, failure or resize; retain partial committed state.
-  - [ ] M4.P5.L15.T3 — `squad-tui/src/fx/banner.rs`: reuse the shared entrance for `CENSUS`, `CROSSCHECK`, `SURVEY` and `PROBE` in gold, with step-divider accents, immediate settlement on early output and existing `SQUAD_BANNERS` behavior.
-  - [ ] M4.P5.L15.T4 — `squad-tui/tests/fx_banner.rs`: snapshot all four banners at wide and narrow sizes in all levels and colour tiers; cover disabled banners, early output, duplicate setup/state delivery and static restart restoration.
+  - [x] M4.P5.L15.T3 — `squad-tui/src/fx/banner.rs`: reuse the shared entrance for `CENSUS`, `CROSSCHECK`, `SURVEY` and `PROBE` in gold, with step-divider accents, immediate settlement on early output and existing `SQUAD_BANNERS` behavior.
+  - [x] M4.P5.L15.T4 — `squad-tui/tests/fx_banner.rs`: snapshot all four banners at wide and narrow sizes in all levels and colour tiers; cover disabled banners, early output, duplicate setup/state delivery and static restart restoration.
 - **M4.P5.L16 — Census effects**
   - [ ] M4.P5.L16.T1 — `squad-tui/src/fx/census.rs`: implement the pass-to-pass estimate count-down in a dedicated graphic rect using stored range endpoints; preserve the exact headline, shared-blind-spots caveat, ledger, citations, singleton markers and discovery curve.
   - [ ] M4.P5.L16.T2 — `squad-tui/tests/fx_census.rs`: snapshot first-pass, falling, rising and unavailable estimates; assert no invented zero, no forced decline, and no quiet message unless present in the authoritative report.

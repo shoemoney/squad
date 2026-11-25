@@ -1,0 +1,292 @@
+---
+source: crates/squad-tui/tests/fx_pick.rs
+expression: frames
+---
+Full/TrueColor
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Full/Indexed
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Full/Ansi
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Full/NoColor
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/TrueColor
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/Indexed
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/Ansi
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/NoColor
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/TrueColor
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/Indexed
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/Ansi
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/NoColor
+||
+|                       ──── CHOOSE WHO GETS GRILLED ────|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }

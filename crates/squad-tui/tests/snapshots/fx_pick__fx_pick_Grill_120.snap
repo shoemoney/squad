@@ -1,0 +1,292 @@
+---
+source: crates/squad-tui/tests/fx_pick.rs
+expression: frames
+---
+Full/TrueColor
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Full/Indexed
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Full/Ansi
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Full/NoColor
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/TrueColor
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/Indexed
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/Ansi
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Lite/NoColor
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/TrueColor
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/Indexed
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/Ansi
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Blue, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
+Off/NoColor
+||
+|        ___ _  _  ___   ___  ___ ___  __      ___  _  ___     ___ ___ _____ ___    ___ ___ ___ _    _    ___ ___|
+|       / __| || |/ _ \ / _ \/ __| __| \ \    / / || |/ _ \   / __| __|_   _/ __|  / __| _ \_ _| |  | |  | __|   \|
+|      | (__| __ | (_) | (_) \__ \ _|   \ \/\/ /| __ | (_) | | (_ | _|  | | \__ \ | (_ |   /| || |__| |__| _|| |) ||
+|       \___|_||_|\___/ \___/|___/___|   \_/\_/ |_||_|\___/   \___|___| |_| |___/  \___|_|_\___|____|____|___|___/|
+||
+|Type one name, e.g. @grok · Esc to cancel|
+||
+||
+||
+||
+||
+| ▸ @grok eligible|
+| ▸ @gemini eligible|
+|   @failed did not answer|
+||
+|ordinary chat remains usable|
+||
+(1,12) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,12) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,13) Cell { symbol: Some("▸"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(3,13) Cell { symbol: Some("@"), fg: Reset, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
+(1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
