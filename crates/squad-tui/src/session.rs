@@ -147,6 +147,7 @@ pub struct Session {
     pub seen: BTreeSet<EventId>,
     pub last_error: Option<String>,
     pub debates: BTreeMap<ContestId, crate::widgets::debate::DebateView>,
+    pub tournaments: BTreeMap<ContestId, crate::widgets::tournament::TournamentView>,
     pub debate_messages: BTreeSet<MessageId>,
     pub debate_streams: BTreeMap<MessageId, Delta>,
     pub cases: BTreeMap<CaseId, crate::widgets::case::CaseView>,
@@ -163,6 +164,8 @@ impl Session {
         self.seen.clear();
         self.contests.clear();
         self.debates.clear();
+        self.tournaments.clear();
+        self.tournaments.clear();
         self.debate_streams.clear();
         self.debate_messages.clear();
         self.cases.clear();
@@ -217,6 +220,7 @@ impl Session {
         let id = match &state {
             ContestState::Generic(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
+            ContestState::Tournament(s) => s.contest_id,
             ContestState::Selection(s) => {
                 if s.state == ContestSelectionStatus::AwaitingPick {
                     let eligible = self
@@ -367,7 +371,10 @@ impl Session {
                         );
                     }
                 }
-                if d.debate_id.is_some() {
+                if d.debate_id.is_some()
+                    || d.contest_id
+                        .is_some_and(|id| self.tournaments.contains_key(&id))
+                {
                     self.debate_messages.insert(card.id);
                     self.debate_streams.insert(card.id, d.clone());
                 }
@@ -461,6 +468,55 @@ impl Session {
                     .iter()
                     .map(|score| (score.nick.clone(), score.trophies))
                     .collect();
+            }
+            EnvelopePayload::TournamentSetup(s) => {
+                self.tournaments
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentState(s) => {
+                self.tournaments
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+                self.restore_contest(ContestState::Tournament(s.clone()));
+                self.snapshot.context.active_contest =
+                    (!s.state.is_terminal()).then(|| ContestState::Tournament(s.clone()));
+            }
+            EnvelopePayload::TournamentEntry(e) => {
+                self.debate_messages.insert(e.generation.message_id);
+                if let Some(card) = self.transcript.cards.get_mut(&e.generation.message_id) {
+                    card.complete = true;
+                }
+                self.tournaments
+                    .entry(e.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentRanking(r) => {
+                cue = self
+                    .tournaments
+                    .entry(r.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentResult(r) => {
+                cue = self
+                    .tournaments
+                    .entry(r.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentChampion(c) => {
+                cue = self
+                    .tournaments
+                    .entry(c.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+                self.snapshot
+                    .trophies
+                    .insert(c.champion.clone(), c.trophies);
             }
             EnvelopePayload::ContestSetup(s) => {
                 self.contests.entry(s.contest_id).or_default().setup = Some(s.clone())
@@ -624,6 +680,10 @@ impl Session {
                     eligible: p.eligible.clone(),
                 });
             }
+            EnvelopePayload::TournamentPreflight(p) => self
+                .snapshot
+                .preflights
+                .push(PendingPreflight::Contest(p.base.clone())),
             EnvelopePayload::DebatePreflight(p) => self
                 .snapshot
                 .preflights
@@ -644,6 +704,7 @@ impl Session {
                 self.transcript.clear();
                 self.contests.clear();
                 self.debates.clear();
+                self.tournaments.clear();
                 self.debate_streams.clear();
                 self.debate_messages.clear();
                 self.cases.clear();
@@ -710,6 +771,7 @@ impl Session {
 }
 pub fn contest_active(s: &ContestState) -> bool {
     match s {
+        ContestState::Tournament(s) => !s.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing

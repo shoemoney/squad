@@ -568,7 +568,12 @@ fn participant_models(app: &App) -> Vec<crate::widgets::participants::Participan
                     .get(nick)
                     .copied()
                     .unwrap_or(0) as u32,
-                eliminated: false,
+                eliminated: app.session.tournaments.values().any(|v| {
+                    v.state != "COMPLETE"
+                        && v.entrants
+                            .iter()
+                            .any(|e| e.nick == nick.as_str() && e.eliminated)
+                }),
             }
         })
         .collect()

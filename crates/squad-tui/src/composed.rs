@@ -37,6 +37,7 @@ pub struct Composed {
 }
 #[derive(Clone, Default)]
 pub struct Graphics {
+    pub tournament: Option<widgets::tournament::TournamentRects>,
     pub banners: Vec<(squad_core::banner::Banner, Rect)>,
     pub versus: Rect,
     pub scores: Vec<(u32, MemberNick, Rect)>,
@@ -267,6 +268,24 @@ impl Composed {
                 }
                 let mut model = TranscriptMessage::new(identity(id), "CASE", "");
                 model.widget_rows = rows(&scratch, geometry.content_height);
+                models.push(model);
+            }
+            for (id, view) in &session.tournaments {
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                let geometry =
+                    widgets::tournament::render(view, scratch.area, &mut scratch, palette);
+                let height = (0..scratch.area.height)
+                    .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                    .map_or(0, |y| usize::from(y) + 1);
+                let mut model = TranscriptMessage::new(identity(id), "TOURNAMENT", "");
+                model.widget_rows = rows(&scratch, height);
+                self.graphics.insert(
+                    model.id,
+                    Graphics {
+                        tournament: Some(geometry),
+                        ..Default::default()
+                    },
+                );
                 models.push(model);
             }
             for (id, contest) in &session.contests {

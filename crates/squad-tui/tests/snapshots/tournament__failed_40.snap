@@ -1,0 +1,34 @@
+---
+source: crates/squad-tui/tests/tournament.rs
+expression: text(&b)
+---
+▾ TOURNAMENT · FAILED
+Design a reliable release process.
+Judge fixture/judge · round 1 ·
+survivors fable, grok, gemini
+@fable · trophies 0
+@grok · trophies 0
+@gemini · trophies 0
+▾ ROUND 1 · 3 REMAIN
+@fable · complete
+A concrete proposal from fable.
+@grok · complete
+A concrete proposal from grok.
+@gemini · complete
+A concrete proposal from gemini.
+1. @fable · score 8
+Critique for fable.
+2. @grok · score 8
+Critique for grok.
+3. @gemini · score 8 · ELIMINATED
+Critique for gemini.
+▾ ROUND 1 · 3 REMAIN
+ROUND REPLAY · replay 1
+@fable · waiting
+
+@grok · waiting
+
+@gemini · waiting
+
+Judging stopped after retained replay
+evidence

@@ -92,6 +92,15 @@ pub fn render(view: &CaseView, area: Rect, buf: &mut Buffer, palette: &Palette) 
         c.line("Follow-up to accepted verdict", body);
     }
     match &view.opened.material {
+        CaseMaterial::Tournament { material } => {
+            c.line(
+                &format!(
+                    "Tournament · round {} · {}",
+                    material.round, material.prompt
+                ),
+                body,
+            );
+        }
         CaseMaterial::Standalone { messages, question } => {
             c.line(&format!("Question: {question}"), accent);
             for quote in messages {

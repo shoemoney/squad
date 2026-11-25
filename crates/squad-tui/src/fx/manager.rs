@@ -121,7 +121,8 @@ impl FxCue {
             Self::CrosscheckCellsReady { .. } | Self::ProbeTreeReady { .. } => 900,
             Self::RoundStarted { .. } => 1900,
             Self::VerdictReady { .. } | Self::TournamentChampion { .. } => 6500,
-            Self::ScorePosted { .. } | Self::TournamentRankingReady { .. } => 400,
+            Self::ScorePosted { .. } => 400,
+            Self::TournamentRankingReady { .. } => 1700,
             Self::DailySpendChanged | Self::GrillPlanReady { .. } => 150,
             _ => 280,
         })
