@@ -86,7 +86,7 @@ pub fn config(root: &Path) -> SquadConfig {
 }
 pub async fn server() -> MockServer {
     let server = MockServer::start().await;
-    Mock::given(method("GET")).and(path("/models")).respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":[{"id":"test/model","context_length":10000,"pricing":{"prompt":"0.000001","completion":"0.000002"}}]}))).mount(&server).await;
+    Mock::given(method("GET")).and(path("/models")).respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":[{"id":"test/model","context_length":1000000,"pricing":{"prompt":"0.000001","completion":"0.000002"}}]}))).mount(&server).await;
     server
 }
 pub fn client(server: &MockServer) -> OpenRouterClient {
@@ -131,4 +131,35 @@ pub fn accepted(result: RequestResult) -> Cursor {
         } => cursor,
         other => panic!("{other:?}"),
     }
+}
+/// Four-member roster `m0..m3` for the four new modes, which need three or more participants.
+pub fn config4(root: &Path) -> SquadConfig {
+    let mut cfg = config(root);
+    cfg.agents = (0..4)
+        .map(|i| squad_protocol::config::AgentConfig {
+            nick: nick(&format!("m{i}")),
+            model: "test/model".into(),
+            persona: format!("PERSONA_{i}"),
+            reasoning_effort: None,
+        })
+        .collect();
+    cfg.budget.daily_max_usd = 200.;
+    cfg.budget.debate_confirm_usd = 0.;
+    cfg
+}
+pub async fn open4(root: &Path, launcher: &Launcher, mode: OpenMode) -> (RoomHandle, MockServer) {
+    let server = server().await;
+    let handle =
+        RoomHandle::open_with_launcher(config4(root), "main", mode, client(&server), launcher)
+            .await
+            .unwrap();
+    (handle, server)
+}
+pub fn message4(text: &str, id: EventId) -> Request {
+    let context = parser::ParseContext {
+        roster: (0..4).map(|i| nick(&format!("m{i}"))).collect(),
+        ..Default::default()
+    };
+    let meta = parser::SubmissionMeta::default();
+    Request::from_parsed(id, parse(text, &meta, &context).unwrap(), &meta, false).unwrap()
 }
