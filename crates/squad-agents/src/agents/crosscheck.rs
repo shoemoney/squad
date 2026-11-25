@@ -30,8 +30,8 @@ impl WorkExecutor for CrosscheckExecutor {
             {
                 Ok(o) => o,
                 Err(ExecutionError::Reader(e)) => return Err(e),
-                Err(_) => {
-                    failed(context, &grant, ErrorCode::PROVIDER_ERROR).await?;
+                Err(ExecutionError::Transport(e) | ExecutionError::RetryAfter(e, _)) => {
+                    failed_with(context, &grant, ErrorCode::PROVIDER_ERROR, Some(&e)).await?;
                     return Err(ReaderError::NotRunnable);
                 }
             };

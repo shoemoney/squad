@@ -381,15 +381,6 @@ fn reserve(tx: &Connection, plan: &ContestPreflight, max: i64) -> Result<()> {
     )?;
     Ok(())
 }
-fn daily_error(max: i64) -> ErrorPayload {
-    error(
-        ErrorCode::DAILY_MAX_REACHED,
-        format!(
-            "Daily max of ${:.2} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.",
-            max as f64 / 1e6
-        ),
-    )
-}
 fn preflight_result(
     tx: &Transaction<'_>,
     g: &mut CommitGroup,
@@ -444,7 +435,11 @@ pub fn resolve(
         match reserve(tx, &plan, max) {
             Ok(()) => PreflightStatus::Confirmed,
             Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
-                failure = Some(daily_error(max));
+                let day = chrono::Local::now().format("%Y-%m-%d").to_string();
+                let required =
+                    squad_store::accounting::reservation_micros(plan.estimate.reserved_usd)
+                        .map_err(|_| invalid())?;
+                failure = Some(super::daily_cap_error(tx, &day, required, max));
                 PreflightStatus::Rejected
             }
             Err(e) => return Err(e),

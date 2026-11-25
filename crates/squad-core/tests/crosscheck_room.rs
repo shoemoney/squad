@@ -368,7 +368,10 @@ async fn crosscheck_failed_reviewer_retains_open_cells() {
             serde_json::json!({"model":"fixture/member0"}),
         ))
         .and(body_string_contains("review your assigned cells"))
-        .respond_with(ResponseTemplate::new(500))
+        .respond_with(
+            ResponseTemplate::new(500)
+                .set_body_json(serde_json::json!({"error":{"message":"upstream exploded"}})),
+        )
         .mount(&f.fake.server)
         .await;
     let room = f.open(OpenMode::Interactive).await;
@@ -379,6 +382,7 @@ async fn crosscheck_failed_reviewer_retains_open_cells() {
     .await;
     f.wait(|| f.count("crosscheck.report") == 1).await;
     assert_eq!(f.count("crosscheck.review"), 5);
+    assert_provider_failure(&f.db(), 500, Some("upstream exploded"));
     let raw: String = f
         .db()
         .query_row(
@@ -873,4 +877,27 @@ async fn crosscheck_stop_preserves_accepted_partial_reviews_in_export() {
     assert!(text.contains("### Review · member0"), "{text}");
     assert!(text.contains("Proposed fix"), "{text}");
     room.shutdown().await.unwrap();
+}
+
+fn assert_provider_failure(db: &rusqlite::Connection, status: i64, message: Option<&str>) {
+    let rows: Vec<String> = db
+        .prepare("SELECT error_json FROM work WHERE json_extract(error_json,'$.providerStatus')=?")
+        .unwrap()
+        .query_map([status], |r| r.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert!(
+        !rows.is_empty(),
+        "no work row carries providerStatus {status}"
+    );
+    for raw in &rows {
+        assert!(
+            !raw.contains("Bearer") && !raw.contains("fake-key"),
+            "{raw}"
+        );
+        if let Some(message) = message {
+            assert!(raw.contains(message), "{raw}");
+        }
+    }
 }

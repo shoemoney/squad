@@ -75,12 +75,15 @@ impl WorkExecutor for CensusExecutor {
             {
                 return failed(context, &grant, ErrorCode::CONTEXT_TOO_LARGE).await;
             }
-            let output =
-                match stream_attempt(context, &grant, &self.client, request, cancel, false).await {
-                    Ok(output) => output,
-                    Err(ExecutionError::Reader(e)) => return Err(e),
-                    Err(_) => return failed(context, &grant, ErrorCode::PROVIDER_ERROR).await,
-                };
+            let output = match stream_attempt(context, &grant, &self.client, request, cancel, false)
+                .await
+            {
+                Ok(output) => output,
+                Err(ExecutionError::Reader(e)) => return Err(e),
+                Err(ExecutionError::Transport(e) | ExecutionError::RetryAfter(e, _)) => {
+                    return failed_with(context, &grant, ErrorCode::PROVIDER_ERROR, Some(&e)).await;
+                }
+            };
             let result = serde_json::from_str::<Value>(&output.content)
                 .ok()
                 .filter(|v| {

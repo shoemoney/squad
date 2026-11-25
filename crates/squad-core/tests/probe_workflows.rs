@@ -200,7 +200,8 @@ impl Respond for Answers {
                 Scenario::MemberFailure | Scenario::SkippedSlowReport
             ) && body["model"] == "fixture/member0")
         {
-            return ResponseTemplate::new(500);
+            return ResponseTemplate::new(500)
+                .set_body_json(serde_json::json!({"error":{"message":"upstream exploded"}}));
         }
         if stage == "report" {
             let count = self
@@ -512,6 +513,7 @@ async fn member_failure_is_skipped_and_insufficient_evidence_terminates() {
         if matches!(scenario, Scenario::AllFail) {
             assert_eq!(status(&f), "FAILED");
             assert_eq!(f.count("probe.report"), 0);
+            assert_provider_failure(&f.db(), 500, Some("upstream exploded"));
         } else {
             assert_eq!(status(&f), "COMPLETE");
             let count:i64=f.db().query_row("SELECT COUNT(*) FROM probe_roles WHERE initial_event_seq IS NULL AND role<>'sitting_out'",[],|r|r.get(0)).unwrap();
@@ -1096,4 +1098,27 @@ fn blind_tokens_cover_short_model_families_and_complete_providers() {
         squad_core::router::probe::redact("O3, X-AI, GPT; a curious analyst.", &tokens),
         "[redacted], [redacted], [redacted]; [redacted]."
     );
+}
+
+fn assert_provider_failure(db: &rusqlite::Connection, status: i64, message: Option<&str>) {
+    let rows: Vec<String> = db
+        .prepare("SELECT error_json FROM work WHERE json_extract(error_json,'$.providerStatus')=?")
+        .unwrap()
+        .query_map([status], |r| r.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert!(
+        !rows.is_empty(),
+        "no work row carries providerStatus {status}"
+    );
+    for raw in &rows {
+        assert!(
+            !raw.contains("Bearer") && !raw.contains("fake-key"),
+            "{raw}"
+        );
+        if let Some(message) = message {
+            assert!(raw.contains(message), "{raw}");
+        }
+    }
 }

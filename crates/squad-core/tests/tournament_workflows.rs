@@ -915,3 +915,40 @@ async fn tournament_daily_cap_interruption_fails_and_releases_unused_plan_reserv
     assert_eq!(f.count("tournament.champion"), 0);
     room.shutdown().await.unwrap();
 }
+#[tokio::test]
+async fn judge_http_failure_carries_sanitized_provider_status_and_message() {
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(wiremock::matchers::body_partial_json(
+            serde_json::json!({"model":"fixture/judge"}),
+        ))
+        .respond_with(
+            ResponseTemplate::new(500)
+                .insert_header("x-private", "header-secret")
+                .set_body_json(serde_json::json!({"error":{"message":"judge upstream exploded"}})),
+        )
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, COMMAND)).await;
+    f.wait(|| f.terminal("FAILED")).await;
+    let rows: Vec<String> = f
+        .db()
+        .prepare("SELECT error_json FROM work WHERE target='judge' AND json_extract(error_json,'$.providerStatus')=500")
+        .unwrap()
+        .query_map([], |r| r.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert!(!rows.is_empty());
+    for raw in &rows {
+        assert!(raw.contains("judge upstream exploded"), "{raw}");
+        assert!(
+            !raw.contains("header-secret") && !raw.contains("Bearer"),
+            "{raw}"
+        );
+    }
+    room.shutdown().await.unwrap();
+}

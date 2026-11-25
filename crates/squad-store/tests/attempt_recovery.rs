@@ -154,3 +154,29 @@ fn an_unstarted_repair_claim_does_not_inherit_the_previous_calls_started_flag() 
         })
         .unwrap();
 }
+
+#[test]
+fn completing_work_clears_a_stale_expiry_error_but_failing_keeps_it() {
+    for (status, kept) in [(WorkStatus::Completed, false), (WorkStatus::Failed, true)] {
+        let (store, id, owner) = round_fixture();
+        store
+            .call(move |db| {
+                let tx = db.transaction()?;
+                squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now(), None)?.unwrap();
+                tx.execute(
+                    "UPDATE work SET error_json='{\"code\":\"PROVIDER_TIMEOUT\"}' WHERE work_id=?",
+                    [id.to_string()],
+                )?;
+                squad_store::work::finish(&tx, id, status, Cursor::new(1).unwrap())?;
+                let error: Option<String> = tx.query_row(
+                    "SELECT error_json FROM work WHERE work_id=?",
+                    [id.to_string()],
+                    |r| r.get(0),
+                )?;
+                assert_eq!(error.is_some(), kept);
+                tx.commit()?;
+                Ok(())
+            })
+            .unwrap();
+    }
+}

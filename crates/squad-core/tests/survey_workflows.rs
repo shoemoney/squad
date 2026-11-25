@@ -498,6 +498,7 @@ async fn failed_member_remains_missing_and_never_becomes_unsure_or_a_switch() {
     assert!(!c.complete);
     assert_eq!(c.missing_votes, vec![nick("member5")]);
     assert_eq!(c.missing_revotes, vec![nick("member5")]);
+    assert_provider_failure(&f.db(), 503, None);
     f.assert_ledger();
     room.shutdown().await.unwrap();
 }
@@ -1308,5 +1309,28 @@ async fn revote_wire_shapes_preserve_valid_whitespace_and_flag_invalid_cycles() 
         );
         assert_eq!(f.count("survey.report"), 1);
         reopened.shutdown().await.unwrap();
+    }
+}
+
+fn assert_provider_failure(db: &rusqlite::Connection, status: i64, message: Option<&str>) {
+    let rows: Vec<String> = db
+        .prepare("SELECT error_json FROM work WHERE json_extract(error_json,'$.providerStatus')=?")
+        .unwrap()
+        .query_map([status], |r| r.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert!(
+        !rows.is_empty(),
+        "no work row carries providerStatus {status}"
+    );
+    for raw in &rows {
+        assert!(
+            !raw.contains("Bearer") && !raw.contains("fake-key"),
+            "{raw}"
+        );
+        if let Some(message) = message {
+            assert!(raw.contains(message), "{raw}");
+        }
     }
 }

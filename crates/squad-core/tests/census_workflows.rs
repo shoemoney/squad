@@ -352,7 +352,10 @@ async fn skipped_member_and_judge_repair_preserve_missing_evidence() {
         .and(wiremock::matchers::body_partial_json(
             serde_json::json!({"model":"fixture/member0"}),
         ))
-        .respond_with(ResponseTemplate::new(500))
+        .respond_with(
+            ResponseTemplate::new(500)
+                .set_body_json(serde_json::json!({"error":{"message":"upstream exploded"}})),
+        )
         .with_priority(1)
         .mount(&f.fake.server)
         .await;
@@ -376,6 +379,7 @@ async fn skipped_member_and_judge_repair_preserve_missing_evidence() {
         .query_row("SELECT COUNT(*) FROM judge_repairs", [], |r| r.get(0))
         .unwrap();
     assert_eq!(repairs, 1);
+    assert_provider_failure(&f.db(), 500, Some("upstream exploded"));
     assert_eq!(f.fake.captured_bodies().await.len(), 17);
     room.shutdown().await.unwrap();
 }
@@ -1069,5 +1073,28 @@ async fn prose_budget_failures_use_member_plain_retry_and_one_private_judge_repa
             .unwrap();
         assert_eq!(repairs, i64::from(judge));
         room.shutdown().await.unwrap();
+    }
+}
+
+fn assert_provider_failure(db: &rusqlite::Connection, status: i64, message: Option<&str>) {
+    let rows: Vec<String> = db
+        .prepare("SELECT error_json FROM work WHERE json_extract(error_json,'$.providerStatus')=?")
+        .unwrap()
+        .query_map([status], |r| r.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert!(
+        !rows.is_empty(),
+        "no work row carries providerStatus {status}"
+    );
+    for raw in &rows {
+        assert!(
+            !raw.contains("Bearer") && !raw.contains("fake-key"),
+            "{raw}"
+        );
+        if let Some(message) = message {
+            assert!(raw.contains(message), "{raw}");
+        }
     }
 }

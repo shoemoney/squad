@@ -248,6 +248,6 @@ pub fn check_fence(
 pub fn finish(db: &Connection, id: WorkId, status: WorkStatus, event: Cursor) -> Result<()> {
     crate::accounting::release_unstarted_work(db, id)?;
     let status = serde_json::to_value(status)?;
-    if db.execute("UPDATE work SET status=?1,runnable=0,lease_fence=lease_fence+1,completed_event_seq=?2 WHERE work_id=?3 AND status='running'",params![status.as_str(),event.get(),id.to_string()])?!=1 {return Err(invalid("Work already terminal"));}
+    if db.execute("UPDATE work SET status=?1,runnable=0,lease_fence=lease_fence+1,completed_event_seq=?2,error_json=CASE WHEN ?1='completed' THEN NULL ELSE error_json END WHERE work_id=?3 AND status='running'",params![status.as_str(),event.get(),id.to_string()])?!=1 {return Err(invalid("Work already terminal"));}
     Ok(())
 }

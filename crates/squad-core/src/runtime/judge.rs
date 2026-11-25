@@ -3,7 +3,7 @@ use super::*;
 use crate::prompts::inputs::CaseInput;
 use squad_agents::{
     accounting::acknowledged,
-    agents::{ExecutionError, failed, identity, stream_attempt},
+    agents::{ExecutionError, failed, failed_with, identity, stream_attempt},
     judge::{JudgeAttemptRunner, JudgeExecutionFuture, JudgeOutput, JudgeValidation},
 };
 use std::collections::BTreeMap;
@@ -149,7 +149,7 @@ impl JudgeAttemptRunner for Runner {
                     // Rate-limit and retry hints are terminal for judges. Only invalid
                     // output may authorize a separate router-owned repair attempt.
                     Err(ExecutionError::Transport(e) | ExecutionError::RetryAfter(e, _)) => {
-                        let code = match e {
+                        let code = match &e {
                             squad_agents::openrouter::TransportError::Cancelled => {
                                 ErrorCode::WORK_CANCELLED
                             }
@@ -160,7 +160,7 @@ impl JudgeAttemptRunner for Runner {
                             }
                             _ => ErrorCode::PROVIDER_ERROR,
                         };
-                        return failed(context, &grant, code).await;
+                        return failed_with(context, &grant, code, Some(&e)).await;
                     }
                 };
             if grant.work.kind == WorkKind::JudgeTournament {

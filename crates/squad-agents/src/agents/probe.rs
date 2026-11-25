@@ -14,7 +14,7 @@ pub async fn execute(
         Ok(v) => v,
         Err(ExecutionError::Reader(e)) => return Err(e),
         Err(ExecutionError::Transport(e) | ExecutionError::RetryAfter(e, _)) => {
-            return failed(
+            return failed_with(
                 context,
                 grant,
                 if matches!(e, TransportError::Cancelled) {
@@ -22,6 +22,7 @@ pub async fn execute(
                 } else {
                     ErrorCode::PROVIDER_ERROR
                 },
+                Some(&e),
             )
             .await;
         }

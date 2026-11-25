@@ -99,12 +99,15 @@ impl WorkExecutor for SurveyExecutor {
             request.response_format = Some(
                 json!({"type":"json_schema","json_schema":{"name":"survey","strict":true,"schema":serde_json::from_str::<Value>(values.get("mode_schema_json").ok_or(ReaderError::Forbidden)?).map_err(|_|ReaderError::Forbidden)?}}),
             );
-            let output =
-                match stream_attempt(context, &grant, &self.client, request, cancel, false).await {
-                    Ok(out) => out,
-                    Err(ExecutionError::Reader(e)) => return Err(e),
-                    Err(_) => return failed(context, &grant, ErrorCode::PROVIDER_ERROR).await,
-                };
+            let output = match stream_attempt(context, &grant, &self.client, request, cancel, false)
+                .await
+            {
+                Ok(out) => out,
+                Err(ExecutionError::Reader(e)) => return Err(e),
+                Err(ExecutionError::Transport(e) | ExecutionError::RetryAfter(e, _)) => {
+                    return failed_with(context, &grant, ErrorCode::PROVIDER_ERROR, Some(&e)).await;
+                }
+            };
             let completed = CompletedGeneration {
                 generation: identity(&grant),
                 model: grant.binding.model.clone(),
