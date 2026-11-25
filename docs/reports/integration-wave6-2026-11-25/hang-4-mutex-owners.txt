@@ -1,0 +1,26 @@
+[New LWP 1916403]
+[New LWP 1916402]
+[New LWP 1916392]
+[New LWP 1916389]
+[New LWP 1916388]
+[New LWP 1916387]
+[New LWP 1916386]
+[New LWP 1916385]
+[New LWP 1916384]
+[New LWP 1916383]
+[New LWP 1916382]
+[New LWP 1916381]
+[New LWP 1916380]
+[New LWP 1916378]
+[New LWP 1916375]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/x86_64-linux-gnu/libthread_db.so.1".
+syscall () at ../sysdeps/unix/sysv/linux/x86_64/syscall.S:38
+
+warning: 38	../sysdeps/unix/sysv/linux/x86_64/syscall.S: No such file or directory
+warning: Missing auto-load script at offset 0 in section .debug_gdb_scripts
+of file /home/shoemoney/.t3/worktrees/Squad/integration-wave6-gate-d83c7b4d828f2ccc/target/debug/deps/m6_operational-f9da260c1a600f25.
+Use `info auto-load python-scripts [REGEXP]' to list them.
+$1 = 1916380
+$2 = 1916392
+[Inferior 1 (process 1916373) detached]

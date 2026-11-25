@@ -1,0 +1,103 @@
+Thread 16 (Thread 0x7feda89fe6c0 (LWP 1916375) "exhausted_membe"):
+#0  futex_wait (futex_word=0x6289b2093b10 <staticMutexes.122+432>, expected=2, private=0) at ../sysdeps/nptl/futex-internal.h:126
+#1  __GI___lll_lock_wait (futex=futex@entry=0x6289b2093b10 <staticMutexes.122+432>, private=0) at ./nptl/lowlevellock.c:49
+#2  0x00007feda8ca7714 in lll_mutex_lock_optimized (mutex=0x6289b2093b10 <staticMutexes.122+432>) at ./nptl/pthread_mutex_lock.c:48
+#3  ___pthread_mutex_lock (mutex=0x6289b2093b10 <staticMutexes.122+432>) at ./nptl/pthread_mutex_lock.c:87
+#4  0x00006289b08df1c2 in pthreadMutexEnter (p=0x6289b2093b10 <staticMutexes.122+432>) at sqlite3/sqlite3.c:30407
+#5  0x00006289b08def21 in sqlite3_mutex_enter (p=0x6289b2093b10 <staticMutexes.122+432>) at sqlite3/sqlite3.c:29849
+#6  0x00006289b08ea1f2 in unixEnterMutex () at sqlite3/sqlite3.c:40102
+#7  0x00006289b08ee0e8 in findReusableFd (zPath=0x7fed9c03ea64 "/tmp/.tmpLChGHe/data/squad.db", flags=262) at sqlite3/sqlite3.c:45580
+#8  0x00006289b08ee67d in unixOpen (pVfs=0x6289b2093bc0 <aVfs.112>, zPath=0x7fed9c03ea64 "/tmp/.tmpLChGHe/data/squad.db", pFile=0x7fed9c03e8f0, flags=262, pOutFlags=0x7feda89f2500) at sqlite3/sqlite3.c:45831
+#9  0x00006289b08de4cc in sqlite3OsOpen (pVfs=0x6289b2093bc0 <aVfs.112>, zPath=0x7fed9c03ea64 "/tmp/.tmpLChGHe/data/squad.db", pFile=0x7fed9c03e8f0, flags=33554694, pFlagsOut=0x7feda89f2500) at sqlite3/sqlite3.c:27057
+#10 0x00006289b08f9375 in sqlite3PagerOpen (pVfs=0x6289b2093bc0 <aVfs.112>, ppPager=0x7fed9c1c9538, zFilename=0x7fed9c1d8c8c "/tmp/.tmpLChGHe/data/squad.db", nExtra=136, flags=0, vfsFlags=33554694, xReinit=0x6289b0904399 <pageReinit>) at sqlite3/sqlite3.c:63866
+#11 0x00006289b0904962 in sqlite3BtreeOpen (pVfs=0x6289b2093bc0 <aVfs.112>, zFilename=0x7fed9c1d8c8c "/tmp/.tmpLChGHe/data/squad.db", db=0x7fed9c028958, ppBtree=0x7fed9c028bf8, flags=0, vfsFlags=33554694) at sqlite3/sqlite3.c:75113
+#12 0x00006289b09c8232 in openDatabase (zFilename=0x7fed9c1bd410 "/tmp/.tmpLChGHe/data/squad.db", ppDb=0x7feda89f2888, flags=33554438, zVfs=0x0) at sqlite3/sqlite3.c:188403
+#13 0x00006289b09c8526 in sqlite3_open_v2 (filename=0x7fed9c1bd410 "/tmp/.tmpLChGHe/data/squad.db", ppDb=0x7feda89f2888, flags=33587270, zVfs=0x0) at sqlite3/sqlite3.c:188526
+#14 0x00006289b08cb47e in rusqlite::inner_connection::InnerConnection::open_with_flags (c_path=..., flags=..., vfs=...) at src/inner_connection.rs:90
+#15 0x00006289af8ddf92 in rusqlite::Connection::open_with_flags<std::path::PathBuf> (path=..., flags=...) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rusqlite-0.38.0/src/lib.rs:456
+#16 0x00006289af8de075 in rusqlite::Connection::open<std::path::PathBuf> (path=...) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rusqlite-0.38.0/src/lib.rs:430
+#17 0x00006289af902622 in m6_operational::support::Fixture::db (self=0x7feda89fbb98) at crates/squad-core/tests/support/m6_room.rs:73
+#18 0x00006289af90279e in m6_operational::support::Fixture::scalar (self=0x7feda89fbb98, sql=...) at crates/squad-core/tests/support/m6_room.rs:76
+#19 0x00006289af92d6f9 in m6_operational::exhausted_member_does_not_block_other_member_or_persist_provisional_text::{async_block#0}::{closure#0} () at crates/squad-core/tests/m6_operational.rs:67
+#20 0x00006289af94c979 in m6_operational::support::{impl#0}::wait::{async_fn#0}::{async_block#0}<m6_operational::exhausted_member_does_not_block_other_member_or_persist_provisional_text::{async_block#0}::{closure_env#0}> () at crates/squad-core/tests/support/m6_room.rs:80
+#21 0x00006289af8f3409 in tokio::time::timeout::{impl#1}::poll<m6_operational::support::{impl#0}::wait::{async_fn#0}::{async_block_env#0}<m6_operational::exhausted_member_does_not_block_other_member_or_persist_provisional_text::{async_block#0}::{closure_env#0}>> (self=..., cx=0x7feda89f9de0) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.54.1/src/time/timeout.rs:216
+#22 0x00006289af94c1eb in m6_operational::support::{impl#0}::wait::{async_fn#0}<m6_operational::exhausted_member_does_not_block_other_member_or_persist_provisional_text::{async_block#0}::{closure_env#0}> () at crates/squad-core/tests/support/m6_room.rs:84
+#23 0x00006289af9392e2 in m6_operational::exhausted_member_does_not_block_other_member_or_persist_provisional_text::{async_block#0} () at crates/squad-core/tests/m6_operational.rs:68
+
+Thread 14 (Thread 0x7feda3dfe6c0 (LWP 1916380) "targeted_stop_p"):
+#0  futex_wait (futex_word=0x7fed90013468, expected=2, private=0) at ../sysdeps/nptl/futex-internal.h:126
+#1  __GI___lll_lock_wait (futex=futex@entry=0x7fed90013468, private=0) at ./nptl/lowlevellock.c:49
+#2  0x00007feda8ca7714 in lll_mutex_lock_optimized (mutex=0x7fed90013468) at ./nptl/pthread_mutex_lock.c:48
+#3  ___pthread_mutex_lock (mutex=0x7fed90013468) at ./nptl/pthread_mutex_lock.c:87
+#4  0x00006289b08df1c2 in pthreadMutexEnter (p=0x7fed90013468) at sqlite3/sqlite3.c:30407
+#5  0x00006289b08def21 in sqlite3_mutex_enter (p=0x7fed90013468) at sqlite3/sqlite3.c:29849
+#6  0x00006289b08ee197 in findReusableFd (zPath=0x7fed9003dc14 "/tmp/.tmpr3T4MH/data/squad.db", flags=262) at sqlite3/sqlite3.c:45601
+#7  0x00006289b08ee67d in unixOpen (pVfs=0x6289b2093bc0 <aVfs.112>, zPath=0x7fed9003dc14 "/tmp/.tmpr3T4MH/data/squad.db", pFile=0x7fed9003daa0, flags=262, pOutFlags=0x7feda3df1680) at sqlite3/sqlite3.c:45831
+#8  0x00006289b08de4cc in sqlite3OsOpen (pVfs=0x6289b2093bc0 <aVfs.112>, zPath=0x7fed9003dc14 "/tmp/.tmpr3T4MH/data/squad.db", pFile=0x7fed9003daa0, flags=33554694, pFlagsOut=0x7feda3df1680) at sqlite3/sqlite3.c:27057
+#9  0x00006289b08f9375 in sqlite3PagerOpen (pVfs=0x6289b2093bc0 <aVfs.112>, ppPager=0x7fed9016ca98, zFilename=0x7fed9019344c "/tmp/.tmpr3T4MH/data/squad.db", nExtra=136, flags=0, vfsFlags=33554694, xReinit=0x6289b0904399 <pageReinit>) at sqlite3/sqlite3.c:63866
+#10 0x00006289b0904962 in sqlite3BtreeOpen (pVfs=0x6289b2093bc0 <aVfs.112>, zFilename=0x7fed9019344c "/tmp/.tmpr3T4MH/data/squad.db", db=0x7fed9006d9e8, ppBtree=0x7fed9006dc88, flags=0, vfsFlags=33554694) at sqlite3/sqlite3.c:75113
+#11 0x00006289b09c8232 in openDatabase (zFilename=0x7fed901b9bb0 "/tmp/.tmpr3T4MH/data/squad.db", ppDb=0x7feda3df1a08, flags=33554438, zVfs=0x0) at sqlite3/sqlite3.c:188403
+#12 0x00006289b09c8526 in sqlite3_open_v2 (filename=0x7fed901b9bb0 "/tmp/.tmpr3T4MH/data/squad.db", ppDb=0x7feda3df1a08, flags=33587270, zVfs=0x0) at sqlite3/sqlite3.c:188526
+#13 0x00006289b08cb47e in rusqlite::inner_connection::InnerConnection::open_with_flags (c_path=..., flags=..., vfs=...) at src/inner_connection.rs:90
+#14 0x00006289af8ddf92 in rusqlite::Connection::open_with_flags<std::path::PathBuf> (path=..., flags=...) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rusqlite-0.38.0/src/lib.rs:456
+#15 0x00006289af8de075 in rusqlite::Connection::open<std::path::PathBuf> (path=...) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rusqlite-0.38.0/src/lib.rs:430
+#16 0x00006289af902622 in m6_operational::support::Fixture::db (self=0x7feda3dfbb98) at crates/squad-core/tests/support/m6_room.rs:73
+#17 0x00006289af90279e in m6_operational::support::Fixture::scalar (self=0x7feda3dfbb98, sql=...) at crates/squad-core/tests/support/m6_room.rs:76
+#18 0x00006289af934313 in m6_operational::targeted_stop_preserves_other_inflight_work_and_blocks_late_result::{async_block#0} () at crates/squad-core/tests/m6_operational.rs:197
+#19 0x00006289af8ff342 in core::future::future::{impl#1}::poll<&mut dyn core::future::future::Future<Output=()>> (self=..., cx=0x7feda3df9de0) at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/future/future.rs:133
+#20 0x00006289af8793bd in tokio::runtime::scheduler::current_thread::{impl#9}::block_on::{closure#0}::{closure#0}::{closure#0}<core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>> () at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.54.1/src/runtime/scheduler/current_thread/mod.rs:830
+#21 0x00006289af879255 in tokio::task::coop::with_budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#9}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>> (budget=..., f=...) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.54.1/src/task/coop/mod.rs:167
+#22 tokio::task::coop::budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#9}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>> (f=...) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.54.1/src/task/coop/mod.rs:133
+#23 tokio::runtime::scheduler::current_thread::{impl#9}::block_on::{closure#0}::{closure#0}<core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>> () at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.54.1/src/runtime/scheduler/current_thread/mod.rs:830
+
+Thread 4 (Thread 0x7feda21b06c0 (LWP 1916392) "squad-writer"):
+#0  futex_wait (futex_word=0x6289b2093b10 <staticMutexes.122+432>, expected=2, private=0) at ../sysdeps/nptl/futex-internal.h:126
+#1  __GI___lll_lock_wait (futex=futex@entry=0x6289b2093b10 <staticMutexes.122+432>, private=0) at ./nptl/lowlevellock.c:49
+#2  0x00007feda8ca7714 in lll_mutex_lock_optimized (mutex=0x6289b2093b10 <staticMutexes.122+432>) at ./nptl/pthread_mutex_lock.c:48
+#3  ___pthread_mutex_lock (mutex=0x6289b2093b10 <staticMutexes.122+432>) at ./nptl/pthread_mutex_lock.c:87
+#4  0x00006289b08df1c2 in pthreadMutexEnter (p=0x6289b2093b10 <staticMutexes.122+432>) at sqlite3/sqlite3.c:30407
+#5  0x00006289b08def21 in sqlite3_mutex_enter (p=0x6289b2093b10 <staticMutexes.122+432>) at sqlite3/sqlite3.c:29849
+#6  0x00006289b08ea1f2 in unixEnterMutex () at sqlite3/sqlite3.c:40102
+#7  0x00006289b08ec5a9 in unixIsSharingShmNode (pFile=0x7fed900139f0) at sqlite3/sqlite3.c:43881
+#8  0x00006289b08eae33 in unixLock (id=0x7fed900139f0, eFileLock=4) at sqlite3/sqlite3.c:41232
+#9  0x00006289b08de1cc in sqlite3OsLock (id=0x7fed900139f0, lockType=4) at sqlite3/sqlite3.c:26938
+#10 0x00006289b08fe948 in sqlite3WalClose (pWal=0x7fed90006dc8, db=0x7fed90012df8, sync_flags=10, nBuf=4096, zBuf=0x7fed90013be8 "\r") at sqlite3/sqlite3.c:69264
+#11 0x00006289b08f84ab in sqlite3PagerClose (pPager=0x7fed90013868, db=0x7fed90012df8) at sqlite3/sqlite3.c:63114
+#12 0x00006289b09051a1 in sqlite3BtreeClose (p=0x7fed90008bc8) at sqlite3/sqlite3.c:75391
+#13 0x00006289b09c54d8 in sqlite3LeaveMutexAndCloseZombie (db=0x7fed90012df8) at sqlite3/sqlite3.c:186237
+#14 0x00006289b09c52ef in sqlite3Close (db=0x7fed90012df8, forceZombie=0) at sqlite3/sqlite3.c:186150
+#15 0x00006289b09c5416 in sqlite3_close (db=0x7fed90012df8) at sqlite3/sqlite3.c:186193
+#16 0x00006289b08cbdc8 in rusqlite::inner_connection::InnerConnection::close (self=0x7feda21af378) at src/inner_connection.rs:155
+#17 0x00006289b08cc975 in rusqlite::inner_connection::{impl#2}::drop (self=0x7feda21af378) at src/inner_connection.rs:406
+#18 0x00006289b08d23c3 in core::ptr::drop_glue<rusqlite::inner_connection::InnerConnection> () at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ptr/mod.rs:847
+#19 0x00006289b08d1e2b in core::ptr::drop_glue<core::cell::UnsafeCell<rusqlite::inner_connection::InnerConnection>> () at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ptr/mod.rs:847
+#20 0x00006289b08d1edf in core::ptr::drop_glue<core::cell::RefCell<rusqlite::inner_connection::InnerConnection>> () at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ptr/mod.rs:847
+#21 0x00006289b08d2293 in core::ptr::drop_glue<rusqlite::Connection> () at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/ptr/mod.rs:847
+#22 0x00006289b0594707 in core::mem::drop<rusqlite::Connection> (_x=...) at /rustc/58cf8f9c35b355199727627d07ae34a4e2846d67/library/core/src/mem/mod.rs:1049
+#23 0x00006289b0676dd3 in squad_store::writer::{impl#3}::with_lock::{closure#0} () at crates/squad-store/src/writer.rs:64
+
+Thread 3 (Thread 0x7feda07036c0 (LWP 1916402) "squad-writer"):
+#0  futex_wait (futex_word=0x6289b2093b10 <staticMutexes.122+432>, expected=2, private=0) at ../sysdeps/nptl/futex-internal.h:126
+#1  __GI___lll_lock_wait (futex=futex@entry=0x6289b2093b10 <staticMutexes.122+432>, private=0) at ./nptl/lowlevellock.c:49
+#2  0x00007feda8ca7714 in lll_mutex_lock_optimized (mutex=0x6289b2093b10 <staticMutexes.122+432>) at ./nptl/pthread_mutex_lock.c:48
+#3  ___pthread_mutex_lock (mutex=0x6289b2093b10 <staticMutexes.122+432>) at ./nptl/pthread_mutex_lock.c:87
+#4  0x00006289b08df1c2 in pthreadMutexEnter (p=0x6289b2093b10 <staticMutexes.122+432>) at sqlite3/sqlite3.c:30407
+#5  0x00006289b08def21 in sqlite3_mutex_enter (p=0x6289b2093b10 <staticMutexes.122+432>) at sqlite3/sqlite3.c:29849
+#6  0x00006289b08ea1f2 in unixEnterMutex () at sqlite3/sqlite3.c:40102
+#7  0x00006289b08ed6c3 in unixShmBarrier (fd=0x7fed8c0141a0) at sqlite3/sqlite3.c:44692
+#8  0x00006289b08de38d in sqlite3OsShmBarrier (id=0x7fed8c0141a0) at sqlite3/sqlite3.c:27002
+#9  0x00006289b08fc782 in walShmBarrier (pWal=0x7fed8c007a08) at sqlite3/sqlite3.c:67675
+#10 0x00006289b08feae4 in walIndexTryHdr (pWal=0x7fed8c007a08, pChanged=0x7feda07004f0) at sqlite3/sqlite3.c:69351
+#11 0x00006289b08feca5 in walIndexReadHdr (pWal=0x7fed8c007a08, pChanged=0x7feda07004f0) at sqlite3/sqlite3.c:69435
+#12 0x00006289b08ff2a3 in walTryBeginRead (pWal=0x7fed8c007a08, pChanged=0x7feda07004f0, useWal=0, pCnt=0x7feda0700490) at sqlite3/sqlite3.c:69817
+#13 0x00006289b08ff62d in walBeginReadTransaction (pWal=0x7fed8c007a08, pChanged=0x7feda07004f0) at sqlite3/sqlite3.c:70147
+#14 0x00006289b08ff676 in sqlite3WalBeginReadTransaction (pWal=0x7fed8c007a08, pChanged=0x7feda07004f0) at sqlite3/sqlite3.c:70231
+#15 0x00006289b08f74bf in pagerBeginReadTransaction (pPager=0x7fed8c014018) at sqlite3/sqlite3.c:62180
+#16 0x00006289b08f9c0a in sqlite3PagerSharedLock (pPager=0x7fed8c014018) at sqlite3/sqlite3.c:64362
+#17 0x00006289b09057c3 in lockBtree (pBt=0x7fed8c013b48) at sqlite3/sqlite3.c:75721
+#18 0x00006289b090602f in btreeBeginTrans (p=0x7fed8c009fe8, wrflag=0, pSchemaVersion=0x7feda0700e00) at sqlite3/sqlite3.c:76118
+#19 0x00006289b0906305 in sqlite3BtreeBeginTrans (p=0x7fed8c009fe8, wrflag=0, pSchemaVersion=0x7feda0700e00) at sqlite3/sqlite3.c:76218
+#20 0x00006289b092a53c in sqlite3VdbeExec (p=0x7fed8c018378) at sqlite3/sqlite3.c:99414
+#21 0x00006289b09212b0 in sqlite3Step (p=0x7fed8c018378) at sqlite3/sqlite3.c:93244
+#22 0x00006289b092151f in sqlite3_step (pStmt=0x7fed8c018378) at sqlite3/sqlite3.c:93305
+#23 0x00006289b065a1df in rusqlite::raw_statement::RawStatement::step (self=0x7feda07015f8) at /home/shoemoney/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rusqlite-0.38.0/src/raw_statement.rs:147

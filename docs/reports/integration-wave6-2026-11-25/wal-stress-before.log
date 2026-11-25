@@ -1,0 +1,24 @@
+   Compiling squad-store v0.1.0 (/home/shoemoney/.t3/worktrees/Squad/integration-wave6-gate-d83c7b4d828f2ccc/crates/squad-store)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.40s
+     Running tests/wal_connection_lifecycle.rs (target/debug/deps/wal_connection_lifecycle-65eb6774fe7a990e)
+
+running 1 test
+
+running 1 test
+test concurrent_wal_open_and_close_completes ... FAILED
+
+failures:
+
+---- concurrent_wal_open_and_close_completes stdout ----
+
+thread 'concurrent_wal_open_and_close_completes' (1927673) panicked at crates/squad-store/tests/wal_connection_lifecycle.rs:60:13:
+concurrent WAL open/close deadlocked
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    concurrent_wal_open_and_close_completes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.01s
+
+error: test failed, to rerun pass `-p squad-store --test wal_connection_lifecycle`

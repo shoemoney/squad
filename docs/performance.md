@@ -105,7 +105,10 @@ invocation instead of claiming a current target miss.
 
 Raw evidence: [all attempts, load samples and structured summary](reports/perf-gates-2026-11-25/). Trailing whitespace and empty final lines in two validation logs were normalized; measured values are unchanged.
 
-### Final workspace validation: blocked by operational-test stall
+### Perf-gates branch validation: operational-test stall (later resolved)
+
+The integration-wave6 follow-up identified and repaired the bundled SQLite
+open/close deadlock. See the [root cause, regression proof and repeated gates](reports/integration-wave6-2026-11-25/README.md). The evidence below records the original branch run.
 
 `CARGO_BUILD_JOBS=8 cargo test --workspace --no-fail-fast` returned **101**.
 The `squad-core --test m6_operational` process stopped making progress with five
