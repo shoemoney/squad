@@ -10,12 +10,13 @@ history supplies parser references, causal relevance, and addressed execution
 progress. Offline export delegates to `squad_core::room::export_offline`; models
 and doctor retain their credential-free, read-only inspection paths.
 
-`tests/real_room.rs` contains runnable injected-runtime boundary tests plus three
-production-launcher tests marked `#[ignore = "needs runtime binding"]` while the
-core default launcher returns NOT_READY: `send_history_live_and_offline_export`,
+`tests/real_room.rs` runs both injected-runtime boundary tests and the three
+production-launcher tests: `send_history_live_and_offline_export`,
 `no_wait_does_not_dispatch_and_interactive_restart_resumes`, and
-`real_room_feed_reduces_into_tui_session`. Remove those markers and run the tests
-after integrating the runtime worker. All provider calls use loopback fixtures.
+`real_room_feed_reduces_into_tui_session`. The real runtime is bound; these tests
+are no longer ignored. All provider calls use loopback fixtures. Executable
+command tests set `OPENROUTER_BASE_URL` to the shared wiremock fake's API URL;
+the default remains `https://openrouter.ai/api/v1/`.
 The TUI adapter also has a standalone snapshot/reducer test.
 
 The earlier handoff below describes the original implementation seams and
@@ -109,3 +110,12 @@ workspace targets with warnings denied, and workspace format checking pass. Carg
 regenerates seven dependency-list entries in the root Cargo.lock; the coordinator
 must regenerate and commit it after merging because it is outside this territory.
 Milestone checkbox edits are likewise left to the coordinator.
+
+## Bound CLI regression validation (2026-11-25)
+
+On dev3, the bound-runtime regression update passed `cargo build --workspace`,
+`cargo test --workspace --no-fail-fast` (114 test targets, 704 passed, 0 failed,
+0 ignored, 0 filtered out), `cargo clippy --workspace --all-targets -- -D warnings`,
+and `cargo fmt --check`, with `CARGO_BUILD_JOBS=8` and sequential gates.
+The 21 focused executable/room tests include all three formerly ignored runtime
+checks. No milestone checkbox or shared registration files changed.

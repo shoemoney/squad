@@ -3,6 +3,72 @@ use std::{
     process::{Command, Output, Stdio},
 };
 
+#[path = "../../squad-agents/tests/support/fake_openrouter.rs"]
+mod fake_openrouter;
+use fake_openrouter::{FakeOpenRouter, MODEL};
+
+async fn provider(responses: Vec<wiremock::ResponseTemplate>) -> FakeOpenRouter {
+    let server = FakeOpenRouter::start().await;
+    server.catalog(fake_openrouter::catalog()).await;
+    server.completions(responses).await;
+    server
+        .generation(
+            fake_openrouter::GENERATION,
+            serde_json::json!({"total_cost": 0.000045}),
+        )
+        .await;
+    server
+}
+
+async fn invoke_provider(root: &Path, args: &[&str], server: &FakeOpenRouter) -> Output {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_squad"));
+    command
+        .env_clear()
+        .env("HOME", root)
+        .current_dir(root)
+        .env("OPENROUTER_API_KEY", "fixture")
+        .env("OPENROUTER_BASE_URL", server.base_url())
+        .env("SQUAD_MODEL_A", MODEL)
+        .env("SQUAD_MODEL_B", MODEL)
+        .env("SQUAD_JUDGE_MODEL", MODEL)
+        .stdin(Stdio::null())
+        .args(args);
+    // Keep the async executor free to serve wiremock while the executable runs.
+    let mut child = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    loop {
+        if child.try_wait().unwrap().is_some() {
+            return child.wait_with_output().unwrap();
+        }
+        if std::time::Instant::now() >= deadline {
+            child.kill().unwrap();
+            panic!("CLI timed out: {:?}", child.wait_with_output().unwrap());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+}
+
+fn user_messages(data: &Path) -> Vec<(i64, serde_json::Value)> {
+    let db = squad_store::open(data.join("squad.db")).unwrap();
+    let mut query = db
+        .prepare("SELECT seq, payload FROM events WHERE kind = 'user.message' ORDER BY seq")
+        .unwrap();
+    query
+        .query_map([], |row| {
+            Ok((
+                row.get(0)?,
+                serde_json::from_str(&row.get::<_, String>(1)?).unwrap(),
+            ))
+        })
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap()
+}
+
 fn invoke(root: &Path, args: &[&str], key: Option<&str>) -> Output {
     let mut command = Command::new(env!("CARGO_BIN_EXE_squad"));
     command
@@ -35,35 +101,76 @@ fn help_and_version_have_no_side_effects() {
     assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);
 }
 
-#[test]
-fn bound_commands_report_unavailable_runtime_without_fake_output() {
+#[tokio::test]
+async fn bound_commands_only_report_real_provider_output() {
     let temp = tempfile::tempdir().unwrap();
-    for (args, expected) in [
-        (vec![], "Room runtime integration is not installed"),
-        (
-            vec!["send", "hello"],
-            "Room runtime integration is not installed",
-        ),
-    ] {
-        let output = invoke(temp.path(), &args, Some("sk-test-not-a-real-key"));
-        assert_eq!(output.status.code(), Some(1));
-        assert!(output.stdout.is_empty());
-        assert_eq!(String::from_utf8(output.stderr).unwrap().trim(), expected);
-    }
-    // Inspect the actual --data-dir independent of platform defaults.
     let data = temp.path().join("explicit-data");
-    let output = invoke(
+    let server = provider(vec![fake_openrouter::streaming(
+        "Provider supplied answer",
+        "stop",
+    )])
+    .await;
+    let output = invoke_provider(
         temp.path(),
-        &["send", "hello", "--data-dir", data.to_str().unwrap()],
-        Some("fixture"),
+        &["--data-dir", data.to_str().unwrap()],
+        &server,
+    )
+    .await;
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(output.stdout.is_empty(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).trim(),
+        "Terminal application failed."
     );
-    assert_eq!(output.status.code(), Some(1));
-    assert!(data.is_dir());
-    let entries: Vec<_> = std::fs::read_dir(&data)
+    assert!(server.captured_bodies().await.is_empty());
+    assert!(user_messages(&data).is_empty());
+    let output = invoke_provider(
+        temp.path(),
+        &["send", "@a hello", "--data-dir", data.to_str().unwrap()],
+        &server,
+    )
+    .await;
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Provider supplied answer"));
+    assert_eq!(server.captured_bodies().await.len(), 1);
+    assert_eq!(user_messages(&data)[0].1["text"], "@a hello");
+
+    let temp = tempfile::tempdir().unwrap();
+    let server = provider(vec![wiremock::ResponseTemplate::new(401)]).await;
+    let output = invoke_provider(
+        temp.path(),
+        &["send", "@a hello", "--data-dir", "data", "--json"],
+        &server,
+    )
+    .await;
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(output.stderr.is_empty(), "{output:?}");
+    let records: Vec<serde_json::Value> = String::from_utf8(output.stdout)
         .unwrap()
-        .map(|e| e.unwrap().file_name())
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
         .collect();
-    assert_eq!(entries, [std::ffi::OsString::from("logs")]);
+    assert!(
+        records.iter().any(|record| record["type"] == "ack"),
+        "{records:?}"
+    );
+    assert!(
+        !records
+            .iter()
+            .any(|record| record.to_string().contains("message.final")),
+        "{records:?}"
+    );
+    assert_eq!(server.captured_bodies().await.len(), 1);
+    let db = squad_store::open(temp.path().join("data/squad.db")).unwrap();
+    let finals: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM events WHERE kind = 'message.final'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(finals, 0);
 }
 
 #[test]
@@ -187,34 +294,46 @@ fn doctor_reports_all_errors_and_uses_file_data_directory() {
 }
 
 #[cfg(unix)]
-#[test]
-fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
+#[tokio::test]
+async fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
     use std::os::unix::fs::{PermissionsExt, symlink};
     let temp = tempfile::tempdir().unwrap();
     let data = temp.path().join("data");
     std::fs::create_dir(&data).unwrap();
     std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o755)).unwrap();
     symlink(&data, temp.path().join("link")).unwrap();
+    let server = provider(vec![
+        fake_openrouter::streaming("Directory answer", "stop");
+        2
+    ])
+    .await;
     for path in ["data", "link"] {
         let output = invoke(temp.path(), &["doctor", "--data-dir", path], None);
         let text = String::from_utf8(output.stdout).unwrap();
         assert!(text.contains("Data directory: writable"), "{text}");
         assert!(text.contains("Data directory mode: 0755"));
-        let output = invoke(
+        let output = invoke_provider(
             temp.path(),
-            &["send", "hello", "--data-dir", path],
-            Some("fixture"),
-        );
-        assert_eq!(output.status.code(), Some(1));
-        assert_eq!(
-            String::from_utf8_lossy(&output.stderr).trim(),
-            "Room runtime integration is not installed"
-        );
+            &["send", "@a hello", "--data-dir", path],
+            &server,
+        )
+        .await;
+        assert!(output.status.success(), "{output:?}");
+        assert!(output.stderr.is_empty(), "{output:?}");
+        assert!(String::from_utf8_lossy(&output.stdout).contains("Directory answer"));
         assert_eq!(
             std::fs::metadata(&data).unwrap().permissions().mode() & 0o777,
             0o755
         );
     }
+    assert!(
+        std::fs::symlink_metadata(temp.path().join("link"))
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    assert_eq!(server.captured_bodies().await.len(), 2);
+    assert_eq!(user_messages(&data).len(), 2);
 }
 
 #[test]
@@ -236,19 +355,53 @@ fn no_home_requires_explicit_data_directory() {
     assert!(invoke(&["doctor", "--data-dir", "data"]).status.success());
 }
 
-#[test]
-fn quoted_references_do_not_consume_the_message() {
+#[tokio::test]
+async fn quoted_references_do_not_consume_the_message() {
     let temp = tempfile::tempdir().unwrap();
-    for args in [
-        vec!["send", "--quote", "1", "--quote", "2", "hello"],
-        vec!["send", "--quote", "1,2", "hello"],
-    ] {
-        let output = invoke(temp.path(), &args, Some("fixture"));
-        assert_eq!(output.status.code(), Some(1));
-        assert!(
-            String::from_utf8_lossy(&output.stderr)
-                .contains("Room runtime integration is not installed")
+    let server = provider(vec![
+        fake_openrouter::streaming(
+            "Quoted fixture answer",
+            "stop"
         );
+        4
+    ])
+    .await;
+    for message in ["@a First source", "@a Second source"] {
+        let output = invoke_provider(
+            temp.path(),
+            &["send", message, "--data-dir", "data"],
+            &server,
+        )
+        .await;
+        assert!(output.status.success(), "{output:?}");
+    }
+    let sources = user_messages(&temp.path().join("data"));
+    let first = sources[0].0.to_string();
+    let second = sources[1].0.to_string();
+    let combined = format!("{first},{second}");
+    for args in [
+        vec!["send", "--quote", &first, "--quote", &second, "@a hello"],
+        vec!["send", "--quote", &combined, "@a hello"],
+    ] {
+        let mut args = args;
+        args.extend(["--data-dir", "data"]);
+        let output = invoke_provider(temp.path(), &args, &server).await;
+        assert!(output.status.success(), "{output:?}");
+        assert!(output.stderr.is_empty(), "{output:?}");
+        let messages = user_messages(&temp.path().join("data"));
+        let last = &messages.last().unwrap().1;
+        assert_eq!(last["text"], "@a hello");
+        assert_eq!(last["resolvedQuotes"].as_array().unwrap().len(), 2);
+        assert_eq!(last["resolvedQuotes"][0]["text"], "First source");
+        assert_eq!(last["resolvedQuotes"][1]["text"], "Second source");
+    }
+    let bodies = server.captured_bodies().await;
+    assert_eq!(bodies.len(), 4);
+    for body in &bodies[2..] {
+        let prompt = body["messages"].to_string();
+        for text in ["hello", "First source", "Second source"] {
+            assert!(prompt.contains(text), "{prompt}");
+        }
     }
 }
 
