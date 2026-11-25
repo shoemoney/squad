@@ -319,3 +319,305 @@ async fn accounting_updates_coalesce_by_attempt_and_preserve_latest_cost() {
         assert_eq!(records.last().unwrap()["calls"], 1);
     }
 }
+
+// ---- M3.P3.L2.T6 / T8 / T9 / T10 / T11 / T12 ----
+
+fn lines(output: &str) -> Vec<serde_json::Value> {
+    output
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect()
+}
+
+#[tokio::test]
+async fn late_and_unscored_round_scores_render_with_tallies_in_human_and_json() {
+    for json in [false, true] {
+        let room = FakeRoom::default();
+        room.emitted.borrow_mut().extend([
+            event(
+                2,
+                "debate.state",
+                serde_json::json!({"debateId":ID,"state":"ROUND_RUNNING","debaters":["alpha","beta"],"round":3,"totalRounds":3,"judgeModel":"j/m","judgeRequested":true,"stateVersion":2,"terminalReason":null,"caseId":ID,"caseIds":[ID]}),
+            ),
+            event(
+                3,
+                "debate.round_score",
+                serde_json::json!({"debateId":ID,"caseId":ID,"round":1,"scores":{"alpha":{"score":9,"reason":"Clear"},"beta":{"score":7,"reason":"Slow"}},"tally":{"alpha":1,"beta":0}}),
+            ),
+            event(
+                4,
+                "debate.round_score",
+                serde_json::json!({"debateId":ID,"caseId":ID,"round":2,"scores":null,"tally":{"alpha":1,"beta":0},"reason":"unscored"}),
+            ),
+        ]);
+        let (code, output, _) = send(&room, &args("@all hello", json, false), None).await;
+        assert_eq!(code, 0);
+        if json {
+            let records = lines(&output);
+            let scores: Vec<_> = records
+                .iter()
+                .filter(|r| r["event"]["kind"] == "debate.round_score")
+                .collect();
+            assert_eq!(scores.len(), 2);
+            // Shared schema: the committed payload is carried intact, tallies and null scores included.
+            assert_eq!(scores[0]["event"]["payload"]["tally"]["alpha"], 1);
+            assert!(scores[1]["event"]["payload"]["scores"].is_null());
+            assert_eq!(scores[1]["event"]["payload"]["reason"], "unscored");
+        } else {
+            assert!(output.contains("Round 1 score (late):"), "{output}");
+            assert!(output.contains("Round 2 unscored (late):"), "{output}");
+            assert!(output.contains("\"tally\""));
+        }
+    }
+}
+
+#[tokio::test]
+async fn tournament_grill_collecting_and_pick_events_render_through_committed_fixtures() {
+    let fixtures = [
+        (
+            "tournament.state",
+            serde_json::json!({"contestId":ID,"state":"ANSWERING","stateVersion":1,"round":1,"replay":0,"survivors":["alpha","beta"],"eliminated":[],"terminalReason":null}),
+        ),
+        (
+            "contest.collecting",
+            serde_json::json!({"contestId":ID,"kind":"grill","questionMessageId":ID,"question":"Plan the launch?","addressed":["alpha","beta"]}),
+        ),
+        (
+            "contest.pick_requested",
+            serde_json::json!({"contestId":ID,"kind":"grill","questionMessageId":ID,"eligible":["alpha","beta"],"requiredPicks":1,"banner":"Pick the leader"}),
+        ),
+        (
+            "contest.picked",
+            serde_json::json!({"contestId":ID,"kind":"grill","nicks":["alpha"],"sourceMessageIds":[ID]}),
+        ),
+    ];
+    for json in [false, true] {
+        let room = FakeRoom::default();
+        for (index, (kind, payload)) in fixtures.iter().enumerate() {
+            room.emitted
+                .borrow_mut()
+                .push(event(index as u32 + 2, kind, payload.clone()));
+        }
+        let (code, output, _) = send(&room, &args("@all $grill hello", json, false), None).await;
+        assert_eq!(code, 0);
+        if json {
+            let records = lines(&output);
+            assert_eq!(records.len(), 5, "ack plus four committed events");
+            for (record, (kind, payload)) in records[1..].iter().zip(&fixtures) {
+                assert_eq!(record["type"], "event");
+                assert_eq!(record["event"]["kind"], *kind);
+                assert_eq!(record["event"]["payload"], *payload);
+            }
+        } else {
+            for needle in [
+                "[tournament.state]",
+                "[contest.collecting]",
+                "Plan the launch?",
+                "[contest.pick_requested]",
+                "Pick the leader",
+                "[contest.picked]",
+            ] {
+                assert!(output.contains(needle), "{needle} missing: {output}");
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn human_preflights_show_kind_specific_calls_costs_remaining_and_warnings() {
+    for kind in [
+        ContestKind::Tournament,
+        ContestKind::Grill,
+        ContestKind::Census,
+        ContestKind::Crosscheck,
+        ContestKind::Survey,
+        ContestKind::Probe,
+    ] {
+        let room = FakeRoom::default();
+        room.results
+            .borrow_mut()
+            .push_back(RequestResult::PendingConfirmation {
+                request_id: ID.parse().unwrap(),
+                preflight: preflight(kind),
+                cursor: Cursor::new(1).unwrap(),
+            });
+        let (code, output, _) = send(&room, &args("@all hello", false, false), Some(true)).await;
+        assert_eq!(code, 0);
+        let name = serde_json::to_value(kind).unwrap();
+        let first = output.lines().next().unwrap();
+        assert_eq!(
+            first,
+            format!(
+                "{} preflight: 12 model calls; estimate $2.50; reserved $2.50; remaining $10.00",
+                name.as_str().unwrap()
+            )
+        );
+        assert!(output.contains("Participants: alpha, beta"));
+        assert!(output.contains("Warning: beta sits out the final step"));
+        assert!(output.contains("\"reusedInputs\""));
+    }
+}
+
+#[tokio::test]
+async fn preserved_admission_errors_and_daily_cap_text_reach_the_caller_unchanged() {
+    let room = FakeRoom::default();
+    room.results
+        .borrow_mut()
+        .push_back(RequestResult::Rejected {
+            request_id: ID.parse().unwrap(),
+            error: ErrorPayload {
+                code: ErrorCode::CONTEST_BUSY,
+                text: Text::new("A contest is already running").unwrap(),
+                retryable: false,
+                related_event_id: None,
+                work_id: None,
+                debate_id: None,
+                case_id: None,
+                earliest_cursor: None,
+                retry_action: None,
+                contest_id: None,
+                provider_status: None,
+                provider_message: None,
+            },
+        });
+    let (code, output, _) = send(&room, &args("@all $survey q", true, false), None).await;
+    assert_eq!(code, 1);
+    let record = &lines(&output)[0];
+    assert_eq!(record["error"]["code"], "CONTEST_BUSY");
+    assert_eq!(record["error"]["message"], "A contest is already running");
+}
+
+#[tokio::test]
+async fn four_mode_steps_reports_and_skipped_members_keep_unchanged_shared_payloads() {
+    let report = serde_json::json!({"contestId":ID,"stepId":ID,"artifactEventIds":[ID],"skippedWorkIds":[ID],"data":{"skippedMembers":["beta"],"unexpectedResult":"Return to the root","bands":["settled","leans","split","unknown","unasked"],"estimate":{"low":2,"high":4,"caveat":"Estimates are approximate"}}});
+    let step = serde_json::json!({"contestId":ID,"stepId":ID,"ordinal":1,"scriptVersion":"census-v1","moveName":"fanout","inputs":[ID],"assignments":[{"target":"alpha","contextId":"member:alpha","payloadRefs":[ID]}]});
+    for json in [true, false] {
+        let mut room = FakeRoom::default();
+        room.context.roster = ["alpha", "beta", "gamma", "delta"]
+            .map(|n| n.parse().unwrap())
+            .into();
+        room.emitted.borrow_mut().extend([
+            event(2, "contest.step", step.clone()),
+            event(3, "contest.report", report.clone()),
+        ]);
+        let (code, output, _) = send(&room, &args("@all $census hello", json, false), None).await;
+        assert_eq!(code, 0);
+        if json {
+            let records = lines(&output);
+            assert_eq!(records[1]["event"]["payload"], step);
+            assert_eq!(records[2]["event"]["payload"], report);
+        } else {
+            assert!(output.contains("[contest.step]") && output.contains("census-v1"));
+            assert!(
+                output.contains("skippedMembers") && output.contains("Estimates are approximate")
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn yes_confirms_each_mode_but_never_accepts_crosscheck_risks_and_cancel_is_kind_specific() {
+    for kind in [
+        ContestKind::Crosscheck,
+        ContestKind::Census,
+        ContestKind::Survey,
+        ContestKind::Probe,
+    ] {
+        let room = FakeRoom::default();
+        room.results
+            .borrow_mut()
+            .push_back(RequestResult::PendingConfirmation {
+                request_id: ID.parse().unwrap(),
+                preflight: preflight(kind),
+                cursor: Cursor::new(1).unwrap(),
+            });
+        let mut options = args("@all hello", true, false);
+        options.yes = true;
+        let (code, _, _) = send(&room, &options, None).await;
+        assert_eq!(code, 0, "{kind:?}");
+        let requests = room.requests.borrow();
+        assert!(matches!(
+            &requests[0],
+            Request::UserMessage {
+                preconfirmed: true,
+                ..
+            }
+        ));
+        assert!(
+            matches!(requests[1], Request::ContestConfirm { .. }),
+            "{kind:?}"
+        );
+        assert!(
+            !requests.iter().any(|r| matches!(
+                r,
+                Request::CrosscheckAccept { .. } | Request::CensusContinue { .. }
+            )),
+            "--yes never accepts risk or continues a census plan"
+        );
+    }
+    // A declined contest preflight cancels with ContestCancel; a debate preflight with DebateCancel.
+    let room = FakeRoom::default();
+    room.results
+        .borrow_mut()
+        .push_back(RequestResult::PendingConfirmation {
+            request_id: ID.parse().unwrap(),
+            preflight: PendingPreflight::Debate(DebatePreflight {
+                judge_only: false,
+                debate_id: ID.parse().unwrap(),
+                plan_id: ID.parse().unwrap(),
+                expires_at: "2026-11-24T00:10:00Z".parse().unwrap(),
+                estimate: DebateEstimate {
+                    estimated_usd: 1.,
+                    reserved_usd: 1.,
+                    remaining_usd: 10.,
+                    model_calls: 6,
+                },
+                judge_model: Some("j/m".into()),
+                warning: None,
+                confirmation_required: true,
+                debaters: ["alpha".parse().unwrap(), "beta".parse().unwrap()],
+                rounds: 2,
+                judge_requested: true,
+                opening_round_required: true,
+            }),
+            cursor: Cursor::new(1).unwrap(),
+        });
+    let (code, output, _) = send(
+        &room,
+        &args("@alpha @beta $debate hi", true, false),
+        Some(false),
+    )
+    .await;
+    assert_eq!(code, 0);
+    assert!(matches!(
+        room.requests.borrow()[1],
+        Request::DebateCancel { .. }
+    ));
+    assert_eq!(lines(&output).last().unwrap()["type"], "debate.cancelled");
+}
+
+#[tokio::test]
+async fn no_wait_for_each_mode_commits_only_and_stops_after_the_acknowledgement() {
+    for message in [
+        "@all $census hello",
+        "@all $crosscheck hello\n--\nplan",
+        "@all $survey hello",
+        "@all $probe hello",
+    ] {
+        let mut room = FakeRoom::default();
+        room.context.roster = ["alpha", "beta", "gamma", "delta"]
+            .map(|n| n.parse().unwrap())
+            .into();
+        room.progress.set(Progress::Running);
+        let (code, output, _) = send(&room, &args(message, true, true), None).await;
+        assert_eq!(code, 0, "{message}: {output}");
+        assert_eq!(room.commit_only.borrow().len(), 1);
+        assert_eq!(
+            room.requests.borrow().len(),
+            1,
+            "one request, no follow-up waiting"
+        );
+        assert_eq!(lines(&output).len(), 1);
+        assert_eq!(lines(&output)[0]["type"], "ack");
+    }
+}
