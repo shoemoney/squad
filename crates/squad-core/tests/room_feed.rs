@@ -55,6 +55,31 @@ fn drain(feed: &mut FeedReceiver) -> Vec<FeedItem> {
     items
 }
 
+/// Drain the feed once it has delivered everything durable history holds: the
+/// feed is published after commit, so a database condition alone can run ahead.
+async fn drain_settled(feed: &mut FeedReceiver, room: &squad_core::room::RoomHandle) -> Vec<FeedItem> {
+    let mut items = Vec::new();
+    tokio::time::timeout(Duration::from_secs(15), async {
+        loop {
+            items.extend(drain(feed));
+            let delivered = committed(&items).last().map(|e| e.commit.seq);
+            let last = room
+                .page_events(None, 500)
+                .await
+                .unwrap()
+                .last()
+                .map(|e| e.commit.seq);
+            if delivered >= last {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("feed did not catch up with committed history");
+    items
+}
+
 fn committed(items: &[FeedItem]) -> Vec<CommittedEnvelope> {
     items
         .iter()
@@ -189,7 +214,7 @@ async fn late_round_scores_keep_recipients_round_identity_payload_and_sequence_o
         .await;
     f.wait(|| f.scalar("SELECT COUNT(*) FROM events WHERE kind='verdict'") == 1)
         .await;
-    let items = drain(&mut feed);
+    let items = drain_settled(&mut feed, &room).await;
     let feed_events = committed(&items);
     let history = room.page_events(None, 500).await.unwrap();
     let scores: Vec<&CommittedEnvelope> = feed_events
@@ -274,7 +299,7 @@ async fn tournament_and_pick_events_arrive_in_commit_order_without_blind_judge_m
         .await;
     f.wait(|| f.scalar("SELECT COUNT(*) FROM events WHERE kind='contest.pick_requested'") == 1)
         .await;
-    let items = drain(&mut feed);
+    let items = drain_settled(&mut feed, &room).await;
     let feed_events = committed(&items);
     let kinds: Vec<String> = feed_events
         .iter()
