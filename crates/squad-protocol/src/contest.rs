@@ -111,6 +111,7 @@ pub enum ContestState {
     Generic(GenericContestState),
     Selection(ContestSelectionState),
     Debate(DebateState),
+    Census(CensusState),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -227,6 +228,7 @@ pub struct ContestTransitionSubmission {
 )]
 pub enum ContestTransition {
     Debate(DebateTransition),
+    Census(CensusTransition),
 }
 impl ContestKind {
     pub fn as_str(self) -> &'static str {
@@ -253,7 +255,7 @@ impl ContestTransitionSubmission {
             self.kind == ContestKind::Debate,
             "transition kind does not match debate",
         )?;
-        let ContestTransition::Debate(transition) = self.transition;
+        let ContestTransition::Debate(transition) = self.transition else { return Err(crate::validation::ValidationError { message: "expected debate transition".into() }); };
         Ok((self.contest_id, self.expected_state_version, transition))
     }
 }

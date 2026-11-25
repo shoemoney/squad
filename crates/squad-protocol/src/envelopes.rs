@@ -188,6 +188,22 @@ pub enum EnvelopePayload {
     RoomCleared(RoomCleared),
     #[serde(rename = "debate.round_score")]
     DebateRoundScore(DebateRoundScore),
+    #[serde(rename = "census.setup")]
+    CensusSetup(CensusSetup),
+    #[serde(rename = "census.state")]
+    CensusState(CensusState),
+    #[serde(rename = "census.plan")]
+    CensusPlan(CensusPlan),
+    #[serde(rename = "census.hunt")]
+    CensusHunt(CensusHunt),
+    #[serde(rename = "census.ledger")]
+    CensusLedger(CensusLedger),
+    #[serde(rename = "census.rating")]
+    CensusRating(CensusRating),
+    #[serde(rename = "census.report")]
+    CensusReport(CensusReport),
+    #[serde(rename = "census.case_material")]
+    CensusCaseMaterial(CensusCaseMaterial),
     #[serde(rename = "contest.setup")]
     ContestSetup(ContestSetup),
     #[serde(rename = "contest.state")]
@@ -735,6 +751,13 @@ fn validate_envelope(
             )?;
             completed(&ruling.completed, ruling.content.as_str())?;
         }
+        EnvelopePayload::CensusSetup(s) => { ensure(base.sender == Actor::System && human_only, "census setup requires system")?; s.validate()?; }
+        EnvelopePayload::CensusState(s) => { ensure(base.sender == Actor::System && human_only, "census state requires system")?; s.validate()?; }
+        EnvelopePayload::CensusPlan(_) | EnvelopePayload::CensusCaseMaterial(_) => ensure(base.sender == Actor::System && human_only, "census material requires system")?,
+        EnvelopePayload::CensusHunt(h) => { ensure(base.sender == Actor::Member(h.member.clone()) && human_only, "hunt requires assigned member")?; h.output.validate()?; }
+        EnvelopePayload::CensusLedger(_) => ensure(base.sender == Actor::Judge && human_only, "ledger requires judge")?,
+        EnvelopePayload::CensusRating(r) => ensure(base.sender == Actor::Member(r.member.clone()) && human_only, "rating requires assigned member")?,
+        EnvelopePayload::CensusReport(r) => { ensure(base.sender == Actor::System && human_only, "report requires system")?; r.validate()?; }
         EnvelopePayload::ContestSetup(setup) => {
             ensure(
                 setup.kind != ContestKind::Debate
@@ -745,6 +768,7 @@ fn validate_envelope(
         }
         EnvelopePayload::ContestState(state) => match state {
             ContestState::Debate(state) => state.validate()?,
+            ContestState::Census(state) => state.validate()?,
             ContestState::Generic(state) => ensure(
                 state.kind != ContestKind::Debate && unique(&state.artifact_event_ids),
                 "duplicate artifact references",
@@ -761,7 +785,7 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            submission.kind == ContestKind::Debate,
+            matches!((&submission.kind, &submission.transition), (ContestKind::Debate, ContestTransition::Debate(_)) | (ContestKind::Census, ContestTransition::Census(_))),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {
