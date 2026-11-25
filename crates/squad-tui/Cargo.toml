@@ -24,3 +24,7 @@ insta = { workspace = true }
 
 [lints]
 workspace = true
+
+[[bench]]
+name = "twelve_streams"
+harness = false
