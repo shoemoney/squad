@@ -9,10 +9,14 @@ Squad is a terminal chat room where you talk to several LLMs at once through Ope
 @grok @gemini $debate your solutions until $ROUNDS at which time @judge decides which is better
 ```
 
+![Six models answer one question at the same time in the Squad room, each streaming into its own coloured lane.](docs/media/room-streaming.gif)
+
+_The room above is the scripted rehearsal that ships with the repository, so it runs without an API key or any cost._
+
 
 ## 📍 Status
 
-All seven contest modes (debate, tournament, grill, census, crosscheck, survey, probe) run end to end against OpenRouter. The workspace test suite passes, and the first live run resolved all six default seats. Release artifacts are built but not yet published.
+All seven contest modes (debate, tournament, grill, census, crosscheck, survey, probe) run end to end against OpenRouter. The workspace test suite passes, and the first live run resolved all six default seats. Release v0.1.0 is published with Linux x64 and macOS arm64 binaries and a Homebrew formula.
 
 ## 🗺️ Contents
 
@@ -103,8 +107,8 @@ Squad ships one binary, `squad`, from the `squad-cli` crate. There are three rou
 
 | Route | Status | Details |
 |---|---|---|
-| **Release binary** | Ready once published | `cargo-dist` builds `squad-cli-aarch64-apple-darwin.tar.xz` (macOS arm64) and `squad-cli-x86_64-unknown-linux-gnu.tar.xz` (Linux x64), each with a SHA-256 checksum. Unpack it and run `squad`. Nothing is published yet. |
-| **Homebrew** | Formula ready, no tap yet | The formula template is `dist/homebrew/squad.rb`. `python3 dist/homebrew/render.py` fills in the version, tag and hashes. Publishing a tap is a separate decision. |
+| **Release binary** | Published (v0.1.0) | [GitHub Releases](https://github.com/shoemoney/squad/releases/tag/v0.1.0) has `squad-cli-aarch64-apple-darwin.tar.xz` (macOS arm64) and `squad-cli-x86_64-unknown-linux-gnu.tar.xz` (Linux x64), each with a SHA-256 checksum. Unpack it and run `squad`. |
+| **Homebrew** | Published | `brew install shoemoney/tap/squad`. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes. |
 | **`cargo install`** | Works from a checkout | `cargo install --path crates/squad-cli --root <empty-temp-directory>` |
 
 Check the install with:
@@ -211,6 +215,14 @@ These three numbers live in the room. The environment only sets them the first t
 The seed applies only when the room has no stored value yet. After that, the stored value wins. Editing `.env` does not change a room that already has a value. Change the value in the room instead.
 
 ## 💬 Using the room
+
+The room has a participants list on the left and the conversation on the right. `F7` opens scores and reasons on a verdict, and `F8` opens the participants panel.
+
+![The Squad room after a debate: F7 expands the judge's scores and reasons, then F8 opens a model's details in the participants panel.](docs/media/panels-f7-f8.gif)
+
+The room runs in as little as 80x24 (its minimum). The layout narrows, and the key hints stay at the bottom.
+
+![The Squad room in an 80 by 24 terminal while a debate runs: the participants list and the debate share the narrow layout.](docs/media/narrow-80x24.gif)
 
 ### Addressing
 
@@ -446,6 +458,10 @@ The workspace denies `unsafe` code and treats Clippy warnings as errors.
 
 ## 🌍 Supported platforms and terminals
 
+Squad's effects (banners, the verdict reveal, motion in the room) scale down with your terminal and `NO_COLOR`. This is the effects reel from the repository, recorded in a full-colour terminal.
+
+![The Squad effects reel: a multicolour OPENING FIGlet banner, two debaters trading lines and a tug bar that swings between them.](docs/media/effects-reel.gif)
+
 | Platform | Setup route |
 |---|---|
 | macOS arm64 | Homebrew. Xcode Command Line Tools are required. |
@@ -551,6 +567,12 @@ Squad has **seven contest modes**. Each one is a script that runs on the same sh
 ## 🥊 Debate
 
 ### 🎯 What it's for
+![A debate between two members over three rounds: each round the debaters answer, the judge scores, and a tug bar tracks the running tally.](docs/media/debate-rounds.gif)
+
+![The judge's verdict card: a FIGlet winner banner, weighted scores, the decision and what to steal from the loser.](docs/media/verdict.gif)
+
+_Both clips are the scripted rehearsal that ships with the repository._
+
 Two members argue a question in turns. Add `@judge` to score each round and get a final verdict.
 
 ### ▶️ How to start
@@ -600,6 +622,10 @@ The report has the setup, every turn (including forfeits), the per-round scores,
 ## 🏆 Tournament
 
 ### 🎯 What it's for
+![Tournament: three entrants answer, a blind judge ranks them, one is eliminated each round, and the champion and final placings are shown.](docs/media/tournament.gif)
+
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._
+
 A knockout. Entrants answer, a blind judge ranks them, and the lowest-ranked entrant goes out each round until one champion remains.
 
 ### ▶️ How to start
@@ -649,6 +675,10 @@ The export has the setup (prompt, entrants, judge model, rounds), each answer, e
 ## 🧊 Grill
 
 ### 🎯 What it's for
+![Grill: three members answer, one is picked as leader, the other two question the leader, and the plan is rebuilt into a final plan with a question-and-answer appendix.](docs/media/grill.gif)
+
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._
+
 Stress-test a plan. Grillers question the leader, the leader answers and revises, and the plan is rebuilt after every round.
 
 ### ▶️ How to start
@@ -705,6 +735,10 @@ The grill has no judge and no winner. The result is the **final plan** and an **
 ## 📋 Census
 
 ### 🎯 What it's for
+![Census: three members hunt a deploy plan for omissions in one pass, the judge merges the findings and the report lists the ledger, finder counts and discovery curve.](docs/media/census.gif)
+
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._ In this run one member reply was rejected as invalid, so the estimate line reads "Estimate unavailable".
+
 Find omissions in a plan. Members hunt blind, the judge merges and the members rate anonymously, and the report estimates what's still unfound.
 
 ### ▶️ How to start
@@ -793,6 +827,10 @@ Each pass shows the plan and its sources, each hunt with its lens and count, the
 ## ✅ Crosscheck
 
 ### 🎯 What it's for
+![Crosscheck: three members build a plan-blind inventory, review each cell, two auditors sample closures, and the report shows the coverage ledger and the bounded-stop caveat.](docs/media/crosscheck.gif)
+
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._
+
 Test how well a plan covers its obligations. A plan-blind inventory defines what should be covered, reviewers check each cross-cutting cell against the plan, and auditors look for false closures.
 
 ### ▶️ How to start

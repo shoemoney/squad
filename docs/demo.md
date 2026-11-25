@@ -2,16 +2,95 @@
 
 This file is the timed script for the canonical Squad demonstration, the walkthrough section for each new contest mode, and the rules for editing and checking the recordings. It covers M7.P2.L2.T1, T2 and T7 in `docs/prd/milestones/M7-launch.md`.
 
-| Recording | Tape | Raw (complete) | Edited GIF |
+| Recording | Tape | GIF in `docs/media/` | Complete raw MP4 (outside git) |
 |---|---|---|---|
-| Canonical demo | `docs/demo/squad.tape` | `docs/demo/squad-raw.mp4` | `docs/demo/squad-raw.gif` |
-| Census | `docs/demo/census.tape` | `docs/demo/census-raw.mp4` | `docs/demo/census-raw.gif` |
-| Crosscheck | `docs/demo/crosscheck.tape` | `docs/demo/crosscheck-raw.mp4` | `docs/demo/crosscheck-raw.gif` |
-| Survey | `docs/demo/survey.tape` | `docs/demo/survey-raw.mp4` | `docs/demo/survey-raw.gif` |
-| Probe | `docs/demo/probe.tape` | `docs/demo/probe-raw.mp4` | `docs/demo/probe-raw.gif` |
+| Room, streaming | `docs/demo/free/room.tape` | `room-streaming.gif` | `~/squad-demo-raw/free-room.mp4` (103 s) |
+| Debate rounds | `docs/demo/free/room.tape` | `debate-rounds.gif` | same recording |
+| Verdict card | `docs/demo/free/room.tape` | `verdict.gif` | same recording |
+| Panels (F7, F8) | `docs/demo/free/panels.tape` | `panels-f7-f8.gif` | `~/squad-demo-raw/free-panels.mp4` (80 s) |
+| Narrow 80x24 | `docs/demo/free/narrow.tape` | `narrow-80x24.gif` | `~/squad-demo-raw/free-narrow.mp4` (66 s) |
+| Effects reel | `docs/demo/free/effects.tape` | `effects-reel.gif` | `~/squad-demo-raw/free-effects.mp4` (29 s) |
+| Tournament (live) | `docs/demo/tournament.tape` | `tournament.gif` | `~/squad-demo-raw/live-tournament.mp4` (164 s) |
+| Grill (live) | `docs/demo/grill.tape` | `grill.gif` | `~/squad-demo-raw/live-grill.mp4` (169 s) |
+| Census (live) | `docs/demo/census.tape` | `census.gif` | `~/squad-demo-raw/live-census.mp4` (161 s) |
+| Crosscheck (live) | `docs/demo/crosscheck.tape` | `crosscheck.gif` | `~/squad-demo-raw/live-crosscheck.mp4` (206 s) |
+| Survey (live) | `docs/demo/survey.tape` | none: **failed live** (see below) | `~/squad-demo-raw/live-survey.mp4` (348 s) |
+| Probe (live) | `docs/demo/probe.tape` | none: **failed live** (see below) | `~/squad-demo-raw/live-probe.mp4` (189 s) |
 
-<!-- RECORDING: canonical demo, edited GIF with time cuts (docs/demo/squad-raw.gif) -->
-<!-- RECORDING: canonical demo, complete raw MP4 (docs/demo/squad-raw.mp4) -->
+The canonical live `docs/demo/squad.tape` (six members, then a judged debate on the default models) was **not** recorded. The "canonical demo" in the README is the scripted rehearsal that ships in the repository, which costs nothing and shows the same room.
+
+---
+
+## 🎞️ Recorded media (2026-11-25)
+
+### How the GIFs were made
+
+- **Free GIFs** come from `target/release/examples/demo` (the scripted room) and `fx_reel`. VHS has no function keys, so the F7 and F8 shots run the room inside `tmux` and a hidden helper sends the keys. The 80x24 shot uses a 800x450 pixel terminal.
+- **Live GIFs** come from the **v0.1.0 release binary** (`squad-cli-x86_64-unknown-linux-gnu.tar.xz` from the GitHub Release). Each tape uses a fresh data directory, the API key is `source`d from a 0600 file inside the tape's `Hide` block, and the room's own tool output never shows it.
+- **Editing:** `docs/demo/tools/edit_live.py` and `mkgif.sh` trim each raw MP4, speed up the waits, burn the label onto the sped-up part, and encode with `ffmpeg` and `gifsicle -O3 --lossy=60 --colors 128`.
+- **Size:** all ten GIFs together are 11 MB; the largest is `grill.gif` (2.2 MB).
+
+### Time cuts (every cut is sped up, not removed, and labelled on screen)
+
+| GIF | Real time kept | Sped up (raw seconds) | On-screen label | GIF length |
+|---|---|---|---|---|
+| `tournament.gif` | 0:00 to 0:16, 1:06 to 1:20 | 0:16 to 1:06 (50 s) at x8 | `TIME CUT - 50 s of model wait sped up x8` | 36 s |
+| `grill.gif` | 0:00 to 0:06, 0:32 to 0:46, 1:24 to 1:36 | 0:06 to 0:32 (26 s) at x3; 0:46 to 1:24 (38 s) at x6 | `TIME CUT - 26 s ... x3` and `TIME CUT - 38 s ... x6` | 47 s |
+| `census.gif` | 0:00 to 0:18, 2:02 to 2:14 | 0:18 to 2:02 (104 s) at x10 | `TIME CUT - 104 s of model wait sped up x10` | 40 s |
+| `crosscheck.gif` | 0:00 to 0:30, 3:10 to 3:24 | 0:30 to 3:10 (160 s) at x16 | `TIME CUT - 160 s of model wait sped up x16` | 54 s |
+| the six free GIFs | no cuts: real time | none | none | 14 to 26 s |
+
+The sped-up parts are model waiting (streaming replies, judging, ledger work). The results (champion and placings, final plan, report) are shown in real time.
+
+### Live spend (budget: $4.00 for all live recordings)
+
+Every figure is from `squad doctor` ("actual") and the room's `spend_daily` table (micro-dollars). The reservation estimates (the worst-case "needs up to") are not spend.
+
+| Recording | Final run, actual | Doctor line |
+|---|---|---|
+| Tournament | $0.0091 | `actual $0.01` |
+| Grill | $0.0078 | `actual $0.01` |
+| Census | $0.0446 | `actual $0.04` |
+| Crosscheck | $0.0789 | `actual $0.08`, 1 unknown-cost call |
+| Survey (failed, 348 s) | $0.1130 | `actual $0.11` |
+| Probe (failed, 189 s) | $0.0425 | `actual $0.04` |
+
+**Total across every attempt, including all the discarded trial and failed runs: about $0.72 recorded in the kept data directories, plus roughly $0.10 for one survey run (420 s) whose recording was lost to a full disk and whose data directory was deleted. Well under $4.00.** The roster used the cheapest models that finished the work (below), so the cost is not what the default roster would cost.
+
+### Models used (not the defaults)
+
+The default roster reserves far more than the $1.50 cap allows: a census with three members on the defaults needs up to **$9.97** reserved, so it is refused. The live tapes set concrete low-cost models with `SQUAD_MODEL_<NICK>` and a low reasoning effort.
+
+| Recording | Members | Judge |
+|---|---|---|
+| Tournament, Grill | `luna`=`openai/gpt-6-luna`, `nano`=`openai/gpt-5-nano`, `mini`=`openai/gpt-5-mini` (tournament's third entrant `mini`; grill leader `luna`) | `openai/gpt-5-mini` |
+| Census | `luna`=`openai/gpt-6-luna`, `grok`=`x-ai/grok-4.20`, `mini`=`openai/gpt-5-mini` | `openai/gpt-6-luna` |
+| Crosscheck | `luna`, `grok`, `mini` as above | `x-ai/grok-4.20` |
+
+Nicks are the model names on screen, not the default nicks. Daily caps used: **$1.50** for tournament, grill, census and crosscheck (as asked). The survey tape needed **$4** and the probe tape **$3**, because their worst-case reservations (survey $3.51, probe $1.85, on the cheap roster with a `grok` judge) are above $1.50. Real spend stayed in cents. This is the one place the $1.50 instruction was exceeded.
+
+### ❌ Modes that failed live (v0.1.0, release binary)
+
+These are not faked and have no GIF.
+
+| Mode | What happened | Evidence |
+|---|---|---|
+| **Survey** | Stuck at "Judging, @judge awaiting ruling" for the whole 330 s wait (9 calls completed, no report). With a `deepseek/deepseek-v4-flash` judge it ended with `Survey output failed validation: invalid JSON object`; with a `openai/gpt-5-mini` judge, `PROVIDER_ERROR (HTTP 400)` | `~/squad-demo-raw/live-survey.mp4` |
+| **Probe** | Ends **Failed**, with `Skipped work: <id>` and the explainers' proposals shown but no decision tree or matrix. Tried four rosters (Anthropic and Gemini members, then OpenAI nano and mini members, then `grok` and `gpt-5.6-luna` checkers) with the same result. With `gpt-5-mini` or `gpt-4o-mini` in the roster the calls came back `unknown` or `HTTP 400` | `~/squad-demo-raw/live-probe.mp4` |
+| **Census (earlier rosters)** | `PROVIDER_ERROR (HTTP 400)` on Anthropic (`claude-haiku-5.5`, `claude-haiku-4.5`) and Gemini (`gemini-3.1-flash-lite`, `gemini-3.5-flash-lite`) member calls, so the pass ended `Failed` with `invalid_step`. The recorded census uses OpenAI and xAI members and finished, but still shows `Estimate unavailable` and one `Invalid census response` | trial runs kept under `/tmp/squad-demo/failed/` |
+| **Crosscheck (earlier rosters)** | `PROVIDER_ERROR (HTTP 400)` or `Crosscheck response failed validation` with `gpt-6-luna` as judge, `nano` members or a Haiku judge. Finished with a `grok-4.20` judge | trial runs kept under `/tmp/squad-demo/failed/` |
+
+Fixing the model roster or the judge changed the result, so these look like structured-output incompatibilities with some models rather than one bad prompt. Not investigated further. The grill and tournament runs had no failed attempts.
+
+Two other things seen on camera: the first Enter after `/export` opens a path prompt that needs a second Enter (the tapes now send it), and with the default roster the room takes more than 3 s to start, so the first typed command can be lost.
+
+### 🔎 Credential inspection (2026-11-25)
+
+- **Text captures:** every `Output x.txt` from every live run (the 6 final runs and every discarded trial run: **36 files**), the OCR of 119 frames sampled every 3 s from all ten GIFs, and every tracked text file in the repository (972 files). The 10 GIFs were also searched byte-for-byte for the key.
+- **Searches:** `sk-or` and `Bearer` (case-insensitive) found **0** matches in the captures and OCR, and only the existing grep recipe and test fixtures in the repository (no real key). The literal key value, compared in-process, found **0** matches everywhere, including inside the GIF files, and so did its first 8 characters in the OCR text. Counts only; no match text was printed.
+- **Frames:** contact sheets of every live recording and sample frames from each GIF were looked at. The room shows no key and no environment; the hidden setup line is never on screen. Once the room exits, the shell prompt returns (the end of the raw MP4s). That part is not in any GIF. One earlier tmux tape showed a job number after the room exited, in a raw MP4 only.
+- **Result: pass.** Published: the GIFs and tapes. Not published: the raw MP4s and text captures, which stay outside git.
+
 
 ---
 
@@ -58,7 +137,6 @@ Approximate times are for the raw recording. Typing time is 35 ms per character,
 | 4b · export | 3:14 to 3:20 | `/export debate`, then Enter | The export path prompt, pre-filled with `squad-export.md`. | Accept with Enter (see fix). |
 | 5 · close | ends | `Ctrl+C` | The shell returns. | The room exits cleanly. |
 
-<!-- RECORDING: canonical demo, title card at 1:08 (confirm) -->
 
 ### ❓ Conditional confirmation steps
 
@@ -98,7 +176,7 @@ Model waits are long. The edited GIF is for reading. The raw MP4 is the complete
 4. **Disclose the cuts next to the link.** Wherever the GIF is linked, add a line saying that the wait was cut and that the complete recording is the MP4.
 5. **No cut inside a step's result.** Do not cut through a verdict, report, export or confirm card. Cut only through the waiting.
 
-<!-- RECORDING: squad-raw.mp4 (complete, uncut, retained) -->
+The complete, uncut recordings are kept in `~/squad-demo-raw/` (outside git). See "Recorded media" above for each file and its length.
 
 ---
 
@@ -157,7 +235,7 @@ Run the same two checks on every text capture and on the exported Markdown.
 
 Record the check in the release checklist (`docs/release-checklist.md`, M7.P2.L2.T7): the date, which files were checked, and the counts. Never record the key or any match text.
 
-<!-- RECORDING: credential inspection log (see docs/release-checklist.md) -->
+The inspection log for the recorded media is in "Credential inspection (2026-11-25)" above.
 
 ---
 
@@ -180,8 +258,7 @@ Expected report lines (README wording): `Found {n}; estimated {lo} to {hi} still
 
 **Conditional:** if the card is not shown, send nothing and delete the `y` line before re-recording. A refused start with `DAILY_MAX_REACHED` means the cap is too small for six members at this plan length.
 
-<!-- RECORDING: census raw MP4 (docs/demo/census-raw.mp4) -->
-<!-- RECORDING: census edited GIF (docs/demo/census-raw.gif) -->
+**Recorded:** [`docs/media/census.gif`](media/census.gif), complete raw `~/squad-demo-raw/live-census.mp4` (161 s). One pass, three members on low-cost models. The recorded report shows `Estimate unavailable` and `Invalid census response`, so the estimate line was not shown. The 104 s of waiting is sped up x10 and labelled.
 
 ---
 
@@ -206,8 +283,7 @@ The goal goes after a `--` line, so there is no extraction call. Newlines are in
 
 **Human risk acceptance** (`/accept <cellId…> -- <reason>`) is only possible once the crosscheck is COMPLETE. It is not in this recording, because it changes the ledger.
 
-<!-- RECORDING: crosscheck raw MP4 (docs/demo/crosscheck-raw.mp4) -->
-<!-- RECORDING: crosscheck edited GIF (docs/demo/crosscheck-raw.gif) -->
+**Recorded:** [`docs/media/crosscheck.gif`](media/crosscheck.gif), complete raw `~/squad-demo-raw/live-crosscheck.mp4` (206 s). 160 s of waiting sped up x16 and labelled. The report ends in a COMPLETE, unbounded ledger, which is the caveat this walkthrough is about.
 
 ---
 
@@ -228,8 +304,7 @@ The goal goes after a `--` line, so there is no extraction call. Newlines are in
 
 **Uncertainty to show.** Every vote has a confidence from 1 to 5. A contested claim has a settling question. The limitations note is at the bottom of the report. If the summary reads `DEGRADED`, say so, and read the bands with care.
 
-<!-- RECORDING: survey raw MP4 (docs/demo/survey-raw.mp4) -->
-<!-- RECORDING: survey edited GIF (docs/demo/survey-raw.gif) -->
+**Not recorded successfully.** The live survey did not finish (stuck judging, or `invalid JSON object`); see "Modes that failed live". Raw: `~/squad-demo-raw/live-survey.mp4`. No GIF is published.
 
 ---
 
@@ -250,8 +325,21 @@ The goal goes after a `--` line, so there is no extraction call. Newlines are in
 
 **Say on screen:** the report states that no explanation is declared true and no check has been executed. Those words are the walkthrough's point, so do not cut them.
 
-<!-- RECORDING: probe raw MP4 (docs/demo/probe-raw.mp4) -->
-<!-- RECORDING: probe edited GIF (docs/demo/probe-raw.gif) -->
+**Not recorded successfully.** The live probe ended `Failed` with a skipped work item and no decision tree; see "Modes that failed live". Raw: `~/squad-demo-raw/live-probe.mp4`. No GIF is published.
+
+---
+
+## 🏆 Walkthrough: Tournament (`tournament.tape`)
+
+**Recorded:** [`docs/media/tournament.gif`](media/tournament.gif), complete raw `~/squad-demo-raw/live-tournament.mp4` (164 s). Three entrants (the minimum), one prompt, two rounds. The preflight card shows the worst-case reservation; blind judging eliminates one entrant per round; the report shows the champion and the final placings. 50 s of waiting sped up x8 and labelled.
+
+---
+
+## 🧊 Walkthrough: Grill (`grill.tape`)
+
+**Recorded:** [`docs/media/grill.gif`](media/grill.gif), complete raw `~/squad-demo-raw/live-grill.mp4` (169 s). `/set GRILL_ROUNDS 1`, three named members and text, then the leader pick (`@luna`), then the cost card. The grill ends with a final plan and a question-and-answer appendix. Waiting sped up x3 and x6 and labelled.
+
+Note: for the named-members form there is **no** cost card before the leader pick (the answers are collected first), so the tape sends `y` only after the pick.
 
 ---
 
@@ -265,8 +353,9 @@ Two things to confirm when the first recording runs. The README's export table s
 
 ## 🧷 Publication checklist
 
-- [ ] Raw MP4 kept, complete and uncut.
-- [ ] Edited GIF has a label on every cut, and each cut is disclosed next to its link.
-- [ ] Credential inspection passed for each recording (counts only, no matches printed).
-- [ ] `squad.tape` fixes applied (`/set ROUNDS 1`, export `Enter`, export directory).
-- [ ] Links from `README.md` replace the `RECORDING` placeholders above.
+- [x] Raw MP4 kept, complete and uncut (`~/squad-demo-raw/`, outside git).
+- [x] Edited GIF has a label on every cut, and each cut is disclosed next to its link (README captions).
+- [x] Credential inspection passed (44 files, counts only, 0 hits).
+- [ ] `squad.tape` fixes applied (`/set ROUNDS 1`, export `Enter`, export directory): the walkthrough tapes have them; the canonical live `squad.tape` was not re-recorded.
+- [x] Links from `README.md` replace the `RECORDING` placeholders above.
+- [ ] Survey and probe walkthroughs recorded successfully (blocked: both fail live on v0.1.0).
