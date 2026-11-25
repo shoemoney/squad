@@ -1,8 +1,4 @@
-//! File-only JSON tracing. Only the identity fields below may be recorded.
-//! Never put credentials, headers, bodies, prompts, reasoning, or arbitrary Debug
-//! objects in identity fields or tracing metadata (target/span/event names).
-//! Free-form `message` and unrecognized fields are dropped before formatting.
-//! TODO(M3.P3): wire the bus diagnostic source and its body opt-in policy.
+//! File-only JSON tracing with sensitive field filtering and credential redaction.
 use serde_json::{Map, Value, json};
 use std::{
     fmt,
@@ -29,27 +25,19 @@ use tracing_subscriber::{
 struct Fields(Map<String, Value>);
 
 fn allowed(name: &str) -> bool {
-    matches!(
-        name,
-        "request_id"
-            | "requestId"
-            | "event_id"
-            | "eventId"
-            | "work_id"
-            | "workId"
-            | "attempt"
-            | "contest_id"
-            | "contestId"
-            | "debate_id"
-            | "debateId"
-            | "case_id"
-            | "caseId"
-            | "round"
-            | "cursor"
-            | "seq"
-            | "chunk_index"
-            | "chunkIndex"
-    )
+    let name = name.to_ascii_lowercase();
+    ![
+        "authorization",
+        "key",
+        "token",
+        "secret",
+        "header",
+        "body",
+        "prompt",
+        "reasoning",
+    ]
+    .iter()
+    .any(|part| name.contains(part))
 }
 impl Visit for Fields {
     fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
@@ -77,6 +65,7 @@ impl Visit for Fields {
 
 struct JsonFileLayer {
     file: Mutex<File>,
+    secrets: Vec<String>,
 }
 impl<S> Layer<S> for JsonFileLayer
 where
@@ -111,11 +100,12 @@ where
         }
         event.record(&mut fields);
         let metadata = event.metadata();
-        let row = json!({
+        let mut row = json!({
             "timestamp_ms": SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis(),
             "level": metadata.level().as_str(), "target": metadata.target(),
             "name": metadata.name(), "fields": fields.0, "spans": spans,
         });
+        redact(&mut row, &self.secrets);
         // Flush every event. A failed sink never falls back to terminal logging.
         if let Ok(mut file) = self.file.lock() {
             let _ = serde_json::to_writer(&mut *file, &row)
@@ -123,6 +113,27 @@ where
                 .and_then(|()| file.write_all(b"\n"))
                 .and_then(|()| file.flush());
         }
+    }
+}
+
+fn redact(value: &mut Value, secrets: &[String]) {
+    match value {
+        Value::String(text) => {
+            for secret in secrets.iter().filter(|s| !s.is_empty()) {
+                *text = text.replace(secret, "[REDACTED]");
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                redact(value, secrets);
+            }
+        }
+        Value::Object(values) => {
+            for value in values.values_mut() {
+                redact(value, secrets);
+            }
+        }
+        _ => {}
     }
 }
 
@@ -138,7 +149,7 @@ pub fn level(value: squad_protocol::config::LogLevel) -> LevelFilter {
     }
 }
 
-fn layer(data_dir: &Path) -> Result<JsonFileLayer, String> {
+fn layer(data_dir: &Path, secrets: Vec<String>) -> Result<JsonFileLayer, String> {
     let logs = data_dir.join("logs");
     crate::paths::create_private_dir(&logs)
         .map_err(|_| "Cannot create log directory.".to_owned())?;
@@ -160,13 +171,21 @@ fn layer(data_dir: &Path) -> Result<JsonFileLayer, String> {
     }
     Ok(JsonFileLayer {
         file: Mutex::new(file),
+        secrets,
     })
 }
 
-pub fn init(data_dir: &Path, level: LevelFilter) -> Result<(), String> {
+pub fn init(
+    data_dir: &Path,
+    level: LevelFilter,
+    key: &squad_protocol::config::OpenRouterApiKey,
+) -> Result<(), String> {
     tracing_subscriber::registry()
         .with(level)
-        .with(layer(data_dir)?)
+        .with(layer(
+            data_dir,
+            vec![key.expose_for_openrouter().to_owned()],
+        )?)
         .try_init()
         .map_err(|_| "Cannot initialize file logging.".into())
 }
@@ -175,11 +194,15 @@ pub fn init(data_dir: &Path, level: LevelFilter) -> Result<(), String> {
 mod tests {
     use super::*;
     #[test]
-    fn logs_json_identities_but_never_secret_fields_or_messages() {
+    fn logs_messages_and_identities_without_secrets() {
         let temp = tempfile::tempdir().unwrap();
-        let subscriber = tracing_subscriber::registry()
-            .with(LevelFilter::INFO)
-            .with(layer(temp.path()).unwrap());
+        let subscriber = tracing_subscriber::registry().with(LevelFilter::INFO).with(
+            layer(
+                temp.path(),
+                vec!["fixture-openrouter-credential".to_owned()],
+            )
+            .unwrap(),
+        );
         tracing::subscriber::with_default(subscriber, || {
             let span = tracing::info_span!(
                 "request",
@@ -194,7 +217,7 @@ mod tests {
             );
             let _guard = span.enter();
             span.record("attempt", 3_u64);
-            tracing::info!(cursor = 42_u64, OPENROUTER_API_KEY = "key-secret", authorization = "auth-secret", proxy_authorization = "proxy-secret", headers = ?["header-secret"], secret_key = "other-secret", "message-secret");
+            tracing::info!(model = "provider/model", cursor = 42_u64, OPENROUTER_API_KEY = "key-secret", authorization = "auth-secret", proxy_authorization = "proxy-secret", headers = ?["header-secret"], secret_key = "other-secret", "Doctor initialized: {}", "fixture-openrouter-credential");
             tracing::debug!(cursor = 99_u64);
         });
         let contents = std::fs::read_to_string(temp.path().join("logs/squad.jsonl")).unwrap();
@@ -206,7 +229,7 @@ mod tests {
             "proxy-secret",
             "header-secret",
             "other-secret",
-            "message-secret",
+            "fixture-openrouter-credential",
             "authorization",
             "API_KEY",
         ] {
@@ -217,7 +240,12 @@ mod tests {
             .map(|s| serde_json::from_str(s).unwrap())
             .collect();
         assert_eq!(rows.len(), 1);
+        assert_eq!(
+            rows[0]["fields"]["message"],
+            "Doctor initialized: [REDACTED]"
+        );
         assert_eq!(rows[0]["fields"]["cursor"], 42);
+        assert_eq!(rows[0]["fields"]["model"], "provider/model");
         let fields = &rows[0]["spans"][0]["fields"];
         for (key, value) in [
             ("request_id", "r1"),

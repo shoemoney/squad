@@ -47,7 +47,7 @@ pub struct Send {
     #[arg(value_name = "message")]
     pub message: String,
     /// Resolve committed event sequences to quote references; accept at most 12
-    #[arg(long, value_name = "seq", num_args = 1.., value_parser = clap::value_parser!(u64).range(1..))]
+    #[arg(long, value_name = "seq", num_args = 1, value_delimiter = ',', value_parser = clap::value_parser!(u64).range(1..))]
     pub quote: Vec<u64>,
     /// Preconfirm the contest plan derived from this submission
     #[arg(long)]
@@ -118,8 +118,7 @@ mod tests {
             "send",
             "@all hello",
             "--quote",
-            "1",
-            "2",
+            "1,2",
             "--quote",
             "3",
             "--yes",

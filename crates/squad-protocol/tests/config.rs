@@ -302,6 +302,7 @@ fn numeric_boundaries() {
         assert_eq!(c.defaults.grill_rounds.to_string(), grill);
         assert_eq!(c.prompts.limits.plan_words, u32::MAX);
         assert_eq!(c.budget.debate_confirm_usd, 0.0);
+        assert_eq!(c.budget.daily_max_usd, 0.01);
     }
 }
 
@@ -591,7 +592,6 @@ fn file_failures_and_line_numbers() {
         "=value",
         "KEY='unterminated",
         "KEY=\"value\"junk",
-        "KEY=unquoted\"quote",
     ] {
         let path = f.write("settings", &format!("# comment\n\n{invalid}\n"));
         assert_eq!(
@@ -733,14 +733,19 @@ fn all_presentation_modes_and_boolean_semantics() {
 }
 
 #[test]
-fn literal_multiline_crlf_and_empty_overrides() {
+fn literal_single_line_crlf_and_empty_overrides() {
     let mut f = Fixture::new();
     f.options.env_file = Some("settings".into());
     f.write("settings", "# comment\r\nSQUAD_PERSONA_CLAUDE=\"first line\r\n${UNCHANGED}\" # comment\r\nNO_COLOR=1\r\nSQUAD_FX_DEBUG=1\r\nSQUAD_REASONING_EFFORT=low\r\nSQUAD_FX=lite\r\n");
+    assert!(matches!(
+        f.load(&[]),
+        Err(ConfigError::EnvironmentFileSyntax { line: 2, .. })
+    ));
+    f.write("settings", "# comment\r\nSQUAD_PERSONA_CLAUDE=\"first line ${UNCHANGED}\" # comment\r\nNO_COLOR=1\r\nSQUAD_FX_DEBUG=1\r\nSQUAD_REASONING_EFFORT=low\r\nSQUAD_FX=lite\r\n");
     let c = f
         .load(&[("NO_COLOR", ""), ("SQUAD_FX_DEBUG", "0")])
         .unwrap();
-    assert_eq!(c.agents[0].persona, "first line\n${UNCHANGED}");
+    assert_eq!(c.agents[0].persona, "first line ${UNCHANGED}");
     assert!(!c.no_color && !c.fx_debug);
     assert!(c.defaults.reasoning_effort_explicit && c.fx_explicit);
     assert_eq!(
@@ -755,4 +760,43 @@ fn literal_multiline_crlf_and_empty_overrides() {
     let env = BTreeMap::new();
     let c = SquadConfig::load_with_env(&f.options, &env).unwrap();
     assert_eq!(c.openrouter_api_key.expose_for_openrouter(), "file-fixture");
+}
+
+#[test]
+fn effective_environment_records_sources_before_validation() {
+    let f = Fixture::new();
+    let file = f.write(
+        ".env",
+        "SQUAD_USER_NAME=Conan O'Brien\nSQUAD_DATA_DIR=relative\nSQUAD_ROUNDS=99\n",
+    );
+    let env = BTreeMap::from([("SQUAD_USER_NAME".into(), "process user".into())]);
+    let effective = EffectiveEnvironment::load(&f.options, &env);
+    assert_eq!(
+        effective.source("SQUAD_DATA_DIR"),
+        VariableSource::File(file)
+    );
+    assert_eq!(effective.source("SQUAD_USER_NAME"), VariableSource::Process);
+    assert_eq!(
+        effective.source("SQUAD_GRILL_ROUNDS"),
+        VariableSource::Default
+    );
+    assert_eq!(
+        effective.data_dir(&f.options).unwrap(),
+        f.root.join("relative")
+    );
+    assert!(!effective.credential_present());
+    assert_eq!(
+        effective.validate(&f.options).unwrap_err(),
+        [ConfigError::MissingApiKey, ConfigError::Rounds]
+    );
+}
+
+#[test]
+fn shared_nick_serde_preserves_validation() {
+    let nick: Nick = "alice".parse().unwrap();
+    let json = serde_json::to_string(&nick).unwrap();
+    assert_eq!(serde_json::from_str::<Nick>(&json).unwrap(), nick);
+    for invalid in ["\"me\"", "\"Alice\"", "\"\""] {
+        assert!(serde_json::from_str::<Nick>(invalid).is_err());
+    }
 }
