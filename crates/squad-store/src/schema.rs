@@ -22,6 +22,14 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
         if version < 2 {
             tx.execute_batch(include_str!("../migrations/0002_tournament.sql"))?;
         }
+        let invalid: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
+            [],
+            |r| r.get(0),
+        )?;
+        if invalid {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
         tx.pragma_update(None, "user_version", 2)?;
         tx.commit()
     })();

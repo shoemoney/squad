@@ -2971,6 +2971,11 @@ The human feed retains all accepted room activity. This is the sole projection t
 | Preflight, state, picks, steps, work, usage, budget, variables, scoreboard, supersession and clear controls | Human only | No automatic prompt fields |
 | Delta and presence | Human live feed only | No history entry |
 | Judge repair | Next authorized attempt, same case and work only | Previous `rejectedOutput`, `validationErrors`; never ordinary history |
+| Tournament entry task | Each surviving entrant’s own member context | Frozen `prompt`, current `round`, `entrants_remaining`, ordinary word limit; own prior answers; only the same contest’s immediately preceding `rank`, `remainingBefore`, nullable `score`, nullable `critique`, `survived`; no other entrant’s answer or result |
+| Tournament blind judging | Fresh case for this round and replay only | Redacted `prompt`, `round`, shuffled `entries[].label` and nullable `entries[].answer`, ranking schema; no nicks, models, personas, roster, maps, or prior-round case history |
+| Tournament accepted entry | Author’s own member context only | Completed `content`; no operational generation/accounting fields; forfeits add no invented answer |
+| Tournament own result barrier | Corresponding entrant only | `rank`, `remainingBefore`, nullable `score`, nullable `critique`, `survived`, logical `round`; full decoded rankings remain human-only |
+| Tournament final report | Every admitted entrant | `placements[].nick`, `placements[].placement` only; no answers, per-round ranks, scores or critiques |
 | Grill (M5.P6) | Declared shared floor only | Shared-floor rule; exact step field rows added in M5.P6 |
 | Census (M5.P7) | Isolated assigned step/case only | Blind hunts; raters receive gap id, omission and consequence only, with plan, no lenses, finders or counts; exact field rows added in M5.P7 |
 | Crosscheck (M5.P8) | Isolated assigned step/case only | Inventory hides plan; reviews exclude self-origin items; fresh audits hide reviewer identities; exact field rows added in M5.P8 |

@@ -185,6 +185,94 @@ impl Runner {
             .work
             .prompt_values_for_work(grant.work.work_id)
             .await?;
+        if grant.work.kind == WorkKind::JudgeTournament {
+            let frozen: serde_json::Value = serde_json::from_str(
+                values
+                    .get("tournament_frozen_judge")
+                    .ok_or(ReaderError::NotRunnable)?,
+            )
+            .map_err(|_| ReaderError::NotRunnable)?;
+            let rendered: crate::prompts::RenderedComposition =
+                serde_json::from_value(frozen["prompt"].clone())
+                    .map_err(|_| ReaderError::NotRunnable)?;
+            let mut user = rendered.user;
+            if let Some(repair) = context
+                .work
+                .repair_for_attempt(grant.work.work_id, grant.work.attempt)
+                .await?
+            {
+                let suffix = frozen["repair"]
+                    .as_str()
+                    .ok_or(ReaderError::NotRunnable)?
+                    .replace(
+                        "{{invalid_output_json}}",
+                        &serde_json::to_string(&repair.rejected_output)
+                            .map_err(|_| ReaderError::NotRunnable)?,
+                    )
+                    .replace(
+                        "{{validation_errors_json}}",
+                        &serde_json::to_string(&repair.validation_errors)
+                            .map_err(|_| ReaderError::NotRunnable)?,
+                    );
+                user.push_str("\n\n");
+                user.push_str(&suffix);
+            }
+            let request = squad_agents::openrouter::ChatRequest {
+                model: grant.binding.model.to_string(),
+                messages: vec![
+                    squad_agents::openrouter::ChatMessage {
+                        role: "system".into(),
+                        name: None,
+                        content: rendered.system,
+                    },
+                    squad_agents::openrouter::ChatMessage {
+                        role: "user".into(),
+                        name: Some("squad".into()),
+                        content: user,
+                    },
+                ],
+                visible_ceiling: constants::FINAL_JUDGE_VISIBLE_TOKENS,
+                published_output_limit: model.output_limit,
+                supports_reasoning: model.supports_reasoning(),
+                reasoning_effort: ReasoningEffort::High,
+                reasoning_explicit: false,
+                response_format: None,
+                policy: squad_agents::openrouter::ExecutionPolicy::SingleAttempt(
+                    squad_agents::openrouter::DeadlineClass::TournamentJudge,
+                ),
+            };
+            let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
+                .as_u64()
+                .ok_or(ReaderError::NotRunnable)?;
+            if squad_agents::context::estimate(&request.messages)
+                > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
+            {
+                return Err(ReaderError::NotRunnable);
+            }
+            let state: serde_json::Value = serde_json::from_str(
+                values
+                    .get("case_state_json")
+                    .ok_or(ReaderError::NotRunnable)?,
+            )
+            .map_err(|_| ReaderError::NotRunnable)?;
+            let invocation = serde_json::from_value(state["judgeInvocationId"].clone())
+                .map_err(|_| ReaderError::NotRunnable)?;
+            let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
+                .as_u64()
+                .ok_or(ReaderError::NotRunnable)?;
+            if squad_agents::context::estimate(&request.messages)
+                > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
+            {
+                return Err(ReaderError::NotRunnable);
+            }
+            return Ok((
+                request,
+                None,
+                BTreeMap::new(),
+                invocation,
+                Text::new("v1").unwrap(),
+            ));
+        }
         let material: CaseMaterial = serde_json::from_str(
             values
                 .get("case_material_json")

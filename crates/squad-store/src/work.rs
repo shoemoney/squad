@@ -87,16 +87,21 @@ pub fn insert(
         )?;
         if let Some(raw) = raw {
             let value: serde_json::Value = decode(raw)?;
-            let (plan_id,reserved,calls)=if value.get("base").is_some() {
-                let p:TournamentPreflight=serde_json::from_value(value)?;
-                (p.base.plan_id,p.base.estimate.reserved_usd,(2..=p.total_rounds+1).map(|n|2*(2*n+3)).sum())
+            let (plan_id, reserved, calls) = if value.get("base").is_some() {
+                let p: TournamentPreflight = serde_json::from_value(value)?;
+                (
+                    p.base.plan_id,
+                    p.base.estimate.reserved_usd,
+                    (2..=p.total_rounds + 1).map(|n| 2 * (2 * n + 3)).sum(),
+                )
             } else {
-                let p:DebatePreflight=serde_json::from_value(value)?;
-                (p.plan_id,p.estimate.reserved_usd,p.reserved_calls())
+                let p: DebatePreflight = serde_json::from_value(value)?;
+                (p.plan_id, p.estimate.reserved_usd, p.reserved_calls())
             };
-            let total=crate::accounting::reservation_micros(reserved).map_err(|_|invalid("Invalid plan reservation"))?;
-            let share=total/i64::from(calls);
-            meta["planId"]=serde_json::json!(plan_id);
+            let total = crate::accounting::reservation_micros(reserved)
+                .map_err(|_| invalid("Invalid plan reservation"))?;
+            let share = total / i64::from(calls);
+            meta["planId"] = serde_json::json!(plan_id);
             meta["attemptReservationMicros"] = serde_json::json!(share);
         }
     }

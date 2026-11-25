@@ -18,10 +18,12 @@ pub fn emit(
     contest: ContestId,
     payload: EnvelopePayload,
 ) -> Result<CommittedEnvelope> {
-    let seq = group.push(
-        tx,
-        envelope(id, Actor::System, vec![Recipient::Me], payload),
-    )?;
+    let recipients = if let EnvelopePayload::TournamentResult(r) = &payload {
+        vec![Recipient::Me, Recipient::Member(r.entrant.clone())]
+    } else {
+        vec![Recipient::Me]
+    };
+    let seq = group.push(tx, envelope(id, Actor::System, recipients, payload))?;
     squad_store::contests::associate(tx, contest, ContestKind::Tournament, seq)?;
     squad_store::events::at(tx, seq.get())
 }
@@ -147,6 +149,95 @@ pub fn prepare(
         "tournament.bindings",
         &serde_json::to_value(bindings)?,
     )?;
+    if let Some(config) = config {
+        let pack = PromptPack::from_override_dir(config.prompts.directory.as_deref())
+            .map_err(|_| invalid())?;
+        squad_store::contest_steps::private_map(
+            tx,
+            contest,
+            "tournament.prompts",
+            &serde_json::to_value(&pack)?,
+        )?;
+        let roster = serde_json::json!(
+            config
+                .agents
+                .iter()
+                .map(|a| a.nick.as_str())
+                .collect::<Vec<_>>()
+        );
+        let mut systems = serde_json::Map::new();
+        for n in entrants {
+            let agent = config
+                .agents
+                .iter()
+                .find(|a| &a.nick == n)
+                .ok_or_else(invalid)?;
+            let inputs = crate::prompts::Inputs::from([
+                ("nick".into(), serde_json::json!(n)),
+                (
+                    "model_slug".into(),
+                    serde_json::json!(bindings[n.as_str()].model),
+                ),
+                ("member_nicks_json".into(), roster.clone()),
+                ("user_name_json".into(), serde_json::json!(config.user.name)),
+                ("persona_json".into(), serde_json::json!(agent.persona)),
+                (
+                    "room_word_limit".into(),
+                    serde_json::json!(config.prompts.limits.room_words),
+                ),
+            ]);
+            systems.insert(
+                n.to_string(),
+                serde_json::json!(
+                    pack.render_template("room.system", &inputs)
+                        .map_err(|_| invalid())?
+                ),
+            );
+        }
+        let mut instructions = serde_json::Map::new();
+        for round in 1..=setup.total_rounds {
+            let mut s = state.clone();
+            s.round = round;
+            s.survivors.truncate(entrants.len() + 1 - round as usize);
+            let inputs = pack.tournament_entry_values(&s, config.prompts.limits.room_words as u16);
+            instructions.insert(
+                round.to_string(),
+                serde_json::json!(
+                    pack.render_template("tournament.entrant", &inputs)
+                        .map_err(|_| invalid())?
+                ),
+            );
+        }
+        squad_store::contest_steps::private_map(
+            tx,
+            contest,
+            "tournament.member_prompts",
+            &serde_json::json!({"systems":systems,"instructions":instructions}),
+        )?;
+    }
+    let mut tokens = Vec::new();
+    if let Some(c) = config {
+        for a in &c.agents {
+            tokens.extend([a.nick.to_string(), a.model.clone(), a.persona.clone()]);
+        }
+    }
+    for binding in bindings.values() {
+        tokens.push(binding.model.to_string());
+    }
+    for token in tokens.clone() {
+        tokens.extend(
+            token
+                .split(['/', '-', '_', '.', ':'])
+                .filter(|p| !p.is_empty())
+                .map(str::to_owned),
+        );
+    }
+    squad_store::contest_steps::private_map(
+        tx,
+        contest,
+        "tournament.identities",
+        &serde_json::json!({"tokens":tokens}),
+    )?;
     let (normal, reserved) = crate::orchestrator::tournament::call_counts(entrants.len() as u32);
     // Bound the largest permitted member history and blind judge request in UTF-8
     // bytes (conservative tokens), including complete reasoning allowances.
@@ -177,7 +268,11 @@ pub fn prepare(
         )?;
         let c = price(
             &bindings[n.as_str()],
-            len as u64 + setup.prompt.len() as u64 + 16384,
+            len as u64
+                + setup.prompt.len() as u64
+                + 16384
+                + setup.total_rounds as u64 * u64::from(constants::REPLY_VISIBLE_TOKENS) * 4
+                + u64::from(constants::FINAL_JUDGE_VISIBLE_TOKENS) * 4,
             u64::from(constants::REPLY_VISIBLE_TOKENS + constants::REASONING_HIGH_TOKENS),
         )?;
         max_entry = max_entry.max(c);
@@ -217,7 +312,7 @@ pub fn prepare(
         judge_attempts: 3,
         replays: 1,
     };
-    tx.execute("UPDATE contests SET plan_id=?,plan_json=?,pending_request_json=?,expires_at=? WHERE contest_id=?",params![plan.base.plan_id.to_string(),serde_json::to_string(&plan)?,serde_json::json!({"input":input,"admissionMaxMicros":max}).to_string(),plan.base.expires_at.to_rfc3339(),contest.to_string()])?;
+    tx.execute("UPDATE contests SET plan_id=?,plan_json=?,pending_request_json=?,expires_at=? WHERE contest_id=?",params![plan.base.plan_id.to_string(),serde_json::to_string(&plan)?,serde_json::json!({"input":input,"admissionMaxMicros":max,"confirmation":if preconfirmed {Confirmation::Preconfirmed}else if estimated>threshold {Confirmation::Explicit}else{Confirmation::Automatic}}).to_string(),plan.base.expires_at.to_rfc3339(),contest.to_string()])?;
     let e = emit(
         tx,
         group,
@@ -228,6 +323,19 @@ pub fn prepare(
     if let Err(StoreError::Domain(code, message)) =
         squad_store::accounting::admit(tx, &day, (reserve * 1e6).ceil() as i64, max)
     {
+        emit(
+            tx,
+            group,
+            id,
+            contest,
+            EnvelopePayload::ContestPreflightResult(ContestPreflightResult {
+                contest_id: contest,
+                plan_id: plan.base.plan_id,
+                status: PreflightStatus::Rejected,
+                confirmation: None,
+                error: Some(error(code, message)),
+            }),
+        )?;
         state.state = TournamentStatus::Failed;
         state.state_version += 1;
         state.terminal_reason = Some(message.into());
@@ -244,7 +352,6 @@ pub fn prepare(
             cursor: e.commit.seq,
         });
     }
-    let _ = config;
     resolve(tx, group, id, contest, plan.base.plan_id, false)
 }
 pub fn resolve(
@@ -273,6 +380,53 @@ pub fn resolve(
     } else {
         PreflightStatus::Confirmed
     };
+    let raw: String = tx.query_row(
+        "SELECT pending_request_json FROM contests WHERE contest_id=?",
+        [contest.to_string()],
+        |r| r.get(0),
+    )?;
+    let pending: serde_json::Value = serde_json::from_str(&raw)?;
+    let confirmation: Confirmation = serde_json::from_value(pending["confirmation"].clone())?;
+    if !cancel && !expired {
+        let max = pending["admissionMaxMicros"].as_i64().ok_or_else(invalid)?;
+        let day = chrono::Local::now().format("%Y-%m-%d").to_string();
+        if let Err(failure) = squad_store::accounting::reserve(
+            tx,
+            &format!("plan:{plan_id}"),
+            None,
+            &day,
+            (plan.base.estimate.reserved_usd * 1e6).ceil() as i64,
+            max,
+        ) {
+            let StoreError::Domain(code, message) = failure else {
+                return Err(failure);
+            };
+            let old = state.state_version;
+            state.state_version += 1;
+            state.state = TournamentStatus::Failed;
+            state.terminal_reason = Some(message.into());
+            save(tx, group, id, &state, Some(old))?;
+            let mut failure = error(code, message);
+            failure.contest_id = Some(contest);
+            emit(
+                tx,
+                group,
+                id,
+                contest,
+                EnvelopePayload::ContestPreflightResult(ContestPreflightResult {
+                    contest_id: contest,
+                    plan_id,
+                    status: PreflightStatus::Rejected,
+                    confirmation: None,
+                    error: Some(failure.clone()),
+                }),
+            )?;
+            return Ok(RequestResult::Rejected {
+                request_id: id,
+                error: failure,
+            });
+        }
+    }
     emit(
         tx,
         group,
@@ -281,7 +435,7 @@ pub fn resolve(
         EnvelopePayload::ContestPreflightResult(ContestPreflightResult {
             contest_id: contest,
             plan_id,
-            confirmation: (status == PreflightStatus::Confirmed).then_some(Confirmation::Automatic),
+            confirmation: (status == PreflightStatus::Confirmed).then_some(confirmation),
             status,
             error: None,
         }),
@@ -292,22 +446,7 @@ pub fn resolve(
         state.state = TournamentStatus::Stopped;
         state.terminal_reason = Some(if cancel { "cancelled" } else { "expired" }.into());
     } else {
-        let raw: String = tx.query_row(
-            "SELECT pending_request_json FROM contests WHERE contest_id=?",
-            [contest.to_string()],
-            |r| r.get(0),
-        )?;
-        let v: serde_json::Value = serde_json::from_str(&raw)?;
-        let max = v["admissionMaxMicros"].as_i64().ok_or_else(invalid)?;
-        let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-        squad_store::accounting::reserve(
-            tx,
-            &format!("plan:{plan_id}"),
-            None,
-            &day,
-            (plan.base.estimate.reserved_usd * 1e6).ceil() as i64,
-            max,
-        )?;
+        let v = pending;
         tx.execute(
             "UPDATE reservations SET contest_id=?,plan_id=? WHERE reservation_id=?",
             params![
@@ -369,8 +508,11 @@ pub fn accept(
     id: EventId,
     work: &Work,
     judgment: &TournamentJudgment,
-    pack: &PromptPack,
+    _pack: &PromptPack,
 ) -> Result<()> {
+    let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='tournament.prompts'",[judgment.contest_id.to_string()],|r|r.get(0))?;
+    let frozen: PromptPack = serde_json::from_str(&frozen)?;
+    let pack = &frozen;
     let mut state = squad_store::tournaments::validate_execution(tx, work)?;
     if judgment.contest_id != state.contest_id
         || judgment.round != state.round
@@ -380,6 +522,7 @@ pub fn accept(
         return Err(invalid());
     }
     let ranking = squad_store::tournaments::decode(tx, work, &judgment.response)?;
+    crate::orchestrator::tournament::step(tx, group, id, &state, ContestMove::Tally)?;
     let e = emit(
         tx,
         group,
@@ -446,10 +589,27 @@ pub fn accept(
             ),
         )?;
     }
+    let barrier =
+        crate::orchestrator::tournament::step(tx, group, id, &state, ContestMove::Barrier)?;
+    let event = emit(
+        tx,
+        group,
+        id,
+        state.contest_id,
+        EnvelopePayload::ContestReport(ContestReport {
+            contest_id: state.contest_id,
+            step_id: barrier,
+            artifact_event_ids: vec![],
+            skipped_work_ids: vec![],
+            data: serde_json::json!({"round":state.round,"replay":state.replay}),
+        }),
+    )?;
+    squad_store::contest_steps::barrier(tx, barrier, event.commit.seq)?;
     let loser = ranking.ranking.last().ok_or_else(invalid)?.nick.clone();
     state.survivors.retain(|n| n != &loser);
     state.eliminated.push(loser);
     if state.survivors.len() == 1 {
+        crate::orchestrator::tournament::step(tx, group, id, &state, ContestMove::Report)?;
         let champion = state.survivors[0].clone();
         tx.execute("INSERT INTO scores(nick,wins,losses,trophies) VALUES (?,0,0,1) ON CONFLICT(nick) DO UPDATE SET trophies=trophies+1",[champion.as_str()])?;
         let trophies: i64 = tx.query_row(

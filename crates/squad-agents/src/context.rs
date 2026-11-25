@@ -144,18 +144,20 @@ pub async fn member_messages(
         .render(&prompt.system, &prompt.values(grant)?)?;
     let tournament = grant.work.kind == WorkKind::Reply && grant.work.round.is_some();
     if tournament {
-        let reference = grant
-            .work
-            .prompt_ref
-            .as_ref()
-            .ok_or(ContextError::InvalidWork)?;
         let values = context
             .work
             .prompt_values_for_work(grant.work.work_id)
             .await?;
-        let instruction = context.render.render(reference, &values)?;
+        system = values
+            .get("tournament_frozen_system")
+            .ok_or(ContextError::InvalidWork)?
+            .clone();
         system.push_str("\n\n");
-        system.push_str(&instruction);
+        system.push_str(
+            values
+                .get("tournament_frozen_instruction")
+                .ok_or(ContextError::InvalidWork)?,
+        );
     }
     let mut messages = vec![ChatMessage {
         role: "system".into(),

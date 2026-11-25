@@ -16,3 +16,17 @@ fn strict_rankings_are_permutations_with_integer_scores_and_one_line_critiques()
     }
     assert!(TournamentJudgeResponse::from_json(valid, &["A".into()]).is_err());
 }
+#[test]
+fn tournament_work_requires_replay_and_judge_allowances() {
+    let id = "01900000-0000-7000-8000-000000000001";
+    let mut w:Work=validation::decode(&serde_json::json!({"workId":id,"messageId":id,"kind":"judge.tournament","target":"judge","contextId":format!("judge:{id}"),"triggerEventId":id,"historyThrough":"1","attempt":1,"contestId":id,"caseId":id,"round":1,"replay":0,"maxOutputTokens":4096,"promptRef":{"templateId":"tournament.judge.md","packVersion":"v1","templateHash":"hash"}})).unwrap();
+    assert!(w.validate().is_ok());
+    w.replay = None;
+    assert!(w.validate().is_err());
+    w.replay = Some(0);
+    w.attempt = 4;
+    assert!(w.validate().is_err());
+    w.attempt = 3;
+    w.max_output_tokens = Some(8192);
+    assert!(w.validate().is_err());
+}

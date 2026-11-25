@@ -155,7 +155,12 @@ struct Answers;
 impl Respond for Answers {
     fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
         let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
-        if body["model"] == "fixture/judge" {
+        if body["model"] == "fixture/judge"
+            && body["messages"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("summoned judge")
+        {
             let user = body["messages"][1]["content"].as_str().unwrap();
             let data = user
                 .split("Tournament prompt and anonymized answers, supplied as evidence:\n")
@@ -171,10 +176,12 @@ impl Respond for Answers {
             streaming(
                 &format!(
                     "ANSWER_{}: I am MEMBER0 from fixture/member0. PERSONA_0",
-                    body["model"]
-                        .as_str()
+                    (0..6)
+                        .find(|i| body["messages"][0]["content"]
+                            .as_str()
+                            .unwrap()
+                            .contains(&format!("PERSONA_{i}")))
                         .unwrap()
-                        .trim_start_matches("fixture/member")
                 ),
                 "stop",
             )
@@ -219,7 +226,12 @@ async fn tournament_happy_path_is_blind_private_and_exactly_once() {
         2
     );
     for body in f.fake.captured_bodies().await {
-        if body["model"] == "fixture/judge" {
+        if body["model"] == "fixture/judge"
+            && body["messages"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("summoned judge")
+        {
             let messages = body["messages"].to_string();
             for token in ["member0", "MEMBER0", "fixture/", "PERSONA_", "labelMap"] {
                 assert!(!messages.contains(token), "{messages}");
@@ -244,6 +256,37 @@ async fn tournament_happy_path_is_blind_private_and_exactly_once() {
             }
         }
     }
+    let contest: String = db
+        .query_row(
+            "SELECT contest_id FROM contests WHERE kind='tournament'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let export = room
+        .export(ExportScope::Tournament, Some(contest.parse().unwrap()))
+        .await
+        .unwrap();
+    assert!(
+        export.contains("Champion")
+            && export.contains("Supported proposal")
+            && export.contains("Eliminated"),
+        "{export}"
+    );
+    assert!(!export.contains("labelMap") && !export.contains("Entrant A"));
+    let before: i64 = db
+        .query_row("SELECT SUM(trophies) FROM scores", [], |r| r.get(0))
+        .unwrap();
+    for _ in 0..3 {
+        let state = room.try_state().await.unwrap();
+        assert_eq!(state.scoreboard.iter().map(|s| s.trophies).sum::<u64>(), 1);
+    }
+    assert_eq!(
+        before,
+        db.query_row("SELECT SUM(trophies) FROM scores", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap()
+    );
     room.shutdown().await.unwrap();
 }
 #[derive(Clone)]
@@ -256,7 +299,12 @@ struct Scripted {
 impl Respond for Scripted {
     fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
         let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
-        if body["model"] == "fixture/judge" {
+        if body["model"] == "fixture/judge"
+            && body["messages"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("summoned judge")
+        {
             let n = self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             if n < self.invalid {
                 return streaming("{\"ranking\":[]}", "stop").set_delay(self.judge_delay);
@@ -477,4 +525,393 @@ fn tournament_call_counts_and_unicode_redaction() {
         ),
         "[redacted], [redacted]; [redacted]! [redacted] fableish"
     );
+}
+#[tokio::test]
+async fn tournament_fable_competes_without_judge_substitution_and_oneshot_drives_successors() {
+    let mut f = Fixture::new().await;
+    f.config.agents[0].nick = nick("fable");
+    f.config.agents[0].model = f.config.judge.model.clone();
+    let room = f.open(OpenMode::OneShot).await;
+    let result = room
+        .submit(request(
+            &f.config,
+            "@fable @member1 @member2 $tournament Design a bridge",
+        ))
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.terminal("COMPLETE")).await;
+    let raw: String = f
+        .db()
+        .query_row(
+            "SELECT payload FROM events WHERE kind='tournament.setup'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let setup: TournamentSetup = serde_json::from_str(&raw).unwrap();
+    assert_eq!(setup.judge_model, "fixture/judge");
+    assert_eq!(f.count("tournament.entry"), 5);
+    assert_eq!(f.count("contest.picked"), 0);
+    for body in f.fake.captured_bodies().await {
+        if body["model"] == "fixture/judge"
+            && body["messages"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("summoned judge")
+        {
+            assert!(!body["messages"].to_string().contains("fable"));
+            assert_eq!(body["reasoning"]["max_tokens"], 8192);
+        }
+    }
+    assert_eq!(
+        f.db()
+            .query_row(
+                "SELECT COUNT(*) FROM history WHERE context_id IN ('member3','member4','member5')",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        0
+    );
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn tournament_confirm_cancel_and_busy_entrant_queue_are_durable() {
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room.submit(request(&f.config, COMMAND)).await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = result
+    else {
+        panic!("{result:?}")
+    };
+    assert_eq!(plan.estimate.model_calls, 7);
+    assert_eq!(f.count("tournament.entry"), 0);
+    let r = room
+        .submit(Request::ContestCancel {
+            request_id: EventId::new(),
+            contest_id: plan.contest_id,
+            plan_id: plan.plan_id,
+        })
+        .await;
+    assert!(matches!(r, RequestResult::Accepted { .. }));
+    assert!(f.terminal("STOPPED"));
+    let result = room.submit(request(&f.config, COMMAND)).await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = result
+    else {
+        panic!("{result:?}")
+    };
+    let r = room
+        .submit(Request::ContestConfirm {
+            request_id: EventId::new(),
+            contest_id: plan.contest_id,
+            plan_id: plan.plan_id,
+        })
+        .await;
+    assert!(matches!(r, RequestResult::Accepted { .. }), "{r:?}");
+    f.wait(|| f.terminal("COMPLETE")).await;
+    assert_eq!(f.count("tournament.champion"), 1);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn six_entrant_tournament_has_k_minus_one_rounds_and_only_one_preceding_result() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@all $tournament Design a bridge"))
+        .await;
+    f.wait(|| f.terminal("COMPLETE")).await;
+    assert_eq!(f.count("tournament.entry"), 20);
+    assert_eq!(f.count("tournament.ranking"), 5);
+    let calls = f.fake.captured_bodies().await;
+    assert_eq!(calls.len(), 25);
+    for body in calls {
+        if body["model"] == "fixture/judge" {
+            continue;
+        }
+        let messages = body["messages"].as_array().unwrap();
+        assert_eq!(messages.iter().filter(|m| m["role"] == "system").count(), 1);
+        let own = body["model"]
+            .as_str()
+            .unwrap()
+            .trim_start_matches("fixture/member")
+            .parse::<usize>()
+            .unwrap();
+        let rendered = body["messages"].to_string();
+        for other in 0..6 {
+            if other != own {
+                assert!(!rendered.contains(&format!("ANSWER_{other}")));
+            }
+        }
+        let first = messages[0]["content"]
+            .as_str()
+            .unwrap()
+            .contains("entering round 1 ");
+        assert_eq!(
+            rendered.matches("Your result for tournament").count(),
+            usize::from(!first)
+        );
+    }
+    room.shutdown().await.unwrap();
+}
+#[derive(Clone)]
+struct SlowEntrant;
+impl Respond for SlowEntrant {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+        Answers
+            .respond(r)
+            .set_delay(if body["model"] == "fixture/member2" {
+                Duration::from_millis(700)
+            } else {
+                Duration::ZERO
+            })
+    }
+}
+#[tokio::test]
+async fn tournament_restart_during_answering_keeps_completed_slots() {
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .respond_with(SlowEntrant)
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, COMMAND)).await;
+    f.wait(|| f.count("tournament.entry") == 2).await;
+    room.shutdown().await.unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| f.terminal("COMPLETE")).await;
+    assert_eq!(f.count("tournament.entry"), 5);
+    assert_eq!(f.count("tournament.champion"), 1);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn tournament_restart_during_replay_keeps_execution_identity_and_frozen_prompts() {
+    let mut f = Fixture::new().await;
+    let prompts = f._dir.path().join("prompts");
+    std::fs::create_dir(&prompts).unwrap();
+    f.config.prompts.directory = Some(prompts.clone());
+    f.script(3, false, Duration::from_millis(100)).await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, COMMAND)).await;
+    f.wait(||f.db().query_row("SELECT EXISTS(SELECT 1 FROM contests WHERE json_extract(state_json,'$.replay')=1 AND json_extract(state_json,'$.state')='JUDGING')",[],|r|r.get::<_,bool>(0)).unwrap()).await;
+    let before: String = f
+        .db()
+        .query_row(
+            "SELECT judge_work_id FROM tournament_rounds WHERE replay=1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    room.shutdown().await.unwrap();
+    std::fs::write(
+        prompts.join("tournament.judge.md"),
+        "CHANGED_AFTER_ADMISSION {{tournament_schema_json}} {{tournament_judge_data_json}}",
+    )
+    .unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| f.terminal("COMPLETE")).await;
+    assert_eq!(
+        before,
+        f.db()
+            .query_row(
+                "SELECT judge_work_id FROM tournament_rounds WHERE replay=1",
+                [],
+                |r| r.get::<_, String>(0)
+            )
+            .unwrap()
+    );
+    assert_eq!(f.count("tournament.entry"), 8);
+    assert_eq!(f.count("tournament.champion"), 1);
+    assert!(f.fake.captured_bodies().await.iter().all(|b| {
+        !b["messages"]
+            .to_string()
+            .contains("CHANGED_AFTER_ADMISSION")
+    }));
+    room.shutdown().await.unwrap();
+    let calls = f.fake.captured_bodies().await.len();
+    let room = f.open(OpenMode::Interactive).await;
+    assert!(f.terminal("COMPLETE"));
+    assert_eq!(calls, f.fake.captured_bodies().await.len());
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn duplicate_accepted_ranking_returns_receipt_without_second_trophy() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, COMMAND)).await;
+    f.wait(|| f.terminal("COMPLETE")).await;
+    room.shutdown().await.unwrap();
+    let db = f.db();
+    let raw: String = db
+        .query_row(
+            "SELECT payload FROM events WHERE kind='tournament.ranking' ORDER BY seq DESC LIMIT 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let ranking: TournamentRanking = serde_json::from_str(&raw).unwrap();
+    let id:String=db.query_row("SELECT judge_work_id FROM tournament_rounds WHERE contest_id=? AND round=? AND replay=?",rusqlite::params![ranking.contest_id.to_string(),ranking.round,ranking.replay],|r|r.get(0)).unwrap();
+    let id: WorkId = id.parse().unwrap();
+    let (mut w, _) = squad_store::work::template(&db, id).unwrap().unwrap();
+    let record = squad_store::work::record(&db, id).unwrap().unwrap();
+    w.attempt = record.attempt;
+    let (fence, epoch): (i64, i64) = db
+        .query_row(
+            "SELECT lease_fence-1,epoch FROM work WHERE work_id=?",
+            [id.to_string()],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    let labels =
+        squad_store::tournaments::labels(&db, ranking.contest_id, ranking.round, ranking.replay)
+            .unwrap();
+    let response = TournamentJudgeResponse {
+        ranking: ranking
+            .ranking
+            .iter()
+            .map(|row| TournamentJudgeEntry {
+                label: labels
+                    .iter()
+                    .find(|(_, n)| n == &row.nick)
+                    .unwrap()
+                    .0
+                    .clone(),
+                score: row.score.unwrap(),
+                critique: row.critique.clone().unwrap(),
+            })
+            .collect(),
+    };
+    let output = EnvelopePayload::TournamentJudgment(TournamentJudgment {
+        generation: GenerationIdentity {
+            work_id: id,
+            message_id: w.message_id,
+            trigger_event_id: w.trigger_event_id,
+            attempt: w.attempt,
+        },
+        contest_id: ranking.contest_id,
+        case_id: ranking.case_id,
+        round: ranking.round,
+        replay: ranking.replay,
+        response,
+    });
+    let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
+    let mut router = squad_core::router::Router::new(
+        store,
+        f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        BTreeMap::new(),
+        20_000_000,
+    )
+    .unwrap();
+    let outcome = router
+        .process(
+            Request::Internal(InternalRequest::Executor(ExecutorRequest::Result {
+                work_id: id,
+                attempt: w.attempt,
+                fence: fence as u64,
+                epoch: epoch as u64,
+                output,
+            })),
+            Some(ExecutorKey::Case(ranking.case_id)),
+        )
+        .unwrap();
+    assert!(outcome.duplicate);
+    assert!(outcome.events.is_empty());
+    assert_eq!(f.count("tournament.champion"), 1);
+    assert_eq!(
+        db.query_row("SELECT SUM(trophies) FROM scores", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        1
+    );
+}
+#[tokio::test]
+async fn tournament_drains_earlier_work_holds_later_input_and_excludes_nonentrants() {
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .respond_with(SlowEntrant)
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@member2 EARLIER_ORDINARY"))
+        .await;
+    room.submit(request(
+        &f.config,
+        "@all -member3 -member4 -member5 $tournament Design a bridge",
+    ))
+    .await;
+    assert!(f.terminal("WAITING_FOR_ENTRANTS"));
+    assert_eq!(f.count("tournament.entry"), 0);
+    room.submit(request(&f.config, "@member2 LATER_HELD_INPUT"))
+        .await;
+    assert_eq!(
+        f.db()
+            .query_row(
+                "SELECT COUNT(*) FROM history WHERE content LIKE '%LATER_HELD_INPUT%'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        0
+    );
+    let blocked = room
+        .submit(request(
+            &f.config,
+            "@member3 @member4 $debate Compare plans",
+        ))
+        .await;
+    assert!(
+        matches!(
+            blocked,
+            RequestResult::Rejected {
+                error: ErrorPayload {
+                    code: ErrorCode::DEBATE_BUSY,
+                    ..
+                },
+                ..
+            }
+        ),
+        "{blocked:?}"
+    );
+    f.wait(|| f.terminal("COMPLETE") && f.count("message.final") == 2)
+        .await;
+    assert_eq!(f.count("tournament.entry"), 5);
+    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work WHERE contest_id IS NOT NULL AND target IN ('member3','member4','member5')",[],|r|r.get::<_,i64>(0)).unwrap(),0);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn tournament_daily_cap_interruption_fails_and_releases_unused_plan_reservation() {
+    let mut f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .respond_with(SlowEntrant)
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@member2 earlier ordinary"))
+        .await;
+    room.submit(request(&f.config, COMMAND)).await;
+    assert!(f.terminal("WAITING_FOR_ENTRANTS"));
+    room.shutdown().await.unwrap();
+    f.config.budget.daily_max_usd = 0.0001;
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| f.terminal("FAILED")).await;
+    let reason:String=f.db().query_row("SELECT json_extract(state_json,'$.terminalReason') FROM contests WHERE kind='tournament'",[],|r|r.get(0)).unwrap();
+    assert_eq!(reason, "DAILY_MAX_REACHED");
+    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM reservations WHERE work_id IS NULL AND contest_id IS NOT NULL",[],|r|r.get::<_,i64>(0)).unwrap(),0);
+    assert_eq!(f.count("tournament.champion"), 0);
+    room.shutdown().await.unwrap();
 }

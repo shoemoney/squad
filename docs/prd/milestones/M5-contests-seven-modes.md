@@ -186,15 +186,15 @@
   - [ ] M5.P3.L4.T28 — Document all four modes' template texts, output-schema sources, actor-specific input mappings, repair composition, report ownership, step limits, and D71 shared-move integration in `docs/prompt-pack.md`.
 
 - **M5.P3.L5 — Add tournament prompts**
-  - [ ] M5.P3.L5.T1 — Add root `prompts/tournament.entrant.md` for the `squad-core` prompt pack with elimination rules, remaining entrant count, ordinary word limits, and own-result improvement guidance; register its system-suffix composition in `prompts/manifest.json`.
-  - [ ] M5.P3.L5.T2 — Add root `prompts/tournament.judge.md` and the blind `judge.system.md` composition for the `squad-core` prompt pack, including anonymous strict ranking, forfeit guidance, and task-specific repair text; register composition-specific placeholders in `prompts/manifest.json`.
-  - [ ] M5.P3.L5.T3 — Add root `prompts/tournament.result.md` and `prompts/tournament.final.md` for the `squad-core` prompt pack, exposing only the addressed entrant’s own result and the final nick-and-placement list respectively.
-  - [ ] M5.P3.L5.T4 — Map canonical tournament state, own results, anonymized judge material, ranking schema, and final placements in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`; record template and composition provenance in `crates/squad-core/src/orchestrator/provenance.rs`.
-  - [ ] M5.P3.L5.T5 — Integrate canonical tournament-ranking validation and blind attempt-scoped repair within three total attempts in `squad-agents` at `crates/squad-agents/src/judge.rs`, leaving replay and elimination decisions to the contest engine.
-  - [ ] M5.P3.L5.T6 — Capture first and later tournament-entry requests to verify one member system message, ordinary word limits, exactly one own preceding result, and absence of other entrants’ answers or results in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
-  - [ ] M5.P3.L5.T7 — Capture blind tournament judge and repair requests to verify no entrant nick, entrant model name, roster, persona, label map, or prior-round identity mapping enters any provider message, including when the judge’s model competes, in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
-  - [ ] M5.P3.L5.T8 — Test anonymous-label permutation fixtures, forfeit ranking, strict ordering with equal scores, repair exhaustion, shuffled-label rendering, and final placement notices without answer text, scores, or critiques in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs` using canonical `squad-protocol` validators.
-  - [ ] M5.P3.L5.T9 — Document tournament template IDs, blind system composition and override requirements, own-result delivery, ranking repair, and final-placement visibility for the `squad-core` prompt pack in `docs/prompt-pack.md`.
+  - [x] M5.P3.L5.T1 — Add root `prompts/tournament.entrant.md` for the `squad-core` prompt pack with elimination rules, remaining entrant count, ordinary word limits, and own-result improvement guidance; register its system-suffix composition in `prompts/manifest.json`.
+  - [x] M5.P3.L5.T2 — Add root `prompts/tournament.judge.md` and the blind `judge.system.md` composition for the `squad-core` prompt pack, including anonymous strict ranking, forfeit guidance, and task-specific repair text; register composition-specific placeholders in `prompts/manifest.json`.
+  - [x] M5.P3.L5.T3 — Add root `prompts/tournament.result.md` and `prompts/tournament.final.md` for the `squad-core` prompt pack, exposing only the addressed entrant’s own result and the final nick-and-placement list respectively.
+  - [x] M5.P3.L5.T4 — Map canonical tournament state, own results, anonymized judge material, ranking schema, and final placements in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`; record template and composition provenance in `crates/squad-core/src/orchestrator/provenance.rs`.
+  - [x] M5.P3.L5.T5 — Integrate canonical tournament-ranking validation and blind attempt-scoped repair within three total attempts in `squad-agents` at `crates/squad-agents/src/judge.rs`, leaving replay and elimination decisions to the contest engine.
+  - [x] M5.P3.L5.T6 — Capture first and later tournament-entry requests to verify one member system message, ordinary word limits, exactly one own preceding result, and absence of other entrants’ answers or results in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
+  - [x] M5.P3.L5.T7 — Capture blind tournament judge and repair requests to verify no entrant nick, entrant model name, roster, persona, label map, or prior-round identity mapping enters any provider message, including when the judge’s model competes, in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
+  - [x] M5.P3.L5.T8 — Test anonymous-label permutation fixtures, forfeit ranking, strict ordering with equal scores, repair exhaustion, shuffled-label rendering, and final placement notices without answer text, scores, or critiques in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs` using canonical `squad-protocol` validators.
+  - [x] M5.P3.L5.T9 — Document tournament template IDs, blind system composition and override requirements, own-result delivery, ranking repair, and final-placement visibility for the `squad-core` prompt pack in `docs/prompt-pack.md`.
 
 - **M5.P3.L6 — Add grill prompts**
   - [ ] M5.P3.L6.T1 — Add root `prompts/grill.question.md` for the `squad-core` prompt pack with the assigned angle, at most three questions within 200 words, no-repeat guidance, and exact `PASS`; register its placeholders in `prompts/manifest.json`.
@@ -301,50 +301,50 @@
 ## Phase M5.P5 — Tournament
 
 - **M5.P5.L1 — Admit and schedule elimination rounds**
-  - [ ] M5.P5.L1.T1 — Integrate this phase’s tournament payloads and the shared contest claim in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L1.T2 — Freeze entrants and prompt, calculate k−1 rounds, and implement normal-call and retry/replay reservation estimates in `crates/squad-core/src/orchestrator/preflight.rs`.
-  - [ ] M5.P5.L1.T3 — Implement entrant holds, `WAITING_FOR_ENTRANTS`, and parallel reply-like entry work with contest and replay identity in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L1.T4 — Integrate `tournament.entrant.md` and each survivor’s own previous result using the executor in `crates/squad-agents/src/agents/tournament.rs`.
-  - [ ] M5.P5.L1.T5 — Test minimum entrants, exclusions, queue draining, daily admission, planned call counts, and k−1 rounds in `crates/squad-core/tests/orchestrator/tournament.rs`.
+  - [x] M5.P5.L1.T1 — Integrate this phase’s tournament payloads and the shared contest claim in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L1.T2 — Freeze entrants and prompt, calculate k−1 rounds, and implement normal-call and retry/replay reservation estimates in `crates/squad-core/src/orchestrator/preflight.rs`.
+  - [x] M5.P5.L1.T3 — Implement entrant holds, `WAITING_FOR_ENTRANTS`, and parallel reply-like entry work with contest and replay identity in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L1.T4 — Integrate `tournament.entrant.md` and each survivor’s own previous result using the executor in `crates/squad-agents/src/agents/tournament.rs`.
+  - [x] M5.P5.L1.T5 — Test minimum entrants, exclusions, queue draining, daily admission, planned call counts, and k−1 rounds in `crates/squad-core/tests/orchestrator/tournament.rs`.
 
 - **M5.P5.L2 — Judge blind rankings**
-  - [ ] M5.P5.L2.T1 — Persist shuffled round label maps outside judge-readable capabilities and construct anonymised judging projections in `crates/squad-core/src/router/tournaments.rs`.
-  - [ ] M5.P5.L2.T2 — Integrate `judge.tournament`, the judge system prompt, high reasoning, visible-plus-reasoning limits, and the 120 s deadline in `crates/squad-agents/src/agents/judge.rs`.
-  - [ ] M5.P5.L2.T3 — Consume this phase’s permutation validation and the three-attempt repair path with attempt-scoped repair records in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L2.T4 — Implement forfeit placement below completed entries and single-elimination commits in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L2.T5 — Implement one durable replay after exhausted judging and fail after replay exhaustion in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L2.T6 — Test permutations, duplicate and missing labels, invalid scores, strict rank order, single-forfeit elimination, and replay fencing in `crates/squad-core/tests/orchestrator/tournament_ranking.rs`.
-  - [ ] M5.P5.L2.T7 — Capture judge requests and prove absence of entrant nicks, model identities, personas, and label maps, including self-identifying answer text, in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
-  - [ ] M5.P5.L2.T8 — Verify that a Fable entrant does not trigger judge swapping in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
+  - [x] M5.P5.L2.T1 — Persist shuffled round label maps outside judge-readable capabilities and construct anonymised judging projections in `crates/squad-core/src/router/tournaments.rs`.
+  - [x] M5.P5.L2.T2 — Integrate `judge.tournament`, the judge system prompt, high reasoning, visible-plus-reasoning limits, and the 120 s deadline in `crates/squad-agents/src/agents/judge.rs`.
+  - [x] M5.P5.L2.T3 — Consume this phase’s permutation validation and the three-attempt repair path with attempt-scoped repair records in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L2.T4 — Implement forfeit placement below completed entries and single-elimination commits in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L2.T5 — Implement one durable replay after exhausted judging and fail after replay exhaustion in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L2.T6 — Test permutations, duplicate and missing labels, invalid scores, strict rank order, single-forfeit elimination, and replay fencing in `crates/squad-core/tests/orchestrator/tournament_ranking.rs`.
+  - [x] M5.P5.L2.T7 — Capture judge requests and prove absence of entrant nicks, model identities, personas, and label maps, including self-identifying answer text, in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
+  - [x] M5.P5.L2.T8 — Verify that a Fable entrant does not trigger judge swapping in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
 
 - **M5.P5.L3 — Deliver results and commit the champion**
-  - [ ] M5.P5.L3.T1 — Commit full rankings to `me` and only each entrant’s own result to its history in `crates/squad-core/src/router/tournaments.rs`.
-  - [ ] M5.P5.L3.T2 — Integrate `tournament.result.md` and `tournament.final.md` without exposing other entrants’ answers or individual results in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L3.T3 — Atomically commit final placements, champion, terminal state, and one trophy increment in `crates/squad-core/src/router/tournaments.rs`.
-  - [ ] M5.P5.L3.T4 — Test entrant and non-entrant isolation, final-placement visibility, duplicate champion commits, and independent debate score records in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
-  - [ ] M5.P5.L3.T5 — Supply tournament state and committed ranking records to the TUI and export consumers in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L3.T1 — Commit full rankings to `me` and only each entrant’s own result to its history in `crates/squad-core/src/router/tournaments.rs`.
+  - [x] M5.P5.L3.T2 — Integrate `tournament.result.md` and `tournament.final.md` without exposing other entrants’ answers or individual results in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L3.T3 — Atomically commit final placements, champion, terminal state, and one trophy increment in `crates/squad-core/src/router/tournaments.rs`.
+  - [x] M5.P5.L3.T4 — Test entrant and non-entrant isolation, final-placement visibility, duplicate champion commits, and independent debate score records in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
+  - [x] M5.P5.L3.T5 — Supply tournament state and committed ranking records to the TUI and export consumers in `crates/squad-core/src/orchestrator/tournament.rs`.
 
 - **M5.P5.L4 — Recover and verify tournament integration**
-  - [ ] M5.P5.L4.T1 — Recover survivors, replay identity, label maps, judging work, elimination commits, and trophy state in `crates/squad-core/src/orchestrator/recovery.rs`.
-  - [ ] M5.P5.L4.T2 — Fence tournament entries and judging on stop and release participant holds and unused reservations in `crates/squad-core/src/orchestrator/stop.rs`.
-  - [ ] M5.P5.L4.T3 — Test restart at answering, judging, replay, elimination, and champion commit in `crates/squad-core/tests/orchestrator/tournament_recovery.rs`.
-  - [ ] M5.P5.L4.T4 — Test canonical tournament commands, daily-cap interruption, no pick step, and mutual exclusion with debate through `RoomHandle` in `crates/squad-core/tests/orchestrator/tournament_integration.rs`.
-  - [ ] M5.P5.L4.T5 — Verify tournament export records include failed runs, accepted rankings, eliminations, placements, and champion in `crates/squad-core/tests/orchestrator/export.rs`.
-  - [ ] M5.P5.L4.T6 — Verify `/clear` removes tournament records and trophies through the shared clear contract in `crates/squad-core/tests/orchestrator/clear.rs`.
+  - [x] M5.P5.L4.T1 — Recover survivors, replay identity, label maps, judging work, elimination commits, and trophy state in `crates/squad-core/src/orchestrator/recovery.rs`.
+  - [x] M5.P5.L4.T2 — Fence tournament entries and judging on stop and release participant holds and unused reservations in `crates/squad-core/src/orchestrator/stop.rs`.
+  - [x] M5.P5.L4.T3 — Test restart at answering, judging, replay, elimination, and champion commit in `crates/squad-core/tests/orchestrator/tournament_recovery.rs`.
+  - [x] M5.P5.L4.T4 — Test canonical tournament commands, daily-cap interruption, no pick step, and mutual exclusion with debate through `RoomHandle` in `crates/squad-core/tests/orchestrator/tournament_integration.rs`.
+  - [x] M5.P5.L4.T5 — Verify tournament export records include failed runs, accepted rankings, eliminations, placements, and champion in `crates/squad-core/tests/orchestrator/export.rs`.
+  - [x] M5.P5.L4.T6 — Verify `/clear` removes tournament records and trophies through the shared clear contract in `crates/squad-core/tests/orchestrator/clear.rs`.
 
 - **M5.P5.L5 — Run tournament over shared moves**
-  - [ ] M5.P5.L5.T1 — Express initial collection, survivor-specific fanouts, blind judge calls, elimination tallies, own-result barriers and champion report as the tournament script.
-  - [ ] M5.P5.L5.T2 — Verify unchanged entry limits, shuffled-label isolation, single-elimination rounds, replay identity, call counts and trophy commits over the shared engine.
+  - [x] M5.P5.L5.T1 — Express initial collection, survivor-specific fanouts, blind judge calls, elimination tallies, own-result barriers and champion report as the tournament script.
+  - [x] M5.P5.L5.T2 — Verify unchanged entry limits, shuffled-label isolation, single-elimination rounds, replay identity, call counts and trophy commits over the shared engine.
 
 - **M5.P5.L6 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P5.L6.T1 — Declare tournament statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/tournament.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P5.L6.T2 — Add the tournament tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P5.L6.T3 — Implement router-only tournament label-map storage and restricted anonymised judge projections in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`, and crate `squad-core`, file `crates/squad-core/src/router/tournaments.rs`. (Deferred from M1.P3.L5.T3.)
-  - [ ] M5.P5.L6.T4 — Commit accepted rankings, individual result histories, one elimination and final placements with an idempotent trophy increment in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`. (Deferred from M1.P3.L5.T4.)
-  - [ ] M5.P5.L6.T5 — Prove tournament entrant histories contain no other entrant’s answers or individual results, and blind judge reads contain no entrant nick, model name or label map, in crate `squad-core`, file `crates/squad-core/tests/router_visibility.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L4.T2.)
-  - [ ] M5.P5.L6.T6 — Test duplicate ranking delivery, round replay records, final-placement projections and exactly one trophy increment in crate `squad-store`, file `crates/squad-store/tests/tournaments.rs`. (Deferred from M1.P4.L4.T3.)
-  - [ ] M5.P5.L6.T7 — Add the exact tournament per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P5.L6.T8 — Require tournament `Work.replay` and matching round-execution replay on entry/judge result acceptance; test nullable forfeit scores/critiques and idempotent champion `trophies`.
+  - [x] M5.P5.L6.T1 — Declare tournament statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/tournament.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P5.L6.T2 — Add the tournament tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P5.L6.T3 — Implement router-only tournament label-map storage and restricted anonymised judge projections in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`, and crate `squad-core`, file `crates/squad-core/src/router/tournaments.rs`. (Deferred from M1.P3.L5.T3.)
+  - [x] M5.P5.L6.T4 — Commit accepted rankings, individual result histories, one elimination and final placements with an idempotent trophy increment in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`. (Deferred from M1.P3.L5.T4.)
+  - [x] M5.P5.L6.T5 — Prove tournament entrant histories contain no other entrant’s answers or individual results, and blind judge reads contain no entrant nick, model name or label map, in crate `squad-core`, file `crates/squad-core/tests/router_visibility.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L4.T2.)
+  - [x] M5.P5.L6.T6 — Test duplicate ranking delivery, round replay records, final-placement projections and exactly one trophy increment in crate `squad-store`, file `crates/squad-store/tests/tournaments.rs`. (Deferred from M1.P4.L4.T3.)
+  - [x] M5.P5.L6.T7 — Add the exact tournament per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P5.L6.T8 — Require tournament `Work.replay` and matching round-execution replay on entry/judge result acceptance; test nullable forfeit scores/critiques and idempotent champion `trophies`.
 
 ## Phase M5.P6 — Grill
 

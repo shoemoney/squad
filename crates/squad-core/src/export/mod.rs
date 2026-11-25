@@ -411,7 +411,17 @@ pub fn render(
                     block(&mut out, "What to steal from loser", suggestion);
                 }
             }
-            payload if tournament::render(&mut out, payload) => {}
+            payload if tournament::render(&mut out, payload) => {
+                if let EnvelopePayload::TournamentEntry(entry) = payload {
+                    let failed=events.iter().any(|e|matches!(&e.content,EnvelopePayload::TournamentState(s) if s.contest_id==entry.contest_id && ((s.round==entry.round && s.replay>entry.replay) || (s.state==TournamentStatus::Failed && s.round==entry.round && s.replay==entry.replay))));
+                    if failed {
+                        paragraph(
+                            &mut out,
+                            "Failed replay run: no accepted ranking or elimination from this execution.",
+                        );
+                    }
+                }
+            }
             EnvelopePayload::CaseOpened(s) => {
                 if let CaseMaterial::Standalone { messages, question } = &s.material {
                     block(

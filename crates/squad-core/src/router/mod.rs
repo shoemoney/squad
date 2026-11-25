@@ -456,6 +456,7 @@ impl Router {
                     if work.kind == WorkKind::JudgeTournament || (work.kind==WorkKind::Reply && work.round.is_some()) { squad_store::tournaments::validate_execution(tx,&work)?; } else { squad_store::cases::validate_invocation(tx,&work,&output)?; }
                     if let EnvelopePayload::TournamentJudgment(j) = &output {
                         tournaments::accept(tx,group,id,&work,j,&tournament_pack)?;
+                        group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::WorkState(WorkStateEvent{work_id,trigger_event_id:work.trigger_event_id,target:work.target.clone(),context_id:work.context_id.clone(),attempt,status:WorkStatus::Completed,error:None,debate_id:None,case_id:work.case_id,contest_id:work.contest_id})))?;
                         let usage=executor::stored_usage(tx,settle_usage(tx,&work,&output)?)?;
                         group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::UsageRecord(usage)))?;
                         return Ok(group.accepted(id));

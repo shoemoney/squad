@@ -37,7 +37,7 @@ CREATE TABLE events_new (
         'contest.collecting',
         'contest.pick_requested',
         'contest.picked',
-'tournament.setup','tournament.state','tournament.preflight','tournament.entry','tournament.ranking','tournament.result','tournament.champion','tournament.judgment'
+'tournament.setup','tournament.state','tournament.preflight','tournament.entry','tournament.ranking','tournament.result','tournament.champion'
     )),
     correlation_id TEXT NOT NULL,
     causation_id TEXT,
@@ -108,7 +108,7 @@ CREATE TABLE work_new (
     ),
     completed_event_seq INTEGER REFERENCES events(seq),
     step_id TEXT REFERENCES contest_steps(step_id),
-    CHECK (kind <> 'judge.tournament' OR (replay IS NOT NULL AND round >= 1 AND contest_id IS NOT NULL AND debate_id IS NULL)),
+    CHECK (kind <> 'judge.tournament' OR (replay IS NOT NULL AND round IS NOT NULL AND round >= 1 AND contest_id IS NOT NULL AND debate_id IS NULL AND attempt <= 3 AND max_output_tokens IS NOT NULL AND max_output_tokens=4096)),
     CHECK (kind <> 'reply' OR round IS NULL OR replay IS NOT NULL),
     CHECK (kind <> 'reply' OR in_reply_to_message_id IS NOT NULL),
     CHECK (

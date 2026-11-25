@@ -537,7 +537,11 @@ impl EnvelopePayload {
     pub fn is_durable(&self) -> bool {
         !matches!(
             self,
-            Self::Delta(_) | Self::Presence(_) | Self::AgentReply(_) | Self::ContestTransition(_)
+            Self::Delta(_)
+                | Self::Presence(_)
+                | Self::AgentReply(_)
+                | Self::ContestTransition(_)
+                | Self::TournamentJudgment(_)
         )
     }
 }
@@ -602,9 +606,18 @@ fn validate_envelope(
             )?;
             p.base.estimate.validate()?;
         }
-        EnvelopePayload::TournamentRanking(_)
-        | EnvelopePayload::TournamentResult(_)
-        | EnvelopePayload::TournamentChampion(_) => {
+        EnvelopePayload::TournamentResult(r) => {
+            ensure(
+                base.sender == Actor::System
+                    && base.recipients.len() == 2
+                    && base.recipients.contains(&Recipient::Me)
+                    && base
+                        .recipients
+                        .contains(&Recipient::Member(r.entrant.clone())),
+                "tournament result requires human and owning entrant",
+            )?;
+        }
+        EnvelopePayload::TournamentRanking(_) | EnvelopePayload::TournamentChampion(_) => {
             ensure(
                 base.sender == Actor::System && human_only,
                 "tournament announcement requires system to human",

@@ -118,20 +118,22 @@ impl Router {
             {
                 continue;
             }
-            outcomes.extend(contests::drive_script(|| -> Result<Option<CommitOutcome>> {
-                let s = self.engine_snapshot(id)?;
-                if s.state.state.is_terminal() {
-                    return Ok(None);
-                }
-                let failed_state = s.state.clone();
-                match self.engine_move(s) {
-                    Ok(moved) => Ok(moved),
-                    Err(error) => {
-                        tracing::error!(?error,contest_id=%id,"Contest engine move failed");
-                        self.fail_engine(failed_state, error).map(Some)
+            outcomes.extend(contests::drive_script(
+                || -> Result<Option<CommitOutcome>> {
+                    let s = self.engine_snapshot(id)?;
+                    if s.state.state.is_terminal() {
+                        return Ok(None);
                     }
-                }
-            })?);
+                    let failed_state = s.state.clone();
+                    match self.engine_move(s) {
+                        Ok(moved) => Ok(moved),
+                        Err(error) => {
+                            tracing::error!(?error,contest_id=%id,"Contest engine move failed");
+                            self.fail_engine(failed_state, error).map(Some)
+                        }
+                    }
+                },
+            )?);
         }
         Ok(outcomes)
     }

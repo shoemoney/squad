@@ -168,6 +168,13 @@ impl Work {
                 "invalid tournament template",
             )?;
         }
+        if self.kind == WorkKind::JudgeTournament {
+            ensure(
+                self.attempt <= 3
+                    && self.max_output_tokens == Some(constants::FINAL_JUDGE_VISIBLE_TOKENS),
+                "invalid tournament judge allowance",
+            )?;
+        }
         let ceiling = match self.kind {
             WorkKind::Judge | WorkKind::JudgeTournament => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,

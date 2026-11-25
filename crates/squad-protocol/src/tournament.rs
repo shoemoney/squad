@@ -56,6 +56,7 @@ pub struct TournamentEntry {
 #[serde(deny_unknown_fields)]
 pub struct TournamentJudgeEntry {
     pub label: String,
+    #[schemars(range(min = 1, max = 10))]
     pub score: u8,
     pub critique: String,
 }
@@ -222,5 +223,40 @@ impl TournamentState {
             self.state != TournamentStatus::Complete || self.survivors.len() == 1,
             "complete tournament requires one champion",
         )
+    }
+}
+
+impl TournamentState {
+    /// Lifecycle policy; the router must verify each signal's durable evidence.
+    pub fn transition(&self, signal: &TournamentTransition) -> validation::ValidationResult {
+        use validation::ensure;
+        let allowed = match signal {
+            TournamentTransition::EntrantsDrained => {
+                self.state == TournamentStatus::WaitingForEntrants
+            }
+            TournamentTransition::EntriesResolved => self.state == TournamentStatus::Answering,
+            TournamentTransition::RankingAccepted | TournamentTransition::JudgeExhausted => {
+                self.state == TournamentStatus::Judging
+            }
+            TournamentTransition::EliminationCommitted => {
+                self.state == TournamentStatus::Eliminating
+            }
+            TournamentTransition::Stop => !self.state.is_terminal(),
+        };
+        ensure(allowed, "invalid tournament lifecycle transition")
+    }
+}
+impl TournamentStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Preflight => "PREFLIGHT",
+            Self::WaitingForEntrants => "WAITING_FOR_ENTRANTS",
+            Self::Answering => "ANSWERING",
+            Self::Judging => "JUDGING",
+            Self::Eliminating => "ELIMINATING",
+            Self::Complete => "COMPLETE",
+            Self::Stopped => "STOPPED",
+            Self::Failed => "FAILED",
+        }
     }
 }

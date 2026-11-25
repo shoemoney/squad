@@ -36,13 +36,13 @@ fn help_and_version_have_no_side_effects() {
 }
 
 #[test]
-fn bound_commands_report_unavailable_runtime_without_fake_output() {
+fn bound_commands_reject_invalid_terminal_or_unaddressed_input() {
     let temp = tempfile::tempdir().unwrap();
     for (args, expected) in [
-        (vec![], "Room runtime integration is not installed"),
+        (vec![], "Terminal application failed."),
         (
             vec!["send", "hello"],
-            "Room runtime integration is not installed",
+            "Add at least one recipient: @nick or @all.",
         ),
     ] {
         let output = invoke(temp.path(), &args, Some("sk-test-not-a-real-key"));
@@ -63,7 +63,16 @@ fn bound_commands_report_unavailable_runtime_without_fake_output() {
         .unwrap()
         .map(|e| e.unwrap().file_name())
         .collect();
-    assert_eq!(entries, [std::ffi::OsString::from("logs")]);
+    let entries = entries
+        .into_iter()
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        entries,
+        ["logs", "main.lock", "squad.db"]
+            .into_iter()
+            .map(std::ffi::OsString::from)
+            .collect()
+    );
 }
 
 #[test]
@@ -208,7 +217,7 @@ fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
         assert_eq!(output.status.code(), Some(1));
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            "Room runtime integration is not installed"
+            "Add at least one recipient: @nick or @all."
         );
         assert_eq!(
             std::fs::metadata(&data).unwrap().permissions().mode() & 0o777,
@@ -246,8 +255,7 @@ fn quoted_references_do_not_consume_the_message() {
         let output = invoke(temp.path(), &args, Some("fixture"));
         assert_eq!(output.status.code(), Some(1));
         assert!(
-            String::from_utf8_lossy(&output.stderr)
-                .contains("Room runtime integration is not installed")
+            String::from_utf8_lossy(&output.stderr).contains("Quoted message 1 is unavailable.")
         );
     }
 }

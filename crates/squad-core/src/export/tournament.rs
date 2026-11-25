@@ -3,6 +3,7 @@ use squad_protocol::*;
 pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
     match payload {
         EnvelopePayload::TournamentSetup(s) => {
+            super::banner(out, crate::banner::Banner::Tournament);
             heading(out, &format!("Tournament {}", s.contest_id));
             paragraph(out, &s.prompt);
             paragraph(
@@ -31,6 +32,16 @@ pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
             );
         }
         EnvelopePayload::TournamentState(s) => {
+            if s.state == TournamentStatus::Answering {
+                super::banner(
+                    out,
+                    crate::banner::Banner::TournamentRound {
+                        round: s.round as usize,
+                        remaining: s.survivors.len(),
+                    },
+                );
+            }
+
             heading(
                 out,
                 &format!(
@@ -93,6 +104,7 @@ pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
             }
         }
         EnvelopePayload::TournamentChampion(c) => {
+            super::banner(out, crate::banner::Banner::Champion);
             heading(
                 out,
                 &format!("Champion: {} · trophies {}", c.champion, c.trophies),
