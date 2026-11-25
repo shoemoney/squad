@@ -1245,6 +1245,7 @@ pub struct FakeRoom {
     inner: Arc<Mutex<Session>>,
     feed: broadcast::Sender<FeedItem>,
     stop: watch::Sender<bool>,
+    stopped_nicks: Arc<Mutex<BTreeSet<Nick>>>,
 }
 impl Default for FakeRoom {
     fn default() -> Self {
@@ -1290,7 +1291,34 @@ impl FakeRoom {
             inner: Arc::new(Mutex::new(session)),
             feed,
             stop,
+            stopped_nicks: Arc::default(),
         }
+    }
+    fn reject(message: &str) -> RequestResult {
+        RequestResult::Rejected {
+            request_id: EventId::new(),
+            error: ErrorPayload {
+                code: ErrorCode::INVALID_COMMAND,
+                text: Text::new(message).expect("nonempty"),
+                retryable: false,
+                related_event_id: None,
+                work_id: None,
+                debate_id: None,
+                case_id: None,
+                earliest_cursor: None,
+                retry_action: None,
+                contest_id: None,
+                provider_status: None,
+                provider_message: None,
+            },
+        }
+    }
+    fn respawn_reply(&self, nick: Nick, question: MessageId) {
+        let room = self.clone();
+        tokio::spawn(async move {
+            room.stream(nick, question, "Regenerated local demo reply.", None)
+                .await;
+        });
     }
     pub fn emit(&self, item: FeedItem) {
         let mut state = self.inner.lock().expect("fake room mutex");
@@ -1659,8 +1687,11 @@ impl FakeRoom {
             _ => 125,
         };
         let cancelled = self.stop.subscribe();
+        self.stopped_nicks.lock().unwrap().remove(&nick);
         for (chunk, word) in text.split_inclusive(' ').enumerate() {
-            if cancelled.has_changed().unwrap_or(true) {
+            if cancelled.has_changed().unwrap_or(true)
+                || self.stopped_nicks.lock().unwrap().contains(&nick)
+            {
                 return;
             }
             self.emit(FeedItem::Delta(ProducerEnvelope {
@@ -1827,8 +1858,15 @@ impl RoomPort for FakeRoom {
                     ));
                     request_id
                 }
-                Request::Stop { request_id, .. } => {
-                    self.stop.send_replace(true);
+                Request::Stop { request_id, target } => {
+                    match &target {
+                        None => {
+                            self.stop.send_replace(true);
+                        }
+                        Some(nick) => {
+                            self.stopped_nicks.lock().unwrap().insert(nick.clone());
+                        }
+                    }
                     let (cards, contest) = {
                         let state = self.inner.lock().unwrap();
                         (
@@ -1837,6 +1875,11 @@ impl RoomPort for FakeRoom {
                                 .cards
                                 .values()
                                 .filter(|c| !c.complete)
+                                .filter(|c| {
+                                    target
+                                        .as_ref()
+                                        .is_none_or(|t| c.author == Actor::Member(t.clone()))
+                                })
                                 .cloned()
                                 .collect::<Vec<_>>(),
                             state.snapshot.context.active_contest.clone(),
@@ -1861,13 +1904,70 @@ impl RoomPort for FakeRoom {
                             ));
                         }
                     }
-                    if let Some(ContestState::Debate(mut state)) = contest {
-                        state.state = DebateStatus::Stopped;
-                        state.state_version += 1;
-                        accepted_events
-                            .push(self.commit(Actor::System, EnvelopePayload::DebateState(state)));
+                    if target.is_none() {
+                        if let Some(ContestState::Debate(mut state)) = contest {
+                            state.state = DebateStatus::Stopped;
+                            state.state_version += 1;
+                            accepted_events.push(
+                                self.commit(Actor::System, EnvelopePayload::DebateState(state)),
+                            );
+                        }
                     }
                     request_id
+                }
+                Request::Retry {
+                    request_id,
+                    work_id,
+                } => {
+                    let card = self
+                        .inner
+                        .lock()
+                        .unwrap()
+                        .transcript
+                        .cards
+                        .values()
+                        .find(|c| c.work_id == Some(work_id))
+                        .cloned();
+                    match card {
+                        Some(crate::transcript::ReplyCard {
+                            author: Actor::Member(nick),
+                            id,
+                            ..
+                        }) => {
+                            self.respawn_reply(nick, id);
+                            request_id
+                        }
+                        _ => return Self::reject("Unknown or non-retryable work."),
+                    }
+                }
+                Request::Regen {
+                    request_id,
+                    message_id,
+                } => {
+                    let card = {
+                        let state = self.inner.lock().unwrap();
+                        state
+                            .transcript
+                            .cards
+                            .values()
+                            .rev()
+                            .find(|c| {
+                                matches!(c.author, Actor::Member(_))
+                                    && message_id.is_none_or(|id| c.id == id)
+                            })
+                            .cloned()
+                    };
+                    match card {
+                        Some(crate::transcript::ReplyCard {
+                            author: Actor::Member(nick),
+                            id,
+                            ..
+                        }) => {
+                            self.respawn_reply(nick, id);
+                            request_id
+                        }
+                        _ => return Self::reject("Nothing to regenerate."),
+                    }
                 }
                 Request::Help => {
                     return RequestResult::Internal(InternalResult::Text {
