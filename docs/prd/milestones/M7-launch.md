@@ -36,21 +36,21 @@
   - [x] M7.P1.L2.T1 — Configure and verify `cargo-dist` builds for the `squad-cli` binary on macOS arm64 and Linux x64 in `dist-workspace.toml`.
   - [x] M7.P1.L2.T2 — Prepare and verify the Homebrew formula for `squad-cli` in `dist/homebrew/squad.rb`.
   - [x] M7.P1.L2.T3 — Verify package contents and clean `cargo install` for `squad-cli` using `crates/squad-cli/Cargo.toml` and its workspace dependencies.
-  - [ ] M7.P1.L2.T4 — Verify all shipped commands, JSON output, exit codes, pre-confirmation, and markdown export from release artifacts in `crates/squad-cli/tests/release.rs`.
-  - [ ] M7.P1.L2.T5 — Verify the Foundations `setup.sh` flags, reruns, `.env` preservation and permissions, doctor output, and next command for `squad-cli` in `docs/release-checklist.md`.
+  - [x] M7.P1.L2.T4 — Verify all shipped commands, JSON output, exit codes, pre-confirmation, and markdown export from release artifacts in `crates/squad-cli/tests/release.rs`.
+  - [x] M7.P1.L2.T5 — Verify the Foundations `setup.sh` flags, reruns, `.env` preservation and permissions, doctor output, and next command for `squad-cli` in `docs/release-checklist.md`.
   - [ ] M7.P1.L2.T6 — Record supported-platform artifact and installation evidence for `squad-cli` in `docs/release-checklist.md`.
-  - [ ] M7.P1.L2.T7 — Verify room, debate, tournament, and grill export scopes, offline export while the room is locked, `--no-wait`, and unknown-cost doctor reporting from `squad-cli` release artifacts in `crates/squad-cli/tests/release.rs`.
-  - [ ] M7.P1.L2.T8 — Verify all four new-mode commands, preflights, reports, persistent variables, stop paths, and markdown export scopes, including locked-room offline export, from clean release artifacts in `crates/squad-cli/tests/release.rs`.
+  - [x] M7.P1.L2.T7 — Verify room, debate, tournament, and grill export scopes, offline export while the room is locked, `--no-wait`, and unknown-cost doctor reporting from `squad-cli` release artifacts in `crates/squad-cli/tests/release.rs`.
+  - [x] M7.P1.L2.T8 — Verify all four new-mode commands, preflights, reports, persistent variables, stop paths, and markdown export scopes, including locked-room offline export, from clean release artifacts in `crates/squad-cli/tests/release.rs`.
 
 ## Phase M7.P2 — Release preparation
 
 - **M7.P2.L1 — Release records**
-  - [ ] M7.P2.L1.T1 — Add Apache License 2.0 text and required notices for the six workspace crates in `LICENSE` and `NOTICE`, with `license = "Apache-2.0"` in their `Cargo.toml` files.
-  - [ ] M7.P2.L1.T2 — Set workspace crate release metadata to `0.1.0` in `Cargo.toml` and write `CHANGELOG.md`.
-  - [ ] M7.P2.L1.T3 — Verify reported versions and packaged crate compatibility in `crates/squad-cli/tests/release.rs`.
+  - [x] M7.P2.L1.T1 — Add Apache License 2.0 text and required notices for the six workspace crates in `LICENSE` and `NOTICE`, with `license = "Apache-2.0"` in their `Cargo.toml` files.
+  - [x] M7.P2.L1.T2 — Set workspace crate release metadata to `0.1.0` in `Cargo.toml` and write `CHANGELOG.md`.
+  - [x] M7.P2.L1.T3 — Verify reported versions and packaged crate compatibility in `crates/squad-cli/tests/release.rs`.
   - [ ] M7.P2.L1.T4 — Record binary checksums, formula and source distribution records, release notes, and the updated roadmap for `squad-cli` in `docs/release-checklist.md`.
-  - [ ] M7.P2.L1.T5 — Verify Apache-2.0 compatibility, original licence records, and `NOTICE` credits for fonts embedded by `squad-core` and all other vendored workspace assets in `docs/release-checklist.md`.
-  - [ ] M7.P2.L1.T6 — Record D71’s shared-engine build order and all seven v1 modes, and place `$lattice`, `$delphi`, `$assemble`, and the grill/census-until-quiet meta-mode on the post-v1 roadmap in `CHANGELOG.md` and `docs/release-checklist.md`.
+  - [x] M7.P2.L1.T5 — Verify Apache-2.0 compatibility, original licence records, and `NOTICE` credits for fonts embedded by `squad-core` and all other vendored workspace assets in `docs/release-checklist.md`.
+  - [x] M7.P2.L1.T6 — Record D71’s shared-engine build order and all seven v1 modes, and place `$lattice`, `$delphi`, `$assemble`, and the grill/census-until-quiet meta-mode on the post-v1 roadmap in `CHANGELOG.md` and `docs/release-checklist.md`.
 
 - **M7.P2.L2 — Demonstration and publication decision**
   - [ ] M7.P2.L2.T1 — Write the timed canonical terminal demonstration and conditional-confirmation steps for `squad-cli` and `squad-tui` in `docs/demo.md`.
