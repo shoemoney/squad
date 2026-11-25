@@ -48,6 +48,41 @@ impl<'a> Registry<'a> {
     pub fn members(&self) -> &[AgentConfig] {
         &self.config.agents
     }
+    /// Build a single-call request from the router's frozen dispatch binding.
+    /// The worker, rather than the transport, admits each ordinary retry.
+    pub fn work_request(
+        &self,
+        member: Option<&AgentConfig>,
+        model: &Model,
+        grant: &squad_protocol::ExecutionGrant,
+    ) -> Result<ChatRequest, crate::openrouter::TransportError> {
+        use squad_protocol::{ExecutorKey, WorkKind};
+        if model.id != grant.binding.model.as_str()
+            || grant.work.validate().is_err()
+            || !grant.owner.owns(&grant.work)
+            || match &grant.owner {
+                ExecutorKey::Member(nick) => member.is_none_or(|m| m.nick != *nick),
+                ExecutorKey::Case(_) => member.is_some(),
+            }
+        {
+            return Err(crate::openrouter::TransportError::InvalidModel);
+        }
+        let (kind, deadline) = match grant.work.kind {
+            WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
+            WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
+            WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),
+            WorkKind::JudgeRound => (TaskKind::RoundJudge, DeadlineClass::RoundJudge),
+        };
+        let mut request = self.request(member, model, kind)?;
+        request.reasoning_effort = grant.binding.effort;
+        request.visible_ceiling = grant
+            .work
+            .max_output_tokens
+            .unwrap_or(request.visible_ceiling);
+        request.policy = ExecutionPolicy::SingleAttempt(deadline);
+        request.body()?;
+        Ok(request)
+    }
     /// Builds the transport request with the startup-pinned concrete identity.
     /// Context assembly supplies messages and strict schemas afterwards.
     pub fn request(

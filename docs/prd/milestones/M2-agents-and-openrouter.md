@@ -59,10 +59,10 @@
 ## Phase M2.P2 — Private workers and context
 
 - **M2.P2.L1 — Execute durable addressed work**
-  - [ ] M2.P2.L1.T1 — Spawn one tokio task per member using Protocol’s canonical `AgentContext` bound to `ExecutorKey::Member`, enumerating that member’s ordinary and assigned step work across contexts in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L1.T1 — Spawn one tokio task per member using Protocol’s canonical `AgentContext` bound to `ExecutorKey::Member`, enumerating that member’s ordinary and assigned step work across contexts in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P2.L1.T2 — Implement FIFO queues, queue limits, and work deduplication in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L1.T3 — Test ordered follow-ups and trigger-bounded context in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.
-  - [ ] M2.P2.L1.T4 — Test contest drain and hold signals with controlled scheduler fixtures in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.
+  - [x] M2.P2.L1.T3 — Test ordered follow-ups and trigger-bounded context in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.
+  - [x] M2.P2.L1.T4 — Test contest drain and hold signals with controlled scheduler fixtures in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.
   - [ ] M2.P2.L1.T5 — Test pending-work recovery and missed mailbox wake-ups using temporary SQLite databases in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
   - [ ] M2.P2.L1.T6 — Test deferred held-message history writes and reuse of the round’s frozen boundary across debate attempts in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
   - [ ] M2.P2.L1.T7 — Test capacity-1 wake-up coalescing and progress while ingress is full, without the router awaiting an agent channel, in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
@@ -70,11 +70,11 @@
   - [ ] M2.P2.L1.T9 — Execute canonical per-member `fanout` payloads without reading another assignment or broadcasting a shared payload superset in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
 
 - **M2.P2.L2 — Assemble bounded prompts**
-  - [ ] M2.P2.L2.T1 — Implement speaker roles and trusted metadata labels in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
-  - [ ] M2.P2.L2.T2 — Integrate Prompt pack outputs, roster identity, `SQUAD_USER_NAME`, and member personas through the injected renderer in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
-  - [ ] M2.P2.L2.T3 — Implement token estimation, visible and reasoning output reservation, and whole-exchange removal in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
-  - [ ] M2.P2.L2.T4 — Test mandatory anchors, oversized case material, and notice roles in crate `squad-agents`, file `crates/squad-agents/tests/agents_context.rs`.
-  - [ ] M2.P2.L2.T5 — Test author-labelled quotes and verify that context assembly uses only context-bound readers in crate `squad-agents`, file `crates/squad-agents/tests/agents_context.rs`.
+  - [x] M2.P2.L2.T1 — Implement speaker roles and trusted metadata labels in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
+  - [x] M2.P2.L2.T2 — Integrate Prompt pack outputs, roster identity, `SQUAD_USER_NAME`, and member personas through the injected renderer in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
+  - [x] M2.P2.L2.T3 — Implement token estimation, visible and reasoning output reservation, and whole-exchange removal in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
+  - [x] M2.P2.L2.T4 — Test mandatory anchors, oversized case material, and notice roles in crate `squad-agents`, file `crates/squad-agents/tests/agents_context.rs`.
+  - [x] M2.P2.L2.T5 — Test author-labelled quotes and verify that context assembly uses only context-bound readers in crate `squad-agents`, file `crates/squad-agents/tests/agents_context.rs`.
   - [ ] M2.P2.L2.T6 — Render accumulated judge case turns and own round scores once in a single user message through canonical Work boundaries, with visible and reasoning reservations, in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
   - [ ] M2.P2.L2.T7 — Test that neither debater context contains round scores or tallies before the verdict, and that the verdict announcement supplies the authorized score material, in crate `squad-agents`, file `crates/squad-agents/tests/agents_context.rs`.
   - [ ] M2.P2.L2.T8 — Test mandatory accumulated round scores, unscored-round notices, and verdict announcement material against context budgets in crate `squad-agents`, file `crates/squad-agents/tests/agents_context.rs`.
@@ -99,7 +99,7 @@
   - [ ] M2.P2.L3.T12 — Test new-mode judge evidence inclusion once, absent member personas and unrelated history, supported reasoning reservations, and one call per authorized attempt in crate `squad-agents`, file `crates/squad-agents/tests/agents_judge.rs`.
 
 - **M2.P2.L4 — Execute retries and regenerated replies**
-  - [ ] M2.P2.L4.T1 — Handle router-enqueued replacement reply Work in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L4.T1 — Handle router-enqueued replacement reply Work in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P2.L4.T2 — Test superseded-reply exclusion and unchanged quote and case snapshots in crate `squad-agents`, file `crates/squad-agents/tests/agents_context.rs`.
   - [ ] M2.P2.L4.T3 — Test user-requested retry work without duplicating the human message in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.
 
@@ -164,15 +164,15 @@
 
 - **M2.P3.L1 — Stream and submit responses**
   - [x] M2.P3.L1.T1 — Implement `reqwest` streaming requests and fragmented SSE parsing in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
-  - [ ] M2.P3.L1.T2 — Submit canonical attempt-scoped deltas through ingress in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
-  - [ ] M2.P3.L1.T3 — Submit ordinary `agent.reply` results and await router acknowledgement in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P3.L1.T2 — Submit canonical attempt-scoped deltas through ingress in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
+  - [x] M2.P3.L1.T3 — Submit ordinary `agent.reply` results and await router acknowledgement in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P3.L1.T4 — Test finish reasons, terminal usage, duplicate result submissions, and reasoning-text exclusion in crate `squad-agents`, file `crates/squad-agents/tests/agents_openrouter.rs`.
   - [x] M2.P3.L1.T5 — Send resolved concrete slugs, capability-gated reasoning parameters, explicit reasoning budgets, and complete output reservations, and capture response model identity, in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
   - [ ] M2.P3.L1.T6 — Submit each new-mode artifact through its owning typed result and validation path without treating partial deltas as committed output in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
 
 - **M2.P3.L2 — Bound failures and cancellation**
   - [x] M2.P3.L2.T1 — Implement constant ordinary deadlines, one automatic retry, jitter, and `Retry-After` in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
-  - [ ] M2.P3.L2.T2 — Use `CancellationToken` to stop active HTTP requests, response streams, retry timers, and queued work in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P3.L2.T2 — Use `CancellationToken` to stop active HTTP requests, response streams, retry timers, and queued work in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P3.L2.T3 — Test higher-attempt replacement after partial output and the absence of hidden debate retries in crate `squad-agents`, file `crates/squad-agents/tests/agents_openrouter.rs`.
   - [ ] M2.P3.L2.T4 — Test cancellation versus result acceptance and rejection of stale attempts in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
   - [ ] M2.P3.L2.T5 — Test restart recovery with consumed interrupted attempts and no duplicate committed replies in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
@@ -184,9 +184,9 @@
 ## Phase M2.P4 — Accounting and integration
 
 - **M2.P4.L1 — Report operational state and costs**
-  - [ ] M2.P4.L1.T1 — Implement presence transitions, queue depth, and worker heartbeats in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P4.L1.T2 — Implement idempotent provider-call accounting through router-owned persistence in crate `squad-agents`, file `crates/squad-agents/src/accounting.rs`.
-  - [ ] M2.P4.L1.T3 — Implement generation-ID usage and missing-cost reconciliation in crate `squad-agents`, file `crates/squad-agents/src/accounting.rs`.
+  - [x] M2.P4.L1.T1 — Implement presence transitions, queue depth, and worker heartbeats in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P4.L1.T2 — Implement idempotent provider-call accounting through router-owned persistence in crate `squad-agents`, file `crates/squad-agents/src/accounting.rs`.
+  - [x] M2.P4.L1.T3 — Implement generation-ID usage and missing-cost reconciliation in crate `squad-agents`, file `crates/squad-agents/src/accounting.rs`.
   - [ ] M2.P4.L1.T4 — Test retries, probes, judge charges, unknown costs, estimates, and repeated reconciliation in crate `squad-agents`, file `crates/squad-agents/tests/agents_accounting.rs`.
   - [ ] M2.P4.L1.T5 — Test daily dispatch reservation checks and rejection of queued and subsequent calls while in-flight calls finish through bus fixtures in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
   - [ ] M2.P4.L1.T6 — Test round-score charges by debate, round, work, and attempt, including repair, cancellation, unknown usage, and repeated reconciliation, in crate `squad-agents`, file `crates/squad-agents/tests/agents_accounting.rs`.

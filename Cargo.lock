@@ -3062,6 +3062,7 @@ name = "squad-agents"
 version = "0.1.0"
 dependencies = [
  "async-stream",
+ "chrono",
  "futures",
  "httpdate",
  "rand 0.9.5",

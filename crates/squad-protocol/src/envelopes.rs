@@ -921,3 +921,34 @@ fn validate_preflight_result(
         "invalid preflight result",
     )
 }
+
+impl UsageRecord {
+    /// Validate provider accounting before a router-owned atomic upsert.
+    pub fn validate(&self) -> crate::validation::ValidationResult {
+        use crate::validation::ensure;
+        ensure(self.attempt > 0, "accounting attempt must be positive")?;
+        ensure(
+            self.model.as_str().contains('/') && !self.model.as_str().starts_with('~'),
+            "accounting requires concrete model",
+        )?;
+        ensure(
+            self.ended_at.is_none_or(|end| end >= self.started_at),
+            "invalid accounting time range",
+        )?;
+        ensure(
+            self.day.len() == 10
+                && chrono::NaiveDate::parse_from_str(&self.day, "%Y-%m-%d").is_ok(),
+            "invalid accounting day",
+        )?;
+        for cost in [
+            self.estimated_cost_usd,
+            self.usage.as_ref().and_then(|u| u.cost_usd),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            ensure(cost.is_finite() && cost >= 0.0, "invalid accounting cost")?;
+        }
+        Ok(())
+    }
+}

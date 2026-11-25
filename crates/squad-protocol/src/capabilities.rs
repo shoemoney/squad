@@ -164,6 +164,16 @@ pub trait HistoryReader: Send + Sync {
     fn for_work(&self, work_id: WorkId) -> ReaderFuture<'_, Vec<HistoryEntry>>;
 }
 pub trait WorkReader: Send + Sync {
+    /// Frozen, authorized, router-supplied prompt metadata for this work (e.g.
+    /// opponent nick, round, total rounds, final-round flag and word limits).
+    /// Already filtered by the visibility table; never another member's content.
+    fn prompt_values_for_work(
+        &self,
+        _work_id: WorkId,
+    ) -> ReaderFuture<'_, std::collections::BTreeMap<String, String>> {
+        Box::pin(async { Err(ReaderError::NotFound) })
+    }
+    /// Authorized unfinished work in durable admission FIFO order.
     fn unfinished(&self) -> ReaderFuture<'_, Vec<WorkRecord>>;
     fn get(&self, work_id: WorkId) -> ReaderFuture<'_, Option<WorkRecord>>;
     fn repair_for_attempt(
