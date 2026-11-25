@@ -26,7 +26,7 @@
 ## Phase M4.P1 — Performance spike, application shell, and input
 
 - **M4.P1.L1 — Run the 12-stream throwaway spike**
-  - [ ] M4.P1.L1.T1 — Build a throwaway workload harness and renderer in `crates/squad-tui/benches/twelve_streams.rs` with effects off, 12 concurrent synthetic streams at 40 token deltas per second each, mixed prose and fenced code, and 10,000 preloaded messages; do not depend on the later transcript widget or effects implementation.
+  - [x] M4.P1.L1.T1 — Build a throwaway workload harness and renderer in `crates/squad-tui/benches/twelve_streams.rs` with effects off, 12 concurrent synthetic streams at 40 token deltas per second each, mixed prose and fenced code, and 10,000 preloaded messages; do not depend on the later transcript widget or effects implementation.
   - [ ] M4.P1.L1.T2 — Measure a five-minute release-build run at both viewports with effects off, including typing, history scrolling, and resize, in `crates/squad-tui/benches/twelve_streams.rs`; require p95 draw duration at most 8 ms, p99 at most 16.7 ms, p95 key-to-visible-update latency at most 50 ms, and average process CPU at most 25% of one logical core.
   - [ ] M4.P1.L1.T3 — Record hardware, terminal, OS, dependency versions, workload, CPU measurement method, memory use, startup time, and results for macOS arm64 and Linux x64 in `crates/squad-tui/README.md`; block subsequent implementation until both platform runs pass.
 

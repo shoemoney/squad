@@ -30,3 +30,7 @@ workspace = true
 [[bench]]
 name = "fx_frame"
 harness = false
+
+[[bench]]
+name = "twelve_streams"
+harness = false
