@@ -1,0 +1,7 @@
+---
+source: crates/squad-tui/tests/widget_banner.rs
+expression: screen(&buf)
+---
+   ──── OPENING ────
+ ──── FINAL ROUND ────
+        VERDICT
