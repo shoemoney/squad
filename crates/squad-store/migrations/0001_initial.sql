@@ -559,3 +559,13 @@ CREATE TABLE superseded (
 
 CREATE INDEX superseded_member_idx
     ON superseded(member, marker_event_seq);
+
+-- Deferred projections retain source identity; positions are allocated on release.
+CREATE TABLE deferred_history (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    context_id TEXT NOT NULL,
+    origin_event_id TEXT NOT NULL REFERENCES events(id),
+    projection_key TEXT NOT NULL,
+    projection_json TEXT NOT NULL CHECK(json_valid(projection_json)),
+    UNIQUE(context_id,origin_event_id,projection_key)
+) STRICT;

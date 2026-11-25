@@ -1,0 +1,15 @@
+error[E0609]: no field `bus` on type `AgentContext`
+ --> tests/compile_fail/no_context_bus.rs:2:21
+  |
+2 |     let _ = context.bus;
+  |                     ^^^ unknown field
+  |
+  = note: available fields are: `executor`, `mailbox`, `history`, `work`, `submit` ... and 2 others
+
+error[E0609]: no field `store` on type `AgentContext`
+ --> tests/compile_fail/no_context_bus.rs:3:21
+  |
+3 |     let _ = context.store;
+  |                     ^^^^^ unknown field
+  |
+  = note: available fields are: `executor`, `mailbox`, `history`, `work`, `submit` ... and 2 others

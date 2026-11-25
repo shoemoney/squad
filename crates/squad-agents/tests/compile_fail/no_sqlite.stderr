@@ -1,0 +1,7 @@
+error[E0433]: cannot find module or crate `rusqlite` in this scope
+ --> tests/compile_fail/no_sqlite.rs:2:13
+  |
+2 |     let _ = rusqlite::Connection::open_in_memory();
+  |             ^^^^^^^^ use of unresolved module or unlinked crate `rusqlite`
+  |
+  = help: if you wanted to use a crate named `rusqlite`, use `cargo add rusqlite` to add it to your `Cargo.toml`
