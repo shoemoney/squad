@@ -1,0 +1,17 @@
+---
+source: crates/squad-tui/tests/markdown.rs
+expression: rows(&renderer)
+---
+[
+    "  Heading  ",
+    "  Plain bold italic gone and i  ",
+    "  nline.  ",
+    "  │ quoted text  ",
+    "  • [x] done  ",
+    "  • next  ",
+    "    • nested  ",
+    "  A │ B  ",
+    "  界 │ 👩\u{200d}💻  ",
+    "  ```unknown  ",
+    "  a   b  ",
+]
