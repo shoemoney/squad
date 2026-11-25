@@ -13,7 +13,7 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
     let result = (|| {
         let tx = connection.transaction()?;
         let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-        if version > 7 {
+        if version > 8 {
             return Err(rusqlite::Error::InvalidQuery);
         }
         if version == 0 {
@@ -37,6 +37,9 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
         if version < 7 {
             tx.execute_batch(include_str!("../migrations/0007_probe.sql"))?;
         }
+        if version < 8 {
+            tx.execute_batch(include_str!("../migrations/0008_alias_cache.sql"))?;
+        }
         let invalid: bool = tx.query_row(
             "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
             [],
@@ -45,7 +48,7 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
         if invalid {
             return Err(rusqlite::Error::InvalidQuery);
         }
-        tx.pragma_update(None, "user_version", 7)?;
+        tx.pragma_update(None, "user_version", 8)?;
         tx.commit()
     })();
     connection.pragma_update(None, "foreign_keys", true)?;
