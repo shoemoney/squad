@@ -1,0 +1,1328 @@
+{
+  "version": "1.0.0",
+  "source": "docs/prd/09-prompt-pack.md",
+  "templates": [
+    {
+      "id": "census.final",
+      "file": "census.final.md",
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "census.hunt",
+      "file": "census.hunt.md",
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "census.merge",
+      "file": "census.merge.md",
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "census.rate",
+      "file": "census.rate.md",
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "crosscheck.audit",
+      "file": "crosscheck.audit.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "crosscheck.cell",
+      "file": "crosscheck.cell.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "crosscheck.inventory",
+      "file": "crosscheck.inventory.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "crosscheck.normalize",
+      "file": "crosscheck.normalize.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "crosscheck.rule",
+      "file": "crosscheck.rule.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "debate.closing",
+      "file": "debate.closing.md",
+      "placeholders": [
+        "turn_word_limit"
+      ]
+    },
+    {
+      "id": "debate.forfeit",
+      "file": "debate.forfeit.md",
+      "placeholders": [
+        "debate_id",
+        "failed_nick",
+        "failure_kind",
+        "round"
+      ]
+    },
+    {
+      "id": "debate.opening",
+      "file": "debate.opening.md",
+      "placeholders": [
+        "debate_id",
+        "debate_instruction_json",
+        "topic_json"
+      ]
+    },
+    {
+      "id": "debate.rebuttal",
+      "file": "debate.rebuttal.md",
+      "placeholders": [
+        "debate_id",
+        "nick",
+        "opponent",
+        "round",
+        "round_data_json",
+        "rounds",
+        "turn_word_limit"
+      ]
+    },
+    {
+      "id": "debate.round0",
+      "file": "debate.round0.md",
+      "placeholders": [
+        "debate_id",
+        "nick",
+        "opponent",
+        "round_data_json",
+        "turn_word_limit"
+      ]
+    },
+    {
+      "id": "debate.round1",
+      "file": "debate.round1.md",
+      "placeholders": [
+        "debate_id",
+        "nick",
+        "opponent",
+        "round_data_json",
+        "rounds",
+        "turn_word_limit"
+      ]
+    },
+    {
+      "id": "debate.setup",
+      "file": "debate.setup.md",
+      "placeholders": [
+        "debate_id",
+        "debate_instruction_json",
+        "solutions_json",
+        "topic_json"
+      ]
+    },
+    {
+      "id": "debate.verdict",
+      "file": "debate.verdict.md",
+      "placeholders": [
+        "debate_id",
+        "judge_model_slug",
+        "round_scores_json",
+        "verdict_json",
+        "verdict_result"
+      ]
+    },
+    {
+      "id": "grill.answer",
+      "file": "grill.answer.md",
+      "placeholders": [
+        "contest_id",
+        "grill_answer_word_limit",
+        "grill_rounds",
+        "leader_nick",
+        "plan_version",
+        "round"
+      ]
+    },
+    {
+      "id": "grill.question",
+      "file": "grill.question.md",
+      "placeholders": [
+        "contest_id",
+        "grill_angle",
+        "grill_rounds",
+        "leader_nick",
+        "nick",
+        "plan_version",
+        "round"
+      ]
+    },
+    {
+      "id": "grill.rebuild",
+      "file": "grill.rebuild.md",
+      "placeholders": [
+        "contest_id",
+        "grill_rounds",
+        "leader_nick",
+        "next_plan_version",
+        "plan_word_limit",
+        "round"
+      ]
+    },
+    {
+      "id": "judge.followup",
+      "file": "judge.followup.md",
+      "placeholders": [
+        "case_data_json",
+        "case_id",
+        "user_text_json"
+      ]
+    },
+    {
+      "id": "judge.repair",
+      "file": "judge.repair.md",
+      "placeholders": [
+        "invalid_output_json",
+        "validation_errors_json"
+      ]
+    },
+    {
+      "id": "judge.round",
+      "file": "judge.round.md",
+      "placeholders": [
+        "debate_id",
+        "debater_a_json",
+        "debater_b_json",
+        "round",
+        "round_judge_data_json",
+        "round_score_schema_json"
+      ]
+    },
+    {
+      "id": "judge.round.repair",
+      "file": "judge.round.repair.md",
+      "placeholders": [
+        "invalid_output_json",
+        "validation_errors_json"
+      ]
+    },
+    {
+      "id": "judge.standalone",
+      "file": "judge.standalone.md",
+      "placeholders": [
+        "case_id",
+        "quoted_messages_json",
+        "user_text_json"
+      ]
+    },
+    {
+      "id": "judge.system.blind-prefix",
+      "file": "judge.system.blind-prefix.md",
+      "placeholders": []
+    },
+    {
+      "id": "judge.system",
+      "file": "judge.system.md",
+      "placeholders": [
+        "judge_model_slug",
+        "member_nicks_json",
+        "user_name_json"
+      ]
+    },
+    {
+      "id": "judge.user",
+      "file": "judge.user.md",
+      "placeholders": [
+        "debater_a_json",
+        "debater_b_json",
+        "judge_data_json",
+        "verdict_schema_json"
+      ]
+    },
+    {
+      "id": "mode.repair",
+      "file": "mode.repair.md",
+      "placeholders": [
+        "invalid_output_json",
+        "mode_step",
+        "validation_errors_json"
+      ]
+    },
+    {
+      "id": "probe.check",
+      "file": "probe.check.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "probe.explain",
+      "file": "probe.explain.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "probe.predict",
+      "file": "probe.predict.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "probe.report",
+      "file": "probe.report.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "room.system",
+      "file": "room.system.md",
+      "placeholders": [
+        "member_nicks_json",
+        "model_slug",
+        "nick",
+        "persona_json",
+        "room_word_limit",
+        "user_name_json"
+      ]
+    },
+    {
+      "id": "room.user",
+      "file": "room.user.md",
+      "placeholders": [
+        "quoted_messages_json",
+        "user_text_json"
+      ]
+    },
+    {
+      "id": "squad.judge-swap",
+      "file": "squad.judge-swap.md",
+      "placeholders": [
+        "conflicting_nick",
+        "judge_model_slug"
+      ]
+    },
+    {
+      "id": "squad.notice",
+      "file": "squad.notice.md",
+      "placeholders": [
+        "notice_text_json"
+      ]
+    },
+    {
+      "id": "survey.extract",
+      "file": "survey.extract.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "survey.report",
+      "file": "survey.report.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "survey.revote",
+      "file": "survey.revote.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "survey.vote",
+      "file": "survey.vote.md",
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ]
+    },
+    {
+      "id": "tournament.entrant",
+      "file": "tournament.entrant.md",
+      "placeholders": [
+        "contest_id",
+        "entrants_remaining",
+        "room_word_limit",
+        "round"
+      ]
+    },
+    {
+      "id": "tournament.final",
+      "file": "tournament.final.md",
+      "placeholders": [
+        "contest_id",
+        "tournament_placements_json"
+      ]
+    },
+    {
+      "id": "tournament.judge",
+      "file": "tournament.judge.md",
+      "placeholders": [
+        "tournament_judge_data_json",
+        "tournament_schema_json"
+      ]
+    },
+    {
+      "id": "tournament.repair",
+      "file": "tournament.repair.md",
+      "placeholders": [
+        "invalid_output_json",
+        "validation_errors_json"
+      ]
+    },
+    {
+      "id": "tournament.result",
+      "file": "tournament.result.md",
+      "placeholders": [
+        "contest_id",
+        "round",
+        "tournament_result_json"
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "id": "reply",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "room.user"
+      ],
+      "provider_user_name": "me",
+      "step": "reply"
+    },
+    {
+      "id": "debate.round0",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "debate.round0"
+      ],
+      "provider_user_name": "squad",
+      "step": "debate.round0"
+    },
+    {
+      "id": "debate.round1",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "debate.round1"
+      ],
+      "provider_user_name": "squad",
+      "step": "debate.round1"
+    },
+    {
+      "id": "debate.rebuttal",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "debate.rebuttal"
+      ],
+      "provider_user_name": "squad",
+      "step": "debate.rebuttal"
+    },
+    {
+      "id": "debate.final.round1",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "debate.round1",
+        "debate.closing"
+      ],
+      "turn_word_limit_source": "prompts.limits.final_turn_words",
+      "provider_user_name": "squad",
+      "step": "debate.final.round1"
+    },
+    {
+      "id": "debate.final.rebuttal",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "debate.rebuttal",
+        "debate.closing"
+      ],
+      "turn_word_limit_source": "prompts.limits.final_turn_words",
+      "provider_user_name": "squad",
+      "step": "debate.final.rebuttal"
+    },
+    {
+      "id": "judge.round",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "judge.round"
+      ],
+      "repair_suffix": "judge.round.repair",
+      "provider_user_name": "squad",
+      "step": "judge.round",
+      "schema_source": {
+        "owner": "Contests (08); canonical squad-protocol schema",
+        "identity": "judge.round",
+        "placeholder": "round_score_schema_json"
+      }
+    },
+    {
+      "id": "judge.debate",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "judge.user"
+      ],
+      "repair_suffix": "judge.repair",
+      "provider_user_name": "squad",
+      "step": "judge.debate",
+      "schema_source": {
+        "owner": "Contests (08); canonical squad-protocol verdict schema",
+        "identity": "debate.verdict",
+        "placeholder": "verdict_schema_json"
+      }
+    },
+    {
+      "id": "judge.standalone",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "judge.standalone"
+      ],
+      "provider_user_name": "squad",
+      "step": "judge.standalone"
+    },
+    {
+      "id": "judge.followup",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "judge.followup"
+      ],
+      "provider_user_name": "squad",
+      "step": "judge.followup"
+    },
+    {
+      "id": "tournament.entry",
+      "system": [
+        "room.system",
+        "tournament.entrant"
+      ],
+      "user": [
+        "room.user"
+      ],
+      "own_previous_result": "tournament.result",
+      "previous_result_from_round": 2,
+      "provider_user_name": "me",
+      "step": "tournament.entry"
+    },
+    {
+      "id": "judge.tournament",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "tournament.judge"
+      ],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      },
+      "system_placeholders": [],
+      "repair_suffix": "tournament.repair",
+      "forbidden_material": [
+        "entrant nicks",
+        "entrant models",
+        "personas",
+        "label-to-nick maps",
+        "prior-round mappings",
+        "member roster",
+        "judge model identity"
+      ],
+      "provider_user_name": "squad",
+      "step": "judge.tournament",
+      "schema_source": {
+        "owner": "Contests (08); canonical squad-protocol ranking schema",
+        "identity": "judge.tournament",
+        "placeholder": "tournament_schema_json",
+        "anonymous_labels_only": true
+      }
+    },
+    {
+      "id": "grill.question",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "grill.question"
+      ],
+      "provider_user_name": "squad",
+      "step": "grill.question"
+    },
+    {
+      "id": "grill.answer",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "grill.answer"
+      ],
+      "provider_user_name": "squad",
+      "step": "grill.answer"
+    },
+    {
+      "id": "grill.rebuild",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "grill.rebuild"
+      ],
+      "provider_user_name": "squad",
+      "step": "grill.rebuild"
+    },
+    {
+      "id": "census.hunt",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "census.hunt"
+      ],
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Current plan and version; this member's assigned lens only.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "census.hunt",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "census.hunt",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "census.merge",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "census.merge"
+      ],
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Current plan; accepted hunt findings with source-find IDs, lenses, and private finder references; explicit missing-work records.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "census.merge",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "census.merge",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "census.rate",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "census.rate"
+      ],
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Current plan and version; neutral gap IDs, omissions, consequences, and lenses; no finder references, identities, or counts.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "census.rate",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "census.rate",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "census.final",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "census.final"
+      ],
+      "placeholders": [
+        "census_pass",
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Current plan; merged ledger; accepted ratings and citations; application-computed majority decisions; additions; missing-work records.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "census.final",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "census.final",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "crosscheck.inventory",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "crosscheck.inventory"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Goal, constraints, and this member's assigned lens; no plan or other inventory.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "crosscheck.inventory",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "crosscheck.inventory",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "crosscheck.normalize.extract_goal",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "crosscheck.normalize"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Source plan only.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "crosscheck.normalize.extract_goal",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "template_selection": {
+        "template": "crosscheck.normalize",
+        "start_marker": "<!-- composition: extract_goal -->",
+        "end_marker": "<!-- end composition: extract_goal -->",
+        "include_markers": false,
+        "required_matches": 1
+      },
+      "provider_user_name": "squad",
+      "step": "crosscheck.normalize.extract_goal",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "crosscheck.normalize.normalize_inventory",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "crosscheck.normalize"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Goal, constraints, and accepted inventories with source-item mappings; no plan.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "crosscheck.normalize.normalize_inventory",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "template_selection": {
+        "template": "crosscheck.normalize",
+        "start_marker": "<!-- composition: normalize_inventory -->",
+        "end_marker": "<!-- end composition: normalize_inventory -->",
+        "include_markers": false,
+        "required_matches": 1
+      },
+      "provider_user_name": "squad",
+      "step": "crosscheck.normalize.normalize_inventory",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "crosscheck.cell",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "crosscheck.cell"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Current plan and version; goal and constraints; only this reviewer's assigned cells; no item authorship or other reviews.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "crosscheck.cell",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "crosscheck.cell",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "crosscheck.audit",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "crosscheck.audit"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Current plan; goal and constraints; complete retained grid; this auditor's sampled evidence without reviewer identities; no prior conversational history.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "crosscheck.audit",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": true,
+      "provider_user_name": "squad",
+      "step": "crosscheck.audit",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "crosscheck.rule",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "crosscheck.rule"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Current plan, complete retained grid, accepted reviews, audits, proposed additions, recorded human acceptance references, and missing-work records.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "crosscheck.rule",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "crosscheck.rule",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "survey.extract",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "survey.extract"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Question and accepted answers from its parallel collection, with private source-answer references.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "survey.extract",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "survey.extract",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "survey.vote",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "survey.vote"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Question and neutral claim IDs and text only.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "survey.vote",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "survey.vote",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "survey.revote",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "survey.revote"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Question, selected neutral claims, and anonymized reasons from both sides; no authors, origin counts, ballots, or vote counts.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "survey.revote",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "survey.revote",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "survey.report",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "survey.report"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Question, claims, private origin references, accepted ballots and revotes, application-computed tallies, band assignments, switch records, and missing-work records.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "survey.report",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "survey.report",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "probe.explain",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "probe.explain"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Observation, ruled-out possibilities, and inspection limits only.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "probe.explain",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "probe.explain",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "probe.check",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "probe.check"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Observation, ruled-out possibilities, and inspection limits only.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "probe.check",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "probe.check",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "probe.predict",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "probe.predict"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Brief, this actor's accepted explanation and key assumption, and all accepted checks; no other explanations or predictions.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "probe.predict",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "probe.predict",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    },
+    {
+      "id": "probe.report",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "probe.report"
+      ],
+      "placeholders": [
+        "contest_id",
+        "mode_data_json",
+        "mode_schema_json",
+        "step_word_limit"
+      ],
+      "authorized_input_projection": "Brief, accepted explanations, checks, committed prediction matrix, and missing-work records.",
+      "schema_source": {
+        "owner": "Contests (08); canonical Rust types in squad-protocol when implemented in M5",
+        "identity": "probe.report",
+        "additional_properties": false,
+        "nullable_fields_required": true,
+        "instantiate_from": "authorized IDs, enum values, cardinalities, and reference constraints"
+      },
+      "repair_suffix": "mode.repair",
+      "fresh_context": false,
+      "provider_user_name": "squad",
+      "step": "probe.report",
+      "script_metadata": [
+        "step",
+        "pass when applicable",
+        "plan version when applicable",
+        "schema identity",
+        "authorized input projection",
+        "rendered composition hash"
+      ]
+    }
+  ],
+  "rules": {
+    "interpolation": "single pass; inserted values are never interpreted as template syntax",
+    "json_encoding": "serde_json::to_string for every *_json placeholder",
+    "validation": "Reject unknown or missing placeholders at startup, including overrides. Validate identity and numeric values before interpolation. Validate only the selected composition after selection or transformation.",
+    "overrides": "SQUAD_PROMPTS_DIR replaces existing template IDs only; omitted files retain embedded defaults. Overrides must preserve registered selections and the blind prefix transformation.",
+    "assembly": "Concatenate listed templates in order with a newline separator. Member persona is included in room.system, never in judge.system. Judge attempts contain exactly one system message and one user message; append repair_suffix inside that user message.",
+    "sources": "Source records enter authorized projections once. Round tasks do not repeat setup or barrier source material. No implicit history lookup or payload widening.",
+    "mode_visibility": "Reject material outside each authorized_input_projection. fanout inputs are actor-specific. A fresh audit receives no earlier conversational history. Schemas and repairs preserve the same restrictions.",
+    "repairs": "Only authorized attempt-scoped rejected output and validator data; repair shares the owning task attempt budget.",
+    "schema_ownership": "Consume canonical instantiated schemas from Contests and squad-protocol; no prompt-owned alternative output schemas.",
+    "reports": "Census and crosscheck assemble accepted artifacts without a model report call. Survey and probe use their registered report judge compositions.",
+    "versioning": "Increment version for prompt or composition changes. Freeze settings at contest creation and record rendered/override hashes, effective limits, schema and resolved model identities under canonical provenance."
+  }
+}
