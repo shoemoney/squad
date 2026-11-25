@@ -171,7 +171,11 @@ async fn execute<R: RoomApi>(
         .await?
         .last()
         .map(|event| event.commit.seq);
-    let mut result = room.submit(request).await;
+    let mut result = if args.no_wait {
+        room.submit_commit_only(request).await
+    } else {
+        room.submit(request).await
+    };
     let request_id = loop {
         match result {
             RequestResult::Rejected { request_id, error } => {
@@ -243,7 +247,11 @@ async fn execute<R: RoomApi>(
                         plan_id: p.plan_id,
                     },
                 };
-                result = room.submit(request).await;
+                result = if args.no_wait {
+                    room.submit_commit_only(request).await
+                } else {
+                    room.submit(request).await
+                };
                 if !yes && !matches!(result, RequestResult::Rejected { .. }) {
                     if output.json {
                         let value = match preflight {

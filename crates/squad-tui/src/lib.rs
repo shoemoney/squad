@@ -21,3 +21,6 @@ pub mod ui;
 mod ui_fx;
 pub mod validation;
 pub mod widgets;
+
+pub mod room_adapter;
+pub use room_adapter::run;

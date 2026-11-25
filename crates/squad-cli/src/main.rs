@@ -146,20 +146,43 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
         &config.openrouter_api_key,
     )?;
     tracing::info!("CLI initialized");
-    // INTEGRATION STUB: the coordinator supplies RoomHandle and binds RoomApi.
-    // Open using OpenPolicy::send(send.no_wait), then call send::run.
-    // Interactive open uses OpenPolicy::interactive(); squad_tui::run(room).await
-    // is the expected M4 entry point. Always shutdown after it returns.
-    // TODO(M4.P1): launch the TUI with OpenMode::Interactive.
-    let (operation, milestone) = match cli.command {
-        None => ("TUI", "M4"),
-        Some(Command::Send(_)) => ("send (RoomApi binding required)", "M3"),
-        Some(Command::Export(_)) => ("export", "M3"),
-        Some(Command::Models) => ("models", "M3"),
-        Some(Command::Doctor { .. }) => unreachable!(),
+    let runtime = squad_cli::adapter::Runtime {
+        config: config.clone(),
     };
-    Err(CliFailure {
-        code: ErrorCode::COMMAND_NOT_IMPLEMENTED,
-        message: format!("{operation}: not implemented yet (milestone {milestone})"),
-    })
+    tokio::runtime::Runtime::new()
+        .map_err(|_| "Cannot start async runtime.")?
+        .block_on(async {
+            let result = match cli.command {
+                None => squad_cli::lifecycle::interactive(&runtime, config).await,
+                Some(Command::Send(args)) => {
+                    let mut stdout = std::io::stdout();
+                    let mut stderr = std::io::stderr();
+                    let mut output = squad_cli::output::Output {
+                        json: args.json,
+                        stdout: &mut stdout,
+                        stderr: &mut stderr,
+                    };
+                    squad_cli::lifecycle::send(&runtime, config, &args, &mut output, || {
+                        if !std::io::stdin().is_terminal() {
+                            return None;
+                        }
+                        use std::io::Write;
+                        eprint!("Confirm plan? [y/N] ");
+                        let _ = std::io::stderr().flush();
+                        let mut answer = String::new();
+                        std::io::stdin().read_line(&mut answer).ok()?;
+                        Some(matches!(
+                            answer.trim().to_ascii_lowercase().as_str(),
+                            "y" | "yes"
+                        ))
+                    })
+                    .await
+                }
+                _ => unreachable!(),
+            };
+            result.map_err(|e| CliFailure {
+                code: e.code,
+                message: e.message,
+            })
+        })
 }

@@ -34,6 +34,9 @@ pub enum Progress {
 pub trait RoomApi {
     type State: Serialize;
     fn submit(&self, request: Request) -> impl Future<Output = RequestResult>;
+    fn submit_commit_only(&self, request: Request) -> impl Future<Output = RequestResult> {
+        self.submit(request)
+    }
     fn subscribe(&self) -> broadcast::Receiver<FeedItem>;
     fn page_events(
         &self,
