@@ -301,6 +301,8 @@ The bottom bar shows the most useful keys for your terminal width.
 | `F8` | Shows or hides the participants panel. While it is open, `Up` / `Down` move through it. |
 | `F12` | Shows or hides the debug overlay. |
 | `PageUp` / `PageDown` | Scrolls the room. |
+| `Ctrl+F` | Opens or closes search over the loaded transcript. While open, `Enter` / `Down` go to the next match, `Shift+Enter` / `Up` to the previous, `Esc` closes. |
+| `Ctrl+Y` | Copies the selected or focused messages to the clipboard (OSC 52). |
 | `End` | Jumps back to live. |
 | `Enter` (room focused) | Opens the message action menu. `Enter` again quotes the selected messages (or the focused one). |
 | `y` / `n` | Confirms or cancels a pending cost preview. |
