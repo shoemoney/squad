@@ -105,7 +105,23 @@ async fn final_verdict_uses_frozen_case_bundle_and_its_own_provider_charge() {
     f.fake
         .completions(vec![structured_judge(valid_verdict())])
         .await;
-    let (id, _) = f.final_case();
+    let (id, case) = f.final_case();
+    let debate = f
+        .store
+        .call(move |db| {
+            let (work, _) = squad_store::work::template(db, id)?.unwrap();
+            let debate = work.debate_id.unwrap();
+            let state = squad_store::contests::debate(db, debate)?;
+            assert_eq!(state.state, DebateStatus::Judging);
+            assert!(state.judge_requested);
+            assert_eq!(state.case_id, Some(case));
+            let history = squad_store::history::read(db, &work.context_id, work.history_through)?;
+            assert!(history.iter().any(|entry| {
+                serde_json::from_str::<DebateAdjudicationBundle>(&entry.content).is_ok()
+            }));
+            Ok(debate)
+        })
+        .unwrap();
     let runtime = f.start(OpenMode::Interactive);
     f.until(|| f.status(id) == WorkStatus::Completed).await;
     assert_eq!(f.counts(), (0, 1, 45));
@@ -125,6 +141,21 @@ async fn final_verdict_uses_frozen_case_bundle_and_its_own_provider_charge() {
         })
         .unwrap();
     assert_eq!(verdicts, 1);
+    f.store
+        .call(move |db| {
+            assert_eq!(
+                squad_store::contests::debate(db, debate)?.state,
+                DebateStatus::Completed
+            );
+            let sealed: bool = db.query_row(
+                "SELECT decision_event_seq IS NOT NULL FROM cases WHERE case_id=?",
+                [case.to_string()],
+                |r| r.get(0),
+            )?;
+            assert!(sealed);
+            Ok(())
+        })
+        .unwrap();
     runtime.shutdown().await.unwrap();
 }
 

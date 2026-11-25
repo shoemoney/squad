@@ -70,7 +70,8 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
             &verdict.completed.generation
         }
         EnvelopePayload::DebateRoundScore(score) if work.kind == WorkKind::JudgeRound => {
-            if score.scores.is_none()
+            if (score.scores.is_none()
+                && work.attempt != u32::from(constants::ROUND_JUDGE_ATTEMPTS))
                 || Some(score.case_id) != work.case_id
                 || Some(score.debate_id) != work.debate_id
                 || Some(score.round) != work.round

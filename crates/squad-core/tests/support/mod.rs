@@ -277,172 +277,211 @@ impl Fixture {
             .unwrap()
     }
     pub fn round_case(&self) -> (WorkId, CaseId) {
-        let id = EventId::new();
+        self.debate_case(false)
+    }
+    pub fn final_case(&self) -> (WorkId, CaseId) {
+        self.debate_case(true)
+    }
+    fn debate_case(&self, final_verdict: bool) -> (WorkId, CaseId) {
+        let trigger = EventId::new();
+        let debate = DebateId::new();
         let case = CaseId::new();
         let work_id = WorkId::new();
+        let state = DebateState {
+            debate_id: debate,
+            state: if final_verdict {
+                DebateStatus::Judging
+            } else {
+                DebateStatus::RoundRunning
+            },
+            debaters: [nick("member0"), nick("member1")],
+            round: 1,
+            total_rounds: 1,
+            judge_model: MODEL.into(),
+            judge_requested: true,
+            state_version: 1,
+            terminal_reason: None,
+            case_id: None,
+            case_ids: vec![],
+        };
+        let setup = DebateSetup {
+            debate_id: debate,
+            topic_message_id: MessageId::from_event(trigger),
+            topic_text: "topic".into(),
+            solutions: state.debaters.clone().map(|nick| DebateSolution {
+                nick,
+                message_id: MessageId::new(),
+                text: "solution".into(),
+            }),
+            instruction: "instruction".into(),
+            rounds: 1,
+            judge_model: MODEL.into(),
+            judge_swapped: false,
+        };
+        let transcript = state.debaters.clone().map(|speaker| DebateTurn {
+            generation: GenerationIdentity {
+                message_id: MessageId::new(),
+                work_id: WorkId::new(),
+                trigger_event_id: trigger,
+                attempt: 1,
+            },
+            debate_id: debate,
+            round: 1,
+            speaker,
+            outcome: DebateTurnOutcome::Completed {
+                content: "argument".into(),
+                model: Text::new(MODEL).unwrap(),
+                finish_reason: FinishReason::Stop,
+                usage: None,
+            },
+        });
+        let retained_turns = transcript.clone();
+        // Seed accepted evidence; case opening and work admission use the router.
         self.store
-            .commit(id, "fixture".into(), id.to_string(), move |tx, group| {
-                let debate = DebateId::new();
-                let mut event = squad_core::router::envelope(
-                    id,
-                    Actor::Me,
-                    vec![Recipient::Judge],
-                    EnvelopePayload::UserMessage(UserMessage {
-                        input: UserMessageInput {
-                            message_id: MessageId::from_event(id),
-                            text: Text::new("round material").unwrap(),
-                            quote: None,
-                            reply_to: None,
-                        },
-                        body: "round material".into(),
-                        resolved_quotes: vec![],
-                        debate_id: None,
-                        case_id: None,
-                        contest_id: None,
-                    }),
-                );
-                event.base.id = id;
-                let seq = group.push(tx, event)?;
-                let state = DebateState {
-                    debate_id: debate,
-                    state: DebateStatus::RoundRunning,
-                    debaters: [nick("member0"), nick("member1")],
-                    round: 1,
-                    total_rounds: 1,
-                    judge_model: MODEL.into(),
-                    judge_requested: true,
-                    state_version: 1,
-                    terminal_reason: None,
-                    case_id: Some(case),
-                    case_ids: vec![case],
-                };
-                squad_store::contests::save_debate(tx, &state, None, seq)?;
-                let solutions = state.debaters.clone().map(|nick| DebateSolution {
-                    nick,
-                    message_id: MessageId::new(),
-                    text: "solution".into(),
-                });
-                let setup = DebateSetup {
-                    debate_id: debate,
-                    topic_message_id: MessageId::from_event(id),
-                    topic_text: "topic".into(),
-                    solutions: solutions.clone(),
-                    instruction: "instruction".into(),
-                    rounds: 1,
-                    judge_model: MODEL.into(),
-                    judge_swapped: false,
-                };
-                let opened = CaseOpened {
-                    case_id: case,
-                    judge_invocation_id: EventId::new(),
-                    work_id: Some(work_id),
-                    judge_model: Text::new(MODEL).unwrap(),
-                    material: CaseMaterial::Debate {
-                        setup,
-                        rubric_version: Text::new("v1").unwrap(),
-                    },
-                    debate_id: Some(debate),
-                    contest_id: Some(debate),
-                };
-                let seq = group.push(
-                    tx,
-                    squad_core::router::envelope(
-                        id,
-                        Actor::System,
-                        vec![Recipient::Me],
-                        EnvelopePayload::CaseOpened(opened.clone()),
-                    ),
+            .commit(
+                trigger,
+                "fixture".into(),
+                trigger.to_string(),
+                move |tx, group| {
+                    let seq = group.push(
+                        tx,
+                        squad_core::router::envelope(
+                            trigger,
+                            Actor::Member(retained_turns[0].speaker.clone()),
+                            vec![Recipient::Me],
+                            EnvelopePayload::DebateTurn(retained_turns[0].clone()),
+                        ),
+                    )?;
+                    squad_store::contests::save_debate(tx, &state, None, seq)?;
+                    group.push(
+                        tx,
+                        squad_core::router::envelope(
+                            trigger,
+                            Actor::Member(retained_turns[1].speaker.clone()),
+                            vec![Recipient::Me],
+                            EnvelopePayload::DebateTurn(retained_turns[1].clone()),
+                        ),
+                    )?;
+                    Ok(group.accepted(trigger))
+                },
+            )
+            .unwrap();
+        let bundle = DebateAdjudicationBundle {
+            topic: AdjudicationTopic {
+                message_id: setup.topic_message_id,
+                text: setup.topic_text.clone(),
+            },
+            solutions: setup.solutions.clone(),
+            transcript: transcript.into(),
+            instruction: setup.instruction.clone(),
+            rubric: FrozenDebateRubric {
+                version: "v1".into(),
+                criteria: vec![],
+                verdict_schema: serde_json::json!({}),
+            },
+            judge: JudgeProvenance {
+                model: MODEL.into(),
+                prompt_pack_version: "1.0.0".into(),
+                rendered_template_hashes: BTreeMap::new(),
+            },
+            round_scoring: DebateScoringEvidence {
+                round_scores: vec![],
+                round_tally: BTreeMap::from([(nick("member0"), 0), (nick("member1"), 0)]),
+                unscored_rounds: vec![],
+            },
+        };
+        let opened = CaseOpened {
+            case_id: case,
+            judge_invocation_id: EventId::new(),
+            work_id: Some(work_id),
+            judge_model: Text::new(MODEL).unwrap(),
+            material: CaseMaterial::Debate {
+                setup,
+                rubric_version: Text::new("v1").unwrap(),
+            },
+            debate_id: Some(debate),
+            contest_id: Some(debate),
+        };
+        let binding = ExecutorBinding {
+            model: Text::new(MODEL).unwrap(),
+            effort: ReasoningEffort::High,
+        };
+        let mut bindings: BTreeMap<_, _> = self
+            .config
+            .agents
+            .iter()
+            .map(|a| (a.nick.to_string(), binding.clone()))
+            .collect();
+        bindings.insert("judge".into(), binding);
+        let mut router = Router::new(
+            self.store.clone(),
+            self.config.agents.iter().map(|a| a.nick.clone()).collect(),
+            bindings,
+            20_000_000,
+        )
+        .unwrap();
+        let event = squad_core::router::envelope(
+            trigger,
+            Actor::System,
+            vec![Recipient::Me],
+            EnvelopePayload::CaseOpened(opened),
+        );
+        let case_trigger = event.base.id;
+        router.open_debate_case(event, bundle).unwrap();
+        let context = ContextId(format!("judge:{case}"));
+        let boundary_context = context.clone();
+        let boundary = self
+            .store
+            .call(move |db| {
+                let pos = db.query_row(
+                    "SELECT MAX(pos) FROM history WHERE context_id=?",
+                    [boundary_context.0],
+                    |r| r.get(0),
                 )?;
-                squad_store::cases::open(tx, &opened, seq)?;
-                let transcript = state.debaters.clone().map(|speaker| DebateTurn {
-                    generation: GenerationIdentity {
-                        message_id: MessageId::new(),
-                        work_id: WorkId::new(),
-                        trigger_event_id: id,
-                        attempt: 1,
-                    },
-                    debate_id: debate,
-                    round: 1,
-                    speaker,
-                    outcome: DebateTurnOutcome::Completed {
-                        content: "argument".into(),
-                        model: Text::new(MODEL).unwrap(),
-                        finish_reason: FinishReason::Stop,
-                        usage: None,
-                    },
-                });
-                let bundle = DebateAdjudicationBundle {
-                    topic: AdjudicationTopic {
-                        message_id: MessageId::from_event(id),
-                        text: "topic".into(),
-                    },
-                    solutions,
-                    transcript: transcript.into(),
-                    instruction: "instruction".into(),
-                    rubric: FrozenDebateRubric {
-                        version: "v1".into(),
-                        criteria: vec![],
-                        verdict_schema: serde_json::json!({}),
-                    },
-                    judge: JudgeProvenance {
-                        model: MODEL.into(),
-                        prompt_pack_version: "1.0.0".into(),
-                        rendered_template_hashes: BTreeMap::new(),
-                    },
-                    round_scoring: DebateScoringEvidence {
-                        round_scores: vec![],
-                        round_tally: BTreeMap::from([(nick("member0"), 0), (nick("member1"), 0)]),
-                        unscored_rounds: vec![],
-                    },
-                };
-                let context = ContextId(format!("judge:{case}"));
-                let source = squad_store::events::at(tx, seq.get())?;
-                let boundary = squad_store::history::project(
-                    tx,
-                    &squad_store::history::attributed(
-                        &source,
-                        context.clone(),
-                        "case.bundle",
-                        HistoryRole::User,
-                        None,
-                        serde_json::to_string(&bundle)?,
-                    ),
-                )?
-                .unwrap();
-                let work = Work {
-                    work_id,
-                    message_id: MessageId::new(),
-                    in_reply_to_message_id: None,
-                    kind: WorkKind::JudgeRound,
-                    target: Target::Judge,
-                    context_id: context,
-                    trigger_event_id: id,
-                    history_through: boundary,
-                    attempt: 1,
-                    debate_id: Some(debate),
-                    round: Some(1),
-                    replay: None,
-                    case_id: Some(case),
-                    prompt_ref: Some(PromptRef {
-                        template_id: Text::new("judge.round.md").unwrap(),
-                        pack_version: Text::new("1.0.0").unwrap(),
-                        template_hash: Text::new("fixture").unwrap(),
-                    }),
-                    max_output_tokens: Some(constants::ROUND_JUDGE_VISIBLE_TOKENS),
-                    contest_id: Some(debate),
-                    step_id: None,
-                };
-                squad_store::work::insert(
-                    tx,
-                    &work,
-                    &ExecutorBinding {
-                        model: Text::new(MODEL).unwrap(),
-                        effort: ReasoningEffort::High,
-                    },
-                    None,
-                )?;
-                Ok(group.accepted(id))
+                Ok(HistoryPosition::new(pos).unwrap())
             })
+            .unwrap();
+        let state = router.debate_state(debate).unwrap();
+        assert!(state.judge_requested);
+        assert_eq!(state.case_id, Some(case));
+        let work = Work {
+            work_id,
+            message_id: MessageId::new(),
+            in_reply_to_message_id: None,
+            kind: if final_verdict {
+                WorkKind::Judge
+            } else {
+                WorkKind::JudgeRound
+            },
+            target: Target::Judge,
+            context_id: context,
+            trigger_event_id: case_trigger,
+            history_through: boundary,
+            attempt: 1,
+            debate_id: Some(debate),
+            round: if final_verdict { None } else { Some(1) },
+            replay: None,
+            case_id: Some(case),
+            prompt_ref: Some(PromptRef {
+                template_id: Text::new(if final_verdict {
+                    "judge.debate"
+                } else {
+                    "judge.round.md"
+                })
+                .unwrap(),
+                pack_version: Text::new("1.0.0").unwrap(),
+                template_hash: Text::new("fixture").unwrap(),
+            }),
+            max_output_tokens: Some(if final_verdict {
+                constants::FINAL_JUDGE_VISIBLE_TOKENS
+            } else {
+                constants::ROUND_JUDGE_VISIBLE_TOKENS
+            }),
+            contest_id: Some(debate),
+            step_id: None,
+        };
+        router
+            .allocate_work(EventId::new(), debate, state.state_version, vec![work])
             .unwrap();
         (work_id, case)
     }
@@ -450,19 +489,6 @@ impl Fixture {
         self.store
             .call(move |db| Ok(squad_store::work::record(db, id)?.unwrap().status))
             .unwrap()
-    }
-}
-impl Fixture {
-    pub fn final_case(&self) -> (WorkId, CaseId) {
-        let (id, case) = self.round_case();
-        self.store.call(move |db| {
-            let (mut work,binding)=squad_store::work::template(db,id)?.unwrap();
-            work.kind=WorkKind::Judge; work.round=None; work.max_output_tokens=Some(constants::FINAL_JUDGE_VISIBLE_TOKENS);
-            work.prompt_ref.as_mut().unwrap().template_id=Text::new("judge.debate").unwrap();
-            db.execute("UPDATE work SET kind='judge',round=NULL,max_output_tokens=?,prompt_ref=?,scheduling_meta=? WHERE work_id=?",rusqlite::params![work.max_output_tokens,serde_json::to_string(&work.prompt_ref)?,serde_json::json!({"work":work,"binding":binding}).to_string(),id.to_string()])?;
-            Ok(())
-        }).unwrap();
-        (id, case)
     }
 }
 pub fn valid_verdict() -> serde_json::Value {
