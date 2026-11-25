@@ -111,7 +111,12 @@ async fn noninteractive_preflight_never_confirms_or_admits() {
     let (code, output, errors) = send(&room, &args("@all hello", true, false), None).await;
     assert_eq!(code, 1);
     assert!(errors.is_empty());
-    assert_eq!(room.requests.borrow().len(), 1);
+    // The refused plan is cancelled so the --yes re-run is not rejected as busy.
+    assert_eq!(room.requests.borrow().len(), 2);
+    assert!(matches!(
+        room.requests.borrow()[1],
+        Request::ContestCancel { .. }
+    ));
     assert_eq!(room.shutdowns.get(), 1);
     assert!(output.contains("Confirmation required"));
     assert!(!output.contains("\"type\":\"ack\""));

@@ -177,25 +177,40 @@ fn layer(data_dir: &Path, secrets: Vec<String>) -> Result<JsonFileLayer, String>
     })
 }
 
+pub fn secrets(key: &squad_protocol::config::OpenRouterApiKey) -> Result<Vec<String>, String> {
+    Ok(vec![
+        key.authorization_header()
+            .map_err(|_| "Cannot initialize credential redaction.".to_owned())?
+            .to_str()
+            .map_err(|_| "Cannot initialize credential redaction.".to_owned())?
+            .strip_prefix("Bearer ")
+            .unwrap_or_default()
+            .to_owned(),
+    ])
+}
+
 pub fn init(
     data_dir: &Path,
     level: LevelFilter,
     key: &squad_protocol::config::OpenRouterApiKey,
 ) -> Result<(), String> {
+    init_with_bus(data_dir, level, key, None)
+}
+
+pub fn init_with_bus(
+    data_dir: &Path,
+    level: LevelFilter,
+    key: &squad_protocol::config::OpenRouterApiKey,
+    bus: Option<&squad_cli::buslog::BusLog>,
+) -> Result<(), String> {
+    use tracing_subscriber::Layer as _;
+    let bus_layer = bus.map(|bus| {
+        bus.install();
+        bus.layer().with_filter(LevelFilter::DEBUG)
+    });
     tracing_subscriber::registry()
-        .with(level)
-        .with(layer(
-            data_dir,
-            vec![
-                key.authorization_header()
-                    .map_err(|_| "Cannot initialize credential redaction.".to_owned())?
-                    .to_str()
-                    .map_err(|_| "Cannot initialize credential redaction.".to_owned())?
-                    .strip_prefix("Bearer ")
-                    .unwrap_or_default()
-                    .to_owned(),
-            ],
-        )?)
+        .with(bus_layer)
+        .with(layer(data_dir, secrets(key)?)?.with_filter(level))
         .try_init()
         .map_err(|_| "Cannot initialize file logging.".into())
 }

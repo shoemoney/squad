@@ -145,8 +145,10 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
             }
         }
         print!("{}", report.text);
-        if cli.bus_log.is_some() {
-            return Err("Bus diagnostics: not implemented yet (milestone M3)".into());
+        // Doctor never opens the room, so there are no bus events to record; the
+        // log is still created (owner-only) so the flag is honored consistently.
+        if let Some(path) = &cli.bus_log {
+            squad_cli::buslog::BusLog::open(path, cli.bus_log_bodies, Vec::new())?;
         }
         return Ok(report.code);
     }
@@ -165,10 +167,22 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
             config.data_dir.display()
         )
     })?;
-    logging::init(
+    let bus_log = cli
+        .bus_log
+        .as_deref()
+        .map(|path| {
+            squad_cli::buslog::BusLog::open(
+                path,
+                cli.bus_log_bodies,
+                logging::secrets(&config.openrouter_api_key)?,
+            )
+        })
+        .transpose()?;
+    logging::init_with_bus(
         &config.data_dir,
         logging::level(config.log_level),
         &config.openrouter_api_key,
+        bus_log.as_ref(),
     )?;
     tracing::info!("CLI initialized");
     let runtime = squad_cli::adapter::Runtime {

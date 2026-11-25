@@ -530,7 +530,6 @@ fn bus_log_bodies_flag_requires_bus_log_and_is_documented() {
 /// nothing consumes it (no file is written), and `doctor --bus-log` still fails
 /// with "not implemented yet (milestone M3)" at crates/squad-cli/src/main.rs:148.
 #[tokio::test]
-#[ignore = "product bug: --bus-log writes nothing for send (args.rs:22, main.rs:148)"]
 async fn bus_log_is_written_and_bodies_require_the_explicit_flag() {
     let server = provider_with(vec![fake_openrouter::streaming("Reply", "stop"); 2]).await;
     let root = tempfile::tempdir().unwrap();
@@ -568,7 +567,6 @@ async fn bus_log_is_written_and_bodies_require_the_explicit_flag() {
 /// (crates/squad-cli/src/send.rs:224-232 returns without ContestCancel), so the
 /// re-run is rejected with CONTEST_BUSY / DEBATE_BUSY until the plan expires.
 #[tokio::test]
-#[ignore = "product bug: refused preflight blocks the --yes re-run (send.rs:224-232)"]
 async fn rerun_with_yes_after_a_refused_preflight_is_admitted() {
     let server = provider().await;
     for message in [

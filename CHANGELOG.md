@@ -63,6 +63,8 @@ macOS arm64 installation evidence remain pending the owner's decision.
 
 ### Fixed
 
+- `--bus-log` / `--bus-log-bodies` now write request, commit and wake-up JSON lines (bodies only with the explicit flag); `doctor --bus-log` no longer errors.
+- A refused noninteractive preflight is cancelled, so the `--yes` re-run is admitted instead of failing with `CONTEST_BUSY` / `DEBATE_BUSY`.
 - Startup credential exposure through non-UTF-8 environment errors.
 - Doctor configuration reporting and setup script toolchain handling.
 - Terminal control sequences are stripped from CLI replies and exports.
@@ -77,6 +79,9 @@ macOS arm64 installation evidence remain pending the owner's decision.
 - (fixed) the prompt pack now lives in `crates/squad-core/prompts/`, inside the
   `squad-core` package, so a registry package of `squad-core` carries every
   embedded prompt.
+- `squad-core` embeds the repository-root `prompts/` directory, which is not
+  part of its package, so a registry package of `squad-core` cannot build.
+  `cargo install --path` and cargo-dist builds are unaffected.
 
 ### Planned after v1
 
