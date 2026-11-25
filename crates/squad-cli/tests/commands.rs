@@ -44,10 +44,7 @@ fn deferred_commands_fail_explicitly_without_fake_output() {
             vec!["send", "hello", "--json"],
             "send: not implemented yet (milestone M3)",
         ),
-        (
-            vec!["export", "room"],
-            "export: not implemented yet (milestone M3)",
-        ),
+        (vec!["export", "room"], "export room: not available yet"),
         (vec!["models"], "models: not implemented yet (milestone M3)"),
     ] {
         let output = invoke(temp.path(), &args, Some("sk-test-not-a-real-key"));
@@ -164,6 +161,7 @@ fn non_utf8_environment_never_panics_or_prints_values() {
         if expected == 1 {
             assert!(String::from_utf8_lossy(&output.stdout).contains(variable));
         }
+        assert!(!String::from_utf8_lossy(&output.stdout).contains("key is required"));
     }
 }
 
@@ -192,7 +190,7 @@ fn doctor_reports_all_errors_and_uses_file_data_directory() {
 
 #[cfg(unix)]
 #[test]
-fn doctor_preserves_existing_directory_mode_and_accepts_symlinks() {
+fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
     use std::os::unix::fs::{PermissionsExt, symlink};
     let temp = tempfile::tempdir().unwrap();
     let data = temp.path().join("data");
@@ -204,6 +202,16 @@ fn doctor_preserves_existing_directory_mode_and_accepts_symlinks() {
         let text = String::from_utf8(output.stdout).unwrap();
         assert!(text.contains("Data directory: writable"), "{text}");
         assert!(text.contains("Data directory mode: 0755"));
+        let output = invoke(
+            temp.path(),
+            &["send", "hello", "--data-dir", path],
+            Some("fixture"),
+        );
+        assert_eq!(output.status.code(), Some(1));
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr).trim(),
+            "send: not implemented yet (milestone M3)"
+        );
         assert_eq!(
             std::fs::metadata(&data).unwrap().permissions().mode() & 0o777,
             0o755
@@ -240,5 +248,72 @@ fn quoted_references_do_not_consume_the_message() {
         let output = invoke(temp.path(), &args, Some("fixture"));
         assert_eq!(output.status.code(), Some(1));
         assert!(String::from_utf8_lossy(&output.stderr).contains("send: not implemented"));
+    }
+}
+
+#[test]
+fn all_export_scopes_are_visible_typed_and_explicitly_unavailable() {
+    let temp = tempfile::tempdir().unwrap();
+    let help = invoke(temp.path(), &["export", "--help"], None);
+    let help = String::from_utf8(help.stdout).unwrap();
+    for scope in [
+        "room",
+        "debate",
+        "grill",
+        "tournament",
+        "census",
+        "crosscheck",
+        "survey",
+        "probe",
+    ] {
+        assert!(help.contains(scope), "{help}");
+        let mut args = vec!["export", scope];
+        if scope != "room" {
+            let missing = invoke(temp.path(), &args, None);
+            assert_eq!(missing.status.code(), Some(2));
+            args.push("invalid-id");
+            assert_eq!(invoke(temp.path(), &args, None).status.code(), Some(2));
+            args.pop();
+            args.push("01900000-0000-7000-8000-000000000001");
+        }
+        args.extend(["-o", "out.md"]);
+        let output = invoke(temp.path(), &args, None);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr).trim(),
+            format!("export {scope}: not available yet")
+        );
+    }
+    assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);
+}
+
+#[cfg(unix)]
+#[test]
+fn invalid_utf8_key_has_only_the_encoding_diagnostic_for_every_command() {
+    use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+    let temp = tempfile::tempdir().unwrap();
+    for args in [vec![], vec!["doctor"], vec!["send", "hello"]] {
+        let output = Command::new(env!("CARGO_BIN_EXE_squad"))
+            .env_clear()
+            .env("HOME", temp.path())
+            .env(
+                "OPENROUTER_API_KEY",
+                OsString::from_vec(b"secret-never-print\xff".to_vec()),
+            )
+            .current_dir(temp.path())
+            .args(&args)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(text.matches("OPENROUTER_API_KEY").count(), 1, "{text}");
+        assert!(text.contains("OPENROUTER_API_KEY must contain valid UTF-8."));
+        assert!(!text.contains("is required"));
+        assert!(!text.contains("secret-never-print"));
     }
 }

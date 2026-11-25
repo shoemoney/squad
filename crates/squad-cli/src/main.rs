@@ -28,7 +28,26 @@ fn run(cli: Cli) -> Result<u8, String> {
     options.data_dir = cli.data_dir;
     let mut effective = squad_protocol::config::EffectiveEnvironment::load(&options, &environment);
     effective.errors.extend(environment_errors);
-    let config = effective.validate(&options);
+    let config = effective.validate(&options).map_err(|mut errors| {
+        // The snapshot blanks invalid UTF-8 values to keep them out of diagnostics.
+        // Preserve the specific encoding error without claiming the key is missing.
+        if errors.iter().any(|error| {
+            matches!(error,
+            squad_protocol::config::ConfigError::NonUtf8Environment(name)
+                if name == "OPENROUTER_API_KEY")
+        }) {
+            errors.retain(|error| {
+                !matches!(error, squad_protocol::config::ConfigError::MissingApiKey)
+            });
+        }
+        errors
+    });
+    if let Some(Command::Export(export)) = &cli.command {
+        let scope = serde_json::to_value(&export.scope).expect("scope serializes");
+        let scope = scope.as_str().expect("scope is a string");
+        let _ = (export.id, &export.output);
+        return Err(format!("export {scope}: not available yet"));
+    }
     if let Some(Command::Doctor { env: show_env }) = cli.command {
         let report = doctor::run(
             &config,

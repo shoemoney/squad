@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, FromArgMatches, Parser, Subcommand};
+use squad_protocol::{ContestId, ExportScope};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -60,26 +61,92 @@ pub struct Send {
     pub no_wait: bool,
 }
 
-#[derive(Debug, Args)]
+#[derive(Debug)]
 pub struct Export {
-    #[command(subcommand)]
     pub scope: ExportScope,
-    /// Write UTF-8 markdown to that path and print the resulting path
-    #[arg(short = 'o', global = true, value_name = "file")]
+    pub id: Option<ContestId>,
     pub output: Option<PathBuf>,
 }
 
-// TODO(M3.P3): replace contest ID strings with the shared EventId validator.
-#[derive(Debug, Subcommand)]
-pub enum ExportScope {
-    /// Export the room
-    Room,
-    /// Export the debate with this contest ID
-    Debate { id: String },
-    /// Export the tournament with this contest ID
-    Tournament { id: String },
-    /// Export the grill with this contest ID
-    Grill { id: String },
+impl Export {
+    fn scopes() -> impl Iterator<Item = (ExportScope, String)> {
+        [
+            ExportScope::Room,
+            ExportScope::Debate,
+            ExportScope::Grill,
+            ExportScope::Tournament,
+            ExportScope::Census,
+            ExportScope::Crosscheck,
+            ExportScope::Survey,
+            ExportScope::Probe,
+        ]
+        .into_iter()
+        .map(|scope| {
+            let name = serde_json::to_value(&scope)
+                .expect("scope serializes")
+                .as_str()
+                .expect("scope is a string")
+                .to_owned();
+            (scope, name)
+        })
+    }
+}
+
+// Adapt the protocol enum to clap without coupling protocol to a CLI dependency.
+impl Args for Export {
+    fn augment_args(command: clap::Command) -> clap::Command {
+        let mut command = command.subcommand_required(true).arg(
+            clap::Arg::new("output")
+                .short('o')
+                .global(true)
+                .value_name("file")
+                .help("Write UTF-8 markdown to that path and print the resulting path")
+                .value_parser(clap::value_parser!(PathBuf)),
+        );
+        for (scope, name) in Self::scopes() {
+            let mut subcommand = clap::Command::new(name.clone())
+                .about(format!("Export {name} (not available yet)"));
+            if scope != ExportScope::Room {
+                subcommand = subcommand.arg(
+                    clap::Arg::new("id")
+                        .required(true)
+                        .value_name("contest-id")
+                        .value_parser(clap::value_parser!(ContestId)),
+                );
+            }
+            command = command.subcommand(subcommand);
+        }
+        command
+    }
+
+    fn augment_args_for_update(command: clap::Command) -> clap::Command {
+        Self::augment_args(command)
+    }
+}
+
+impl FromArgMatches for Export {
+    fn from_arg_matches(matches: &clap::ArgMatches) -> Result<Self, clap::Error> {
+        let (name, args) = matches.subcommand().expect("required export scope");
+        let scope = Self::scopes()
+            .find(|(_, candidate)| candidate == name)
+            .expect("clap validated scope")
+            .0;
+        let id = if scope == ExportScope::Room {
+            None
+        } else {
+            args.get_one::<ContestId>("id").copied()
+        };
+        Ok(Self {
+            scope,
+            id,
+            output: args.get_one::<PathBuf>("output").cloned(),
+        })
+    }
+
+    fn update_from_arg_matches(&mut self, matches: &clap::ArgMatches) -> Result<(), clap::Error> {
+        *self = Self::from_arg_matches(matches)?;
+        Ok(())
+    }
 }
 
 impl Cli {
@@ -132,10 +199,19 @@ mod tests {
         assert_eq!(send.message, "@all hello");
         assert_eq!(send.quote, [1, 2, 3]);
         assert!(send.yes && send.json && send.no_wait);
-        for scope in ["room", "debate", "tournament", "grill"] {
+        for scope in [
+            "room",
+            "debate",
+            "tournament",
+            "grill",
+            "census",
+            "crosscheck",
+            "survey",
+            "probe",
+        ] {
             let mut args = vec!["squad", "export", scope];
             if scope != "room" {
-                args.push("contest-id");
+                args.push("01900000-0000-7000-8000-000000000001");
             }
             args.extend(["-o", "out.md"]);
             let cli = Cli::try_parse_from(args).unwrap();
@@ -143,6 +219,8 @@ mod tests {
                 panic!("expected export")
             };
             assert_eq!(export.output, Some(PathBuf::from("out.md")));
+            assert_eq!(export.id.is_some(), scope != "room");
+            assert_eq!(serde_json::to_value(export.scope).unwrap(), scope);
         }
         assert!(matches!(
             Cli::try_parse_from(["squad", "models"]).unwrap().command,

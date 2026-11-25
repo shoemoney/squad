@@ -11,11 +11,9 @@ pub fn create_private_dir(path: &Path) -> io::Result<()> {
         builder.mode(0o700);
     }
     builder.create(path)?;
-    let metadata = fs::symlink_metadata(path)?;
-    if !metadata.is_dir() || metadata.file_type().is_symlink() {
-        return Err(io::Error::other(
-            "application directory must be a directory, not a symlink",
-        ));
+    let metadata = fs::metadata(path)?;
+    if !metadata.is_dir() {
+        return Err(io::Error::other("application path must be a directory"));
     }
     Ok(())
 }
