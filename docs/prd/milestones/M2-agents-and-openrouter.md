@@ -120,7 +120,7 @@
 - **M2.P2.L6 — Render and load configured prompts**
   - [x] M2.P2.L6.T1 — Implement strict single-pass rendering and `serde_json` serialization in crate `squad-core`, file `crates/squad-core/src/prompts/render.rs`.
   - [x] M2.P2.L6.T2 — Implement embedded-default loading, `SQUAD_PROMPTS_DIR` overrides, and startup placeholder validation in crate `squad-core`, file `crates/squad-core/src/prompts/load.rs`.
-  - [ ] M2.P2.L6.T3 — Provide the opaque prompt-rendering capability to `squad-agents` without a reverse crate dependency in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
+  - [x] M2.P2.L6.T3 — Provide the opaque prompt-rendering capability to `squad-agents` without a reverse crate dependency in crate `squad-core`, file `crates/squad-core/src/prompts/mod.rs`.
   - [x] M2.P2.L6.T4 — Test embedded defaults, partial overrides, unknown and missing placeholders, single-pass insertion, and one-message judge composition using contract fixtures in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
   - [x] M2.P2.L6.T5 — Test all four modes’ template registration, partial overrides, strict placeholder validation, and schema-preserving payload serialization in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
 
