@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     context::{ContextError, MemberPrompt, member_messages},
-    worker::{ExecutionFuture, WorkExecutor, start_attempt},
+    worker::{ExecutionFuture, WorkExecutor, start_attempt_sized},
 };
 
 pub struct MemberExecutor {
@@ -11,7 +11,53 @@ pub struct MemberExecutor {
     pub prompt: MemberPrompt,
     pub context_length: u64,
 }
+impl MemberExecutor {
+    fn shaped(&self, grant: &ExecutionGrant) -> ChatRequest {
+        let mut request = self.request.clone();
+        request.model = grant.binding.model.to_string();
+        request.reasoning_effort = grant.binding.effort;
+        request.visible_ceiling =
+            grant
+                .work
+                .max_output_tokens
+                .unwrap_or(if grant.work.kind == WorkKind::Reply {
+                    constants::REPLY_VISIBLE_TOKENS
+                } else {
+                    constants::DEBATE_TURN_VISIBLE_TOKENS
+                });
+        request.policy = ExecutionPolicy::SingleAttempt(if grant.work.kind == WorkKind::Reply {
+            DeadlineClass::Ordinary
+        } else {
+            DeadlineClass::DebateTurn
+        });
+        request
+    }
+}
 impl WorkExecutor for MemberExecutor {
+    fn estimate_input<'a>(
+        &'a self,
+        context: &'a AgentContext,
+        grant: &'a ExecutionGrant,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<u64>> + Send + 'a>> {
+        Box::pin(async move {
+            if !matches!(grant.work.kind, WorkKind::Reply | WorkKind::DebateTurn) {
+                return None;
+            }
+            let request = self.shaped(grant);
+            let reservation = request.body().ok()?["max_tokens"].as_u64()?;
+            let messages = member_messages(
+                context,
+                grant,
+                &self.prompt,
+                self.context_length,
+                reservation,
+            )
+            .await
+            .ok()?;
+            Some(crate::context::estimate(&messages))
+        })
+    }
+
     fn execute<'a>(
         &'a self,
         context: &'a AgentContext,
@@ -31,24 +77,7 @@ impl WorkExecutor for MemberExecutor {
                 if cancel.is_cancelled() {
                     return Err(ReaderError::StaleWork);
                 }
-                let mut request = self.request.clone();
-                request.model = grant.binding.model.to_string();
-                request.reasoning_effort = grant.binding.effort;
-                request.visible_ceiling =
-                    grant
-                        .work
-                        .max_output_tokens
-                        .unwrap_or(if grant.work.kind == WorkKind::Reply {
-                            constants::REPLY_VISIBLE_TOKENS
-                        } else {
-                            constants::DEBATE_TURN_VISIBLE_TOKENS
-                        });
-                request.policy =
-                    ExecutionPolicy::SingleAttempt(if grant.work.kind == WorkKind::Reply {
-                        DeadlineClass::Ordinary
-                    } else {
-                        DeadlineClass::DebateTurn
-                    });
+                let mut request = self.shaped(&grant);
                 let body = request.body().map_err(|_| ReaderError::NotRunnable)?;
                 let reservation = body["max_tokens"]
                     .as_u64()
@@ -180,7 +209,14 @@ impl WorkExecutor for MemberExecutor {
                                 return Err(ReaderError::NotRunnable);
                             }
                             tokio::select! { biased; _ = cancel.cancelled() => return Err(ReaderError::StaleWork), _ = tokio::time::sleep(delay) => {} }
-                            grant = start_attempt(context, &grant, grant.work.attempt + 1).await?;
+                            let input_tokens = self.estimate_input(context, &grant).await;
+                            grant = start_attempt_sized(
+                                context,
+                                &grant,
+                                grant.work.attempt + 1,
+                                input_tokens,
+                            )
+                            .await?;
                         } else {
                             let code = match &error {
                                 TransportError::Cancelled => ErrorCode::WORK_CANCELLED,

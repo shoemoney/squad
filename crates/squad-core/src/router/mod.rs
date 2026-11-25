@@ -495,7 +495,16 @@ impl Router {
                 work_id,
                 attempt,
                 fence,
-            } => executor::start(&self.store, owner, work_id, attempt, fence, max),
+                input_tokens,
+            } => executor::start(
+                &self.store,
+                owner,
+                work_id,
+                attempt,
+                fence,
+                input_tokens,
+                max,
+            ),
             ExecutorRequest::Account { epoch, record, .. } => {
                 executor::account(&self.store, owner, epoch, record, max)
             }

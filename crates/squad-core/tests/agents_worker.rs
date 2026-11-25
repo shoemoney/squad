@@ -278,7 +278,7 @@ async fn dispatch_rechecks_outstanding_reservations_against_current_limit() {
         panic!("claim")
     };
     assert!(
-        matches!(submit.submit(ExecutorRequest::StartAttempt{work_id:id,attempt:grant.work.attempt,fence:grant.fence}).await,RequestResult::Rejected{error,..} if error.code==ErrorCode::DAILY_MAX_REACHED)
+        matches!(submit.submit(ExecutorRequest::StartAttempt{ input_tokens: None,work_id:id,attempt:grant.work.attempt,fence:grant.fence}).await,RequestResult::Rejected{error,..} if error.code==ErrorCode::DAILY_MAX_REACHED)
     );
     assert_eq!(f.counts().1, 0);
     assert_eq!(f.status(id), WorkStatus::Failed);

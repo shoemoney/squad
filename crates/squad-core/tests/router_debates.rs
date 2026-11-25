@@ -375,6 +375,7 @@ async fn complete_reply(store: &Store, router: &mut Router, name: &str) {
     router
         .process(
             Request::Internal(InternalRequest::Executor(ExecutorRequest::StartAttempt {
+                input_tokens: None,
                 work_id: record.work_id,
                 attempt: 1,
                 fence: grant.fence,
@@ -586,6 +587,7 @@ fn start(router: &mut Router, work: WorkId, case: CaseId) -> ExecutionGrant {
     router
         .process(
             Request::Internal(InternalRequest::Executor(ExecutorRequest::StartAttempt {
+                input_tokens: None,
                 work_id: work,
                 attempt: grant.work.attempt,
                 fence: grant.fence,
@@ -1414,6 +1416,7 @@ async fn plan_reservation_metadata_and_frozen_turn_inputs_survive_mid_round_mess
     router
         .process(
             Request::Internal(InternalRequest::Executor(ExecutorRequest::StartAttempt {
+                input_tokens: None,
                 work_id,
                 attempt: 1,
                 fence: grant.fence,
@@ -1767,6 +1770,7 @@ async fn assigned_artifacts_and_skipped_outcomes_commit_with_their_barriers() {
             router
                 .process(
                     Request::Internal(InternalRequest::Executor(ExecutorRequest::StartAttempt {
+                        input_tokens: None,
                         work_id,
                         attempt: 1,
                         fence: grant.fence,

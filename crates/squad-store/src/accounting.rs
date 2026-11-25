@@ -211,13 +211,15 @@ fn split_plan_reservation(db: &Connection, grant: &ExecutionGrant, day: &str) ->
 }
 
 /// Ordinary work has no contest preflight. Reserve its remaining permitted calls
-/// atomically with provider start, using the resolved catalog and full context
-/// ceiling (including the adapter's safety margin). Unknown prices fail closed.
+/// atomically with provider start, using the resolved catalog prices, the prompt
+/// token estimate of this request and its complete output reservation. Without
+/// an estimate the full context ceiling is reserved. Unknown prices fail closed.
 pub fn start_priced(
     db: &Connection,
     grant: &ExecutionGrant,
     now: DateTime,
     day: &str,
+    input_tokens: Option<u64>,
     max: i64,
 ) -> Result<()> {
     db.execute_batch("SAVEPOINT priced_start")?;
@@ -237,7 +239,7 @@ pub fn start_priced(
             && meta.get("planId").is_none()
             && meta.get("attemptReservationMicros").is_none()
         {
-            reserve_dispatch(db, grant, day, max)?;
+            reserve_dispatch(db, grant, day, input_tokens, max)?;
         }
         start_inner(db, grant, now, day, max)
     })();
@@ -248,7 +250,14 @@ pub fn start_priced(
     result
 }
 
-fn reserve_dispatch(db: &Connection, grant: &ExecutionGrant, day: &str, max: i64) -> Result<()> {
+/// Price one provider attempt of ordinary work: the prompt this request actually
+/// assembled (or, when unknown, the largest prompt the context window admits)
+/// plus the complete output reservation (visible ceiling and reasoning budget).
+fn dispatch_unit(
+    db: &Connection,
+    grant: &ExecutionGrant,
+    input_tokens: Option<u64>,
+) -> Result<i64> {
     let unknown = || {
         StoreError::Domain(
             ErrorCode::COST_UNKNOWN,
@@ -298,13 +307,42 @@ fn reserve_dispatch(db: &Connection, grant: &ExecutionGrant, day: &str, max: i64
         ) + reasoning,
     );
     let context = context as u64;
-    let input = context.saturating_sub(output + 1024.max(context.div_ceil(20)));
-    let unit =
-        reservation_micros(input as f64 * price("prompt")? + output as f64 * price("completion")?)
-            .map_err(|_| unknown())?;
-    let limit = u32::from(constants::attempt_limit(&grant.work.kind));
-    // The attempt about to run is always reserved, so the amount cannot go negative.
-    let remaining = limit.saturating_sub(grant.work.attempt.saturating_sub(1)).max(1);
+    // The adapter refuses any prompt above this budget, so it also bounds the estimate.
+    let ceiling = context.saturating_sub(output + 1024.max(context.div_ceil(20)));
+    let input = input_tokens.map_or(ceiling, |tokens| tokens.min(ceiling));
+    reservation_micros(input as f64 * price("prompt")? + output as f64 * price("completion")?)
+        .map_err(|_| unknown())
+}
+
+/// Remaining permitted attempts for ordinary work, counting the one about to run.
+fn remaining_attempts(grant: &ExecutionGrant) -> u32 {
+    u32::from(constants::attempt_limit(&grant.work.kind))
+        .saturating_sub(grant.work.attempt.saturating_sub(1))
+        .max(1)
+}
+
+/// What an ordinary dispatch needs reserved in total (for admission messages).
+pub fn dispatch_required_micros(
+    db: &Connection,
+    grant: &ExecutionGrant,
+    input_tokens: Option<u64>,
+) -> Result<i64> {
+    dispatch_unit(db, grant, input_tokens)?
+        .checked_mul(i64::from(remaining_attempts(grant)))
+        .ok_or(StoreError::Domain(
+            ErrorCode::COST_UNKNOWN,
+            "Resolved model pricing is unavailable",
+        ))
+}
+
+fn reserve_dispatch(
+    db: &Connection,
+    grant: &ExecutionGrant,
+    day: &str,
+    input_tokens: Option<u64>,
+    max: i64,
+) -> Result<()> {
+    let unit = dispatch_unit(db, grant, input_tokens)?;
     let pool = format!("dispatch:{}", grant.work.work_id);
     transfer_unstarted(db, grant.work.work_id, day)?;
     let prior: Option<i64> = db
@@ -314,7 +352,7 @@ fn reserve_dispatch(db: &Connection, grant: &ExecutionGrant, day: &str, max: i64
             |r| r.get(0),
         )
         .optional()?;
-    let needed = unit.checked_mul(i64::from(remaining)).ok_or_else(unknown)?;
+    let needed = dispatch_required_micros(db, grant, input_tokens)?;
     if let Some(prior) = prior {
         // Reprice remaining calls after restart or catalog refresh. Started shares
         // retain their original amounts and billing day.

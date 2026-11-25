@@ -13,6 +13,16 @@ pub trait WorkExecutor: Send + Sync {
         grant: ExecutionGrant,
         cancel: CancellationToken,
     ) -> ExecutionFuture<'a>;
+    /// Estimated prompt tokens of the request this grant would send, using the
+    /// same estimator as the context-fit check. `None` makes dispatch reserve the
+    /// worst case the context window admits.
+    fn estimate_input<'a>(
+        &'a self,
+        _context: &'a AgentContext,
+        _grant: &'a ExecutionGrant,
+    ) -> Pin<Box<dyn Future<Output = Option<u64>> + Send + 'a>> {
+        Box::pin(async { None })
+    }
 }
 pub fn spawn(
     context: AgentContext,
@@ -49,12 +59,22 @@ pub async fn start_attempt(
     grant: &ExecutionGrant,
     attempt: u32,
 ) -> Result<ExecutionGrant, ReaderError> {
+    start_attempt_sized(context, grant, attempt, None).await
+}
+/// Start an attempt whose dispatch reservation is sized from `input_tokens`.
+pub async fn start_attempt_sized(
+    context: &AgentContext,
+    grant: &ExecutionGrant,
+    attempt: u32,
+    input_tokens: Option<u64>,
+) -> Result<ExecutionGrant, ReaderError> {
     match context
         .submit
         .submit(ExecutorRequest::StartAttempt {
             work_id: grant.work.work_id,
             attempt,
             fence: grant.fence,
+            input_tokens,
         })
         .await
     {
@@ -148,7 +168,15 @@ pub async fn run(
                     continue;
                 }
             };
-            let grant = match start_attempt(&context, &grant, grant.work.attempt).await {
+            let input_tokens = executor.estimate_input(&context, &grant).await;
+            let grant = match start_attempt_sized(
+                &context,
+                &grant,
+                grant.work.attempt,
+                input_tokens,
+            )
+            .await
+            {
                 Ok(grant) => grant,
                 Err(_) => {
                     tokio::select! { _ = context.cancel.cancelled() => {}, _ = heartbeat.tick() => {} }

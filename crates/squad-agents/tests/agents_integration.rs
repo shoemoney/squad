@@ -769,3 +769,16 @@ async fn regeneration_uses_original_reply_anchor_and_preserves_frozen_quote_text
             .contains("author-labelled quote of superseded answer")
     );
 }
+#[tokio::test]
+async fn member_estimates_the_assembled_prompt_before_dispatch() {
+    let server = fake::FakeOpenRouter::start().await;
+    let f = Fixture::new("alice", "current");
+    let (ctx, _) = f.context();
+    let grant = f.grant.lock().unwrap().clone();
+    let exec = executor(&server);
+    let estimate = squad_agents::worker::WorkExecutor::estimate_input(&*exec, &ctx, &grant).await;
+    assert!(
+        estimate.is_some_and(|tokens| tokens > 16 && tokens < 32768),
+        "{estimate:?}"
+    );
+}
