@@ -3107,13 +3107,19 @@ dependencies = [
 name = "squad-cli"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "clap",
  "crossterm",
+ "insta",
+ "rusqlite",
+ "serde",
  "serde_json",
  "squad-core",
  "squad-protocol",
+ "squad-store",
  "squad-tui",
  "tempfile",
+ "tokio",
  "tracing",
  "tracing-subscriber",
 ]
@@ -3556,6 +3562,7 @@ dependencies = [
  "libc",
  "mio",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys 0.61.2",
