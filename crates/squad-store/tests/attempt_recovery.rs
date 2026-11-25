@@ -10,7 +10,8 @@ fn round_fixture() -> (Store, WorkId, ExecutorKey) {
     let id = WorkId::new();
     store.call(move |db| {
         let tx=db.transaction()?;
-        tx.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES (?,'debate',1,1,'{}',1)",[contest.to_string()])?;
+        let state=DebateState{debate_id:contest,state:DebateStatus::RoundRunning,debaters:[Nick::new("alice").unwrap(),Nick::new("bob").unwrap()],round:1,total_rounds:2,judge_model:"test/judge".into(),judge_requested:true,state_version:1,terminal_reason:None,case_id:Some(case),case_ids:vec![case]};
+        tx.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES (?,'debate',1,1,?,1)",rusqlite::params![contest.to_string(),serde_json::to_string(&state).unwrap()])?;
         tx.execute("INSERT INTO cases VALUES (?1,?2,1,?3,'test/judge','{}',1,NULL,'{}')",rusqlite::params![case.to_string(),format!("judge:{case}"),contest.to_string()])?;
         let context=ContextId(format!("judge:{case}"));
         let boundary=squad_store::history::project(&tx,&squad_store::history::attributed(&source,context.clone(),"case.material",HistoryRole::User,None,"round material".into()))?.unwrap();
