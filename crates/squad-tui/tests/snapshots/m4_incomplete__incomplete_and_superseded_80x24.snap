@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/m4_incomplete.rs
+expression: screen
+---
+ SQUAD   /   main   ·   six minds, one room
+$0.00 ???????? $0.00 · pending $0.00 · remaining $0.00
+                 │claude · superseded
+                 │  ⟳ Replaced by @claude. This earlier attempt is kept for
+                 │  reference.
+                 │  First attempt answer
+
+                 │grok · incomplete · failed
+                 │  Half an ans
+                 │  — Output stopped: this reply did not finish.
+
+                 │gemini · incomplete · cancelled
+                 │  Stopped early
+                 │  — Output stopped: cancelled before it finished.
+
+                 │claude · complete
+                 │  Second attempt answer
+
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

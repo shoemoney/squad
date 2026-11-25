@@ -156,12 +156,30 @@ impl Composed {
         self.transcript.resize(width);
         let body_width = width.saturating_sub(1);
         let mut models = Vec::new();
+        let mut superseded = session.transcript.superseded.clone();
+        for event in &session.snapshot.events {
+            if let EnvelopePayload::MessageSuperseded(s) = &event.content {
+                superseded.insert(s.superseded_message_id, s.replacement_message_id);
+            }
+        }
         for card in session.transcript.cards.values() {
             if session.debate_messages.contains(&card.id) {
                 continue;
             }
+            let replacement = superseded.get(&card.id).copied();
+            let state = if replacement.is_some() {
+                crate::transcript::CardState::Superseded
+            } else {
+                session
+                    .transcript
+                    .state_of(card.id)
+                    .unwrap_or(crate::transcript::CardState::Complete)
+            };
             if self.transcript.message(card.id).is_some_and(|m| {
-                m.source == card.text && m.complete == card.complete && m.attempt == card.attempt
+                m.source == card.text
+                    && m.complete == card.complete
+                    && m.attempt == card.attempt
+                    && m.status == state.label()
             }) {
                 continue;
             }
@@ -181,12 +199,31 @@ impl Composed {
                 .unwrap_or(0);
             model.attempt = card.attempt;
             model.complete = card.complete;
-            model.status = if card.complete {
-                "complete"
-            } else {
-                "streaming"
+            model.status = state.label().into();
+            match state {
+                crate::transcript::CardState::Superseded => {
+                    let by = replacement
+                        .and_then(|id| session.transcript.cards.get(&id))
+                        .map_or_else(
+                            || "a replacement reply".to_owned(),
+                            |c| match &c.author {
+                                Actor::Member(n) => format!("@{n}"),
+                                _ => "a replacement reply".to_owned(),
+                            },
+                        );
+                    model.before_body.push(Line::raw(format!(
+                        "⟳ Replaced by {by}. This earlier attempt is kept for reference."
+                    )));
+                }
+                crate::transcript::CardState::Incomplete(cancelled) => {
+                    model.after_body.push(Line::raw(if cancelled {
+                        "— Output stopped: cancelled before it finished."
+                    } else {
+                        "— Output stopped: this reply did not finish."
+                    }));
+                }
+                _ => {}
             }
-            .into();
             models.push(model);
         }
         let artifact_signature = (
