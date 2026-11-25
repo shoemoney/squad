@@ -103,7 +103,19 @@ impl<'a> Registry<'a> {
             WorkKind::JudgeRound => (TaskKind::RoundJudge, DeadlineClass::RoundJudge),
         };
         let mut request = self.request(member, model, kind)?;
-        request.reasoning_effort = grant.binding.effort;
+        // The fixed-effort judges ignore whatever the binding says.
+        request.reasoning_effort = match kind {
+            TaskKind::CensusJudge
+            | TaskKind::CrosscheckJudge
+            | TaskKind::SurveyJudge
+            | TaskKind::ProbeJudge => match limits::NEW_MODE_JUDGE_REASONING_EFFORT {
+                ReasoningEffort::Low => WireEffort::Low,
+                ReasoningEffort::Medium => WireEffort::Medium,
+                ReasoningEffort::High => WireEffort::High,
+            },
+            TaskKind::RoundJudge => WireEffort::Low,
+            _ => grant.binding.effort,
+        };
         request.visible_ceiling = grant
             .work
             .max_output_tokens

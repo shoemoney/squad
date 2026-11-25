@@ -182,7 +182,7 @@ impl PromptRenderer for Fakes {
         values: &BTreeMap<String, String>,
     ) -> Result<String, ReaderError> {
         *self.values.lock().unwrap() = values.clone();
-        Ok(json!({"system":"JUDGE_SYSTEM","user":format!("EVIDENCE_ONCE {}",values.get("invalid_output_json").cloned().unwrap_or_default()),"provider_user_name":"squad","step":if prompt.template_id.as_str()=="judge.round.md" {"judge.round"} else {"judge.debate"}}).to_string())
+        Ok(json!({"system":"JUDGE_SYSTEM","user":format!("EVIDENCE_ONCE {} {}",values.get("invalid_output_json").cloned().unwrap_or_default(),values.get("case_data_json").cloned().unwrap_or_default()),"provider_user_name":"squad","step":match prompt.template_id.as_str() {"judge.round.md" => "judge.round", "judge.followup" => "judge.followup", _ => "judge.debate"}}).to_string())
     }
 }
 fn context(fake: Arc<Fakes>) -> AgentContext {
@@ -356,4 +356,211 @@ async fn final_request_uses_high_reasoning_and_unsupported_models_omit_parameter
     .await
     .unwrap();
     assert!(request.body().unwrap().get("reasoning").is_none());
+}
+
+// ---- census, crosscheck, survey and probe judge calls ----
+use squad_agents::{registry::*, resolver::Model};
+
+fn new_mode_config() -> config::SquadConfig {
+    let root = std::path::PathBuf::from("/nonexistent/squad-judge-fixture");
+    let options = config::LoadOptions {
+        env_file: None,
+        data_dir: None,
+        working_dir: root.clone(),
+        config_dir: None,
+        default_data_dir: root.join("data"),
+    };
+    let env = BTreeMap::from([("OPENROUTER_API_KEY".to_string(), "fixture-only".to_string())]);
+    let mut cfg = config::SquadConfig::load_with_env(&options, &env).unwrap();
+    cfg.judge.reasoning_effort = ReasoningEffort::High;
+    cfg.judge.reasoning_effort_explicit = true;
+    cfg.agents[0].nick = config::Nick::new("alpha").unwrap();
+    cfg.agents[0].persona = "PERSONA_CANARY".into();
+    cfg
+}
+fn model(reasoning: bool) -> Model {
+    Model {
+        id: "vendor/concrete".into(),
+        context_length: 200_000,
+        output_limit: 65_536,
+        supported_parameters: if reasoning {
+            vec!["reasoning".into()]
+        } else {
+            vec![]
+        },
+        reasoning_efforts: vec![],
+        pricing: Value::Null,
+    }
+}
+fn mode_grant(kind: &str, effort: ReasoningEffort) -> ExecutionGrant {
+    let judge = matches!(
+        kind,
+        "census.merge"
+            | "census.final"
+            | "crosscheck.goal"
+            | "crosscheck.normalize"
+            | "crosscheck.rule"
+            | "survey.extract"
+            | "survey.report"
+            | "probe.report"
+    );
+    let (case, step) = (CaseId::new(), StepId::new());
+    let contest = ContestId::new();
+    let mut work = json!({"workId":WorkId::new(),"messageId":MessageId::new(),"kind":kind,"target":if judge {"judge"} else {"alpha"},"contextId":if judge {format!("judge:{case}")} else {format!("contest:{contest}:{step}:alpha")},"triggerEventId":EventId::new(),"historyThrough":"1","attempt":1,"contestId":contest,"stepId":step,"maxOutputTokens":if judge {4096} else {2048}});
+    if judge {
+        work["caseId"] = json!(case);
+    }
+    if kind.starts_with("census") || kind.starts_with("probe") {
+        work["promptRef"] =
+            json!({"templateId":kind,"packVersion":"1.0.0","templateHash":"frozen"});
+    }
+    let work: Work = serde_json::from_value(work).unwrap();
+    ExecutionGrant {
+        owner: if judge {
+            ExecutorKey::Case(case)
+        } else {
+            ExecutorKey::Member("alpha".parse().unwrap())
+        },
+        binding: ExecutorBinding {
+            model: Text::new("vendor/concrete").unwrap(),
+            effort,
+        },
+        work,
+        fence: 1,
+        epoch: 1,
+        lease_until: "2026-11-24T23:59:00Z".parse().unwrap(),
+        deadline: None,
+    }
+}
+
+#[test]
+fn all_four_new_modes_judge_with_medium_effort_and_the_4096_ceiling_whatever_the_binding_says() {
+    let cfg = new_mode_config();
+    let registry = Registry::new(&cfg).unwrap();
+    for kind in [
+        "census.merge",
+        "census.final",
+        "crosscheck.goal",
+        "crosscheck.normalize",
+        "crosscheck.rule",
+        "survey.extract",
+        "survey.report",
+        "probe.report",
+    ] {
+        for bound in [ReasoningEffort::Low, ReasoningEffort::High] {
+            let grant = mode_grant(kind, bound);
+            let request = registry
+                .work_request(None, &model(true), &grant)
+                .unwrap_or_else(|e| panic!("{kind}: {e:?}"));
+            assert_eq!(request.visible_ceiling, 4096, "{kind}");
+            let body = request.body().unwrap();
+            assert_eq!(body["reasoning"]["max_tokens"], 4096, "{kind} {bound:?}");
+            assert_eq!(body["max_tokens"], 8192, "{kind}: visible + reasoning");
+            assert!(
+                matches!(
+                    request.policy,
+                    squad_agents::openrouter::ExecutionPolicy::SingleAttempt(
+                        squad_agents::openrouter::DeadlineClass::FinalJudge
+                    )
+                ),
+                "{kind}"
+            );
+        }
+        // No supported reasoning: the parameter is omitted, never invented.
+        let unsupported = registry
+            .work_request(
+                None,
+                &model(false),
+                &mode_grant(kind, ReasoningEffort::High),
+            )
+            .unwrap();
+        assert!(unsupported.body().unwrap().get("reasoning").is_none());
+    }
+}
+
+#[test]
+fn new_mode_member_calls_keep_the_ordinary_ceiling_and_the_binding_effort() {
+    let cfg = new_mode_config();
+    let registry = Registry::new(&cfg).unwrap();
+    for kind in [
+        "census.hunt",
+        "census.rate",
+        "crosscheck.inventory",
+        "crosscheck.cell",
+        "crosscheck.audit",
+        "survey.vote",
+        "survey.revote",
+        "probe.explain",
+        "probe.check",
+        "probe.predict",
+    ] {
+        let grant = mode_grant(kind, ReasoningEffort::Low);
+        let request = registry
+            .work_request(Some(&cfg.agents[0]), &model(true), &grant)
+            .unwrap_or_else(|e| panic!("{kind}: {e:?}"));
+        assert_eq!(request.visible_ceiling, 2048, "{kind}");
+        assert_eq!(request.body().unwrap()["reasoning"]["max_tokens"], 1024);
+    }
+}
+
+#[test]
+fn judge_work_requests_never_carry_member_personas_or_a_member_identity() {
+    let cfg = new_mode_config();
+    let registry = Registry::new(&cfg).unwrap();
+    let grant = mode_grant("census.merge", ReasoningEffort::Medium);
+    // A member registration cannot be attached to case-owned judge work.
+    assert!(
+        registry
+            .work_request(Some(&cfg.agents[0]), &model(true), &grant)
+            .is_err()
+    );
+    let request = registry.work_request(None, &model(true), &grant).unwrap();
+    assert!(!format!("{:?}", request.body().unwrap()).contains("PERSONA_CANARY"));
+}
+
+#[tokio::test]
+async fn followup_requests_use_only_the_retained_case_material_in_one_user_message() {
+    let fake = Arc::new(Fakes {
+        repair: None,
+        reads: Mutex::new(vec![]),
+        values: Mutex::new(BTreeMap::new()),
+    });
+    let context = context(fake.clone());
+    let mut followup = work(false, 1);
+    followup.prompt_ref.as_mut().unwrap().template_id = Text::new("judge.followup").unwrap();
+    let case_material = r#"{"ruling":"RULING_ONCE","followUps":["Q1"]}"#.to_owned();
+    let request = prepare_attempt(
+        &context,
+        &grant(followup),
+        BTreeMap::from([("case_data_json".into(), case_material)]),
+        true,
+        16000,
+    )
+    .await
+    .unwrap();
+    assert_eq!(request.messages.len(), 2);
+    assert_eq!(request.messages[0].role, "system");
+    assert_eq!(request.messages[1].role, "user");
+    assert_eq!(request.messages[1].name.as_deref(), Some("squad"));
+    assert_eq!(
+        request.messages[1].content.matches("RULING_ONCE").count(),
+        1
+    );
+    // The fake history reader panics if anything tried to append history.
+    assert!(
+        !request
+            .messages
+            .iter()
+            .any(|m| m.content.contains("FABLE_HISTORY_CANARY"))
+    );
+    assert_eq!(request.reasoning_effort, ReasoningEffort::High);
+    assert_eq!(request.visible_ceiling, 4096);
+    // A case-bound executor never serves another case's work.
+    let mut foreign = grant(work(false, 1));
+    foreign.owner = ExecutorKey::Case(OTHER.parse().unwrap());
+    assert!(
+        prepare_attempt(&context, &foreign, BTreeMap::new(), true, 16000)
+            .await
+            .is_err()
+    );
 }
