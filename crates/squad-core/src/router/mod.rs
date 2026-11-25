@@ -341,7 +341,7 @@ impl Router {
         let survey_max = self.daily_max;
         let survey_threshold = self.confirmation_threshold;
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
-            if generates && let Err(StoreError::Domain(code,text))=squad_store::storage::ensure_capacity(tx,storage_capacity) {
+            if generates && let Some((code,text))=storage_refusal(squad_store::storage::ensure_capacity(tx,storage_capacity)) {
                 return Ok(RequestResult::Rejected {request_id:id,error:error(code,text)});
             }
             match request {
@@ -1089,6 +1089,18 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
 }
 
 /// Requests that start or restart model generation; refused at the storage ceiling.
+/// The storage guard fails closed: a ceiling hit and an unreadable size both
+/// refuse new paid work. History, export, `/clear`, stop and cancel never reach it.
+pub(crate) fn storage_refusal(check: squad_store::Result<()>) -> Option<(ErrorCode, String)> {
+    match check {
+        Ok(()) => None,
+        Err(StoreError::Domain(code, text)) => Some((code, text.to_owned())),
+        Err(_) => Some((
+            ErrorCode::STORAGE_LIMIT,
+            "Storage could not be checked, so new work is refused. History is preserved: export it with `squad export`, run `squad doctor`, or free space with /clear.".to_owned(),
+        )),
+    }
+}
 fn admits_generation(request: &Request) -> bool {
     match request {
         Request::UserMessage { parsed, .. } => !matches!(
@@ -1103,5 +1115,21 @@ fn admits_generation(request: &Request) -> bool {
         | Request::Retry { .. }
         | Request::Regen { .. } => true,
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod storage_guard_tests {
+    use super::*;
+
+    #[test]
+    fn an_unreadable_store_size_refuses_new_work() {
+        assert!(storage_refusal(Ok(())).is_none());
+        let (code, text) = storage_refusal(Err(StoreError::Unavailable)).unwrap();
+        assert_eq!(code, ErrorCode::STORAGE_LIMIT);
+        assert!(text.contains("could not be checked"));
+        let (code, _) =
+            storage_refusal(Err(StoreError::Domain(ErrorCode::STORAGE_LIMIT, "full"))).unwrap();
+        assert_eq!(code, ErrorCode::STORAGE_LIMIT);
     }
 }
