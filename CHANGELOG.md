@@ -4,11 +4,11 @@ All notable changes to Squad will be documented in this file, following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2026-11-25
 
-No release has been published. The workspace version is 0.1.0. This record is
-sourced from git history on `m7-release-tests`; publication, tags, signing and
-macOS arm64 installation evidence remain pending the owner's decision.
+First public release: a single-binary terminal room for six models over
+OpenRouter with seven contest modes. Binaries for macOS arm64 and Linux x64
+are attached to the GitHub Release with SHA-256 checksums.
 
 ### Added
 
