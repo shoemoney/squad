@@ -31,30 +31,30 @@
 ## Phase M2.P1 — Registry and resolution
 
 - **M2.P1.L1 — Consume validated model configuration**
-  - [ ] M2.P1.L1.T1 — Consume the Foundations-owned `SquadConfig` in crate `squad-agents`, file `crates/squad-agents/src/registry.rs`, without defining another configuration schema.
-  - [ ] M2.P1.L1.T2 — Register the six default configured slugs in crate `squad-agents`, file `crates/squad-agents/src/registry.rs`.
-  - [ ] M2.P1.L1.T3 — Test arbitrary slugs, repeated models under distinct nicks, personas, and roster bounds in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
-  - [ ] M2.P1.L1.T4 — Test unsupported reasoning parameters and effective visible output ceilings with separate reasoning reservations in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
-  - [ ] M2.P1.L1.T5 — Implement per-member reasoning precedence, omission of implicit defaults for unsupported models, explicit unsupported-value errors, and low round-score effort in crate `squad-agents`, file `crates/squad-agents/src/registry.rs`.
-  - [ ] M2.P1.L1.T6 — Test low, medium, and high reasoning budgets, complete request caps, published output limits, and rejection of requests that cannot fit their reservation in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
-  - [ ] M2.P1.L1.T7 — Apply and test medium effort and a 4,096-token visible ceiling for census, crosscheck, survey, and probe judge tasks independently of the final-judge effort setting in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
+  - [x] M2.P1.L1.T1 — Consume the Foundations-owned `SquadConfig` in crate `squad-agents`, file `crates/squad-agents/src/registry.rs`, without defining another configuration schema.
+  - [x] M2.P1.L1.T2 — Register the six default configured slugs in crate `squad-agents`, file `crates/squad-agents/src/registry.rs`.
+  - [x] M2.P1.L1.T3 — Test arbitrary slugs, repeated models under distinct nicks, personas, and roster bounds in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
+  - [x] M2.P1.L1.T4 — Test unsupported reasoning parameters and effective visible output ceilings with separate reasoning reservations in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
+  - [x] M2.P1.L1.T5 — Implement per-member reasoning precedence, omission of implicit defaults for unsupported models, explicit unsupported-value errors, and low round-score effort in crate `squad-agents`, file `crates/squad-agents/src/registry.rs`.
+  - [x] M2.P1.L1.T6 — Test low, medium, and high reasoning budgets, complete request caps, published output limits, and rejection of requests that cannot fit their reservation in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
+  - [x] M2.P1.L1.T7 — Apply and test medium effort and a 4,096-token visible ceiling for census, crosscheck, survey, and probe judge tasks independently of the final-judge effort setting in crate `squad-agents`, file `crates/squad-agents/tests/agents_registry.rs`.
 
 - **M2.P1.L2 — Resolve and cache concrete identities**
-  - [ ] M2.P1.L2.T1 — Implement shared catalog acquisition and concrete-slug validation with variable-naming startup errors in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
-  - [ ] M2.P1.L2.T2 — Implement 16-token alias probes with the lowest accepted reasoning setting, one HTTP 400 retry at 2,048 tokens, and response-model validation in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
-  - [ ] M2.P1.L2.T3 — Test exact concrete-slug preservation and alias identity capture without requiring aliases in the catalog in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
+  - [x] M2.P1.L2.T1 — Implement shared catalog acquisition and concrete-slug validation with variable-naming startup errors in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
+  - [x] M2.P1.L2.T2 — Implement 16-token alias probes with the lowest accepted reasoning setting, one HTTP 400 retry at 2,048 tokens, and response-model validation in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
+  - [x] M2.P1.L2.T3 — Test exact concrete-slug preservation and alias identity capture without requiring aliases in the catalog in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
   - [ ] M2.P1.L2.T4 — Submit catalog metadata and member and judge resolution snapshots through router-owned atomic persistence interfaces in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
-  - [ ] M2.P1.L2.T5 — Test unknown concrete slugs, failed probes, the three-failure cache policy, the 24-hour cache limit, fixed startup identities, and diagnostic logs in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
-  - [ ] M2.P1.L2.T6 — Test that every completion uses the pinned concrete slug and every attempt records its response model, with mismatch warnings exposed through diagnostics, in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
+  - [x] M2.P1.L2.T5 — Test unknown concrete slugs, failed probes, the three-failure cache policy, the 24-hour cache limit, fixed startup identities, and diagnostic logs in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
+  - [x] M2.P1.L2.T6 — Test that every completion uses the pinned concrete slug and every attempt records its response model, with mismatch warnings exposed through diagnostics, in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
 
 - **M2.P1.L3 — Provide a fake OpenRouter service**
   - [x] M2.P1.L3.T1 — Implement deterministic catalog and streaming fixtures with wiremock in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
   - [x] M2.P1.L3.T2 — Add alias-probe responses, generation lookups, and captured request bodies in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
   - [x] M2.P1.L3.T3 — Add malformed, delayed, disconnected, structured-judge, and free-form-case fixtures in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
-  - [ ] M2.P1.L3.T4 — Add valid, tied, malformed, delayed, and failed round-score responses in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
-  - [ ] M2.P1.L3.T5 — Add blind tournament rankings, repair outputs, grill questions, exact passes, answers, and rebuilds in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
-  - [ ] M2.P1.L3.T6 — Add missing-cost, billed-failure, billed-cancellation, delayed-cost, and response-model-mismatch fixtures in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
-  - [ ] M2.P1.L3.T7 — Add census, crosscheck, survey, and probe member and judge outputs, optional goal extraction, malformed schemas, delayed calls, failed members, and repair exhaustion in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
+  - [x] M2.P1.L3.T4 — Add valid, tied, malformed, delayed, and failed round-score responses in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
+  - [x] M2.P1.L3.T5 — Add blind tournament rankings, repair outputs, grill questions, exact passes, answers, and rebuilds in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
+  - [x] M2.P1.L3.T6 — Add missing-cost, billed-failure, billed-cancellation, delayed-cost, and response-model-mismatch fixtures in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
+  - [x] M2.P1.L3.T7 — Add census, crosscheck, survey, and probe member and judge outputs, optional goal extraction, malformed schemas, delayed calls, failed members, and repair exhaustion in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
 
 ## Phase M2.P2 — Private workers and context
 

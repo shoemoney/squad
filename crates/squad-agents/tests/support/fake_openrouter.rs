@@ -1,6 +1,8 @@
 //! Extensible credential-free provider fixtures. wiremock handles normal routes;
 //! a tiny loopback HTTP peer exercises real chunk fragmentation and broken bodies
 //! (wiremock deliberately buffers response bodies).
+// Each integration suite uses only the fixtures for its own execution paths.
+#![allow(dead_code)]
 use serde_json::{Value, json};
 use std::{
     collections::VecDeque,
@@ -145,6 +147,122 @@ pub fn structured_judge(verdict: Value) -> ResponseTemplate {
 }
 pub fn free_form_case(text: &str) -> ResponseTemplate {
     streaming(text, "stop")
+}
+
+/// Typed schemas belong to the contest engine: fixtures accept its serialized
+/// output rather than maintaining a second schema here.
+pub fn round_score(scores: Value) -> ResponseTemplate {
+    structured_judge(scores)
+}
+pub fn tied_round_score(first: &str, second: &str) -> ResponseTemplate {
+    let mut scores = serde_json::Map::new();
+    for nick in [first, second] {
+        scores.insert(
+            nick.to_owned(),
+            json!({"score": 7, "reason": "Equally strong supporting evidence."}),
+        );
+    }
+    structured_judge(json!({"scores": scores}))
+}
+pub fn malformed_round_score() -> ResponseTemplate {
+    streaming("{\"scores\": [99]}", "stop")
+}
+pub fn delayed_round_score(scores: Value, delay: Duration) -> ResponseTemplate {
+    round_score(scores).set_delay(delay)
+}
+pub fn failed_round_score() -> ResponseTemplate {
+    provider_error(503)
+}
+pub fn tournament_ranking(ranking: Value) -> ResponseTemplate {
+    structured_judge(ranking)
+}
+pub fn repair_output(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn grill_questions(questions: &str) -> ResponseTemplate {
+    streaming(questions, "stop")
+}
+pub fn grill_pass() -> ResponseTemplate {
+    streaming("PASS", "stop")
+}
+pub fn grill_answer(answer: &str) -> ResponseTemplate {
+    streaming(answer, "stop")
+}
+pub fn grill_rebuild(plan: &str) -> ResponseTemplate {
+    streaming(plan, "stop")
+}
+pub fn missing_cost() -> ResponseTemplate {
+    let mut body = stream_body("answer", "stop");
+    let mut without_cost = usage();
+    without_cost.as_object_mut().unwrap().remove("cost");
+    body = body.replace(
+        &event(json!({"choices": [], "usage": usage()})),
+        &event(json!({"choices": [], "usage": without_cost})),
+    );
+    raw_sse(body)
+}
+/// Usage arrives before the failure; the accounting adapter must retain it.
+pub fn billed_failure() -> ResponseTemplate {
+    raw_sse(format!(
+        "{}{}{}",
+        event(json!({"id": GENERATION, "model": MODEL})),
+        event(json!({"usage": usage()})),
+        event(json!({"error": {"code": 503}}))
+    ))
+}
+/// A generation exists and may be billed even if cancellation drops its body.
+pub fn billed_cancellation(delay: Duration) -> ResponseTemplate {
+    streaming("cancelled after dispatch", "stop").set_delay(delay)
+}
+pub fn delayed_cost(delay: Duration) -> ResponseTemplate {
+    ResponseTemplate::new(200)
+        .set_body_json(json!({"data": {"id": GENERATION, "total_cost": 0.000045}}))
+        .set_delay(delay)
+}
+pub fn response_model_mismatch(model: &str) -> ResponseTemplate {
+    raw_sse(stream_body("answer", "stop").replace(
+        &format!("\"model\":\"{MODEL}\""),
+        &format!("\"model\":\"{model}\""),
+    ))
+}
+pub fn census_member(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn census_judge(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn crosscheck_member(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn crosscheck_judge(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn survey_member(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn survey_judge(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn probe_member(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn probe_judge(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn goal_extraction(output: Value) -> ResponseTemplate {
+    structured_judge(output)
+}
+pub fn malformed_schema() -> ResponseTemplate {
+    structured_judge(json!({"unexpected": true}))
+}
+pub fn delayed_mode(output: Value, delay: Duration) -> ResponseTemplate {
+    structured_judge(output).set_delay(delay)
+}
+pub fn failed_member() -> ResponseTemplate {
+    provider_error(503)
+}
+pub fn repair_exhaustion(attempts: usize) -> Vec<ResponseTemplate> {
+    (0..attempts).map(|_| malformed_schema()).collect()
 }
 
 /// One-call raw peer, with real HTTP chunk boundaries, optional pause after each

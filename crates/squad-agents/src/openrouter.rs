@@ -126,7 +126,7 @@ impl ChatRequest {
 
 /// Provider totals, with unknown values retained as None. Reasoning is already
 /// included in completion_tokens and must never be added to it again.
-#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Usage {
     pub prompt_tokens: Option<u64>,
     pub completion_tokens: Option<u64>,
@@ -134,7 +134,7 @@ pub struct Usage {
     pub cost: Option<f64>,
     pub completion_tokens_details: Option<CompletionTokenDetails>,
 }
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CompletionTokenDetails {
     pub reasoning_tokens: Option<u64>,
 }
@@ -189,6 +189,9 @@ pub enum TransportError {
 }
 impl fmt::Display for TransportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if matches!(self, Self::UnsupportedReasoning) {
+            return f.write_str("MODEL_PARAMETER_UNSUPPORTED: reasoning");
+        }
         write!(f, "OpenRouter transport: {self:?}")
     }
 }
@@ -251,6 +254,64 @@ impl OpenRouterClient {
             endpoint,
             authorization,
         })
+    }
+
+    /// Fresh startup catalog fetch. The resolver owns its three-failure policy.
+    pub async fn fetch_catalog(&self) -> Result<Value, TransportError> {
+        let url = self
+            .endpoint
+            .join("../models")
+            .map_err(|_| TransportError::InvalidConfiguration)?;
+        self.json_call(self.http.get(url)).await
+    }
+
+    /// Probe an alias without assuming unpublished reasoning capabilities.
+    pub async fn probe_alias(&self, alias: &str, max_tokens: u32) -> Result<Value, TransportError> {
+        self.probe_alias_with_reasoning(alias, max_tokens, None)
+            .await
+    }
+
+    /// The resolver supplies only a catalog-supported lowest reasoning effort.
+    pub async fn probe_alias_with_reasoning(
+        &self,
+        alias: &str,
+        max_tokens: u32,
+        effort: Option<&str>,
+    ) -> Result<Value, TransportError> {
+        if !alias.starts_with('~') || !alias.contains('/') || !matches!(max_tokens, 16 | 2048) {
+            return Err(TransportError::InvalidModel);
+        }
+        let mut body = json!({"model": alias, "messages": [{"role": "user", "content": "Reply OK."}], "stream": false, "max_tokens": max_tokens});
+        if let Some(effort) = effort {
+            body["reasoning"] = json!({"effort": effort});
+        }
+        self.json_call(self.http.post(self.endpoint.clone()).json(&body))
+            .await
+    }
+
+    async fn json_call(&self, request: reqwest::RequestBuilder) -> Result<Value, TransportError> {
+        let response = request
+            .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+            .timeout(Duration::from_millis(limits::TOTAL_TIMEOUT_MS))
+            .send()
+            .await
+            .map_err(|_| TransportError::Network)?;
+        if !response.status().is_success() {
+            return Err(TransportError::Http(response.status().as_u16()));
+        }
+        let value: Value = response
+            .json()
+            .await
+            .map_err(|_| TransportError::MalformedEvent)?;
+        if let Some(error) = value.get("error") {
+            return Err(TransportError::Provider(
+                error
+                    .get("code")
+                    .and_then(Value::as_u64)
+                    .and_then(|n| u16::try_from(n).ok()),
+            ));
+        }
+        Ok(value)
     }
 
     /// Lazy stream: dropping it aborts HTTP reads and retry waiting. Cancellation
