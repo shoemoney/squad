@@ -110,3 +110,12 @@ workspace targets with warnings denied, and workspace format checking pass. Carg
 regenerates seven dependency-list entries in the root Cargo.lock; the coordinator
 must regenerate and commit it after merging because it is outside this territory.
 Milestone checkbox edits are likewise left to the coordinator.
+
+## Bound CLI regression validation (2026-11-25)
+
+On dev3, the bound-runtime regression update passed `cargo build --workspace`,
+`cargo test --workspace --no-fail-fast` (114 test targets, 704 passed, 0 failed,
+0 ignored, 0 filtered out), `cargo clippy --workspace --all-targets -- -D warnings`,
+and `cargo fmt --check`, with `CARGO_BUILD_JOBS=8` and sequential gates.
+The 21 focused executable/room tests include all three formerly ignored runtime
+checks. No milestone checkbox or shared registration files changed.
