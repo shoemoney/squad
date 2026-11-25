@@ -101,7 +101,7 @@ async fn composed_screens() {
             if stage == "verdict" {
                 assert!(output.contains("Winner: @claude"), "{output}");
                 assert!(output.contains("claude 8.00 : 7.00 openai"));
-                assert!(output.contains("Tally 24 : 21"));
+                assert!(output.contains("Round tally 24 : 21"));
             }
             insta::assert_snapshot!(format!("composed_{stage}_{width}x{height}"), output);
             app.stop_confirmation = Some(Duration::from_secs(2));
@@ -116,7 +116,17 @@ async fn composed_screens() {
                     Duration::ZERO,
                 );
                 assert!(app.composed.verdict_expanded);
-                screen(&mut app, width, height);
+                let expanded = screen(&mut app, width, height);
+                assert!(!app.session.transcript.follow);
+                assert!(expanded.contains("VERDICT"), "{expanded}");
+                assert!(expanded.contains("Winner: @claude"), "{expanded}");
+                assert!(expanded.contains("Weighted score"), "{expanded}");
+                assert!(expanded.contains("↓ back to live"));
+                let anchor = app.composed.anchor;
+                let resized = screen(&mut app, if width == 80 { 140 } else { 80 }, height);
+                assert_eq!(app.composed.anchor, anchor);
+                assert!(resized.contains("Winner: @claude"), "{resized}");
+                insta::assert_snapshot!(format!("expanded_verdict_{width}x{height}"), expanded);
                 app.handle(
                     Event::Key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE)),
                     Duration::ZERO,

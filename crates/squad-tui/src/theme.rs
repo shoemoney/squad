@@ -11,6 +11,14 @@ impl Theme {
             palette: Palette::new(tier),
         }
     }
+    pub fn quiet_chrome(&self) -> Style {
+        Style::default().add_modifier(Modifier::DIM)
+    }
+    pub fn event_accent(&self) -> Style {
+        Style::default()
+            .fg(self.palette.chrome())
+            .add_modifier(Modifier::BOLD)
+    }
     pub fn chrome(&self) -> Style {
         Style::default()
             .fg(self.palette.chrome())

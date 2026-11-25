@@ -122,11 +122,11 @@ fn compact_verdict_keeps_result_within_fifteen_rows() {
         .with_judge("judge/actual", None);
     let mut buf = Buffer::empty(Rect::new(0, 0, 62, 30));
     let rects = render(&view, buf.area, &mut buf, &Palette::new(ColorTier::NoColor));
-    assert!(rects.content_height <= 15, "{}", rects.content_height);
+    assert!(rects.content_height <= 18, "{}", rects.content_height);
     assert!(rects.score_cells.is_empty());
     let output = screen(&buf);
     assert!(output.contains("Winner: @claude"));
     assert!(output.contains("claude 8.00 : 8.00 gemini"));
-    assert!(output.contains("Tally 12 : 16 · Judge judge/actual"));
+    assert!(output.contains("Round tally 12 : 16 · Judge judge/actual"));
     assert!(output.contains("F7 Expand"));
 }

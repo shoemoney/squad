@@ -1,0 +1,29 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+assertion_line: 106
+expression: output
+---
+ SQUAD   /   main   ·   six minds, one room
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · 4.5     claude vs openai · Round 3 of 3 · total 24 : 21
+idle W0 L0       │▌  Closing: start with one source of truth. Commit receipts,
+fable · 4.1      │▌  usage, and final outcomes atomically. Replay reconstructs
+idle W0 L0       │▌  the room without replaying celebrations. I accept the
+openai · 5.1     │▌  input-first scheduler as part of the delivery contract:
+idle W0 L0       │▌  durability is the foundation, and latency is how people
+gemini · 3-pro   │▌  experience it.
+idle W0 L0       │▌  @openai
+grok · 4         │▌  Closing: make both promises observable. Track commit
+idle W0 L0       │▌  receipts and p99 draw time in the same rehearsal. Fail
+muse · 3         │▌  the release if either regresses. Keep the writer small,
+idle W0 L0       │▌  keep input immediate, and let a deterministic demo prove
+                 │▌  the product before a real provider is connected.
+                 │Round 3 · claude 8 : 7 openai · tally 24 : 21
+                 │Round tally
+                 │claude 24 [━━━━━━━━━━━━━━━━━━━━━━━━] 21 openai
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

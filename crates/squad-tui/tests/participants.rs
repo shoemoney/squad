@@ -38,7 +38,7 @@ fn screen(w: u16, h: u16, scroll: usize) -> String {
         area,
         &mut buf,
     );
-    assert_eq!(rects.total_rows, 24);
+    assert_eq!(rects.total_rows, if w >= 20 { 36 } else { 24 });
     assert_eq!(members[0].detail(), "provider/full-concrete-model-version");
     (0..h)
         .map(|y| {

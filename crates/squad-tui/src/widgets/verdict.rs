@@ -19,6 +19,7 @@ pub struct VerdictView {
     pub round_scores: Vec<DebateRoundScore>,
     pub show_criterion_reasons: bool,
     pub scroll: usize,
+    pub winner_art: Option<std::sync::Arc<squad_core::banner::RenderedBanner>>,
 }
 impl VerdictView {
     /// Input is an accepted protocol value. Revalidate its arithmetic instead of
@@ -37,6 +38,7 @@ impl VerdictView {
             round_scores: vec![],
             show_criterion_reasons: false,
             scroll: 0,
+            winner_art: None,
         })
     }
     pub fn from_debate(
@@ -46,6 +48,15 @@ impl VerdictView {
         let mut view = Self::new(&value.verdict, debaters)?;
         view.judge_model = value.completed.model.to_string();
         Ok(view)
+    }
+    pub fn prepare_banner(&mut self, width: u16, cache: &mut super::banner::BannerCache) {
+        self.winner_art = (width >= 90).then(|| {
+            cache.get(
+                &self.verdict.verdict.winner.to_string().to_uppercase(),
+                squad_core::banner::BannerMode::On,
+                width,
+            )
+        });
     }
     /// Conflict nick must come from core's concrete-model conflict resolution.
     pub fn with_judge(mut self, model: &str, conflict: Option<&MemberNick>) -> Self {
@@ -91,7 +102,13 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
     let winner_style = Style::default()
         .fg(palette.member(winner.as_str(), winner_slot))
         .add_modifier(Modifier::BOLD);
-    out.winner = c.line(&format!("Winner: @{winner}"), winner_style);
+    c.line("VERDICT", Style::default().add_modifier(Modifier::DIM));
+    let winner_start = c.row;
+    if let Some(art) = &view.winner_art {
+        c.art(art, winner_style);
+    }
+    c.line(&format!("Winner: @{winner}"), winner_style);
+    out.winner = c.span(winner_start, c.row);
     let totals = view.debaters.each_ref().map(|nick| {
         view.verdict
             .weighted_totals
@@ -103,7 +120,11 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
         "{} {:.2} : {:.2} {}",
         view.debaters[0], totals[0], totals[1], view.debaters[1]
     );
-    let total_row = c.line(&paired, accent);
+    c.line(
+        "Weighted score",
+        Style::default().add_modifier(Modifier::DIM),
+    );
+    let total_row = c.line(&paired, winner_style);
     let offsets = [
         view.debaters[0].as_str().len() + 1,
         view.debaters[0].as_str().len() + 1 + format!("{:.2}", totals[0]).len() + 3,
@@ -126,7 +147,7 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
     }
     c.line(
         &format!(
-            "Tally {} : {} · Judge {}",
+            "Round tally {} : {} · Judge {}",
             view.verdict
                 .round_tally
                 .get(&view.debaters[0])
@@ -229,6 +250,7 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
             }
         }
     }
+    c.line("Decision", accent);
     c.line(&view.verdict.verdict.reasoning, body);
     let start = c.row;
     c.line("RESPECT · What to steal from the loser", accent);

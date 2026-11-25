@@ -305,6 +305,7 @@ impl App {
                     }
                     KeyCode::F(7) => {
                         self.composed.toggle_verdict();
+                        self.session.transcript.follow = false;
                         self.dirty = true;
                         return;
                     }
@@ -323,7 +324,7 @@ impl App {
                         self.dirty = true;
                         return;
                     }
-                    KeyCode::End if !self.focus_input => {
+                    KeyCode::End => {
                         self.session.transcript.follow = true;
                         self.composed.anchor = None;
                         self.dirty = true;

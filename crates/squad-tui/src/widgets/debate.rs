@@ -454,8 +454,22 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
                 }
             )
         };
-        out.banners
-            .push((banner, c.line(&format!("── {label} ──"), accent)));
+        let boundary = round.round == 0
+            || round.round == view.state.total_rounds
+            || (round.round == 1 && !view.rounds.iter().any(|r| r.round == 0));
+        let separator = Style::default().fg(palette.member(
+            view.state.debaters[(round.round as usize) % 2].as_str(),
+            (round.round as usize) % 2,
+        ));
+        let rect = if boundary && c.area.width >= 90 {
+            c.art(
+                &view.banner(banner.clone(), c.area.width),
+                separator.add_modifier(Modifier::BOLD),
+            )
+        } else {
+            c.line(&format!("── {label} ──"), separator)
+        };
+        out.banners.push((banner, rect));
         for (i, nick) in view.state.debaters.iter().enumerate() {
             let style = Style::default().fg(palette.member(nick.as_str(), i));
             let start = c.row;
@@ -468,8 +482,12 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
                 c.area.width = c.area.width.saturating_sub(2);
                 let heading = c.line(
                     &format!(
-                        "@{nick} · {}{}",
-                        turn.status,
+                        "@{nick}{}{}",
+                        if c.area.width < 80 && turn.status == "complete" {
+                            String::new()
+                        } else {
+                            format!(" · {}", turn.status)
+                        },
                         if turn.attempt > 1 {
                             format!(" · retry {}", turn.attempt)
                         } else {
@@ -503,12 +521,14 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
             for y in rail.y..rail.bottom() {
                 c.buf.set_string(rail.x, y, "▌", style);
             }
-            c.line("", body);
+            if c.area.width >= 80 {
+                c.line("", body);
+            }
         }
         match &round.scoring {
             Scoring::NotApplicable => {}
             Scoring::Pending => {
-                c.line("Round score: pending (later turns may continue)", body);
+                c.line("Judge scoring…", body);
             }
             Scoring::Cancelled => {
                 c.line("Round score: canceled", body);
@@ -523,13 +543,13 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
                     let middle = format!("{} : ", values[0]);
                     let row = c.line(
                         &format!(
-                            "{a}{middle}{} {} · total {} : {}",
+                            "{a}{middle}{} {} · tally {} : {}",
                             values[1],
                             nicks[1],
                             score.tally.get(&nicks[0]).copied().unwrap_or(0),
                             score.tally.get(&nicks[1]).copied().unwrap_or(0)
                         ),
-                        accent,
+                        Style::default().add_modifier(Modifier::DIM),
                     );
                     for (i, offset) in [a.len(), a.len() + middle.len()].into_iter().enumerate() {
                         let cell = Rect::new(
@@ -569,35 +589,25 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
     if let Some(tally) = &view.tally {
         let a = tally.get(&view.state.debaters[0]).copied().unwrap_or(0);
         let b = tally.get(&view.state.debaters[1]).copied().unwrap_or(0);
-        let width = usize::from(c.area.width.saturating_sub(9).min(24));
-        let left = if a == 0 && b == 0 {
+        let names = &view.state.debaters;
+        c.line("Round tally", Style::default().add_modifier(Modifier::DIM));
+        let prefix = format!("{} {a} [", names[0]);
+        let suffix = format!("] {b} {}", names[1]);
+        let width = usize::from(c.area.width)
+            .saturating_sub(prefix.len() + suffix.len())
+            .min(24);
+        let left = if a + b == 0 {
             width / 2
         } else {
             (width as u64 * u64::from(a) / (u64::from(a) + u64::from(b))) as usize
         };
-        out.tug_bar = c.line(
-            &format!("Total [{}{}]", "━".repeat(left), "━".repeat(width - left)),
-            accent,
-        );
-        for y in out.tug_bar.y..out.tug_bar.bottom() {
-            for x in out.tug_bar.x + 7..(out.tug_bar.x + 7 + width as u16).min(out.tug_bar.right())
-            {
-                let side = usize::from(x - out.tug_bar.x - 7) >= left;
-                let index = usize::from(side);
-                c.buf[(x, y)].set_fg(palette.member(view.state.debaters[index].as_str(), index));
-            }
+        let row = c.line(&format!("{prefix}{}{suffix}", "━".repeat(width)), body);
+        out.tug_bar = Rect::new(row.x + prefix.len() as u16, row.y, width as u16, row.height)
+            .intersection(row);
+        for x in out.tug_bar.x..out.tug_bar.right() {
+            let side = usize::from(usize::from(x - out.tug_bar.x) >= left);
+            c.buf[(x, row.y)].set_fg(palette.member(names[side].as_str(), side));
         }
-    }
-    out.tug_bar = Rect::new(
-        out.tug_bar.x + 7,
-        out.tug_bar.y,
-        width_for_bar(c.area.width),
-        out.tug_bar.height,
-    )
-    .intersection(out.tug_bar);
-    if view.verdict_entered && view.state.state == DebateStatus::Completed {
-        let art = view.banner(Banner::Verdict, c.area.width);
-        out.banners.push((Banner::Verdict, c.art(&art, accent)));
     }
     if view.state.state == DebateStatus::RoundCommitting
         && view.rounds.iter().any(|r| r.scoring == Scoring::Pending)
@@ -659,8 +669,4 @@ pub fn finish_label(reason: &squad_protocol::FinishReason) -> &'static str {
         squad_protocol::FinishReason::Length => "length limit",
         squad_protocol::FinishReason::ContentFilter => "filtered",
     }
-}
-
-fn width_for_bar(width: u16) -> u16 {
-    width.saturating_sub(9).min(24)
 }

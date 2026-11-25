@@ -172,7 +172,26 @@ impl ParticipantView {
                 Style::default().add_modifier(Modifier::DIM),
             ),
         ]));
-        let _ = width;
+        if width >= 20 {
+            let rate = self.tokens_per_second.filter(|n| n.is_finite() && *n >= 0.);
+            let metric = if self.presence == PresenceStatus::Streaming || self.queue_depth > 0 {
+                format!(
+                    "{} · q{}",
+                    rate.map_or("rate n/a".into(), |n| format!("{n:.1} tok/s")),
+                    self.queue_depth
+                )
+            } else {
+                format!(
+                    "{} tok · {}",
+                    self.tokens.map_or("n/a".into(), |n| n.to_string()),
+                    self.cost_usd.map_or("n/a".into(), |n| format!("${n:.3}"))
+                )
+            };
+            rows.push(Line::styled(
+                metric,
+                Style::default().add_modifier(Modifier::DIM),
+            ));
+        }
         rows
     }
 }
