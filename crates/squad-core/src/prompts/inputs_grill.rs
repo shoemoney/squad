@@ -2,6 +2,13 @@
 use super::{Inputs, PromptError, PromptPack, inputs::member_inputs};
 use serde_json::json;
 use squad_protocol::*;
+/// Router-authorized grill record references: the compact list of questions
+/// asked so far and the current round's shared floor. Each is delivered once.
+#[derive(Debug, Clone, Default)]
+pub struct GrillRecord {
+    pub asked_questions: Vec<String>,
+    pub floor: Vec<String>,
+}
 impl PromptPack {
     pub fn grill_inputs(
         &self,
@@ -10,6 +17,25 @@ impl PromptPack {
         binding: &ExecutorBinding,
         frozen: &GrillPreflight,
         state: &GrillState,
+    ) -> Result<(&'static str, Inputs), PromptError> {
+        self.grill_inputs_with(
+            config,
+            work,
+            binding,
+            frozen,
+            state,
+            &GrillRecord::default(),
+        )
+    }
+
+    pub fn grill_inputs_with(
+        &self,
+        config: &SquadConfig,
+        work: &Work,
+        binding: &ExecutorBinding,
+        frozen: &GrillPreflight,
+        state: &GrillState,
+        record: &GrillRecord,
     ) -> Result<(&'static str, Inputs), PromptError> {
         let invalid =
             || PromptError::new("grill", None, "work differs from frozen grill assignment");
@@ -54,6 +80,9 @@ impl PromptPack {
             ),
             ("grill_answer_word_limit".into(), json!(frozen.answer_words)),
             ("plan_word_limit".into(), json!(frozen.plan_words)),
+            ("grill_focus_json".into(), json!(setup.focus)),
+            ("grill_asked_json".into(), json!(record.asked_questions)),
+            ("grill_floor_json".into(), json!(record.floor)),
         ]));
         Ok((id, self.selected(id, values, None)?))
     }

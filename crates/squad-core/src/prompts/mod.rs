@@ -12,6 +12,7 @@ pub mod inputs_grill;
 pub mod inputs_probe;
 pub mod inputs_survey;
 mod load;
+pub mod provenance;
 mod render;
 
 use std::collections::BTreeMap;

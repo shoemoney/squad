@@ -768,7 +768,11 @@ impl Router {
                 replay: None,
                 case_id: case,
                 prompt_ref: None,
-                max_output_tokens: Some(if case.is_some() { 4096 } else { 2048 }),
+                max_output_tokens: Some(if case.is_some() {
+                    constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+                } else {
+                    2048
+                }),
                 contest_id: Some(id),
                 step_id: Some(step_id),
             });

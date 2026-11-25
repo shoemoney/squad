@@ -188,6 +188,14 @@ pub const DEFAULT_MEMBER_REASONING_EFFORT: crate::config::ReasoningEffort =
 pub const ROUND_JUDGE_REASONING_EFFORT: crate::config::ReasoningEffort =
     crate::config::ReasoningEffort::Low;
 
+/// Fixed judge effort for the census, crosscheck, survey and probe modes.
+pub const NEW_MODE_JUDGE_REASONING_EFFORT: crate::config::ReasoningEffort =
+    crate::config::ReasoningEffort::Medium;
+
+/// Visible output ceiling for the structured judge calls of the census,
+/// crosscheck, survey and probe modes.
+pub const NEW_MODE_JUDGE_VISIBLE_TOKENS: u32 = 4_096;
+
 /// Default final judge effort.
 pub const DEFAULT_FINAL_JUDGE_REASONING_EFFORT: crate::config::ReasoningEffort =
     crate::config::ReasoningEffort::High;

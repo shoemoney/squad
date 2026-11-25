@@ -460,7 +460,11 @@ impl Router {
                 replay: None,
                 case_id,
                 prompt_ref: template,
-                max_output_tokens: Some(if target == Target::Judge { 4096 } else { 2048 }),
+                max_output_tokens: Some(if target == Target::Judge {
+                    constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+                } else {
+                    2048
+                }),
                 contest_id: Some(id),
                 step_id: Some(step_id),
             };

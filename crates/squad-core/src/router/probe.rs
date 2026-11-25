@@ -130,7 +130,7 @@ pub fn prepare(
             |r| Ok((r.get(0)?, r.get(1)?)),
         )?;
         let reasoning = match if target == "judge" {
-            ReasoningEffort::Medium
+            constants::NEW_MODE_JUDGE_REASONING_EFFORT
         } else {
             binding.effort
         } {
@@ -519,7 +519,7 @@ pub fn allocate(
             .ok_or_else(invalid)?
             .clone();
         if w.kind == WorkKind::ProbeReport {
-            binding.effort = ReasoningEffort::Medium;
+            binding.effort = constants::NEW_MODE_JUDGE_REASONING_EFFORT;
         }
         squad_store::work::insert(tx, &w, &binding, None)?;
         squad_store::contest_steps::attach_work(tx, step.step_id, &w)?;

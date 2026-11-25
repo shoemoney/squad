@@ -9,6 +9,44 @@ pub fn known_usage(usage: &ProviderUsage) -> Option<Usage> {
         cost_usd: usage.cost.filter(|cost| cost.is_finite() && *cost >= 0.0),
     })
 }
+/// Who a provider call belongs to in a multi-step contest: contest, step, pass,
+/// execution identity (the fresh step-bound context, or the owning executor
+/// for judge work), work and attempt. It is derived only from the authorized
+/// grant, never from model output, and is what step-level cost attribution
+/// (including optional extraction and fresh audits) keys on. The persisted
+/// `UsageRecord` carries `contest_id`, `work_id`, `attempt`, `context_id` and
+/// `target`; the step and pass ride alongside it here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttemptAttribution {
+    pub contest_id: Option<ContestId>,
+    pub step_id: Option<StepId>,
+    pub pass: Option<u32>,
+    pub execution: ContextId,
+    pub target: Target,
+    pub work_id: WorkId,
+    pub attempt: u32,
+}
+impl AttemptAttribution {
+    pub fn from_grant(grant: &ExecutionGrant, pass: Option<u32>) -> Self {
+        Self {
+            contest_id: grant.work.contest_id,
+            step_id: grant.work.step_id,
+            pass,
+            execution: grant.work.context_id.clone(),
+            target: grant.work.target.clone(),
+            work_id: grant.work.work_id,
+            attempt: grant.work.attempt,
+        }
+    }
+    /// The persisted record must describe exactly this attempt.
+    pub fn matches(&self, record: &UsageRecord) -> bool {
+        record.contest_id == self.contest_id
+            && record.context_id == self.execution
+            && record.target == self.target
+            && record.work_id == self.work_id
+            && record.attempt == self.attempt
+    }
+}
 /// One instance per admitted provider call. Repeated submissions upsert the same
 /// `(work_id, attempt)`; accounting never owns a daily total or increments money.
 pub struct AttemptAccounting {
@@ -58,6 +96,13 @@ impl AttemptAccounting {
             epoch,
             observed,
         })
+    }
+    /// Contest, step, pass and execution identity for this call. `pass` is the
+    /// authorized census pass from the work's prompt values, when it has one.
+    pub fn attribution(&self, grant: &ExecutionGrant, pass: Option<u32>) -> AttemptAttribution {
+        let attribution = AttemptAttribution::from_grant(grant, pass);
+        debug_assert!(attribution.matches(&self.record));
+        attribution
     }
     pub fn metadata(&mut self, id: Option<String>, model: Option<String>) {
         if let Some(id) = id.filter(|id| !id.is_empty()) {

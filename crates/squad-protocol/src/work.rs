@@ -403,16 +403,20 @@ impl Work {
         }
         let ceiling = match self.kind {
             WorkKind::Judge | WorkKind::JudgeTournament => constants::FINAL_JUDGE_VISIBLE_TOKENS,
-            WorkKind::CensusMerge | WorkKind::CensusFinal => 4096,
+            WorkKind::CensusMerge | WorkKind::CensusFinal => {
+                constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+            }
             WorkKind::CensusHunt | WorkKind::CensusRate => 2048,
             WorkKind::CrosscheckInventory
             | WorkKind::CrosscheckCell
             | WorkKind::CrosscheckAudit => 2048,
             WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
-                4096
+                constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
             }
             #[cfg(feature = "mode-survey")]
-            WorkKind::SurveyExtract | WorkKind::SurveyReport => 4096,
+            WorkKind::SurveyExtract | WorkKind::SurveyReport => {
+                constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+            }
             #[cfg(feature = "mode-survey")]
             WorkKind::SurveyVote | WorkKind::SurveyRevote => 2048,
             WorkKind::GrillQuestion | WorkKind::GrillAnswer => {

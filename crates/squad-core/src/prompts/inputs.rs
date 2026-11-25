@@ -451,6 +451,39 @@ pub fn shared_move_composition(
                 "judge.standalone"
             })
         }
+        ContestMove::Fanout | ContestMove::Turns
+            if matches!(work.kind, WorkKind::CensusHunt | WorkKind::CensusRate) =>
+        {
+            work.kind.census_composition()
+        }
+        ContestMove::Judge if work.kind.census_judge() => work.kind.census_composition(),
+        ContestMove::Fanout
+            if matches!(work.kind, WorkKind::SurveyVote | WorkKind::SurveyRevote) =>
+        {
+            Some(if work.kind == WorkKind::SurveyVote {
+                "survey.vote"
+            } else {
+                "survey.revote"
+            })
+        }
+        ContestMove::Judge
+            if matches!(work.kind, WorkKind::SurveyExtract | WorkKind::SurveyReport) =>
+        {
+            Some(if work.kind == WorkKind::SurveyExtract {
+                "survey.extract"
+            } else {
+                "survey.report"
+            })
+        }
+        ContestMove::Fanout | ContestMove::Turns
+            if matches!(
+                work.kind,
+                WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict
+            ) =>
+        {
+            work.kind.probe_composition()
+        }
+        ContestMove::Judge if work.kind == WorkKind::ProbeReport => work.kind.probe_composition(),
         _ => return Err(error("move has no compiled work composition")),
     })
 }
