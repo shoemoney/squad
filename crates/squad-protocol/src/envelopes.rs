@@ -188,6 +188,22 @@ pub enum EnvelopePayload {
     RoomCleared(RoomCleared),
     #[serde(rename = "debate.round_score")]
     DebateRoundScore(DebateRoundScore),
+    #[serde(rename = "tournament.setup")]
+    TournamentSetup(TournamentSetup),
+    #[serde(rename = "tournament.state")]
+    TournamentState(TournamentState),
+    #[serde(rename = "tournament.preflight")]
+    TournamentPreflight(TournamentPreflight),
+    #[serde(rename = "tournament.entry")]
+    TournamentEntry(TournamentEntry),
+    #[serde(rename = "tournament.ranking")]
+    TournamentRanking(TournamentRanking),
+    #[serde(rename = "tournament.result")]
+    TournamentResult(TournamentResult),
+    #[serde(rename = "tournament.champion")]
+    TournamentChampion(TournamentChampion),
+    #[serde(rename = "tournament.judgment")]
+    TournamentJudgment(TournamentJudgment),
     #[serde(rename = "contest.setup")]
     ContestSetup(ContestSetup),
     #[serde(rename = "contest.state")]
@@ -534,6 +550,10 @@ fn validate_envelope(
     )?;
     let human_only = base.recipients == [Recipient::Me];
     match payload {
+        EnvelopePayload::TournamentState(s) => { ensure(base.sender == Actor::System && human_only, "tournament state requires system to human")?; s.validate()?; }
+        EnvelopePayload::TournamentEntry(e) => { ensure(human_only && (base.sender == Actor::Member(e.entrant.clone()) || (base.sender == Actor::System && matches!(e.outcome, DebateTurnOutcome::Forfeit { .. }))), "invalid tournament entry author")?; ensure(e.round > 0 && e.replay <= 1, "invalid entry execution")?; }
+        EnvelopePayload::TournamentJudgment(j) => { ensure(base.sender == Actor::Judge && human_only && j.round > 0 && j.replay <= 1, "invalid tournament judgment")?; }
+        EnvelopePayload::TournamentSetup(_) | EnvelopePayload::TournamentPreflight(_) | EnvelopePayload::TournamentRanking(_) | EnvelopePayload::TournamentResult(_) | EnvelopePayload::TournamentChampion(_) => { ensure(base.sender == Actor::System && human_only, "tournament announcement requires system to human")?; }
         EnvelopePayload::UserMessage(message) => {
             ensure(base.sender == Actor::Me, "user.message requires me")?;
             ensure(
