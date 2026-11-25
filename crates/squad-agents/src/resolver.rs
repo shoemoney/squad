@@ -107,6 +107,24 @@ pub struct ResolutionSnapshot {
 /// Wiring to router-owned persistence is intentionally deferred (M2.P1.L2.T4).
 pub trait ResolutionStore {
     type Error;
+    fn before_probe(
+        &mut self,
+        _nick: &str,
+        _configured: &str,
+        _attempt: u32,
+        _max_tokens: u32,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+    fn after_probe(
+        &mut self,
+        _nick: &str,
+        _configured: &str,
+        _attempt: u32,
+        _probe: &ProbeAttempt,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
     fn cached_catalog(&self) -> Result<Option<CatalogSnapshot>, Self::Error>;
     fn save_resolution(&mut self, snapshot: &ResolutionSnapshot) -> Result<(), Self::Error>;
 }
@@ -114,12 +132,14 @@ pub trait ResolutionStore {
 pub enum ResolutionError {
     Catalog(TransportError),
     InvalidCatalog,
+    Persistence,
     Configuration(ConfigError),
 }
 impl std::fmt::Display for ResolutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Catalog(error) => write!(f, "MODEL_RESOLUTION_FAILED catalog: {error}"),
+            Self::Persistence => f.write_str("Model resolution persistence unavailable"),
             Self::InvalidCatalog => f.write_str("MODEL_RESOLUTION_FAILED invalid catalog"),
             Self::Configuration(error) => error.fmt(f),
         }
@@ -214,12 +234,13 @@ pub async fn acquire_catalog(
     unreachable!()
 }
 
-async fn pin(
+async fn pin<S: ResolutionStore>(
     client: &OpenRouterClient,
     catalog: &Catalog,
     nick: &str,
     configured: &str,
     variable: &str,
+    store: &mut S,
 ) -> Result<PinnedModel, ResolutionError> {
     if !configured.starts_with('~') {
         let model = catalog
@@ -242,15 +263,32 @@ async fn pin(
     let effort = catalog
         .get(configured)
         .and_then(Model::lowest_reasoning_effort);
+    if store.before_probe(nick, configured, 1, 16).is_err() {
+        return Ok(PinnedModel {
+            nick: nick.into(),
+            configured: configured.into(),
+            model: None,
+            error: Some("MODEL_RESOLUTION_FAILED: probe dispatch refused".into()),
+            probes: vec![],
+        });
+    }
     let mut response = client
         .probe_alias_with_reasoning(configured, 16, effort)
         .await;
     let mut probes = vec![ProbeAttempt::capture(16, &response)];
-    if matches!(response, Err(TransportError::Http(400))) {
+    store
+        .after_probe(nick, configured, 1, &probes[0])
+        .map_err(|_| ResolutionError::Persistence)?;
+    if matches!(response, Err(TransportError::Http(400)))
+        && store.before_probe(nick, configured, 2, 2048).is_ok()
+    {
         response = client
             .probe_alias_with_reasoning(configured, 2048, effort)
             .await;
         probes.push(ProbeAttempt::capture(2048, &response));
+        store
+            .after_probe(nick, configured, 2, &probes[1])
+            .map_err(|_| ResolutionError::Persistence)?;
     }
     let model = response
         .as_ref()
@@ -269,11 +307,45 @@ async fn pin(
         probes,
     })
 }
+struct VolatileStore;
+impl ResolutionStore for VolatileStore {
+    type Error = ();
+    fn cached_catalog(&self) -> Result<Option<CatalogSnapshot>, ()> {
+        Ok(None)
+    }
+    fn save_resolution(&mut self, _: &ResolutionSnapshot) -> Result<(), ()> {
+        Ok(())
+    }
+}
 pub async fn resolve(
     client: &OpenRouterClient,
     config: &SquadConfig,
     cache: Option<&CatalogSnapshot>,
     now: u64,
+) -> Result<ResolutionSnapshot, ResolutionError> {
+    resolve_inner(client, config, cache, now, &mut VolatileStore).await
+}
+pub async fn resolve_persisted<S: ResolutionStore>(
+    client: &OpenRouterClient,
+    config: &SquadConfig,
+    now: u64,
+    store: &mut S,
+) -> Result<ResolutionSnapshot, ResolutionError> {
+    let cache = store
+        .cached_catalog()
+        .map_err(|_| ResolutionError::Persistence)?;
+    let snapshot = resolve_inner(client, config, cache.as_ref(), now, store).await?;
+    store
+        .save_resolution(&snapshot)
+        .map_err(|_| ResolutionError::Persistence)?;
+    Ok(snapshot)
+}
+async fn resolve_inner<S: ResolutionStore>(
+    client: &OpenRouterClient,
+    config: &SquadConfig,
+    cache: Option<&CatalogSnapshot>,
+    now: u64,
+    store: &mut S,
 ) -> Result<ResolutionSnapshot, ResolutionError> {
     let (catalog, cached) = acquire_catalog(client, cache, now).await?;
     // Validate all concrete selections before spending on any alias probe.
@@ -307,6 +379,7 @@ pub async fn resolve(
                 member.nick.as_str(),
                 &member.model,
                 &format!("SQUAD_MODEL_{}", member.nick.as_str().to_uppercase()),
+                store,
             )
             .await?,
         );
@@ -317,6 +390,7 @@ pub async fn resolve(
         "judge",
         &config.judge.model,
         "SQUAD_JUDGE_MODEL",
+        store,
     )
     .await?;
     let mut diagnostics = Vec::new();

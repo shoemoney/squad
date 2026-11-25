@@ -23,6 +23,8 @@ use std::collections::BTreeMap;
 
 pub struct Router {
     pub store: Store,
+    pub engine_config: Option<SquadConfig>,
+    pub engine_scope: Option<std::collections::BTreeSet<ContestId>>,
     roster: Vec<MemberNick>,
     bindings: BTreeMap<String, ExecutorBinding>,
     daily_max: i64,
@@ -86,7 +88,7 @@ impl Router {
             || roster
                 .iter()
                 .enumerate()
-                .any(|(i, n)| roster[..i].contains(n) || !bindings.contains_key(n.as_str()))
+                .any(|(i, n)| roster[..i].contains(n))
             || daily_max < 0
         {
             return Err(StoreError::Domain(
@@ -96,6 +98,8 @@ impl Router {
         }
         Ok(Self {
             store,
+            engine_config: None,
+            engine_scope: None,
             roster,
             bindings,
             daily_max,
@@ -111,7 +115,54 @@ impl Router {
     pub fn roster(&self) -> &[MemberNick] {
         &self.roster
     }
+    pub(crate) fn engine_bindings(&self) -> BTreeMap<String, ExecutorBinding> {
+        self.bindings.clone()
+    }
     pub fn process(
+        &mut self,
+        request: Request,
+        owner: Option<ExecutorKey>,
+    ) -> Result<CommitOutcome> {
+        let human = owner.is_none();
+        let mut outcome = self.process_request(request, owner)?;
+        if human
+            && !outcome.duplicate
+            && let Some(scope) = &mut self.engine_scope
+        {
+            for event in &outcome.events {
+                if let EnvelopePayload::DebateState(s) = &event.content {
+                    scope.insert(s.debate_id);
+                }
+            }
+        }
+        let initial = outcome.events.len();
+        match self.drive_contests() {
+            Ok(moves) => {
+                for moved in moves {
+                    if matches!(
+                        moved.result,
+                        RequestResult::PendingConfirmation { .. } | RequestResult::Rejected { .. }
+                    ) && human
+                    {
+                        outcome.result = moved.result;
+                    }
+                    outcome.events.extend(moved.events);
+                }
+            }
+            Err(e) => tracing::error!(error=%e,"Contest engine failed to advance"),
+        }
+        if let RequestResult::Accepted {
+            event_ids, cursor, ..
+        } = &mut outcome.result
+        {
+            event_ids.extend(outcome.events[initial..].iter().map(|e| e.base.id));
+            if let Some(last) = outcome.events.last() {
+                *cursor = Some(last.commit.seq);
+            }
+        }
+        Ok(outcome)
+    }
+    fn process_request(
         &mut self,
         request: Request,
         owner: Option<ExecutorKey>,
@@ -192,6 +243,11 @@ impl Router {
                     let event=squad_store::events::at(tx,seq.get())?;
                     for recipient in recipients {
                         let Recipient::Member(nick)=recipient else {continue};
+                        if !bindings.contains_key(nick.as_str()) {
+                            let mut failure=error(ErrorCode::MODEL_UNAVAILABLE,format!("Model unavailable for @{nick}"));failure.related_event_id=Some(id);
+                            group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::Error(failure)))?;
+                            continue;
+                        }
                         let pending:i64=tx.query_row("SELECT COUNT(*) FROM work WHERE target=? AND status IN ('queued','running')",[nick.as_str()],|r|r.get(0))?;
                         if pending>=constants::AGENT_QUEUE_DEPTH as i64 {
                             let mut failure=error(ErrorCode::AGENT_QUEUE_FULL,format!("Agent queue for @{nick} is full"));failure.related_event_id=Some(id);

@@ -475,7 +475,9 @@ impl Router {
         self.store.commit(request_id,"contest-engine".into(),digest,move |tx,group| {
             let state=squad_store::contests::debate(tx,contest)?;
             if state.state_version!=expected_state_version || state.state.is_terminal() {return Err(super::debates::invalid());}
-            for item in &work {
+            for mut item in work {
+                let boundary: i64=tx.query_row("SELECT COALESCE(MAX(pos),0) FROM history WHERE context_id=?",[&item.context_id.0],|r|r.get(0))?;
+                item.history_through=HistoryPosition::new(boundary).map_err(|_|super::debates::invalid())?;
                 if item.contest_id!=Some(contest) || item.debate_id!=Some(contest) || item.step_id.is_some() {return Err(super::authorization::forbidden());}
                 if item.kind==WorkKind::DebateTurn && (item.round!=Some(state.round) || state.state!=DebateStatus::RoundRunning) {return Err(super::debates::invalid());}
                 if item.kind==WorkKind::JudgeRound && (!matches!(state.state,DebateStatus::RoundRunning|DebateStatus::RoundCommitting|DebateStatus::Judging) || item.round.is_none_or(|r|r>state.round)) {return Err(super::debates::invalid());}
@@ -483,9 +485,10 @@ impl Router {
                     let pending:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE debate_id=? AND kind='judge.round' AND status IN ('queued','running'))",[contest.to_string()],|r|r.get(0))?;
                     if pending || state.state!=DebateStatus::Judging {return Err(super::debates::invalid());}
                 }
-                let binding=bindings.get(&item.target.to_string()).ok_or_else(super::authorization::forbidden)?;
-                squad_store::work::insert(tx,item,binding,None)?;
-                queued(tx,group,item)?;
+                let mut binding=bindings.get(&item.target.to_string()).cloned().ok_or_else(super::authorization::forbidden)?;
+                if item.target==Target::Judge { binding.model=Text::new(state.judge_model.clone()).map_err(|_|super::debates::invalid())?; }
+                squad_store::work::insert(tx,&item,&binding,None)?;
+                queued(tx,group,&item)?;
             }
             Ok(group.accepted(request_id))
         })

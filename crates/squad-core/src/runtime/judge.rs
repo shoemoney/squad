@@ -245,6 +245,7 @@ impl Runner {
                     // case's history. Never rebuild it from a room timeline.
                     let bundle = history
                         .iter()
+                        .rev()
                         .find_map(|h| {
                             serde_json::from_str::<DebateAdjudicationBundle>(&h.content).ok()
                         })

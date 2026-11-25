@@ -43,6 +43,9 @@ pub type RoomFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, RoomError>> +
 pub trait RoomRuntime: Send + Sync {
     fn ready(&mut self) -> RoomFuture<'_, ()>;
     fn wake(&self, work_ids: &[WorkId]);
+    fn reset(&mut self) -> RoomFuture<'_, ()> {
+        Box::pin(async { Ok(()) })
+    }
     fn shutdown(self: Box<Self>) -> RoomFuture<'static, ()>;
 }
 pub trait RuntimeLauncher: Send + Sync {
@@ -64,39 +67,109 @@ pub trait RuntimeLauncher: Send + Sync {
         mode: OpenMode,
     ) -> Result<Box<dyn RoomRuntime>, RoomError>;
 }
-struct UnboundRuntime;
-impl RuntimeLauncher for UnboundRuntime {
-    fn recover_on_open_mode(&self, _: &Store, _: OpenMode, _: DateTime) -> Result<(), RoomError> {
-        Err(RoomError::new(
-            ErrorCode::NOT_READY,
-            "Room recovery integration is not installed",
-        ))
+struct DefaultLauncher;
+struct LiveRuntime {
+    handle: Option<crate::runtime::RuntimeHandle>,
+    config: SquadConfig,
+    store: Store,
+    bus: InProcessBus,
+    client: OpenRouterClient,
+    resolution: ResolutionSnapshot,
+    mode: OpenMode,
+}
+fn runtime_error(error: ReaderError) -> RoomError {
+    RoomError::new(
+        ErrorCode::UNAVAILABLE,
+        format!("Executor runtime: {error:?}"),
+    )
+}
+impl RoomRuntime for LiveRuntime {
+    fn ready(&mut self) -> RoomFuture<'_, ()> {
+        Box::pin(async {
+            self.handle
+                .as_mut()
+                .expect("runtime")
+                .ready()
+                .await
+                .map_err(runtime_error)
+        })
+    }
+    fn wake(&self, ids: &[WorkId]) {
+        self.handle.as_ref().expect("runtime").wake(ids);
+    }
+    fn reset(&mut self) -> RoomFuture<'_, ()> {
+        Box::pin(async {
+            if let Some(handle) = self.handle.take() {
+                handle.shutdown().await.map_err(runtime_error)?;
+            }
+            self.handle = Some(
+                crate::runtime::start_with_mode(
+                    &self.config,
+                    self.store.clone(),
+                    self.bus.clone(),
+                    self.client.clone(),
+                    self.resolution.clone(),
+                    self.mode.clone(),
+                )
+                .map_err(runtime_error)?,
+            );
+            self.ready().await
+        })
+    }
+    fn shutdown(mut self: Box<Self>) -> RoomFuture<'static, ()> {
+        Box::pin(async move {
+            if let Some(handle) = self.handle.take() {
+                handle.shutdown().await.map_err(runtime_error)?;
+            }
+            Ok(())
+        })
+    }
+}
+impl RuntimeLauncher for DefaultLauncher {
+    fn recover_on_open_mode(
+        &self,
+        store: &Store,
+        mode: OpenMode,
+        now: DateTime,
+    ) -> Result<(), RoomError> {
+        crate::router::recovery::recover_on_open_mode(store, mode, now)?;
+        Ok(())
     }
     fn start_with_mode(
         &self,
-        _: &SquadConfig,
-        _: Store,
-        _: InProcessBus,
-        _: OpenRouterClient,
-        _: ResolutionSnapshot,
-        _: OpenMode,
+        config: &SquadConfig,
+        store: Store,
+        bus: InProcessBus,
+        client: OpenRouterClient,
+        resolution: ResolutionSnapshot,
+        mode: OpenMode,
     ) -> Result<Box<dyn RoomRuntime>, RoomError> {
-        Err(RoomError::new(
-            ErrorCode::NOT_READY,
-            "Room runtime integration is not installed",
-        ))
+        let handle = crate::runtime::start_with_mode(
+            config,
+            store.clone(),
+            bus.clone(),
+            client.clone(),
+            resolution.clone(),
+            mode.clone(),
+        )
+        .map_err(runtime_error)?;
+        Ok(Box::new(LiveRuntime {
+            handle: Some(handle),
+            config: config.clone(),
+            store,
+            bus,
+            client,
+            resolution,
+            mode,
+        }))
     }
 }
-/// Replace this binding with the owning runtime adapter at integration.
 pub fn default_launcher() -> impl RuntimeLauncher {
-    UnboundRuntime
+    DefaultLauncher
 }
-// Bind to OpenRouterClient::from_config when the provider integration lands.
-fn configured_client(_config: &SquadConfig) -> Result<OpenRouterClient, RoomError> {
-    Err(RoomError::new(
-        ErrorCode::NOT_READY,
-        "Room runtime integration is not installed",
-    ))
+fn configured_client(config: &SquadConfig) -> Result<OpenRouterClient, RoomError> {
+    OpenRouterClient::from_config(config)
+        .map_err(|e| RoomError::new(ErrorCode::CONFIG_INVALID, e.to_string()))
 }
 // Explicit unlock also releases inherited descriptors during concurrent process startup.
 struct RoomLease(RoomLock);
@@ -180,11 +253,13 @@ impl RoomHandle {
             }
             Ok(())
         })?;
-        let resolution = resolver::resolve(
+        let mut persistence =
+            crate::resolution::ResolutionPersistence::new(store.clone(), daily_max)?;
+        let resolution = resolver::resolve_persisted(
             &client,
             &config,
-            None,
             chrono::Utc::now().timestamp() as u64,
+            &mut persistence,
         )
         .await
         .map_err(|e| {
@@ -204,10 +279,7 @@ impl RoomHandle {
             .enumerate()
         {
             let Some(model) = &pinned.model else {
-                return Err(RoomError::new(
-                    ErrorCode::MODEL_UNAVAILABLE,
-                    format!("Model unavailable for {}", pinned.nick),
-                ));
+                continue;
             };
             let judge = index == config.agents.len();
             let actor = if judge {
@@ -260,19 +332,41 @@ impl RoomHandle {
             Ok(())
         })?;
         let roster: Vec<_> = config.agents.iter().map(|a| a.nick.clone()).collect();
-        let router = Router::new(store.clone(), roster.clone(), bindings, daily_max)?;
+        let mut router = Router::new(store.clone(), roster.clone(), bindings, daily_max)?
+            .with_confirmation_threshold(config.budget.debate_confirm_usd)?;
+        router.variable_defaults = (&config.defaults).into();
+        router.engine_config = Some(config.clone());
+        if mode == OpenMode::OneShot {
+            router.engine_scope = Some(Default::default());
+        } else {
+            router.drive_contests()?;
+        }
         let bus = InProcessBus::start(router);
         let receiver = bus.subscribe();
+        let offline: BTreeMap<_, _> = resolution
+            .members
+            .iter()
+            .filter(|p| p.model.is_none())
+            .filter_map(|p| {
+                let nick: MemberNick = p.nick.parse().ok()?;
+                Some((
+                    nick.clone(),
+                    Presence {
+                        nick,
+                        status: PresenceStatus::Offline,
+                        work_id: None,
+                        queue_depth: 0,
+                        error_code: Some(ErrorCode::MODEL_UNAVAILABLE),
+                        observed_at: chrono::Utc::now(),
+                    },
+                ))
+            })
+            .collect();
+        let state_presence = offline.clone();
         let state_roster = roster.clone();
         let cached = store.call(move |db| {
             let tx = db.transaction()?;
-            crate::state::snapshot(
-                &tx,
-                &state_roster,
-                &BTreeMap::new(),
-                &local_day(),
-                daily_max,
-            )
+            crate::state::snapshot(&tx, &state_roster, &state_presence, &local_day(), daily_max)
         })?;
         let mut runtime = launcher.start_with_mode(
             &config,
@@ -299,7 +393,7 @@ impl RoomHandle {
             roster,
             daily_max,
             cached: Mutex::new(cached),
-            observations: Mutex::new((receiver, BTreeMap::new())),
+            observations: Mutex::new((receiver, offline)),
         })
     }
     pub async fn submit(&self, request: Request) -> RequestResult {
@@ -344,7 +438,21 @@ impl RoomHandle {
                 )?)
             })
             .unwrap_or(true);
+        let clear = matches!(request, Request::Clear { .. });
         let result = bus.send(request).await;
+        if clear && !duplicate && matches!(result, RequestResult::Accepted { .. }) {
+            let resources = self.resources.lock().expect("room resources").take();
+            if let Some(mut resources) = resources {
+                let restarted = resources.runtime.reset().await;
+                *self.resources.lock().expect("room resources") = Some(resources);
+                if let Err(error) = restarted {
+                    return RequestResult::Rejected {
+                        request_id: id,
+                        error: crate::router::error(error.code, error.message),
+                    };
+                }
+            }
+        }
         if dispatch
             && !duplicate
             && let RequestResult::Accepted { event_ids, .. } = &result

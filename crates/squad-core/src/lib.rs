@@ -11,3 +11,5 @@ pub mod state;
 
 pub use room::{RoomError, RoomHandle, export_offline};
 pub use state::{DailySpend, RoomState, RoomVars};
+
+mod resolution;

@@ -98,18 +98,27 @@ fn prompt(pack: &PromptPack, config: &SquadConfig, id: &str) -> PromptRef {
 }
 impl RuntimeHandle {
     pub fn wake(&self, work_ids: &[WorkId]) {
-        let mut ids = self.scope.ids.lock().expect("dispatch scope");
-        for id in work_ids {
-            if !ids.contains(id) {
-                ids.push(*id);
-            }
-        }
-        drop(ids);
-        for nick in &self.roster {
-            self.bus.wake_mailbox(&ExecutorKey::Member(nick.clone()));
-        }
-        self.wakeup.notify_one();
+        wake_scope(&self.scope, &self.wakeup, &self.bus, &self.roster, work_ids);
     }
+}
+fn wake_scope(
+    scope: &contexts::Scope,
+    wakeup: &tokio::sync::Notify,
+    bus: &InProcessBus,
+    roster: &[MemberNick],
+    work_ids: &[WorkId],
+) {
+    let mut ids = scope.ids.lock().expect("dispatch scope");
+    for id in work_ids {
+        if !ids.contains(id) {
+            ids.push(*id);
+        }
+    }
+    drop(ids);
+    for nick in roster {
+        bus.wake_mailbox(&ExecutorKey::Member(nick.clone()));
+    }
+    wakeup.notify_one();
 }
 fn launch_mode(
     config: &SquadConfig,
@@ -128,12 +137,14 @@ fn launch_mode(
     let roster: Vec<_> = config.agents.iter().map(|a| a.nick.clone()).collect();
     let mut members = Vec::new();
     for member in &config.agents {
-        let pinned = resolution
+        let Some(pinned) = resolution
             .members
             .iter()
             .find(|p| p.nick == member.nick.as_str())
             .and_then(|p| p.model.as_ref())
-            .ok_or(ReaderError::NotRunnable)?;
+        else {
+            continue;
+        };
         let renderer = Arc::new(member::Renderer {
             pack: pack.clone(),
             config: config.clone(),
@@ -161,14 +172,16 @@ fn launch_mode(
             }),
         ));
     }
-    let judge_model = resolution.judge.model.ok_or(ReaderError::NotRunnable)?;
+    let judge_model = resolution.judge.model;
     let judge = Arc::new(judge::Runner {
         client,
         config: config.clone(),
         pack: pack.clone(),
         models: {
             let mut models = resolution.catalog.models.clone();
-            models.insert(judge_model.id.clone(), judge_model);
+            if let Some(judge_model) = judge_model {
+                models.insert(judge_model.id.clone(), judge_model);
+            }
             models
         },
     });
@@ -276,7 +289,19 @@ fn launch_mode(
                 _ = child_cancel.cancelled() => break,
                 _ = task_wakeup.notified() => { for nick in &roster { bus.wake_mailbox(&ExecutorKey::Member(nick.clone())); } },
                 _ = interval.tick() => {},
-                _ = feed.recv() => {},
+                event = feed.recv() => {
+                    if mode == OpenMode::OneShot && let Ok(FeedItem::Committed(event)) = event
+                        && let EnvelopePayload::WorkState(work) = event.content
+                        && work.status == WorkStatus::Queued && let Some(contest) = work.contest_id {
+                        let ids=task_scope.ids.lock().expect("dispatch scope").clone();
+                        let admitted=store.call(move |db| {
+                            Ok(db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE contest_id=? AND work_id IN (SELECT value FROM json_each(?)))",rusqlite::params![contest.to_string(),serde_json::to_string(&ids)?],|r|r.get::<_,bool>(0))?)
+                        }).map_err(|_|unavailable())?;
+                        if admitted {
+                            wake_scope(&task_scope,&task_wakeup,&bus,&roster,&[work.work_id]);
+                        }
+                    }
+                },
             }
         }
         let _ = ready_tx.send(false);

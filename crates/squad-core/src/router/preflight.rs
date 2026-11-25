@@ -65,6 +65,7 @@ pub fn propose(
             EnvelopePayload::DebatePreflight(plan.clone()),
         ),
     )?;
+    state.judge_model = plan.judge_model.clone().unwrap_or_default();
     let mut frozen = serde_json::to_value(&plan)?;
     frozen["admissionMaxMicros"] = serde_json::json!(daily_max);
     frozen["confirmationThreshold"] = serde_json::json!(threshold);
