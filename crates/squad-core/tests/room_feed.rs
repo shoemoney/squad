@@ -57,7 +57,10 @@ fn drain(feed: &mut FeedReceiver) -> Vec<FeedItem> {
 
 /// Drain the feed once it has delivered everything durable history holds: the
 /// feed is published after commit, so a database condition alone can run ahead.
-async fn drain_settled(feed: &mut FeedReceiver, room: &squad_core::room::RoomHandle) -> Vec<FeedItem> {
+async fn drain_settled(
+    feed: &mut FeedReceiver,
+    room: &squad_core::room::RoomHandle,
+) -> Vec<FeedItem> {
     let mut items = Vec::new();
     tokio::time::timeout(Duration::from_secs(15), async {
         loop {
