@@ -148,7 +148,33 @@ pub fn run(
         text,
         "Terminal capabilities: {status}; colour: {colour}; size: {dimensions}"
     );
-    text.push_str("Daily accounting: skipped until M3\nModel identity: skipped until M3\n");
+    if let Ok(path) = &resolved_data_dir {
+        let limit = config
+            .as_ref()
+            .map_or(20.0, |config| config.budget.daily_max_usd);
+        let day = chrono::Local::now().format("%Y-%m-%d").to_string();
+        for check in [
+            squad_cli::diagnostics::accounting(path, &day, limit),
+            squad_cli::diagnostics::identities(path),
+        ] {
+            match check {
+                Ok(report) => text.push_str(&report),
+                Err(error) => {
+                    let _ = writeln!(text, "Diagnostics: FAIL - {error}");
+                    failed = true;
+                }
+            }
+        }
+        match squad_cli::models::run(path, config.as_ref().ok()) {
+            Ok(report) => {
+                let _ = writeln!(text, "Cached model resolution:\n{report}");
+            }
+            Err(error) => {
+                let _ = writeln!(text, "Model resolution: FAIL - {error}");
+                failed = true;
+            }
+        }
+    }
     if writable && let Ok(config) = config {
         if let Err(error) = crate::logging::init(
             &config.data_dir,

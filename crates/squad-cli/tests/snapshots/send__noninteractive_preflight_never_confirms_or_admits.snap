@@ -1,0 +1,6 @@
+---
+source: crates/squad-cli/tests/send.rs
+expression: normalize(&output)
+---
+{"confirmationRequired":true,"contestId":"01900000-0000-7000-8000-000000000001","estimate":{"estimatedUsd":2.5,"modelCalls":12,"remainingUsd":10.0,"reservedUsd":2.5},"expiresAt":"2026-11-24T00:10:00Z","kind":"census","participants":["alpha","beta"],"planId":"01900000-0000-7000-8000-000000000001","requestId":"01900000-0000-7000-8000-000000000001","settings":{"passes":3,"reusedInputs":["01900000-0000-7000-8000-000000000001"]},"type":"census.preflight","warning":"beta sits out the final step"}
+{"error":{"code":"INVALID_COMMAND","message":"Confirmation required. Re-run with --yes in noninteractive mode.","retryable":false},"requestId":"01900000-0000-7000-8000-000000000001","type":"error"}
