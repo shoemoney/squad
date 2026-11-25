@@ -59,7 +59,7 @@
 ## Phase M2.P2 — Private workers and context
 
 - **M2.P2.L1 — Execute durable addressed work**
-  - [ ] M2.P2.L1.T1 — Spawn one tokio task per member using the canonical context-bound `AgentContext` in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [ ] M2.P2.L1.T1 — Spawn one tokio task per member using Protocol’s canonical `AgentContext` bound to `ExecutorKey::Member`, enumerating that member’s ordinary and assigned step work across contexts in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P2.L1.T2 — Implement FIFO queues, queue limits, and work deduplication in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P2.L1.T3 — Test ordered follow-ups and trigger-bounded context in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.
   - [ ] M2.P2.L1.T4 — Test contest drain and hold signals with controlled scheduler fixtures in crate `squad-agents`, file `crates/squad-agents/tests/agents_worker.rs`.

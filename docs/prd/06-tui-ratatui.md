@@ -19,7 +19,7 @@ Shared contracts retain their owners:
 | `SquadConfig`, `.env` loading, environment variables, commands, and distribution | Foundations |
 | `RoomHandle`, request lifecycle, Markdown export, and shared banner text and fonts in `squad-core` | Room API and CLI |
 | Ordinary generation, queueing, retries, context assembly, and model resolution | Agents and OpenRouter |
-| Contest engine, admission, preflight semantics, states, debate setup, round scoring, cases, verdict schema, tournament rankings, and grill plans | Contests: debate, tournament, grill |
+| Contest engine, admission, preflight semantics, states, debate setup, round scoring, cases, verdict schema, tournament rankings, and grill plans | Contests |
 | Prompt content, limits, and placeholders | Prompt pack |
 | Palette, effects design, effects manager, and banner animation | TUI effects and motion |
 
@@ -33,40 +33,7 @@ Configuration comes from the single `.env` configuration contract in Foundations
 
 Ratatui uses immediate-mode drawing into a buffer, compares it with the previous buffer, and writes changed cells. The independent synthetic benchmark supports its suitability for efficient terminal drawing, but establishes no result for 12 concurrent streams. The owner selected Ratatui; Squad must validate its actual transcript and editing workload before implementation proceeds. The research also leaves textarea soft wrapping unresolved, so Squad will implement its own input widget and validate that choice in an input spike.
 
-#### Canonical numbers
-
-These values reference the owning contracts.
-
-| Thing | Value |
-|---|---|
-| Members | 1 to 12; nick pattern `^[a-z][a-z0-9_]{0,31}$`; reserved `me`, `all`, `judge`, `system`, `squad` |
-| `ROUNDS` | Default 10, minimum 1, maximum 20 |
-| Prompt-enforced word limits | `roomWords` 500, `turnWords` 400, `finalTurnWords` 500 |
-| Visible output token ceilings | 2,048 for room replies, tournament answers, and debate turns; 4,096 for final judge calls; 512 for `judge.round`; 4,096 for rebuilt grill plans |
-| Reasoning effort | Medium by default for members, low for `judge.round`, high for final judge calls; optional per-member `SQUAD_REASONING_EFFORT_<NICK>`; reasoning text never displayed |
-| Reasoning budgets | Compile-time constants: low 1,024 tokens, medium 4,096 tokens, high 8,192 tokens |
-| Ordinary reply | 15 s connect, 90 s first token, 30 s idle, 300 s total; 2 attempts, then an error event with a retry action |
-| Debate turn | 180 s deadline; 2 attempts, the second issued by the orchestrator; then forfeit |
-| Judge call | 3 attempts including schema-repair attempts for final judging; 2 attempts including schema repair for `judge.round` |
-| Judge deadlines | Compile-time constants: 300 s for final judging; 120 s for `judge.round` and `judge.tournament` |
-| Preflight plan expiry | Compile-time constant: 10 min |
-| Work lease | Compile-time constants: 60 s, renewed every 20 s |
-| Channels | Compile-time constants: ingress capacity 256; mailbox capacity 1, synchronous `try_send` with a wake-up pending flag; feed broadcast capacity 4,096 |
-| Per-agent queue | 20 items, then `AGENT_QUEUE_FULL` |
-| User message size | 1 to 32,768 UTF-8 bytes |
-| Daily spending max | `SQUAD_DAILY_MAX_USD` defaults to 20; debate confirmation threshold `budget.debateConfirmUsd` = 2 |
-| Quotes per message | Maximum 12 |
-| Round scores | Integer 1 to 10 per debater; equal scores allowed; each reason at most 200 characters; round 0 is not scored |
-| Active contests | One per room, including a contest collecting answers or awaiting a pick |
-| Tournament | Minimum 3 entrants; with k entrants, k−1 rounds and one elimination per round |
-| `GRILL_ROUNDS` | Default 2, minimum 1, maximum 10 |
-| Grill limits | Up to 3 questions and 200 words per question turn; answer turn uses `SQUAD_TURN_WORDS`; rebuilt plan defaults to 1,200 words through optional `SQUAD_PLAN_WORDS` |
-| `CENSUS_PASSES` | Default 2, minimum 1, maximum 5 |
-| Census | At least 3 members; up to 8 gaps per member per hunt; six-member baseline 14 calls per pass, 28 for two passes |
-| Crosscheck | 3 inventory items per member; every single item and cross-lens pair; 153 cells for the default 18-item inventory; cap 200; 2 fresh-context auditors sample 5 closures each |
-| Survey | Up to 25 claims; up to 5 most evenly split claims re-voted; confidence 1 to 5; six-member baseline 20 calls, or 14 with existing answers |
-| Probe | Even participating count of at least 4; with an odd addressed count the last member sits out; six-member baseline 10 calls |
-| New-mode judge calls | Census, crosscheck, survey, and probe use medium reasoning effort and a 4,096 visible output ceiling, including their final report calls |
+Canonical values are defined in [Protocol’s canonical numbers and configuration](02-message-protocol-store-and-bus.md#canonical-numbers-and-configuration).
 
 Every output ceiling limits visible output. For models whose catalog entry lists reasoning support, the Agents and OpenRouter contract sends `max_tokens = visible ceiling + reasoning budget` and an explicit `reasoning.max_tokens` equal to that budget. Unsupported models receive no reasoning parameters unless an explicit unsupported setting must be rejected. The TUI displays accepted configuration and errors without constructing provider requests.
 
@@ -384,13 +351,13 @@ The user can select messages and submit `@judge which of these is best?`. The ju
 
 A Follow up action on a verdict quotes that verdict and addresses only `@judge`. Manually quoting a verdict has the same effect. The core reopens that case with its material, verdict, and prior case follow-ups. Display the case identity and its relationship to the original verdict. Unrelated cases remain separate.
 
-Invalid judge requests display `Quote at least one message for @judge to rule on.` Case context, persistence, and supplied evidence remain owned by Contests: debate, tournament, grill.
+Invalid judge requests display `Quote at least one message for @judge to rule on.` Case context, persistence, and supplied evidence remain owned by Contests.
 
 #### Inline debates and preflight
 
 Debates are collapsible blocks within the single transcript. Expanding one preserves surrounding content and the reading anchor. There is no separate debate screen.
 
-Users can select eligible completed replies from different members as explicit solutions. Preview both authors, selected texts, and topic before submission. Typed requests follow Contests: debate, tournament, grill source-selection rules. The TUI does not choose substitute sources.
+Users can select eligible completed replies from different members as explicit solutions. Preview both authors, selected texts, and topic before submission. Typed requests follow Contests source-selection rules. The TUI does not choose substitute sources.
 
 When required by the core, show opening round 0 separately from configured rounds. Its positions become the solutions and do not count toward `ROUNDS`. Round 0 has no scorecard.
 
@@ -634,7 +601,7 @@ Show the actual judge model and substitution warning before judging. Preserve th
 
 The core detects conflict using resolved concrete models, including members under other nicks. Standalone judging uses the core's corresponding conflict-resolution contract. Tournaments remain blind and never swap.
 
-Render accepted debate verdicts using the schema owned by Contests: debate, tournament, grill. Show the winner, criterion scores and scale, authoritative weighted totals, reasoning, and `What to steal from the loser`. A winner remains required when totals are equal.
+Render accepted debate verdicts using the schema owned by Contests. Show the winner, criterion scores and scale, authoritative weighted totals, reasoning, and `What to steal from the loser`. A winner remains required when totals are equal.
 
 Also show the authoritative `roundTally` for both debaters and `tallyOverrideReason` when non-null. `roundTally` is computed by the core, not produced by the model. When the winner is not the round-tally leader, the accepted verdict must contain the judge's override reason. Render that reason without deriving a substitute explanation. Keep unscored rounds identifiable alongside the available per-round scores.
 
@@ -735,7 +702,7 @@ Test the Markdown pipeline with partial fences, paragraph-to-table transitions, 
 
 Snapshot `OPENING`, `ROUND n`, `FINAL ROUND`, and `VERDICT` banners at available widths of 120, 80, and 40 columns, including `NO_COLOR`. Exercise both embedded fonts, one-line fallbacks, `SQUAD_BANNERS` modes, history replay, height-cache invalidation, and anchored reflow. The 40-column cases test the banner widget independently of the minimum application viewport.
 
-Verify pending, late, repeated, equal, failed, and canceled round-score presentation. Check scorecard expansion, authoritative tally display, unchanged participant win/loss records, final round tallies and override reasons, and the absence of scoring for round 0 and unjudged debates. Integration checks must preserve M5's rule that final judging waits for round-scoring completion or failure and that judging a stopped debate does not score rounds retroactively. Context isolation, orchestrator scoring behavior, and tally arithmetic remain owned by Contests: debate, tournament, grill and Hardening.
+Verify pending, late, repeated, equal, failed, and canceled round-score presentation. Check scorecard expansion, authoritative tally display, unchanged participant win/loss records, final round tallies and override reasons, and the absence of scoring for round 0 and unjudged debates. Integration checks must preserve M5's rule that final judging waits for round-scoring completion or failure and that judging a stopped debate does not score rounds retroactively. Context isolation, orchestrator scoring behavior, and tally arithmetic remain owned by Contests and Hardening.
 
 Verify complete static rendering with effects off and the post-render effects manager hook. Effects behavior and its verification remain owned by TUI effects and motion and Hardening. The initial 12-stream spike uses a throwaway renderer with effects off. After M4.P5, repeat the gate with the real transcript widget and `SQUAD_FX=full` as an M4 exit criterion.
 
@@ -761,3 +728,5 @@ Use the workspace checks defined by Foundations: `cargo nextest`, `insta`, `clip
 
 ### Part 2: Milestones
 
+
+Census continuation uses Parser’s `/continue ["<plan>"]`, preserving a single quoted-plan attachment when supplied and mapping to `Request::CensusContinue`. Crosscheck residual-risk acceptance uses `/accept <cellId…> -- <reason>` on a COMPLETE crosscheck and maps to `Request::CrosscheckAccept` with the displayed plan, grid and state version. These controls retain Parser’s exact errors and become executable with their modes in M5.

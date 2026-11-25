@@ -23,11 +23,11 @@ The following contracts retain their named owners:
 | `SquadConfig`, environment variables and `setup.sh` | Foundations |
 | `RoomHandle`, CLI behavior and markdown export contract | Room API and CLI |
 | Ordinary-reply execution, queue scheduling, context assembly and model resolution | Agents and OpenRouter |
-| Contest engine, shared moves, all seven mode scripts and states, mode payloads, adjudication bundles, verdict schemas, admission, deadlines and attempt policy | Contests: debate, tournament, grill |
-| Prompt templates, `PromptRef`, placeholders and rendering | Prompt pack |
+| Contest engine, shared moves, all seven mode scripts and states, mode payloads, adjudication bundles, verdict schemas, admission, deadlines and attempt policy | Contests |
+| Prompt templates, placeholders and rendering rules | Prompt pack |
 | Spending reconciliation and storage admission policy | Hardening: Cost guard |
 
-The protocol references those contracts by name. It does not define alternate shapes or state machines. Their serde declarations and validators live in `squad-protocol` and are available in M1; their runtime orchestration arrives in M5.
+The protocol references those contracts by name. It does not define alternate shapes or state machines. Contests (08) owns each mode’s typed payloads. Once a mode is built, its Rust types in `squad-protocol` are the normative contract. M1 implements core messaging, quotes, standalone cases, Work, generic contest carriers and tables, and debate typed payloads only. Grill, census, crosscheck, tournament, survey and probe typed payloads, statuses, tables, validators and visibility tests are added in that mode’s M5 phase. Future-mode definitions and schema extensions below describe those later contracts; they are not M1 deliverables.
 
 The workspace has six crates: `squad-protocol`, `squad-store`, `squad-agents`, `squad-core`, `squad-tui` and `squad-cli`. `squad-agents` depends on `squad-protocol` and its reader and submission traits, never on `squad-store` or `rusqlite`. `squad-core` constructs context-bound capabilities and passes them to executors. Export, prompt rendering, banner text and embedded fonts live in `squad-core`.
 
@@ -38,14 +38,14 @@ The workspace has six crates: `squad-protocol`, `squad-store`, `squad-agents`, `
 | Members | 1 to 12; nick pattern `^[a-z][a-z0-9_]{0,31}$`; reserved `me`, `all`, `judge`, `system`, `squad` |
 | `ROUNDS` | Default 10, min 1, max 20 |
 | `GRILL_ROUNDS` | Default 2, min 1, max 10 |
-| Word limits, prompt-enforced | `roomWords` 500, `turnWords` 400, `finalTurnWords` 500; grill questions 200; rebuilt plans 1,200 by default |
+| Word limits, prompt-enforced | Owned by [Prompt pack](09-prompt-pack.md#word-limit-defaults); no numeric copy here |
 | Visible output token ceilings | 2,048 for room replies, tournament entries, debate turns, grill questions and grill answers; 4,096 for final judge calls, `judge.tournament` and grill rebuilds; 512 for `judge.round` |
 | Reasoning effort | Medium for members, low for `judge.round`, high for final judge calls and `judge.tournament`; reasoning text never forwarded |
 | Reasoning token budgets | Low 1,024; medium 4,096; high 8,192 |
 | Ordinary reply | Timeouts 15 s connect / 90 s first token / 30 s idle / 300 s total; 2 attempts, including one automatic retry, then an error event with a retry action |
-| Debate turn | 180 s deadline; 2 attempts, the second issued by the orchestrator; then forfeit |
-| Final judge call | 300 s deadline |
-| `judge.round` and `judge.tournament` | 120 s deadline |
+| Debate turn | Deadline and attempts owned by [Contests execution limits](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md#execution-limits) |
+| Final judge call | Deadline owned by [Contests execution limits](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md#execution-limits) |
+| `judge.round` and `judge.tournament` | Deadlines owned by [Contests execution limits](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md#execution-limits) |
 | Judge call | 3 attempts including schema-repair attempts, except `judge.round` |
 | Per-agent queue | 20 items, then `AGENT_QUEUE_FULL` |
 | User message size | 1 to 32,768 UTF-8 bytes |
@@ -66,7 +66,12 @@ The workspace has six crates: `squad-protocol`, `squad-store`, `squad-agents`, `
 | Crosscheck | At most 200 retained grid cells; 2 fresh-context auditors, each sampling 5 closures |
 | Survey | At most 25 claims; at most 5 claims selected for a second ballot; confidence integers from 1 to 5 |
 | Probe | At least 4 active members, split evenly; with an odd addressed count, the last member sits out |
-| Census, crosscheck, survey and probe judge calls | Medium reasoning effort; 4,096 visible output tokens; strict task-specific JSON schema |
+| Census, crosscheck, survey and probe member calls | `room_words`; 2,048 visible tokens; deadline and 2-attempt plain-retry policy owned by [Contests execution limits](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md#execution-limits) |
+| Census, crosscheck, survey and probe judge calls | `plan_words`; medium reasoning effort and 4,096-token reasoning budget; 4,096 visible output tokens; strict task-specific JSON schema; deadline and 3-attempt policy with at most one repair owned by [Contests execution limits](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md#execution-limits) |
+| Grill calls | Deadline and attempts owned by [Contests execution limits](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md#execution-limits) |
+| Crosscheck minimum and inventory | At least 3 members; 3 concrete items per member |
+| Active contests | One active claim |
+| Alias probe | 16 visible tokens; one retry on HTTP 400 with 2,048 tokens; room-open only |
 
 Every output ceiling limits visible output. For a model whose catalog entry lists reasoning support, the request sends `max_tokens = visible ceiling + reasoning budget` and explicit `reasoning.max_tokens` equal to that budget. `reasoning.effort` is sent only for supported models. An explicitly configured effort for an unsupported model raises `MODEL_PARAMETER_UNSUPPORTED`; the default effort does not reject a model without reasoning support.
 
@@ -76,7 +81,7 @@ The alias probe sends `max_tokens: 16` with the lowest reasoning setting the mod
 
 `SQUAD_ROUNDS` seeds `ROUNDS` only when the room has no stored value. Its default is 10, with range 1 to 20. A stored runtime value wins until `/clear`, which restores configured defaults.
 
-`SQUAD_GRILL_ROUNDS` seeds `GRILL_ROUNDS` by the same rule, with default 2 and range 1 to 10. `SQUAD_PLAN_WORDS` optionally changes the rebuilt-plan word limit from 1,200. `SQUAD_REASONING_EFFORT_<NICK>` optionally overrides a member’s reasoning effort under the Foundations configuration contract.
+`SQUAD_GRILL_ROUNDS` seeds `GRILL_ROUNDS` by the same rule, with default 2 and range 1 to 10. `SQUAD_PLAN_WORDS` optionally changes the rebuilt-plan word limit defined by Prompt pack. `SQUAD_REASONING_EFFORT_<NICK>` optionally overrides a member’s reasoning effort under the Foundations configuration contract.
 
 `SQUAD_CENSUS_PASSES` optionally seeds `CENSUS_PASSES` by the same rule, with default 2 and range 1 to 5. It is not included in `.env.example`. Foundations owns the environment field; Parser owns assignment, expansion and exact validation strings.
 
@@ -90,7 +95,7 @@ Foundations owns `setup.sh`, including creating `.env` with mode 0600, preservin
 
 Every boundary uses serde types with validation. Unknown fields are rejected before semantic checks.
 
-Rust declarations below retain the contract field spellings. Implementations may use Rust field naming conventions with serde renames. Repeated derives are omitted. Validation uses two passes: first validate JSON against a schema with `additionalProperties: false` across the complete object and required entries for every required nullable field; then deserialize with serde. Flattened structures do not rely on `deny_unknown_fields` derives. Required nullable fields, including `tallyOverrideReason`, must be present even when their value is `null`.
+Rust declarations below retain the contract field spellings. Implementations may use Rust field naming conventions with serde renames. Repeated derives are omitted. Validation uses two passes: first validate JSON against a schema with `additionalProperties: false` across the complete object and required entries for every required nullable field; then deserialize with serde. Flattened structures do not rely on `deny_unknown_fields` derives. An `Option` field is omitted when `None` unless marked `// nullable`; implementations use `#[serde(default, skip_serializing_if = "Option::is_none")]` for omitted fields. A field marked `// nullable` is required and serializes as `null` when `None`. This rule applies to every Rust declaration in the specification, including Parser, Foundations and Contests. Required nullable fields, including `tallyOverrideReason`, must be present even when their value is `null`.
 
 - `EventId`, `MessageId`, `WorkId`, `ContestId`, `CaseId`, `PlanId`, correlation IDs and judge invocation IDs are UUIDv7 values. `DebateId` is the debate-specific alias of `ContestId`; it is not an unrelated event identity.
 - `roomId` is the literal `main`.
@@ -102,9 +107,33 @@ Rust declarations below retain the contract field spellings. Implementations may
 - Each durable event has its own `events.seq`, represented by `Cursor`.
 - `HistoryPosition` wraps a positive `history.pos`. It identifies private-history delivery order, independently of event acceptance order. Its JSON representation is a decimal string.
 - `Text` is a nonempty string. User-input byte limits apply before parsing. Parser validation determines whether the conversational body contains required text.
-- `StepId`, gap IDs, inventory-item IDs, cell IDs, claim IDs, explanation IDs and check IDs are UUIDv7 values. They identify immutable script steps and artifact items within a contest; they do not encode authorship.
+- `StepId` is UUIDv7. Anonymous artifact/item IDs (gap, inventory item, cell, claim, explanation and check) are router-minted UUIDv4 values at a barrier, or shuffled opaque short labels. They never encode source time or order, authorship or counts.
 
 ```rust
+pub struct EventId(pub uuid::Uuid);
+pub struct MessageId(pub uuid::Uuid);
+pub struct WorkId(pub uuid::Uuid);
+pub struct ContestId(pub uuid::Uuid);
+pub type DebateId = ContestId;
+pub struct CaseId(pub uuid::Uuid);
+pub struct PlanId(pub uuid::Uuid);
+pub struct StepId(pub uuid::Uuid);
+pub struct CellId(pub uuid::Uuid); // anonymous UUIDv4
+pub struct MemberNick(pub String);
+pub struct ContextId(pub String);
+pub struct Text(pub String);
+pub type DateTime = chrono::DateTime<chrono::Utc>;
+
+// The sole valid wire value is "main".
+#[serde(rename_all = "lowercase")]
+pub enum MainRoom { Main }
+
+#[serde(tag = "kind", content = "id", rename_all = "lowercase")]
+pub enum ExecutorKey {
+    Member(MemberNick),
+    Case(CaseId),
+}
+
 pub struct Cursor(i64);
 pub struct HistoryPosition(i64);
 
@@ -136,7 +165,7 @@ pub enum FinishReason {
 pub struct Usage {
     pub inputTokens: u64,
     pub outputTokens: u64,
-    pub costUsd: Option<f64>,
+    pub costUsd: Option<f64>, // nullable
 }
 
 pub struct EnvelopeBase {
@@ -222,7 +251,7 @@ pub struct CompletedGeneration {
     pub generation: GenerationIdentity,
     pub model: Text,
     pub finishReason: FinishReason,
-    pub usage: Option<Usage>,
+    pub usage: Option<Usage>, // nullable
 }
 
 pub struct Completion {
@@ -249,7 +278,7 @@ An empty completed answer is permitted only when `finishReason` is `content_filt
 
 ### Complete envelope kind registry
 
-The registry is exhaustive. Each payload has strict validation.
+The registry is exhaustive for each built mode. Ungated variants are M1; `cfg(feature = "mode-…")` lines describe additions made only in the corresponding M5 phase, not feature implementations required by M1. Every available payload has strict validation; a generic carrier cannot bypass mode admission.
 
 ```rust
 #[serde(tag = "kind", content = "payload")]
@@ -284,8 +313,8 @@ pub enum EnvelopePayload {
     DebateOpening(DebateOpening),
     #[serde(rename = "debate.setup")]
     DebateSetup(DebateSetup),
-    #[serde(rename = "debate.transition")]
-    DebateTransition(DebateTransitionSubmission),
+    #[serde(rename = "contest.transition")]
+    ContestTransition(ContestTransitionSubmission),
     #[serde(rename = "debate.state")]
     DebateState(DebateState),
     #[serde(rename = "debate.turn")]
@@ -306,96 +335,153 @@ pub enum EnvelopePayload {
     RoomCleared(RoomCleared),
     #[serde(rename = "debate.round_score")]
     DebateRoundScore(DebateRoundScore),
+    #[serde(rename = "contest.setup")]
+    ContestSetup(ContestSetup),
+    #[serde(rename = "contest.state")]
+    ContestState(ContestState),
+    #[serde(rename = "contest.preflight")]
+    ContestPreflight(ContestPreflight),
+    #[serde(rename = "contest.preflight.result")]
+    ContestPreflightResult(ContestPreflightResult),
+    #[serde(rename = "contest.step")]
+    ContestStep(ContestStep),
+    #[serde(rename = "contest.artifact")]
+    ContestArtifact(ContestArtifact),
+    #[serde(rename = "contest.report")]
+    ContestReport(ContestReport),
     #[serde(rename = "contest.collecting")]
     ContestCollecting(ContestCollecting),
     #[serde(rename = "contest.pick_requested")]
     ContestPickRequested(ContestPickRequested),
     #[serde(rename = "contest.picked")]
     ContestPicked(ContestPicked),
+    #[cfg(feature = "mode-tournament")] // added in this mode’s M5 phase
     #[serde(rename = "tournament.setup")]
     TournamentSetup(TournamentSetup),
+    #[cfg(feature = "mode-tournament")] // added in this mode’s M5 phase
     #[serde(rename = "tournament.state")]
     TournamentState(TournamentState),
+    #[cfg(feature = "mode-tournament")] // added in this mode’s M5 phase
     #[serde(rename = "tournament.entry")]
     TournamentEntry(TournamentEntry),
+    #[cfg(feature = "mode-tournament")] // added in this mode’s M5 phase
     #[serde(rename = "tournament.ranking")]
     TournamentRanking(TournamentRanking),
+    #[cfg(feature = "mode-tournament")] // added in this mode’s M5 phase
     #[serde(rename = "tournament.result")]
     TournamentResult(TournamentResult),
+    #[cfg(feature = "mode-tournament")] // added in this mode’s M5 phase
     #[serde(rename = "tournament.champion")]
     TournamentChampion(TournamentChampion),
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
     #[serde(rename = "grill.setup")]
     GrillSetup(GrillSetup),
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
     #[serde(rename = "grill.state")]
     GrillState(GrillState),
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
     #[serde(rename = "grill.question")]
     GrillQuestion(GrillQuestion),
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
     #[serde(rename = "grill.answer")]
     GrillAnswer(GrillAnswer),
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
     #[serde(rename = "grill.pass")]
     GrillPass(GrillPass),
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
     #[serde(rename = "grill.plan")]
     GrillPlan(GrillPlan),
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
     #[serde(rename = "grill.complete")]
     GrillComplete(GrillComplete),
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
     #[serde(rename = "census.setup")]
     CensusSetup(CensusSetup),
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
     #[serde(rename = "census.state")]
     CensusState(CensusState),
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
     #[serde(rename = "census.plan")]
     CensusPlan(CensusPlan),
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
     #[serde(rename = "census.hunt")]
     CensusHunt(CensusHunt),
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
     #[serde(rename = "census.ledger")]
     CensusLedger(CensusLedger),
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
     #[serde(rename = "census.rating")]
     CensusRating(CensusRating),
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
     #[serde(rename = "census.report")]
     CensusReport(CensusReport),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.setup")]
     CrosscheckSetup(CrosscheckSetup),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.state")]
     CrosscheckState(CrosscheckState),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.goal")]
     CrosscheckGoal(CrosscheckGoal),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.inventory")]
     CrosscheckInventory(CrosscheckInventory),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.grid")]
     CrosscheckGrid(CrosscheckGrid),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.review")]
     CrosscheckReview(CrosscheckReview),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.audit")]
     CrosscheckAudit(CrosscheckAudit),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.ruling")]
     CrosscheckRuling(CrosscheckRuling),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.acceptance")]
     CrosscheckAcceptance(CrosscheckAcceptance),
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
     #[serde(rename = "crosscheck.report")]
     CrosscheckReport(CrosscheckReport),
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
     #[serde(rename = "survey.setup")]
     SurveySetup(SurveySetup),
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
     #[serde(rename = "survey.state")]
     SurveyState(SurveyState),
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
     #[serde(rename = "survey.claims")]
     SurveyClaims(SurveyClaims),
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
     #[serde(rename = "survey.vote")]
     SurveyVote(SurveyVote),
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
     #[serde(rename = "survey.selection")]
     SurveySelection(SurveySelection),
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
     #[serde(rename = "survey.revote")]
     SurveyRevote(SurveyRevote),
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
     #[serde(rename = "survey.report")]
     SurveyReport(SurveyReport),
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
     #[serde(rename = "probe.setup")]
     ProbeSetup(ProbeSetup),
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
     #[serde(rename = "probe.state")]
     ProbeState(ProbeState),
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
     #[serde(rename = "probe.explanation")]
     ProbeExplanation(ProbeExplanation),
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
     #[serde(rename = "probe.check")]
     ProbeCheck(ProbeCheck),
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
     #[serde(rename = "probe.prediction")]
     ProbePrediction(ProbePrediction),
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
     #[serde(rename = "probe.report")]
     ProbeReport(ProbeReport),
 }
@@ -417,9 +503,9 @@ pub enum EnvelopePayload {
 | `debate.preflight` | Orchestrator proposal through router. Durable estimate visible to the human. |
 | `debate.preflight.result` | Router. Durable confirmation, cancellation, expiry or rejection result. |
 | `debate.opening` | Orchestrator through router. Durable addressed input for round 0. |
-| `debate.setup` | Orchestrator through router. Durable setup delivered to both debaters; payload owned by Contests: debate, tournament, grill. |
-| `debate.transition` | Orchestrator submission. Validated and normalized into `debate.state`; not separately persisted. |
-| `debate.state` | Router. Durable state snapshot visible to the human; payload owned by Contests: debate, tournament, grill. |
+| `debate.setup` | Orchestrator through router. Durable setup delivered to both debaters; payload owned by Contests. |
+| `contest.transition` | Orchestrator submission. Validated and normalized into `debate.state` or the matching kind’s state; not separately persisted. |
+| `debate.state` | Router. Durable state snapshot visible to the human; payload owned by Contests. |
 | `debate.turn` | Executor submits a completed outcome; orchestrator submits a forfeit. Durable room and debate event, with private delivery deferred to the barrier. |
 | `verdict` | Judge executor through router. Durable validated debate verdict, case decision and scoreboard update. |
 | `case.opened` | Router. Durable creation of an isolated adjudication case and its initial material. |
@@ -429,24 +515,27 @@ pub enum EnvelopePayload {
 | `scores.changed` | Router. Durable scoreboard projection from an accepted debate verdict. |
 | `room.cleared` | Router. Durable reset marker after `/clear`. |
 | `debate.round_score` | Judge executor submits validated scores through router; authorized exhaustion records an unscored round. Durable event addressed only to `me`, stored in `round_scores` and the judge case history. No member-history delivery before the verdict. |
+| `contest.setup`, `contest.state`, `contest.step`, `contest.artifact`, `contest.report` | Router-normalized generic carriers for frozen inputs, lifecycle state, steps, artifacts and reports. M1 validates common identities and JSON structure, never a future mode’s schema. |
+| `contest.preflight` | Durable non-debate estimate with common admission fields and generic kind settings. |
+| `contest.preflight.result` | Durable non-debate confirmation, cancellation, expiry or rejection outcome. |
 | `contest.collecting` | Router. Durable active-contest claim and question-collection state; referenced answers are ordinary reply work. |
 | `contest.pick_requested` | Router. Durable `AWAITING_PICK` state and frozen eligible-answer references, addressed only to `me`. |
 | `contest.picked` | Router. Durable accepted selection and frozen sources for subsequent preflight; not a model message. |
 | `tournament.setup` | Orchestrator through router. Durable prompt and tournament notice, projected separately to each entrant. |
-| `tournament.state` | Router. Durable state and preflight or confirmation outcome under the Contests contract; no automatic member-history entry. |
+| `tournament.state` | Router. Durable state under the Contests contract; preflight outcomes use `contest.preflight.result`; no automatic member-history entry. |
 | `tournament.entry` | Executor through router. Durable entrant answer or orchestrator-authorized forfeit; only its author receives an entrant-history projection. |
 | `tournament.ranking` | Judge executor through router. Durable validated full ranking with router-resolved nicks, addressed only to `me`. |
 | `tournament.result` | Router. Durable per-round result addressed to one entrant and `me`; only that entrant’s rank, score, critique and survival outcome enter its history. |
 | `tournament.champion` | Router. Durable champion, final placing list and one trophy increment; every entrant receives final placements only. |
 | `grill.setup` | Orchestrator through router. Durable initial plan, focus and participant list, delivered to exactly the grill participants. |
-| `grill.state` | Router. Durable state and preflight or confirmation outcome under the Contests contract; no automatic member-history entry. |
+| `grill.state` | Router. Durable state under the Contests contract; preflight outcomes use `contest.preflight.result`; no automatic member-history entry. |
 | `grill.question` | Executor through router. Durable question turn, delivered to every grill participant. |
 | `grill.answer` | Leader executor through router. Durable answers and plan changes, delivered to every grill participant. |
 | `grill.pass` | Executor through router. Durable pass, delivered to every grill participant as a notice. |
 | `grill.plan` | Leader executor through router. Durable complete plan version, delivered to every grill participant. |
 | `grill.complete` | Router. Durable completion reason and references to the final plan and appendix; no judge or scoreboard mutation. |
 | `census.setup`, `crosscheck.setup`, `survey.setup`, `probe.setup` | Orchestrator through router. Durable frozen sources, participants and script settings; only script-authorized per-member projections enter working histories. |
-| `census.state`, `crosscheck.state`, `survey.state`, `probe.state` | Router. Durable state, current step, preflight and confirmation outcomes; no automatic prompt entry. |
+| `census.state`, `crosscheck.state`, `survey.state`, `probe.state` | Router. Durable state, current step; preflights use `contest.preflight` and `contest.preflight.result`; no automatic prompt entry. |
 | `census.plan` | Router. Durable accepted plan version for a subsequent pass, retaining its source event and immutable text. |
 | `census.hunt` | Member executor through router. Durable assigned-lens gap list; no delivery to another hunter. |
 | `census.ledger` | Judge executor through router. Durable merged or finalized ledger, distinguished by pass and stage; member delivery uses an anonymised projection. |
@@ -474,7 +563,7 @@ pub enum EnvelopePayload {
 
 Round banners are derived from state transitions. Pick banners are derived from `contest.pick_requested`. They introduce no envelope kind or stored banner event.
 
-The tournament, grill and collection payload declarations are the canonical contracts owned by Contests: debate, tournament, grill and implemented in `crates/squad-protocol/src/contest.rs`, `tournament.rs` and `grill.rs`. The registry does not introduce alternative payload shapes.
+The tournament, grill and collection payload declarations are the canonical contracts owned by Contests and implemented in `crates/squad-protocol/src/contest.rs`, `tournament.rs` and `grill.rs`. The registry does not introduce alternative payload shapes.
 
 The census, crosscheck, survey and probe payload declarations follow the same ownership rule and live in `census.rs`, `crosscheck.rs`, `survey.rs` and `probe.rs`. Each artifact carries `contestId` and `stepId`; pass-specific census artifacts also carry the pass number. Generated artifacts retain `CompletedGeneration`. Router-derived artifacts retain source event IDs rather than inventing generation metadata. Setup and state types retain the Contests-owned script version, state version, settings and frozen source references. State payloads can represent `PREFLIGHT`, `WAITING_FOR_PARTICIPANTS`, each script step, `COMPLETE`, `STOPPED` and `FAILED`.
 
@@ -568,10 +657,29 @@ pub enum VariableName {
     CensusPasses,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VariableUpdate {
+    pub name: VariableName,
+    pub value: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ExportScope {
+    Room,
+    Debate,
+    Grill,
+    Tournament,
+    Census,
+    Crosscheck,
+    Survey,
+    Probe,
+}
+
 pub struct VariableChange {
     pub name: VariableName,
-    pub value: u32,
-    pub previousValue: u32,
+    pub value: u8,
+    pub previousValue: u8,
 }
 
 #[serde(rename_all = "lowercase")]
@@ -587,7 +695,7 @@ pub struct WorkStateEvent {
     pub workId: WorkId,
     pub triggerEventId: EventId,
     pub target: Target,
-    pub contextId: String,
+    pub contextId: ContextId,
     pub attempt: u32,
     pub status: WorkStatus,
     pub error: Option<ErrorPayload>,
@@ -608,18 +716,18 @@ pub struct UsageRecord {
     pub workId: WorkId,
     pub attempt: u32,
     pub target: Target,
-    pub contextId: String,
+    pub contextId: ContextId,
     pub providerRequestId: Option<String>,
     pub model: Text,
     pub startedAt: DateTime,
     pub endedAt: Option<DateTime>,
     pub outcome: UsageOutcome,
-    pub usage: Option<Usage>,
+    pub usage: Option<Usage>, // nullable
     pub estimatedCostUsd: Option<f64>,
     pub debateId: Option<DebateId>,
     pub caseId: Option<CaseId>,
     pub contestId: Option<ContestId>,
-    pub responseModel: Option<Text>,
+    pub responseModel: Option<Text>, // nullable
     pub day: String,
 }
 
@@ -646,7 +754,7 @@ An attempt has one accounting identity, `(workId, attempt)`. Later usage reconci
 
 Executor permissions restrict reported work transitions. Only a router-accepted result can complete work. Only the router or authorized cancellation path can cancel it.
 
-An exhausted ordinary reply emits an `error` with a retry action. A retry request allocates new work linked to the original request. Debate retries remain orchestrator-controlled; judge recovery uses the operations defined by Contests: debate, tournament, grill.
+An exhausted ordinary reply emits an `error` with a retry action. A retry request allocates new work linked to the original request. Debate retries remain orchestrator-controlled; judge recovery uses the operations defined by Contests.
 
 Member work in census, crosscheck, survey and probe follows the script’s retry policy. Exhaustion records a skipped member for that step and preserves the error for the report; it does not create an ordinary-reply retry action. Judge recovery and terminal failure remain script-owned.
 
@@ -721,7 +829,7 @@ pub enum DebateTurnOutcome {
         content: String,
         model: Text,
         finishReason: FinishReason,
-        usage: Option<Usage>,
+        usage: Option<Usage>, // nullable
     },
     Forfeit {
         reasonCode: ForfeitReason,
@@ -758,7 +866,7 @@ pub struct DebateRoundScore {
     pub debateId: DebateId,
     pub caseId: CaseId,
     pub round: u32,
-    pub scores: Option<std::collections::BTreeMap<MemberNick, RoundScore>>,
+    pub scores: Option<std::collections::BTreeMap<MemberNick, RoundScore>>, // nullable
     pub tally: std::collections::BTreeMap<MemberNick, u32>,
     pub reason: Option<Text>,
 }
@@ -766,7 +874,7 @@ pub struct DebateRoundScore {
 
 `DebateOpening.round` must equal 0. `rounds` is the admitted `ROUNDS` snapshot. Debate-turn rounds range from 0 through `totalRounds`.
 
-`DebateSetup`, `DebateState`, `DebateTransition`, `DebateAdjudicationBundle` and `Verdict` remain owned by Contests: debate, tournament, grill. `DebateTransition` has one variant per row of that section’s transition table. `DebateAdjudicationBundle` contains that section’s seven prescribed material items. `Verdict` combines `JudgeVerdict` with `weightedTotals: Vec<{nick,total}>` and `roundTally: BTreeMap<MemberNick,u32>`. Their declarations and validators are implemented in M1 rather than deferred to M5.
+`DebateSetup`, `DebateState`, `DebateTransition`, `DebateAdjudicationBundle` and `Verdict` remain owned by Contests. `DebateTransition` has one variant per row of that section’s transition table. `DebateAdjudicationBundle` contains that section’s seven prescribed material items. `Verdict` combines `JudgeVerdict` with `weightedTotals: Vec<{nick,total}>` and `roundTally: BTreeMap<MemberNick,u32>`. Their declarations and validators are implemented in M1 rather than deferred to M5.
 
 The verdict envelope includes that contract’s nested scores, non-null winner, `whatToStealFromLoser`, router-computed weighted totals, router-computed `roundTally` and nullable `tallyOverrideReason`. The worker cannot supply authoritative totals. `roundTally` contains exactly the two debater nicks and their integer sums of accepted round scores. When the winner differs from the unique round-tally leader, a nonempty `tallyOverrideReason` is required; missing justification triggers the verdict repair path. A tied round tally does not permit a tied final verdict.
 
@@ -795,7 +903,7 @@ Accepted round scores append to the same judge case context as the judge’s own
 
 A debate admitted without `@judge` has no round-scoring work or round-score events and ends `COMPLETE_UNJUDGED`. A later explicit `/judge` does not backfill round scores.
 
-The active-contest claim and transitions follow Contests: debate, tournament, grill, including `WAITING_FOR_DEBATERS` and `COMPLETE_UNJUDGED`. A second active contest is rejected with the applicable admission code and `A {kind} is already running. Stop it before starting another.`
+The active-contest claim and transitions follow Contests, including `WAITING_FOR_DEBATERS` and `COMPLETE_UNJUDGED`. A second active contest is rejected with the applicable admission code and `A {kind} is already running. Stop it before starting another.`
 
 When waiting for debaters, work already ahead of the debate drains first. Ordinary work accepted afterward for either debater is held until the debate reaches a terminal state. Its user-message event commits immediately, but its private-history projection is deferred until the hold is released. Other members continue normally. Debate-turn attempts reuse the round’s frozen boundary.
 
@@ -817,31 +925,196 @@ pub enum ContestKind {
     Probe,
 }
 
-#[serde(tag = "kind", content = "preflight", rename_all = "lowercase")]
-pub enum ContestPreflight {
-    Debate(DebatePreflight),
-    Tournament(TournamentPreflight),
-    Grill(GrillPreflight),
-    Census(CensusPreflight),
-    Crosscheck(CrosscheckPreflight),
-    Survey(SurveyPreflight),
-    Probe(ProbePreflight),
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ContestSelectionStatus {
+    CollectingAnswers,
+    AwaitingPick,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestAnswer {
+    pub nick: MemberNick,
+    pub message_id: MessageId,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestCollecting {
+    pub contest_id: ContestId,
+    pub kind: ContestKind,
+    pub question_message_id: MessageId,
+    pub question: String,
+    pub addressed: Vec<MemberNick>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestPickRequested {
+    pub contest_id: ContestId,
+    pub kind: ContestKind,
+    pub question_message_id: MessageId,
+    pub eligible: Vec<MemberNick>,
+    pub required_picks: u8,
+    pub banner: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestPicked {
+    pub contest_id: ContestId,
+    pub kind: ContestKind,
+    pub nicks: Vec<MemberNick>,
+    pub source_message_ids: Vec<EventId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestSelectionState {
+    pub contest_id: ContestId,
+    pub kind: ContestKind,
+    pub state: ContestSelectionStatus,
+    pub state_version: u64,
+    pub question_message_id: MessageId,
+    pub addressed: Vec<MemberNick>,
+    pub answers: Vec<ContestAnswer>,
+    pub required_picks: u8,
+}
+
+pub struct ContestSetup {
+    pub contestId: ContestId,
+    pub kind: ContestKind,
+    pub scriptVersion: Text,
+    pub participants: Vec<MemberNick>,
+    pub sourceEventIds: Vec<EventId>,
+    pub settings: serde_json::Value, // validated JSON object; mode schema arrives in M5
+}
+
+pub struct GenericContestState {
+    pub contestId: ContestId,
+    pub kind: ContestKind,
+    pub stateVersion: u64,
+    pub status: Text,
+    pub stepId: Option<StepId>,
+    pub artifactEventIds: Vec<EventId>,
+    pub terminalReason: Option<Text>, // nullable
+}
+
+#[serde(tag = "kind", content = "state", rename_all = "lowercase")]
+pub enum ContestState {
+    Generic(GenericContestState),
+    Selection(ContestSelectionState),
+    Debate(DebateState),
+    #[cfg(feature = "mode-tournament")]
+    Tournament(TournamentState),
+    #[cfg(feature = "mode-grill")]
+    Grill(GrillState),
+    #[cfg(feature = "mode-census")]
+    Census(CensusState),
+    #[cfg(feature = "mode-crosscheck")]
+    Crosscheck(CrosscheckState),
+    #[cfg(feature = "mode-survey")]
+    Survey(SurveyState),
+    #[cfg(feature = "mode-probe")]
+    Probe(ProbeState),
+}
+
+pub struct ContestPreflight {
+    pub contestId: ContestId,
+    pub kind: ContestKind,
+    pub planId: PlanId,
+    pub expiresAt: DateTime,
+    pub estimate: DebateEstimate,
+    pub participants: Vec<MemberNick>,
+    pub confirmationRequired: bool,
+    pub warning: Option<Text>,
+    pub settings: serde_json::Value, // object; typed mode settings added by its M5 phase
+}
+
+pub struct ContestPreflightResult {
+    pub contestId: ContestId,
+    pub planId: PlanId,
+    pub status: PreflightStatus,
+    pub confirmation: Option<Confirmation>,
+    pub error: Option<ErrorPayload>,
+}
+
+#[serde(tag = "kind", content = "preflight", rename_all = "lowercase")]
+pub enum PendingPreflight {
+    Debate(DebatePreflight),
+    Contest(ContestPreflight),
+}
+
+pub struct ContestStep {
+    pub contestId: ContestId,
+    pub stepId: StepId,
+    pub ordinal: u32,
+    pub scriptVersion: Text,
+    pub moveName: ContestMove,
+    pub inputs: Vec<EventId>,
+    pub assignments: Vec<ContestAssignment>,
+}
+
+#[serde(rename_all = "lowercase")]
+pub enum ContestMove { Collect, Pick, Fanout, Turns, Judge, Tally, Barrier, Report }
+
+pub struct ContestAssignment {
+    pub target: Target,
+    pub contextId: ContextId,
+    pub payloadRefs: Vec<EventId>,
+    pub workId: Option<WorkId>,
+}
+
+pub struct ContestArtifact {
+    pub contestId: ContestId,
+    pub stepId: StepId,
+    pub artifactKind: Text,
+    pub workId: Option<WorkId>,
+    pub sourceRefs: Vec<EventId>,
+    pub data: serde_json::Value,
+}
+
+pub struct ContestReport {
+    pub contestId: ContestId,
+    pub stepId: StepId,
+    pub artifactEventIds: Vec<EventId>,
+    pub skippedWorkIds: Vec<WorkId>,
+    pub data: serde_json::Value,
+}
+
+pub struct ContestTransitionSubmission {
+    pub contestId: ContestId,
+    pub kind: ContestKind,
+    pub expectedStateVersion: u64,
+    pub transition: ContestTransition,
+}
+
+#[serde(tag = "kind", content = "transition", rename_all = "lowercase")]
+pub enum ContestTransition {
+    Debate(DebateTransition),
+    #[cfg(feature = "mode-tournament")]
+    Tournament(TournamentTransition),
+    #[cfg(feature = "mode-grill")]
+    Grill(GrillTransition),
+    #[cfg(feature = "mode-census")]
+    Census(CensusTransition),
+    #[cfg(feature = "mode-crosscheck")]
+    Crosscheck(CrosscheckTransition),
+    #[cfg(feature = "mode-survey")]
+    Survey(SurveyTransition),
+    #[cfg(feature = "mode-probe")]
+    Probe(ProbeTransition),
+}
+
 ```
 
-`TournamentPreflight`, `GrillPreflight`, collection payloads and all kind-specific state payloads follow Contests: debate, tournament, grill. Every preflight carries the contest and plan identities, expiry, participants, round settings, model-call count, estimated cost, reserved cost, remaining daily amount and confirmation requirement. Tournament and grill preflight and confirmation outcomes are durable in their kind-specific state events. They use the same confirmation threshold and stale-plan checks as debates.
+`ContestPreflight` is the shared base for the six non-debate modes. `TournamentPreflight`, `GrillPreflight`, `CensusPreflight`, `CrosscheckPreflight`, `SurveyPreflight` and `ProbePreflight` are declared by Contests in their respective M5 phases as typed specializations of that base plus kind settings. Until then, M1 stores settings as an object and validates only common admission fields. A generic carrier does not admit an unbuilt mode. Debate uses `DebatePreflight`; `PendingPreflight` unifies room-state and request-result presentation without changing either durable event. Non-debate preflights and their outcomes always commit as `contest.preflight` and `contest.preflight.result`, never hidden inside a state event.
 
-`CensusPreflight`, `CrosscheckPreflight`, `SurveyPreflight` and `ProbePreflight` carry the same admission fields with their applicable script settings instead of unrelated round settings. They freeze plan or question sources, participant selection, prompt and schema versions, optional stages and the script-derived call count. Their preflight and confirmation outcomes are durable in `<mode>.state`. They use shared `ContestConfirm` and `ContestCancel`, the existing confirmation threshold and stale-plan checks. The estimate includes optional goal extraction or answer collection when required; already committed source answers are not charged again.
+`contests` and `contest_events` are the single storage model for all seven kinds. Their active claim covers question collection, a pending pick, preflight, queue draining and execution. Only one row may be active. Terminal transitions release participant holds atomically with their deferred history projections. Census also releases holds on entering `WAITING_FOR_PLAN`; continuation reacquires holds and drains earlier ordinary work before hunting. Its active-contest claim remains held during the wait.
 
-`contests` and `contest_events` are the single storage model for all seven kinds. Their active claim covers question collection, a pending pick, preflight, queue draining and execution. Only one row may be active. Terminal transitions release participant holds atomically with their deferred history projections.
-
-| Kind | Durable states |
-|---|---|
-| Question-first debate or grill | `COLLECTING_ANSWERS`, `AWAITING_PICK`, then the selected kind’s preflight and execution states |
-| Debate | The complete state and transition contracts owned by Contests: debate, tournament, grill |
-| Tournament | `PREFLIGHT`, `WAITING_FOR_ENTRANTS`, `ANSWERING`, `JUDGING`, `ELIMINATING`, `COMPLETE`, `STOPPED`, `FAILED` |
-| Grill | `PREFLIGHT`, `WAITING_FOR_PARTICIPANTS`, `QUESTIONING`, `ANSWERING`, `REBUILDING`, `COMPLETE`, `STOPPED`, `FAILED` |
-| Census, crosscheck, survey and probe | `PREFLIGHT`, `WAITING_FOR_PARTICIPANTS`, the mode’s Contests-owned step states, `COMPLETE`, `STOPPED`, `FAILED` |
+Mode status enums and allowed transitions are owned by [Contests](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md); generic carriers do not duplicate those enums or admit unbuilt modes.
 
 All seven modes are scripts over the shared `collect`, `pick`, `fanout`, `turns`, `judge`, `tally`, `barrier` and `report` moves. Their declarations and validated step contracts live in `squad-protocol`; the engine runs in `squad-core`. Build order is debate, grill, census, crosscheck, tournament, survey, probe. This section stores step identity, assignments, input references, committed artifacts and delivery decisions; Contests owns move behavior, each script, preflight call counts, tally formulas and M5.
 
@@ -865,7 +1138,7 @@ The router maps accepted labels back to nicks for the human ranking and individu
 
 Grill events implement an explicit shared floor. Setup, questions, answers, passes and plan versions are projected to exactly the leader and grillers as they commit. No non-participant receives them automatically. Each question and answer records its round, turn, speaker and referenced plan version under the Contests payload contract. Plan versions are immutable and retained. The final output references the last good plan and every question, answer and plan change for the appendix.
 
-Grill working-context selection uses the latest plan, the current round’s questions and answers, and the compact list of earlier questions. Full prior answers remain durable for viewing and export but are excluded from the next round’s working context. Griller order, rotating angles, `PASS`, early completion and leader-failure behavior follow Contests: debate, tournament, grill.
+Grill working-context selection uses the latest plan, the current round’s questions and answers, and the compact list of earlier questions. Full prior answers remain durable for viewing and export but are excluded from the next round’s working context. Griller order, rotating angles, `PASS`, early completion and leader-failure behavior follow Contests.
 
 ### Four-mode artifact and delivery contracts
 
@@ -894,22 +1167,27 @@ pub enum CaseMaterial {
         setup: DebateSetup,
         rubricVersion: Text,
     },
+    #[cfg(feature = "mode-tournament") ]
     Tournament {
         contestId: ContestId,
-        question: Text,
+        material: TournamentCaseMaterial,
     },
+    #[cfg(feature = "mode-census") ]
     Census {
         contestId: ContestId,
         material: CensusCaseMaterial,
     },
+    #[cfg(feature = "mode-crosscheck") ]
     Crosscheck {
         contestId: ContestId,
         material: CrosscheckCaseMaterial,
     },
+    #[cfg(feature = "mode-survey") ]
     Survey {
         contestId: ContestId,
         material: SurveyCaseMaterial,
     },
+    #[cfg(feature = "mode-probe") ]
     Probe {
         contestId: ContestId,
         material: ProbeCaseMaterial,
@@ -949,7 +1227,7 @@ The router spawns an executor for each case with unfinished work, including duri
 
 A new standalone `@judge` message requires the judge as sole recipient and at least one quote. Its initial context contains exactly the selected quoted text with attribution and the user’s question, beneath the judge prompt. It produces free-form `case.ruling`, not a scored debate verdict. Missing quoted material uses `JUDGE_QUOTE_REQUIRED` and `Quote at least one message for @judge to rule on.`
 
-A debate adjudication uses the exact `DebateAdjudicationBundle` owned by Contests: debate, tournament, grill. For an automatically judged debate, `CaseOpened.workId` is absent and the case starts with the setup’s topic, solutions and instruction, the rubric and judge identity. It accumulates the authorized turns and round scores without duplicating source material. Final `judge` work uses the complete bundle assembled from that case after all round-scoring work has settled, with unscored rounds identified in its prompt. For an explicit `/judge`, the router commits the retained transcript and any existing round scores into a fresh case and enqueues final `judge` work without retroactive scoring. A valid result commits `verdict`.
+A debate adjudication uses the exact `DebateAdjudicationBundle` owned by Contests. For an automatically judged debate, `CaseOpened.workId` is absent and the case starts with the setup’s topic, solutions and instruction, the rubric and judge identity. It accumulates the authorized turns and round scores without duplicating source material. Final `judge` work uses the complete bundle assembled from that case after all round-scoring work has settled, with unscored rounds identified in its prompt. For an explicit `/judge`, the router commits the retained transcript and any existing round scores into a fresh case and enqueues final `judge` work without retroactive scoring. A valid result commits `verdict`.
 
 Judge conflict selection uses resolved concrete model identity, not nick spelling. Debate and standalone cases skip fallbacks that are unconfigured, are participating sources, or resolve to a conflicting model, under the Agents and Contests contracts. Only explicitly configured fallbacks require configuration validation. A debate swap uses `Judge model changed to {judge_model_slug} because @{nick} is debating.` Blind tournaments never swap.
 
@@ -1021,7 +1299,7 @@ Clearing also deletes script steps, per-member assignments, isolated step histor
 
 Clearing advances the room epoch and retains monotonic ordering metadata so old results cannot enter the cleared room. Actual daily spending, unknown-cost counts and outstanding billing reconciliation required by Cost guard remain accounted for without retaining deleted conversational content. The reset commits `room.cleared`, invalidates old replay positions and resets the current TUI state.
 
-Room, debate, tournament and grill markdown exports use the Room API and CLI export contract and store read primitives. Export reads a consistent durable boundary, includes supersession and forfeit labels, and contains no provisional chunks or credentials. Export does not delete history. Markdown export and banner rendering live in `crates/squad-core/src/export/` and `crates/squad-core/src/banner/`. The public contract is `RoomHandle::export(scope, id) -> String`, with `export_offline(data_dir, room, scope, id)` for offline reads.
+Room, debate, tournament and grill markdown exports use the Room API and CLI export contract and store read primitives. Export reads a consistent durable boundary, includes supersession and forfeit labels, and contains no provisional chunks or credentials. Export does not delete history. Markdown export and banner rendering live in `crates/squad-core/src/export/` and `crates/squad-core/src/banner/`. The public contract is `RoomHandle::export(scope, id: Option<ContestId>) -> Result<String, RoomError>`, with `export_offline(data_dir, room, scope, id)` for offline reads.
 
 Census, crosscheck, survey and probe exports use the same consistent boundary and their Foundations-owned scopes. They retain committed reports, source-version references, incomplete-step labels and the human-visible evidence needed by each report. Human-visible census finder data is exportable; restricted router maps and auditor reviewer-identity maps are not exposed as raw storage metadata.
 
@@ -1164,48 +1442,91 @@ pub enum WorkKind {
     Judge,
     #[serde(rename = "judge.round")]
     JudgeRound,
+    #[cfg(feature = "mode-tournament")]
     #[serde(rename = "judge.tournament")]
     JudgeTournament,
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-grill")]
     #[serde(rename = "grill.question")]
     GrillQuestion,
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-grill")]
     #[serde(rename = "grill.answer")]
     GrillAnswer,
+    #[cfg(feature = "mode-grill")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-grill")]
     #[serde(rename = "grill.rebuild")]
     GrillRebuild,
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-census")]
     #[serde(rename = "census.hunt")]
     CensusHunt,
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-census")]
     #[serde(rename = "census.merge")]
     CensusMerge,
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-census")]
     #[serde(rename = "census.rate")]
     CensusRate,
+    #[cfg(feature = "mode-census")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-census")]
     #[serde(rename = "census.final")]
     CensusFinal,
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-crosscheck")]
     #[serde(rename = "crosscheck.goal")]
     CrosscheckGoal,
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-crosscheck")]
     #[serde(rename = "crosscheck.inventory")]
     CrosscheckInventory,
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-crosscheck")]
     #[serde(rename = "crosscheck.normalize")]
     CrosscheckNormalize,
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-crosscheck")]
     #[serde(rename = "crosscheck.cell")]
     CrosscheckCell,
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-crosscheck")]
     #[serde(rename = "crosscheck.audit")]
     CrosscheckAudit,
+    #[cfg(feature = "mode-crosscheck")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-crosscheck")]
     #[serde(rename = "crosscheck.rule")]
     CrosscheckRule,
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.extract")]
     SurveyExtract,
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.vote")]
     SurveyVote,
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.revote")]
     SurveyRevote,
+    #[cfg(feature = "mode-survey")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-survey")]
     #[serde(rename = "survey.report")]
     SurveyReport,
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-probe")]
     #[serde(rename = "probe.explain")]
     ProbeExplain,
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-probe")]
     #[serde(rename = "probe.check")]
     ProbeCheck,
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-probe")]
     #[serde(rename = "probe.predict")]
     ProbePredict,
+    #[cfg(feature = "mode-probe")] // added in this mode’s M5 phase
+    #[cfg(feature = "mode-probe")]
     #[serde(rename = "probe.report")]
     ProbeReport,
 }
@@ -1214,12 +1535,13 @@ pub struct Work {
     pub workId: WorkId,
     pub kind: WorkKind,
     pub target: Target,
-    pub contextId: String,
+    pub contextId: ContextId,
     pub triggerEventId: EventId,
     pub historyThrough: HistoryPosition,
     pub attempt: u32,
     pub debateId: Option<DebateId>,
     pub round: Option<u32>,
+    pub replay: Option<u8>,
     pub caseId: Option<CaseId>,
     pub promptRef: Option<PromptRef>,
     pub maxOutputTokens: Option<u32>,
@@ -1230,9 +1552,9 @@ pub struct Work {
 
 This is the sole execution-work schema. Its durable representation is in `work`. Status, leases, scheduling flags, receipts and completion tombstones are operational records and never enter prompt history.
 
-For member work in the three existing modes and ordinary replies, `contextId` equals the member nick. For `judge`, `judge.round` and `judge.tournament` work, it is `judge:{caseId}` and `caseId` is required. Debate-turn work requires `debateId` and `round`. Judge work associated with a debate also carries `debateId`. `judge.round` requires `debateId` and a round from 1 through `totalRounds`, uses `judge.round.md` under the judge system prompt, has a 512-token visible output ceiling and low reasoning effort with a 1,024-token reasoning budget when supported, and permits two provider attempts including schema repair.
+For ordinary replies and member work in debate, tournament and grill, `contextId` equals the member nick. A generic step-bound reply may instead use `contest:{contestId}:{stepId}:{nick}` when its frozen assignment authorizes that context; M1 reader fixtures use this generic form without admitting an unbuilt mode. For `judge`, `judge.round` and `judge.tournament` work, it is `judge:{caseId}` and `caseId` is required. Debate-turn work requires `debateId` and `round`. Judge work associated with a debate also carries `debateId`. `judge.round` requires `debateId` and a round from 1 through `totalRounds`, uses `judge.round.md` under the judge system prompt, has a 512-token visible output ceiling and low reasoning effort with a 1,024-token reasoning budget when supported, and permits two provider attempts including schema repair.
 
-Tournament entry work reuses `reply` with `contestId`, round and `tournament.entrant.md`; it does not gain access to another entrant’s history. `judge.tournament` requires a tournament contest, case and round, uses `tournament.judge.md`, and permits three attempts including schema repairs. A replay creates new round-execution work under the Contests-owned replay policy rather than resetting consumed attempts.
+Tournament entry work reuses `reply` with `contestId`, round, required `replay` (0 or 1) and `tournament.entrant.md`; it does not gain access to another entrant’s history. `judge.tournament` requires a tournament contest, case and round, uses `tournament.judge.md`, and permits three attempts including schema repairs. Tournament judge work also requires `replay`; result acceptance checks the current round execution’s replay index. A replay creates new round-execution work under the Contests-owned replay policy rather than resetting consumed attempts.
 
 Grill work requires a grill contest and round. `grill.question` targets the scheduled griller, `grill.answer` and `grill.rebuild` target the leader. Their prompt references are `grill.question.md`, `grill.answer.md` and `grill.rebuild.md`. Question and answer work use the 2,048-token visible ceiling; rebuild work uses 4,096. The Contests contract determines deadlines, retries, skip behavior and leader failure.
 
@@ -1254,7 +1576,7 @@ Every new work kind requires matching `contestId`, `stepId`, assignment, prompt 
 
 Member-targeted work in the four new modes uses `contextId = contest:{contestId}:{stepId}:{nick}`. These are isolated private working histories, populated only by that step’s authorized deliveries and its own output. They do not inherit ordinary member history or another step’s history. The script explicitly delivers any needed earlier artifact into the new context. This prevents a crosscheck inventory writer from seeing a plan already present in its ordinary history and keeps census hunts, survey ballots and probe predictions blind.
 
-A `crosscheck.audit` assignment always gets a new step-bound context with no earlier member or reviewer conversation, even when the selected model participated in inventory or review. Retrying that work retains the same frozen audit inputs and sample; it does not import the model’s other contexts. Agents owns construction and execution of these contexts.
+A `crosscheck.audit` assignment always gets a new step-bound context with no earlier member or reviewer conversation, even when the selected model participated in inventory or review. Retrying that work retains the same frozen audit inputs and sample; it does not import the model’s other contexts. `squad-core` builds every context; Agents executes its assigned work.
 
 Work carries references and execution metadata, not copies of topic text, solutions, instructions or previous turns. Those inputs must already exist in the authorized private history. `historyThrough` is an inclusive private-history position, frozen before the attempt runs. Attempt-scoped judge repair data is obtained separately through the case-bound work reader.
 
@@ -1281,6 +1603,7 @@ pub enum Request {
     UserMessage {
         input: UserMessageInput,
         preconfirmed: bool,
+        parsed: ParsedInput,
     },
     Stop {
         requestId: EventId,
@@ -1304,10 +1627,9 @@ pub enum Request {
         requestId: EventId,
         debateId: Option<DebateId>,
     },
-    SetVar {
+    SetVars {
         requestId: EventId,
-        name: VariableName,
-        value: u32,
+        updates: Vec<VariableUpdate>,
     },
     Clear {
         requestId: EventId,
@@ -1329,13 +1651,14 @@ pub enum Request {
     ContestCancel {
         requestId: EventId,
         contestId: ContestId,
-        planId: Option<PlanId>,
+        planId: PlanId,
     },
     CensusContinue {
         requestId: EventId,
         contestId: ContestId,
         expectedStateVersion: u64,
         planEventId: Option<EventId>,
+        replacementText: Option<Text>,
     },
     CrosscheckAccept {
         requestId: EventId,
@@ -1346,6 +1669,9 @@ pub enum Request {
         cellIds: Vec<CellId>,
         reason: Text,
     },
+    Export { scope: ExportScope, id: Option<ContestId> },
+    Who,
+    Help,
     Internal(InternalRequest),
 }
 
@@ -1357,7 +1683,7 @@ pub enum RequestResult {
     },
     PendingConfirmation {
         requestId: EventId,
-        preflight: ContestPreflight,
+        preflight: PendingPreflight,
         cursor: Cursor,
     },
     Rejected {
@@ -1378,11 +1704,11 @@ pub enum FeedItem {
 
 `Stop.target: None` selects all generating work and cancels a pending pick; a nick selects that member. Optional regeneration and judge targets retain the parser-owned selection rules. `preconfirmed` carries the CLI’s `--yes` choice without adding a field to `UserMessageInput`.
 
-`ContestPick` is accepted only against the current `AWAITING_PICK` state. It has its own request identity and creates no conversational user message. `ContestCancel` without a plan ID is valid for a pending pick; cancellation of a preflight requires its plan ID. Existing debate confirmation and cancellation requests retain their debate-specific contracts.
+`ContestPick` is accepted only against the current `AWAITING_PICK` state. It has its own request identity and creates no conversational user message. `ContestCancel` always requires a plan ID and cancels only that preflight. Cancelling a pending pick uses `Stop { target: None }` exclusively. Existing debate confirmation and cancellation requests retain their debate-specific contracts.
 
-`CensusContinue` is accepted only at the script’s between-pass continuation point and before its admitted pass limit. An absent `planEventId` keeps the current plan; a present reference freezes an eligible replacement. Changed material uses the normal stale-plan and remaining-cost checks before new calls. Starting a grill while census holds the active-contest claim requires stopping or completing census first.
+`CensusContinue` is accepted only at the script’s between-pass continuation point and before its admitted pass limit. An absent `planEventId` and `replacementText` keeps the current plan; exactly one may supply an eligible quoted replacement or pasted replacement text. Both together are rejected. Changed material uses the normal stale-plan and remaining-cost checks before new calls. Starting a grill while census holds the active-contest claim requires stopping or completing census first.
 
-`CrosscheckAccept` requires the human capability, nonempty unique cell IDs and a nonempty reason. It records acceptance against the current plan, grid and state version through `crosscheck.acceptance`; it does not close a cell by invented evidence. Invalid or stale acceptance leaves the ledger unchanged. These requests define transport contracts; user-facing syntax and interaction remain owned by Parser and TUI.
+`CrosscheckAccept` is allowed on a `COMPLETE` crosscheck and requires the human capability, nonempty unique cell IDs and a nonempty reason. It records acceptance against the current plan, grid and state version through `crosscheck.acceptance`; it does not close a cell by invented evidence. Invalid or stale acceptance leaves the ledger unchanged. These requests define transport contracts; user-facing syntax and interaction remain owned by Parser and TUI.
 
 An accepted result identifies its committed effects and the last event cursor of the transaction, when present. A pending-confirmation result acknowledges the committed preflight, not admission of the conversational message. Consumers use `requestId`; there is no `commandId`. Consumers requiring a cursor handle the absent case explicitly rather than treating it as a required field or inventing cursor zero.
 
@@ -1408,7 +1734,7 @@ pub trait Bus: Send + Sync {
 
     fn wake_mailbox(
         &self,
-        context_id: &ContextId,
+        executor: &ExecutorKey,
     );
 }
 ```
@@ -1419,6 +1745,208 @@ The TUI and one-shot commands use the Room API and CLI-owned `RoomHandle`. Agent
 
 Feed delivery uses `tokio::sync::broadcast` with capacity 4,096. Durable events are recoverable from `events`; deltas and presence are ephemeral. Mailboxes are capacity-1 `mpsc` channels carrying wake-ups only. `wake_mailbox` uses synchronous `try_send`; `Full` means a wake-up is already pending. Coalescing a wake-up is safe because work remains in SQLite. The router never awaits a channel owned by an agent.
 
+### Parser-to-request mapping
+
+Front ends parse once, allocate a stable request identity, and map by this exhaustive table. `UserMessage` carries both the original `UserMessageInput` (including attachments) and the successful `ParsedInput`; the router verifies they describe the same submission and revalidates authoritative references, settings and recipients without classifying raw text again. Inline `variable_updates` commit with that message; `SetVars` applies the whole update vector or none. Parser support for a later mode never admits that mode before its M5 implementation exists.
+
+| ParsedInput variant or SlashAction | Exactly one Request variant |
+|---|---|
+| `Message` | `UserMessage` |
+| `Judge` | `UserMessage` (standalone or case-follow-up routing) |
+| `Debate` | `UserMessage` |
+| `QuestionFirst` | `UserMessage` |
+| `Tournament` | `UserMessage` |
+| `Grill` | `UserMessage` |
+| `Census` | `UserMessage` |
+| `Crosscheck` | `UserMessage` |
+| `Survey` | `UserMessage` |
+| `Probe` | `UserMessage` |
+| `Assignment` | `SetVars` with the complete `updates` vector |
+| `ContestPick` | `ContestPick` with its pending contest ID and nicks |
+| `Slash::Set` | `SetVars` with one update |
+| `Slash::Stop` | `Stop` with the optional member target; pending-pick cancellation uses only `target: None` |
+| `Slash::Judge` | `Judge` |
+| `Slash::Regen` | `Regen` |
+| `Slash::Clear` | `Clear` |
+| `Slash::Continue` | `CensusContinue`; freeze waiting census/state version and optional attachment or replacement text |
+| `Slash::Accept` | `CrosscheckAccept`; freeze COMPLETE crosscheck, plan/grid/state version, cells and reason |
+| `Slash::Export` | `Export`; uses the same core export renderer and typed ID contract as `RoomHandle::export` |
+| `Slash::Who` | `Who` |
+| `Slash::Help` | `Help` |
+
+Read-only `Export`, `Who` and `Help` return `InternalResult::Text` without events, receipts or model work. Other typed controls such as confirmation and retry originate from UI/CLI actions rather than new grammar. They use their one named Request variant.
+
+### Shared API value types
+
+These declarations live in `squad-protocol`; parser-owned AST types (`ParsedInput`, `ParseResult`, `PendingPick`) are imported from its parser module. `parse` is implemented there with the signature below. Repeated standard derives and serde camelCase renames are omitted as elsewhere in this section.
+
+```rust
+pub struct SubmissionMeta {
+    pub quote: Vec<EventId>,
+    pub replyTo: Vec<EventId>,
+}
+
+pub struct ParseContext {
+    pub roster: Vec<MemberNick>,
+    pub vars: std::collections::BTreeMap<VariableName, u8>,
+    pub pending_pick: Option<PendingPick>,
+    pub records: Vec<RecordSummary>,
+    pub activeContest: Option<ContestState>,
+}
+
+pub struct RecordSummary {
+    pub eventId: EventId,
+    pub messageId: Option<MessageId>,
+    pub seq: Cursor,
+    pub kind: Text,
+    pub author: Actor,
+    pub recipients: Vec<Recipient>,
+    pub content: String,
+    pub inReplyToMessageId: Option<MessageId>,
+    pub contestId: Option<ContestId>,
+    pub caseId: Option<CaseId>,
+    pub planEventId: Option<EventId>,
+    pub gridEventId: Option<EventId>,
+    pub cellIds: Vec<CellId>,
+    pub stateVersion: Option<u64>,
+    pub superseded: bool,
+    pub eligible: bool,
+}
+
+pub fn parse(raw: &str, meta: &SubmissionMeta, ctx: &ParseContext) -> ParseResult;
+
+#[serde(rename_all = "lowercase")]
+pub enum OpenMode { Interactive, OneShot }
+
+pub struct PromptRef {
+    pub templateId: Text,
+    pub packVersion: Text,
+    pub templateHash: Text,
+}
+
+pub trait PromptRenderer: Send + Sync {
+    fn render(
+        &self,
+        prompt: &PromptRef,
+        values: &std::collections::BTreeMap<String, String>,
+    ) -> Result<String, ReaderError>;
+}
+
+pub struct Model {
+    pub nick: Actor, // Member or Judge only
+    pub requestedSlug: Text,
+    pub resolvedSlug: Text,
+    pub rosterOrder: Option<u32>,
+    pub contextLength: u64,
+    pub pricing: serde_json::Value,
+    pub resolvedAt: DateTime,
+}
+
+#[serde(rename_all = "lowercase")]
+pub enum HistoryRole { System, User, Assistant }
+
+#[serde(untagged)]
+pub enum HistoryMetadata {
+    Attributed {
+        originEventId: EventId,
+        originSeq: Cursor,
+        author: Actor,
+        projectionKey: Text,
+    },
+    Anonymous { anonymous: bool }, // always true; no additional fields
+}
+
+pub struct HistoryEntry {
+    pub position: HistoryPosition,
+    pub role: HistoryRole,
+    pub name: Option<String>,
+    pub content: String,
+    pub meta: HistoryMetadata,
+}
+
+pub struct WorkRecord {
+    pub workId: WorkId,
+    pub kind: WorkKind,
+    pub target: Target,
+    pub contextId: ContextId,
+    pub status: WorkStatus,
+    pub attempt: u32,
+    pub runnable: bool,
+    pub executable: Option<Work>, // absent until historyThrough is frozen
+    pub leaseUntil: Option<DateTime>,
+    pub deadline: Option<DateTime>,
+    pub error: Option<ErrorPayload>,
+}
+
+pub enum ReaderError {
+    Forbidden,
+    NotFound,
+    NotRunnable,
+    StaleWork,
+    StoreUnavailable { message: String },
+}
+
+pub struct ExecutionGrant {
+    pub work: Work,
+    pub owner: ExecutorKey,
+    pub fence: u64,
+    pub epoch: u64,
+    pub leaseUntil: DateTime,
+    pub deadline: Option<DateTime>,
+}
+
+pub enum ExecutorRequest {
+    Claim { workId: WorkId },
+    StartAttempt { workId: WorkId, attempt: u32, fence: u64 },
+    RenewLease { workId: WorkId, fence: u64 },
+    Delta { fence: u64, epoch: u64, delta: Delta },
+    Presence(Presence),
+    Result {
+        workId: WorkId,
+        attempt: u32,
+        fence: u64,
+        epoch: u64,
+        output: ProducerEnvelope,
+    },
+}
+
+pub struct HistoryProjection {
+    pub contextId: ContextId,
+    pub originEventId: EventId,
+    pub projectionKey: Text,
+    pub role: HistoryRole,
+    pub name: Option<String>,
+    pub content: String,
+    pub meta: HistoryMetadata,
+}
+
+pub struct BarrierCommit {
+    pub contestId: ContestId,
+    pub stepId: StepId,
+    pub expectedStateVersion: u64,
+    pub barrierEvent: ProducerEnvelope,
+    pub projections: Vec<HistoryProjection>,
+    pub nextWork: Vec<Work>,
+}
+
+pub enum InternalRequest {
+    Executor(ExecutorRequest),
+    Produce { envelope: ProducerEnvelope },
+    Transition { envelopeId: EventId, submission: ContestTransitionSubmission },
+    Barrier { requestId: EventId, commit: BarrierCommit },
+}
+
+pub enum InternalResult {
+    Claimed(ExecutionGrant),
+    Started(ExecutionGrant),
+    LeaseRenewed { workId: WorkId, fence: u64, leaseUntil: DateTime },
+    NoWork,
+    Text { text: String }, // non-durable export, roster or help response
+}
+```
+
+`ExecutorSubmit` binds requests to one `ExecutorKey` and the current room epoch; callers never supply a producer identity. `StartAttempt` and `RenewLease` use that bound epoch, and the router checks the grant, attempt and fence. Claim/start replies use `RequestResult::Internal`; durable producer and barrier replies use `Accepted` or `Rejected`. Deltas and presence return `Accepted` with no cursor or event IDs. `HistoryMetadata::Anonymous` serializes directly as `{anonymous:true}` (untagged on the wire), while attributed metadata contains only its declared fields. Anonymous readers expose neither the barrier event ID nor contributor source IDs.
+
 ### Structural isolation types
 
 ```rust
@@ -1427,6 +1955,7 @@ pub struct AgentContext {
     pub history: std::sync::Arc<dyn HistoryReader>,
     pub work: std::sync::Arc<dyn WorkReader>,
     pub submit: std::sync::Arc<dyn ExecutorSubmit>,
+    pub render: std::sync::Arc<dyn PromptRenderer>,
     pub cancel: tokio_util::sync::CancellationToken,
 }
 
@@ -1496,19 +2025,19 @@ pub trait ExecutorSubmit: Send + Sync {
 }
 ```
 
-`HistoryReader`, `WorkReader`, `ExecutorSubmit` and their shared value types live in `squad-protocol`. `AgentContext` lives in `squad-agents`. Concrete scoped reader implementations live in `squad-store`; `squad-core` constructs them and the capability-bound submission adapter. Executors cannot name store constructors because `squad-agents` has no store or SQLite dependency. Compile-fail isolation tests live in `squad-agents`.
+`HistoryReader`, `WorkReader`, `ExecutorSubmit` and their shared value types live in `squad-protocol`. `AgentContext` is declared here and lives in `squad-protocol`. Concrete scoped reader implementations live in `squad-store`; `squad-core` constructs them and the capability-bound submission adapter. Executors cannot name store constructors because `squad-agents` has no store or SQLite dependency. Compile-fail isolation tests live in `squad-agents`.
 
-`HistoryEntry` exposes the authorized role, content, attribution and source metadata for this context. `WorkRecord` exposes this context’s work and scheduling metadata. Neither exposes a database connection or unrestricted query interface. Neither exposes tournament label maps or another entrant’s identity-bearing metadata to a tournament judge.
+`HistoryEntry` exposes authorized role, content and safe projection metadata only; anonymous entries expose no source IDs or attribution. `WorkRecord` exposes this executor’s work and safe scheduling metadata. Neither exposes a database connection or unrestricted query interface. Neither exposes tournament label maps or another entrant’s identity-bearing metadata to a tournament judge.
 
 For the four new modes, readers likewise expose no census finder map, survey source-author map, crosscheck inventory-origin map or auditor reviewer identity unless the script explicitly authorizes that projection. Anonymity applies to metadata as well as rendered text. Human feed envelopes and database source records are not reusable prompt messages without this projection.
 
-Both readers are permanently bound to one `context_id`. Their methods accept no alternate context. Work lookup additionally constrains `context_id`, so guessing another work ID cannot expose it. History reads verify that the selected work belongs to the bound context, has a frozen boundary and satisfies its eligibility rules.
+Both readers are bound to one `ExecutorKey`. `ExecutorKey::Member(nick)` authorizes that member’s work across its nick context and all assigned step contexts; `ExecutorKey::Case(caseId)` authorizes only that case’s work. `WorkReader::unfinished` returns work across those authorized contexts, so one member task can run runtime-created step work while enforcing one active generation across all its contexts.
 
-Step-bound contexts use the same readers. A member executor cannot substitute its ordinary nick context, another step context or another member’s assignment. Fresh audit contexts have no inherited history. The scoped work record exposes only the actor’s assigned payload references and safe scheduling metadata.
+`HistoryReader::for_work` first verifies executor ownership and the frozen execution boundary, then binds the read to that work’s own `contextId` and eligibility rules. It accepts no caller-selected context. Guessing a foreign work ID returns `ReaderError::Forbidden`. A member cannot substitute its ordinary history for a step history or inherit prior audit inputs. `squad-core` constructs every context and the executor-keyed mailbox; wake-ups use `ExecutorKey`, never a `ContextId`.
 
 `repair_for_attempt` verifies case ownership and the current authorised attempt, then returns only the preceding failed attempt’s repair data for the same work. Member work cannot read judge repair records.
 
-An agent task receives exactly this capability set. It cannot query `events`, enumerate histories or acquire a feed receiver. Its `ExecutorSubmit` can submit only operations authorized for its target and context; the router still validates current execution authority.
+An agent task receives exactly this capability set. It cannot query `events`, enumerate histories or acquire a feed receiver. Its `ExecutorSubmit` can submit only operations authorized for its executor key and selected work context; the router still validates current execution authority.
 
 A judge executor receives the same shape bound to `judge:{caseId}`. It cannot read member history or another case. The orchestrator receives reference and lifecycle interfaces and never assembles prompt text.
 
@@ -1526,7 +2055,7 @@ PRAGMA synchronous = FULL;
 PRAGMA foreign_keys = ON;
 ```
 
-The complete application schema is:
+M1 ships one `0001_initial` migration containing the core and debate schema below. The six mode-specific table groups are declared separately under M5 schema extensions; they are not part of `0001_initial`. Generic carriers are validated only as common structure until their mode is built.
 
 ```sql
 CREATE TABLE room_meta (
@@ -1567,52 +2096,16 @@ CREATE TABLE events (
         'scores.changed',
         'room.cleared',
         'debate.round_score',
+        'contest.setup',
+        'contest.state',
+        'contest.preflight',
+        'contest.preflight.result',
+        'contest.step',
+        'contest.artifact',
+        'contest.report',
         'contest.collecting',
         'contest.pick_requested',
-        'contest.picked',
-        'tournament.setup',
-        'tournament.state',
-        'tournament.entry',
-        'tournament.ranking',
-        'tournament.result',
-        'tournament.champion',
-        'grill.setup',
-        'grill.state',
-        'grill.question',
-        'grill.answer',
-        'grill.pass',
-        'grill.plan',
-        'grill.complete',
-        'census.setup',
-        'census.state',
-        'census.plan',
-        'census.hunt',
-        'census.ledger',
-        'census.rating',
-        'census.report',
-        'crosscheck.setup',
-        'crosscheck.state',
-        'crosscheck.goal',
-        'crosscheck.inventory',
-        'crosscheck.grid',
-        'crosscheck.review',
-        'crosscheck.audit',
-        'crosscheck.ruling',
-        'crosscheck.acceptance',
-        'crosscheck.report',
-        'survey.setup',
-        'survey.state',
-        'survey.claims',
-        'survey.vote',
-        'survey.selection',
-        'survey.revote',
-        'survey.report',
-        'probe.setup',
-        'probe.state',
-        'probe.explanation',
-        'probe.check',
-        'probe.prediction',
-        'probe.report'
+        'contest.picked'
     )),
     correlation_id TEXT NOT NULL,
     causation_id TEXT,
@@ -1634,9 +2127,6 @@ CREATE TABLE events (
     CHECK (seq = commit_start_seq + commit_index),
     UNIQUE (commit_start_seq, commit_index)
 ) STRICT;
-
-CREATE INDEX events_commit_idx
-    ON events(commit_start_seq, commit_index);
 
 CREATE INDEX events_kind_seq_idx
     ON events(kind, seq);
@@ -1769,17 +2259,7 @@ CREATE INDEX case_events_event_idx
 
 CREATE TABLE work (
     work_id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL CHECK (kind IN (
-        'reply', 'debate.turn', 'judge', 'judge.round',
-        'judge.tournament', 'grill.question', 'grill.answer',
-        'grill.rebuild',
-        'census.hunt', 'census.merge', 'census.rate', 'census.final',
-        'crosscheck.goal', 'crosscheck.inventory',
-        'crosscheck.normalize', 'crosscheck.cell',
-        'crosscheck.audit', 'crosscheck.rule',
-        'survey.extract', 'survey.vote', 'survey.revote', 'survey.report',
-        'probe.explain', 'probe.check', 'probe.predict', 'probe.report'
-    )),
+    kind TEXT NOT NULL CHECK (kind IN ('reply', 'debate.turn', 'judge', 'judge.round')),
     target TEXT NOT NULL,
     context_id TEXT NOT NULL,
     trigger_event_seq INTEGER NOT NULL REFERENCES events(seq),
@@ -1804,6 +2284,7 @@ CREATE TABLE work (
     contest_id TEXT REFERENCES contests(contest_id),
     debate_id TEXT REFERENCES contests(contest_id),
     round INTEGER CHECK (round >= 0),
+    replay INTEGER CHECK (replay IN (0,1)),
     case_id TEXT REFERENCES cases(case_id),
     prompt_ref TEXT CHECK (
         prompt_ref IS NULL OR json_valid(prompt_ref)
@@ -1826,60 +2307,15 @@ CREATE TABLE work (
         round IS NULL OR contest_id IS NOT NULL
     ),
     CHECK (
-        (kind IN (
-            'judge', 'judge.round', 'judge.tournament',
-            'census.merge', 'census.final',
-            'crosscheck.goal', 'crosscheck.normalize', 'crosscheck.rule',
-            'survey.extract', 'survey.report', 'probe.report'
-        )
-            AND target = 'judge'
-            AND case_id IS NOT NULL
-            AND context_id = 'judge:' || case_id)
-        OR
-        (kind IN (
-            'reply', 'debate.turn',
-            'grill.question', 'grill.answer', 'grill.rebuild'
-        )
-            AND target <> 'judge'
-            AND case_id IS NULL
-            AND context_id = target)
-        OR
-        (kind IN (
-            'census.hunt', 'census.rate',
-            'crosscheck.inventory', 'crosscheck.cell', 'crosscheck.audit',
-            'survey.vote', 'survey.revote',
-            'probe.explain', 'probe.check', 'probe.predict'
-        )
-            AND target <> 'judge'
-            AND case_id IS NULL
-            AND contest_id IS NOT NULL
-            AND step_id IS NOT NULL
-            AND context_id =
-                'contest:' || contest_id || ':' || step_id || ':' || target)
-    ),
-    CHECK (
-        kind NOT IN (
-            'census.hunt', 'census.merge', 'census.rate', 'census.final',
-            'crosscheck.goal', 'crosscheck.inventory',
-            'crosscheck.normalize', 'crosscheck.cell',
-            'crosscheck.audit', 'crosscheck.rule',
-            'survey.extract', 'survey.vote', 'survey.revote', 'survey.report',
-            'probe.explain', 'probe.check', 'probe.predict', 'probe.report'
-        )
-        OR (
-            contest_id IS NOT NULL
-            AND step_id IS NOT NULL
-            AND prompt_ref IS NOT NULL
-            AND max_output_tokens IS NOT NULL
-        )
-    ),
-    CHECK (
-        kind NOT IN (
-            'census.merge', 'census.final',
-            'crosscheck.goal', 'crosscheck.normalize', 'crosscheck.rule',
-            'survey.extract', 'survey.report', 'probe.report'
-        )
-        OR max_output_tokens = 4096
+        (kind IN ('judge', 'judge.round') AND target = 'judge'
+            AND case_id IS NOT NULL AND context_id = 'judge:' || case_id)
+        OR (kind IN ('reply', 'debate.turn') AND target <> 'judge'
+            AND case_id IS NULL AND (
+                context_id = target
+                OR (kind = 'reply' AND contest_id IS NOT NULL AND step_id IS NOT NULL
+                    AND context_id =
+                        'contest:' || contest_id || ':' || step_id || ':' || target)
+            ))
     ),
     CHECK (
         status <> 'running'
@@ -1904,25 +2340,6 @@ CREATE TABLE work (
             AND max_output_tokens IS NOT NULL
             AND max_output_tokens = 512
         )
-    ),
-    CHECK (
-        kind <> 'judge.tournament'
-        OR (
-            contest_id IS NOT NULL
-            AND round IS NOT NULL
-            AND round >= 1
-            AND attempt <= 3
-            AND max_output_tokens IS NOT NULL
-            AND max_output_tokens = 4096
-        )
-    ),
-    CHECK (
-        kind NOT IN ('grill.question', 'grill.answer', 'grill.rebuild')
-        OR (
-            contest_id IS NOT NULL
-            AND round IS NOT NULL
-            AND round BETWEEN 1 AND 10
-        )
     )
 ) STRICT;
 
@@ -1937,6 +2354,9 @@ CREATE INDEX work_debate_idx
 
 CREATE INDEX work_contest_idx
     ON work(contest_id, round, target);
+
+CREATE INDEX work_held_contest_idx
+    ON work(held_by_contest_id) WHERE held_by_contest_id IS NOT NULL;
 
 CREATE INDEX work_case_idx
     ON work(case_id);
@@ -1985,73 +2405,6 @@ CREATE TABLE round_scores (
 
 CREATE INDEX round_scores_case_idx
     ON round_scores(case_id, round);
-
-CREATE TABLE tournament_labels (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    round INTEGER NOT NULL CHECK (round >= 1),
-    replay INTEGER NOT NULL CHECK (replay IN (0, 1)),
-    label TEXT NOT NULL,
-    nick TEXT NOT NULL,
-    PRIMARY KEY (contest_id, round, replay, label),
-    UNIQUE (contest_id, round, replay, nick)
-) STRICT;
-
-CREATE TABLE tournament_rounds (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    round INTEGER NOT NULL CHECK (round >= 1),
-    replay INTEGER NOT NULL CHECK (replay IN (0, 1)),
-    judge_work_id TEXT UNIQUE REFERENCES work(work_id),
-    ranking_event_seq INTEGER UNIQUE REFERENCES events(seq),
-    state_json TEXT NOT NULL CHECK (
-        json_valid(state_json) AND json_type(state_json) = 'object'
-    ),
-    PRIMARY KEY (contest_id, round, replay)
-) STRICT;
-
-CREATE TABLE tournament_results (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    round INTEGER NOT NULL CHECK (round >= 1),
-    nick TEXT NOT NULL,
-    entry_event_seq INTEGER REFERENCES events(seq),
-    result_event_seq INTEGER NOT NULL UNIQUE REFERENCES events(seq),
-    rank INTEGER NOT NULL CHECK (rank >= 1),
-    score INTEGER CHECK (score BETWEEN 1 AND 10),
-    critique TEXT,
-    eliminated INTEGER NOT NULL CHECK (eliminated IN (0, 1)),
-    PRIMARY KEY (contest_id, round, nick),
-    UNIQUE (contest_id, round, rank)
-) STRICT;
-
-CREATE TABLE grill_plans (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    version INTEGER NOT NULL CHECK (version >= 1),
-    round INTEGER NOT NULL CHECK (round >= 0),
-    event_seq INTEGER NOT NULL UNIQUE REFERENCES events(seq),
-    content TEXT NOT NULL,
-    PRIMARY KEY (contest_id, version)
-) STRICT;
-
-CREATE TABLE grill_turns (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    round INTEGER NOT NULL CHECK (round BETWEEN 1 AND 10),
-    turn INTEGER NOT NULL CHECK (turn >= 1),
-    griller TEXT NOT NULL,
-    angle TEXT NOT NULL,
-    plan_version INTEGER NOT NULL CHECK (plan_version >= 1),
-    question_event_seq INTEGER UNIQUE REFERENCES events(seq),
-    answer_event_seq INTEGER UNIQUE REFERENCES events(seq),
-    pass_event_seq INTEGER UNIQUE REFERENCES events(seq),
-    state_json TEXT NOT NULL CHECK (
-        json_valid(state_json) AND json_type(state_json) = 'object'
-    ),
-    PRIMARY KEY (contest_id, round, turn),
-    FOREIGN KEY (contest_id, plan_version)
-        REFERENCES grill_plans(contest_id, version),
-    CHECK (
-        pass_event_seq IS NULL
-        OR (question_event_seq IS NULL AND answer_event_seq IS NULL)
-    )
-) STRICT;
 
 CREATE TABLE contest_steps (
     step_id TEXT PRIMARY KEY,
@@ -2117,107 +2470,6 @@ CREATE TABLE contest_private_maps (
         json_valid(map_json) AND json_type(map_json) = 'object'
     ),
     PRIMARY KEY (contest_id, scope_key)
-) STRICT;
-
-CREATE TABLE census_passes (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    pass INTEGER NOT NULL CHECK (pass BETWEEN 1 AND 5),
-    plan_event_seq INTEGER NOT NULL REFERENCES events(seq),
-    merged_ledger_event_seq INTEGER REFERENCES events(seq),
-    final_ledger_event_seq INTEGER REFERENCES events(seq),
-    report_event_seq INTEGER UNIQUE REFERENCES events(seq),
-    tally_json TEXT CHECK (
-        tally_json IS NULL
-        OR (
-            json_valid(tally_json)
-            AND json_type(tally_json) = 'object'
-        )
-    ),
-    PRIMARY KEY (contest_id, pass)
-) STRICT;
-
-CREATE TABLE census_finders (
-    contest_id TEXT NOT NULL,
-    pass INTEGER NOT NULL,
-    gap_id TEXT NOT NULL,
-    nick TEXT NOT NULL,
-    hunt_event_seq INTEGER NOT NULL REFERENCES events(seq),
-    PRIMARY KEY (contest_id, pass, gap_id, nick),
-    FOREIGN KEY (contest_id, pass)
-        REFERENCES census_passes(contest_id, pass)
-) STRICT;
-
-CREATE TABLE crosscheck_cells (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    cell_id TEXT NOT NULL,
-    grid_event_seq INTEGER NOT NULL REFERENCES events(seq),
-    items_json TEXT NOT NULL CHECK (
-        json_valid(items_json) AND json_type(items_json) = 'array'
-    ),
-    originators_json TEXT NOT NULL CHECK (
-        json_valid(originators_json)
-        AND json_type(originators_json) = 'array'
-    ),
-    reviewer TEXT NOT NULL,
-    review_event_seq INTEGER REFERENCES events(seq),
-    ruling_event_seq INTEGER REFERENCES events(seq),
-    status TEXT NOT NULL CHECK (status IN (
-        'pending', 'covered', 'inapplicable', 'gap', 'accepted'
-    )),
-    evidence_json TEXT NOT NULL CHECK (
-        json_valid(evidence_json) AND json_type(evidence_json) = 'object'
-    ),
-    acceptance_event_seq INTEGER REFERENCES events(seq),
-    PRIMARY KEY (contest_id, cell_id),
-    CHECK (status <> 'accepted' OR acceptance_event_seq IS NOT NULL)
-) STRICT;
-
-CREATE TABLE crosscheck_audit_samples (
-    step_id TEXT NOT NULL REFERENCES contest_steps(step_id),
-    auditor TEXT NOT NULL,
-    sample_json TEXT NOT NULL CHECK (
-        json_valid(sample_json) AND json_type(sample_json) = 'array'
-    ),
-    audit_event_seq INTEGER REFERENCES events(seq),
-    PRIMARY KEY (step_id, auditor)
-) STRICT;
-
-CREATE TABLE survey_claims (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    claim_id TEXT NOT NULL,
-    extraction_event_seq INTEGER NOT NULL REFERENCES events(seq),
-    claim_text TEXT NOT NULL,
-    origins_json TEXT NOT NULL CHECK (
-        json_valid(origins_json) AND json_type(origins_json) = 'array'
-    ),
-    PRIMARY KEY (contest_id, claim_id)
-) STRICT;
-
-CREATE TABLE survey_votes (
-    contest_id TEXT NOT NULL,
-    claim_id TEXT NOT NULL,
-    ballot INTEGER NOT NULL CHECK (ballot IN (1, 2)),
-    nick TEXT NOT NULL,
-    vote TEXT NOT NULL CHECK (vote IN ('AGREE', 'DISAGREE', 'UNSURE')),
-    confidence INTEGER NOT NULL CHECK (confidence BETWEEN 1 AND 5),
-    reason TEXT NOT NULL,
-    change_evidence TEXT,
-    event_seq INTEGER NOT NULL REFERENCES events(seq),
-    PRIMARY KEY (contest_id, claim_id, ballot, nick),
-    FOREIGN KEY (contest_id, claim_id)
-        REFERENCES survey_claims(contest_id, claim_id)
-) STRICT;
-
-CREATE TABLE probe_roles (
-    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
-    nick TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN (
-        'explainer', 'checker', 'sitting_out'
-    )),
-    initial_event_seq INTEGER REFERENCES events(seq),
-    prediction_event_seq INTEGER REFERENCES events(seq),
-    PRIMARY KEY (contest_id, nick),
-    CHECK (role = 'explainer' OR prediction_event_seq IS NULL)
 ) STRICT;
 
 CREATE TABLE receipts (
@@ -2367,11 +2619,210 @@ CREATE INDEX superseded_member_idx
     ON superseded(member, marker_event_seq);
 ```
 
-Rust validation additionally enforces UUIDv7 values, canonical dates, nick rules, unique recipients, finite money, payload schemas, matching event IDs and sequences, and all owner-defined lifecycle preconditions.
+#### M5 schema extensions
 
-`events.payload` stores the canonical payload. Other columns reconstruct the envelope base and commit fields. `agent.reply`, `debate.transition`, `delta` and `presence` cannot enter `events`.
+Each mode’s M5 phase adds its table group below and rebuilds the `events.kind` and `work.kind` CHECKs to include only that mode’s registered kinds. Contests owns payload schemas; this section owns their SQL representation. M1 does not validate future mode rows or run their migrations. Tournament work requires a replay value matching the accepted `(contest_id, round, replay)` execution; add a CHECK requiring nonnull `replay` for `judge.tournament` and reply work with a tournament round, enforced against contest kind transactionally. Grill work requires the matching contest and round. The four later modes require matching contest, step, assignment, prompt and ceiling; their member contexts are `contest:{contestId}:{stepId}:{nick}` and their judge contexts are `judge:{caseId}`. Their judge ceiling CHECK is 4096. Existing core constraints remain in force when the work table is rebuilt.
 
-`history.meta` preserves `originEventId`, `originSeq`, authorship and projection metadata. `event_seq` and `origin_event_id` identify the same source event. `projection_key` identifies the authorized projection within that event and context. Repeating a projection cannot duplicate prompt content.
+##### Tournament (M5 only)
+
+```sql
+CREATE TABLE tournament_labels (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    round INTEGER NOT NULL CHECK (round >= 1),
+    replay INTEGER NOT NULL CHECK (replay IN (0, 1)),
+    label TEXT NOT NULL,
+    nick TEXT NOT NULL,
+    PRIMARY KEY (contest_id, round, replay, label),
+    UNIQUE (contest_id, round, replay, nick)
+) STRICT;
+
+CREATE TABLE tournament_rounds (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    round INTEGER NOT NULL CHECK (round >= 1),
+    replay INTEGER NOT NULL CHECK (replay IN (0, 1)),
+    judge_work_id TEXT UNIQUE REFERENCES work(work_id),
+    ranking_event_seq INTEGER UNIQUE REFERENCES events(seq),
+    state_json TEXT NOT NULL CHECK (
+        json_valid(state_json) AND json_type(state_json) = 'object'
+    ),
+    PRIMARY KEY (contest_id, round, replay)
+) STRICT;
+
+CREATE TABLE tournament_results (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    round INTEGER NOT NULL CHECK (round >= 1),
+    nick TEXT NOT NULL,
+    entry_event_seq INTEGER REFERENCES events(seq),
+    result_event_seq INTEGER NOT NULL UNIQUE REFERENCES events(seq),
+    rank INTEGER NOT NULL CHECK (rank >= 1),
+    score INTEGER CHECK (score BETWEEN 1 AND 10),
+    critique TEXT,
+    eliminated INTEGER NOT NULL CHECK (eliminated IN (0, 1)),
+    PRIMARY KEY (contest_id, round, nick),
+    UNIQUE (contest_id, round, rank)
+) STRICT;
+```
+
+##### Grill (M5 only)
+
+```sql
+CREATE TABLE grill_plans (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    version INTEGER NOT NULL CHECK (version >= 1),
+    round INTEGER NOT NULL CHECK (round >= 0),
+    event_seq INTEGER NOT NULL UNIQUE REFERENCES events(seq),
+    content TEXT NOT NULL,
+    PRIMARY KEY (contest_id, version)
+) STRICT;
+
+CREATE TABLE grill_turns (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    round INTEGER NOT NULL CHECK (round BETWEEN 1 AND 10),
+    turn INTEGER NOT NULL CHECK (turn >= 1),
+    griller TEXT NOT NULL,
+    angle TEXT NOT NULL,
+    plan_version INTEGER NOT NULL CHECK (plan_version >= 1),
+    question_event_seq INTEGER UNIQUE REFERENCES events(seq),
+    answer_event_seq INTEGER UNIQUE REFERENCES events(seq),
+    pass_event_seq INTEGER UNIQUE REFERENCES events(seq),
+    state_json TEXT NOT NULL CHECK (
+        json_valid(state_json) AND json_type(state_json) = 'object'
+    ),
+    PRIMARY KEY (contest_id, round, turn),
+    FOREIGN KEY (contest_id, plan_version)
+        REFERENCES grill_plans(contest_id, version),
+    CHECK (
+        pass_event_seq IS NULL
+        OR (question_event_seq IS NULL AND answer_event_seq IS NULL)
+    )
+) STRICT;
+```
+
+##### Census (M5 only)
+
+```sql
+CREATE TABLE census_passes (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    pass INTEGER NOT NULL CHECK (pass BETWEEN 1 AND 5),
+    plan_event_seq INTEGER NOT NULL REFERENCES events(seq),
+    merged_ledger_event_seq INTEGER REFERENCES events(seq),
+    final_ledger_event_seq INTEGER REFERENCES events(seq),
+    report_event_seq INTEGER UNIQUE REFERENCES events(seq),
+    tally_json TEXT CHECK (
+        tally_json IS NULL
+        OR (
+            json_valid(tally_json)
+            AND json_type(tally_json) = 'object'
+        )
+    ),
+    PRIMARY KEY (contest_id, pass)
+) STRICT;
+
+CREATE TABLE census_finders (
+    contest_id TEXT NOT NULL,
+    pass INTEGER NOT NULL,
+    gap_id TEXT NOT NULL,
+    nick TEXT NOT NULL,
+    hunt_event_seq INTEGER NOT NULL REFERENCES events(seq),
+    PRIMARY KEY (contest_id, pass, gap_id, nick),
+    FOREIGN KEY (contest_id, pass)
+        REFERENCES census_passes(contest_id, pass)
+) STRICT;
+```
+
+##### Crosscheck (M5 only)
+
+```sql
+CREATE TABLE crosscheck_cells (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    cell_id TEXT NOT NULL,
+    grid_event_seq INTEGER REFERENCES events(seq),
+    origin_event_seq INTEGER REFERENCES events(seq),
+    items_json TEXT NOT NULL CHECK (
+        json_valid(items_json) AND json_type(items_json) = 'array'
+    ),
+    originators_json TEXT NOT NULL CHECK (
+        json_valid(originators_json)
+        AND json_type(originators_json) = 'array'
+    ),
+    reviewer TEXT,
+    review_event_seq INTEGER REFERENCES events(seq),
+    ruling_event_seq INTEGER REFERENCES events(seq),
+    status TEXT NOT NULL CHECK (status IN (
+        'pending', 'covered', 'inapplicable', 'gap', 'accepted'
+    )),
+    evidence_json TEXT NOT NULL CHECK (
+        json_valid(evidence_json) AND json_type(evidence_json) = 'object'
+    ),
+    acceptance_event_seq INTEGER REFERENCES events(seq),
+    PRIMARY KEY (contest_id, cell_id),
+    CHECK (status <> 'accepted' OR acceptance_event_seq IS NOT NULL),
+    CHECK ((grid_event_seq IS NOT NULL AND origin_event_seq IS NULL)
+        OR (grid_event_seq IS NULL AND origin_event_seq IS NOT NULL))
+) STRICT;
+
+CREATE TABLE crosscheck_audit_samples (
+    step_id TEXT NOT NULL REFERENCES contest_steps(step_id),
+    auditor TEXT NOT NULL,
+    sample_json TEXT NOT NULL CHECK (
+        json_valid(sample_json) AND json_type(sample_json) = 'array'
+    ),
+    audit_event_seq INTEGER REFERENCES events(seq),
+    PRIMARY KEY (step_id, auditor)
+) STRICT;
+```
+
+##### Survey (M5 only)
+
+```sql
+CREATE TABLE survey_claims (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    claim_id TEXT NOT NULL,
+    extraction_event_seq INTEGER NOT NULL REFERENCES events(seq),
+    claim_text TEXT NOT NULL,
+    origins_json TEXT NOT NULL CHECK (
+        json_valid(origins_json) AND json_type(origins_json) = 'array'
+    ),
+    PRIMARY KEY (contest_id, claim_id)
+) STRICT;
+
+CREATE TABLE survey_votes (
+    contest_id TEXT NOT NULL,
+    claim_id TEXT NOT NULL,
+    ballot INTEGER NOT NULL CHECK (ballot IN (1, 2)),
+    nick TEXT NOT NULL,
+    vote TEXT NOT NULL CHECK (vote IN ('AGREE', 'DISAGREE', 'UNSURE')),
+    confidence INTEGER NOT NULL CHECK (confidence BETWEEN 1 AND 5),
+    reason TEXT NOT NULL,
+    change_evidence TEXT CHECK (ballot <> 2 OR (change_evidence IS NOT NULL AND length(trim(change_evidence)) > 0)),
+    event_seq INTEGER NOT NULL REFERENCES events(seq),
+    PRIMARY KEY (contest_id, claim_id, ballot, nick),
+    FOREIGN KEY (contest_id, claim_id)
+        REFERENCES survey_claims(contest_id, claim_id)
+) STRICT;
+```
+
+##### Probe (M5 only)
+
+```sql
+CREATE TABLE probe_roles (
+    contest_id TEXT NOT NULL REFERENCES contests(contest_id),
+    nick TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN (
+        'explainer', 'checker', 'sitting_out'
+    )),
+    initial_event_seq INTEGER REFERENCES events(seq),
+    prediction_event_seq INTEGER REFERENCES events(seq),
+    PRIMARY KEY (contest_id, nick),
+    CHECK (role = 'explainer' OR prediction_event_seq IS NULL)
+) STRICT;
+```
+
+Rust validation additionally enforces UUIDv7 identities and UUIDv4 anonymous item IDs, canonical dates, nick rules, unique recipients, finite money, payload schemas, matching event IDs and sequences, and all owner-defined lifecycle preconditions.
+
+`events.payload` stores the canonical payload. Other columns reconstruct the envelope base and commit fields. `agent.reply`, `contest.transition`, `delta` and `presence` cannot enter `events`.
+
+For attributed projections, `history.meta` preserves `originEventId`, `originSeq`, authorship and projection metadata. For each anonymous step projection, write one bundled row per destination context, with both `event_seq` and `origin_event_id` pointing to the step’s barrier event, `name = "squad"`, and `meta = {"anonymous":true}` only. Examples are `survey.selection`, `census.ledger` and the probe `contest.step` barrier. Never originate an anonymous row from an individual contributor’s event. `projection_key` deduplicates a step projection in that context; anonymous `HistoryEntry` omits source IDs. The router mints UUIDv4 item IDs or shuffled short labels at the barrier, randomizes item/reason order, and removes contributor metadata before rendering. Survey reasons are deduplicated and bundled across voters so event IDs, row boundaries and order cannot reconstruct voter groups or side counts.
 
 `history.pos` describes delivery order. `originSeq` describes the source event’s acceptance order. A barrier allocates fresh history positions for earlier accepted turns; it does not reuse their event sequences as history positions.
 
@@ -2395,7 +2846,7 @@ Survey question-first collection also uses `contest_answers`, without creating `
 
 `mode_artifacts` indexes committed artifact events without duplicating their payload text. `contest_private_maps` retains identity-bearing provenance outside executable history. Scoped readers receive only the script-authorized projections of these records. The generic tables also support shared moves for the three existing scripts without changing their established payloads.
 
-`census_passes` retains plan and ledger versions and the app-computed tally snapshot for each pass. `census_finders` counts each initial finder once per merged gap and pass; rating additions cannot become initial finds. Ratings, covered citations, finalized gaps, estimate bounds and discovery-curve points remain in their canonical artifact payloads. Rust validation checks their item references and recomputes report arithmetic from accepted records.
+`census_passes` retains plan and ledger versions and the app-computed tally snapshot for each pass. `census_finders` counts each initial finder once per merged gap and pass; rating additions cannot become initial finds. Ratings, covered citations, finalized gaps, estimate bounds and discovery-curve points remain in their canonical artifact payloads. Rust validation checks their item references and recomputes Chao1 arithmetic from accepted records. `estimateLow` and `estimateHigh` are required nullable `Option<f64>` fields retained with the input gap IDs, `f1`, `f2`, formula branch and unrounded Chao1 value. Until the range rule is decided, only Chao1 is validated; bounds remain null and cannot justify a quiet-stop result. This typed census work lands in M5.P7, not M1.
 
 `crosscheck_cells` retains every admitted grid cell and its current evidence, reviewer, ruling and explicit human acceptance. Rust validation checks inventory origins, the pre-grid cap, assignment coverage and the prohibition on self-origin review. `crosscheck_audit_samples` freezes sampled closure evidence and its plan and grid references through the assignment payload. A ruling cannot erase a cell. An acceptance is valid only for its recorded current plan and grid.
 
@@ -2421,7 +2872,7 @@ Each durable event receives a distinct increasing `seq`. A transaction inserting
 
 All events in that transaction have the same `acceptedAt` and `commitSize`, and contiguous zero-based `commitIndex` values. Their `seq` values differ. `commit_start_seq` is storage metadata identifying the first event in the group; it is not an additional envelope field.
 
-A barrier may update histories and work without adding a room event. Its private projections are still one atomic transaction. Every projected source retains its original identity.
+A barrier may update histories and work without adding a room event. Its private projections are still one atomic transaction. Attributed projections retain their source identity; an anonymous bundle uses its barrier identity under the visibility contract.
 
 A replay checkpoint advances only after the complete event group has been applied. Within a group, consumers order by `commitIndex` and deduplicate by event ID. Repeated feed delivery cannot repeat an effect.
 
@@ -2429,7 +2880,7 @@ Page reads preserve complete groups. A requested page limit is a target when a w
 
 ### Commit transaction
 
-The router serializes all mutations. The dedicated writer thread executes one transaction per commit.
+This 12-step list is the single normative commit pipeline. The router serializes all mutations; the dedicated writer thread executes one transaction per commit. Other descriptions specify effects only and must follow this order.
 
 1. Validate the submission’s structure, producer capability, room epoch and applicable execution authority.
 2. Derive its stable submission identity and normalized digest without repeating mutable source resolution.
@@ -2460,7 +2911,7 @@ Collection completion, the eligible-answer snapshot and `contest.pick_requested`
 
 A tournament ranking commit validates the complete label permutation, resolves its private map, commits individual result events and histories, eliminates exactly one entrant and advances the contest atomically. A champion event and trophy increment are one transaction. Grill content commits include all authorised shared-floor projections in the same transaction as their source event and work completion.
 
-For the four new modes, artifact acceptance atomically writes the canonical event, contest and applicable case associations, typed artifact index, derived rows, authorized history projections, assignment outcome, work completion and accounting. A step barrier commits its delivery decisions and recoverable next-work allocation together. Duplicate results cannot add a finder, ballot, review, prediction, risk acceptance or report twice.
+Following the [12-step pipeline](#commit-transaction), artifact acceptance in a built later mode atomically writes the canonical event, contest and applicable case associations, typed artifact index, derived rows, authorized history projections, assignment outcome, work completion and accounting. A step barrier commits its delivery decisions and recoverable next-work allocation together. Duplicate results cannot add a finder, ballot, review, prediction, risk acceptance or report twice.
 
 Census report commits compute tally fields from the recorded initial finder sets and finalized ledger. Crosscheck ruling and acceptance commits preserve all retained cells and their evidence lineage. Survey selection and report commits validate their counts and switches against stored ballots. Probe report acceptance verifies the frozen prediction matrix and referenced checks. None of these transactions changes the scoreboard.
 
@@ -2468,56 +2919,36 @@ Provider-call start is recorded durably before issuing the call. Once that recor
 
 ### Visibility and prompt authority
 
-The human sees all accepted room activity. Members receive only addressed content and explicitly admitted contest projections. A judge receives only its case material and subsequent addressed case conversation.
+The human feed retains all accepted room activity. This is the sole projection table: fields listed here are the complete prompt-visible data, after template rendering; envelope, accounting and source metadata are excluded unless explicitly listed. All unaddressed members receive nothing. Core and debate rows are implemented in M1; the six other modes add their exact per-step field rows in their own M5 phases.
 
-| Event or material | Human | Member histories | Uninvolved members | Judge context |
-|---|---|---|---|---|
-| Ordinary user message | Always | Explicit resolved recipients; held inputs are delivered only after the contest hold ends | None | Only when deliberately quoted into a case |
-| Quoted text | With its user message | Every authorised recipient of that user message, attributed to its author | None beyond explicit recipients | Explicitly selected case input |
-| Ordinary reply | Always | Author’s own history | None | Only when selected or quoted |
-| Debate opening | Always | Both debaters | None | In the adjudication material |
-| Debate setup | Always | Both debaters | None | In the adjudication bundle |
-| Debate turn | Always | Both debaters, written only by the round-barrier commit | None | Appended at the barrier for round scoring; full committed transcript for final adjudication |
-| Debate verdict | Always | Both debaters, with `roundTally` and per-round outcomes in the verdict announcement, retained afterward | None | Its own case decision, retained for follow-ups |
-| Standalone ruling or case follow-up | Always | None unless later explicitly quoted | None | Its own case only |
-| Addressed content notice | Always | Explicit addressees only | None | Explicit case input only |
-| Preflight, state, work, accounting, daily spending, scores, supersession marker, variable change, clear marker | Always | No prompt entry | None | No automatic prompt entry |
-| Delta or presence | Live | No history entry | None | No history entry |
-| Execution error | Human view of accepted work | Only an explicitly addressed content projection when required | None | Explicit case input only |
-| Debate round score | `me` only | No member before the verdict; delivered to both debaters with the verdict announcement | None | Judge case context |
-| Question-first question and answer | Always | Question to its resolved recipients; each answer to its author’s history only | None | Only selected sources after admission |
-| Collection, pick request and accepted pick | Always | No automatic prompt entry | None | No automatic prompt entry |
-| Tournament prompt and notice | Always | Each entrant’s own addressed projection | None | Tournament question and judging instructions only |
-| Tournament entry | Always | Author only | None | Anonymised answer under a shuffled label |
-| Tournament full ranking | `me` only | None | None | Its own label-based output only |
-| Tournament individual result | Always | That entrant only | None | No identity-bearing result projection |
-| Tournament final placements | Always | Every entrant; nicks and placements only | None | No automatic prompt entry |
-| Blind-judge label map | Never exposed | None | None | None; router-only storage |
-| Grill setup and initial plan | Always | Exactly the leader and grillers | None | None |
-| Grill question, answer, pass and plan changes | Always | Every grill participant as committed | None | None |
-| Grill plan version and completion | Always | Every grill participant | None | None |
-| Judge repair data | No automatic transcript entry | None | None | Only the authorised next attempt in the same case and work |
-| Four-mode setup and source material | Always | Only the script’s per-step projection in an isolated working history | None | Only authorized case material |
-| Census plan and assigned lens | Always | Each hunter or rater receives its own authorized payload | None | Authorized merge or finalization material |
-| Census initial hunt | Always | Author’s isolated hunt context only; no other hunter | None | Anonymised source finds for merging |
-| Census merged ledger | Always, including finder table | Raters receive gap text without finder identity, model or count | None | Authorized ledger and rating material |
-| Census ratings and additions | Always | Author’s isolated rating context only | None | Authorized finalization input |
-| Census finder map, counts and singletons | Always | No automatic member projection | None | Only script-authorized source handles; identity map remains router-only |
-| Census report and discovery curve | Always | No automatic prompt entry | None | No automatic prompt entry beyond authorized report material |
-| Crosscheck inventory input | Always | Goal, constraints and assigned lens only; no plan or other inventory | None | Authorized normalization material |
-| Crosscheck inventory | Always | Author’s isolated inventory context only | None | Anonymised inventories and source handles |
-| Crosscheck grid and cell review | Always | Each reviewer receives the plan and only its assigned cells; no originator identities or other reviews | None | Authorized grid, evidence and audit material |
-| Crosscheck audit input and output | Always | Fresh auditor context receives plan, grid and sampled evidence without reviewer identities; no peer audit | None | Authorized challenged closures and proposed additions |
-| Crosscheck ruling, human acceptance and report | Always | No automatic prompt entry | None | Authorized ruling material and its own output; no power to accept risks |
-| Survey source answers | Always | Own ordinary answer only; no whole peer answers | None | Frozen selected answers for extraction |
-| Survey extracted claims | Always | Neutral unattributed claims only, without source membership | None | Authorized claims and restricted provenance |
-| Survey first ballot and selection | Always | Own ballot only; no vote counts or peer ballots | None | Authorized stored ballots and selection |
-| Survey second-ballot input | Always | Selected claims and anonymised opposing reasons only; no authors, counts or whole answers | None | Authorized second ballots |
-| Survey five-band report and switches | Always | No automatic prompt entry | None | Authorized report material and its own output |
-| Probe role split and sit-out | Always | Own role and brief only | None | Authorized report material |
-| Probe initial explanations and checks | Always | Own initial artifact only; no peer explanation or check during the blind step | None | Authorized report material after predictions lock |
-| Probe prediction input and output | Always | Each explainer receives its own explanation and all anonymised checks; no rival explanations or predictions | None | Frozen matrix after the prediction barrier |
-| Probe decision tree and report | Always | No automatic prompt entry | None | Authorized report material and its own output |
+| Step or material | Authorized destination | Projected fields |
+|---|---|---|
+| Ordinary addressed user input | Each resolved member, after any hold release | `body`; quote `author` and frozen `text` in attachment order; attributed source identity in safe metadata |
+| Ordinary completion | Author’s own member context | `content`, author nick; no other member’s reply |
+| Explicit quote into standalone case | That case only | Selected quote `author`, `text`; user `question`; no other history |
+| Case follow-up | Same sealed case only | Original material, accepted decision, prior addressed follow-ups, current question and explicit quote text/attribution |
+| Debate round-0 input | Both debaters separately | `topicText`, `instruction`, `round=0`, admitted `rounds`; no opponent opening |
+| Debate setup after selection/opening barrier | Both debaters | `topicText`, ordered `solutions[].nick` and `solutions[].text`, `instruction`, `rounds`; no round scores |
+| Debate numbered-round work | Each debater | Admitted setup and all prior barrier-delivered turns; current `round` and `totalRounds`; no current opponent output |
+| Debate turn barrier | Both debaters | Both outcomes in debater order: `speaker`, `round`, completed `content` or forfeit `reasonCode` and `text` |
+| Debate case initialization | Its judge case | Setup topic, attributed solutions, retained instruction, debaters and rubric version; no ordinary histories |
+| Debate numbered-round barrier to case | Its judge case | Both ordered turn outcomes with speaker and round; no unrelated room activity |
+| Debate round scoring | Its judge case only | Target `round`, both outcomes, setup/rubric and prior authorized case material; accepted `scores`, `tally` or unscored `reason` append to this case only |
+| Final debate judging | Its judge case only | `topic.{messageId,text}`, `solutions[].{nick,messageId,text}`, ordered `transcript` turn outcomes, `instruction`, frozen `rubric.{version,criteria,verdictSchema}`, `judge.{model,promptPackVersion,renderedTemplateHashes}`, `roundScoring.{roundScores,roundTally,unscoredRounds}`; no other case |
+| Debate verdict announcement | Both debaters after accepted verdict | `winner`, `scores`, `reasoning`, `whatToStealFromLoser`, `tallyOverrideReason`, `weightedTotals`, `roundTally`, per-round scored/unscored outcomes |
+| Question collection | Each addressed member | Question `body` and its explicit quotes; completion only to its author; selection control events add no prompt entry |
+| Content notice or execution error | Explicit authorized addressee only | Sanitized `text` rendered as a user-role Squad notice; no operational metadata |
+| Preflight, state, picks, steps, work, usage, budget, variables, scoreboard, supersession and clear controls | Human only | No automatic prompt fields |
+| Delta and presence | Human live feed only | No history entry |
+| Judge repair | Next authorized attempt, same case and work only | Previous `rejectedOutput`, `validationErrors`; never ordinary history |
+| Grill (M5.P6) | Declared shared floor only | Shared-floor rule; exact step field rows added in M5.P6 |
+| Census (M5.P7) | Isolated assigned step/case only | Blind hunts; raters receive gap id, omission and consequence only, with plan, no lenses, finders or counts; exact field rows added in M5.P7 |
+| Crosscheck (M5.P8) | Isolated assigned step/case only | Inventory hides plan; reviews exclude self-origin items; fresh audits hide reviewer identities; exact field rows added in M5.P8 |
+| Tournament (M5.P5) | Own entrant context or blind case only | Own answers/results; anonymous judging; final placements shared; exact field rows added in M5.P5 |
+| Survey (M5.P9) | Isolated assigned ballot/case only | Unattributed claims and barrier-bundled anonymous reasons, no source answers, authors or counts; exact field rows added in M5.P9 |
+| Probe (M5.P10) | Isolated role/step/case only | Blind proposals; own explanation and frozen anonymous checks for prediction; exact field rows added in M5.P10 |
+
+Raters receive gap id, omission and consequence only; no lenses. The current plan is a separate task input. Anonymous projections use one bundled row per step and destination, barrier origin, `name="squad"`, metadata `{anonymous:true}` only and barrier-minted UUIDv4 IDs or shuffled labels. No `HistoryEntry` exposes contributor source IDs, event timestamps, row grouping or source order. Text anonymization follows the deterministic [Contests redaction rule](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md#blind-text-redaction). Every mode’s M5 visibility tests must prove these common restrictions with the real store.
 
 An ordinary reply’s recipient is `me`; retaining it in its author’s history does not route it to another member. Debate source sharing happens through setup, not by changing the original reply’s recipients.
 
@@ -2529,15 +2960,7 @@ Only the base member prompt uses `role: "system"`. Notices, forfeits and verdict
 
 ### Router algorithm
 
-1. **Receive the request.** Human operations and authorized internal submissions enter the bounded ingress channel with a oneshot reply. Backpressure does not imply acceptance. Durable work remains in SQLite, independently of wake-ups.
-2. **Validate structure and authority.** Enforce the schema and serde contract, room identity, byte limits, producer permissions, epoch and applicable work fencing. Supplied actor fields cannot bypass these checks.
-3. **Check idempotency.** Look up submission identity before repeating mutable history, source or configuration lookups. An identical retry returns its original receipt. Changed content under that identity returns `IDEMPOTENCY_CONFLICT`.
-4. **Parse and resolve.** Invoke Command grammar and parser against authoritative room state. Expand `@all` and its directly following exclusions using the startup registry, deduplicate recipients, resolve quotes and validate command-specific addressing. Store the explicit recipient list. A mentions-only pick is resolved against the current pending pick; other messages continue through normal routing.
-5. **Prepare the operation.** Ordinary member messages allocate independent `reply` work. Standalone judge messages open or follow up a case. Direct contest messages follow preflight and admission. Question-first debate and grill messages claim the active contest and collect ordinary answers before requesting a pick. Slash controls do not become recipientless model messages.
-6. **Apply variable effects.** The parser owns embedded assignments and expansion. Successful inline `ROUNDS`, `GRILL_ROUNDS` and `CENSUS_PASSES` changes commit atomically with their associated operation and affect that submission’s authoritative settings snapshot. Invalid submissions leave variables unchanged.
-7. **Commit atomically.** Apply the transaction above, including canonical events, authorized content, state, work, daily accounting and receipt. Accepting `debate.turn` does not deliver it into private histories before the barrier. Ordinary inputs held by a running contest remain unprojected until release.
-8. **Notify after commit.** Return the committed result, broadcast accepted events and wake the appropriate context mailboxes without awaiting an agent-owned channel. Durable table reads repair missed notifications.
-9. **Forward ephemeral traffic.** Recheck current work authority for deltas. Update in-memory presence before broadcasting presence. Neither enters durable history.
+All durable operations follow the [12-step commit transaction](#commit-transaction), including idempotency before mutable resolution and notification after commit. Front ends call `parse` and map its AST to `Request` through the table below; the router validates that supplied AST and metadata against authoritative room state, variables and records. It never interprets mentions-only `UserMessage` text as a pick. It resolves quotes and canonical recipients, derives permitted effects, and commits staged variable updates atomically with the operation. Model output is never parsed. Ephemeral delta/presence handling rechecks authority and updates in-memory state only.
 
 Census, crosscheck, survey and probe preparation resolves the script’s sources and participant rules before preflight. Admission freezes the script settings and per-step inputs; it does not broadcast the raw command or all source quotes into every member’s working history. Subsequent artifacts advance only the already admitted script. Census continuation and crosscheck risk acceptance use their versioned request contracts.
 
@@ -2553,7 +2976,7 @@ Durable work delivery and notification repair may repeat. Receipts and terminal 
 
 Workers inspect their scoped unfinished work on startup, after wake-ups and on periodic recovery scans, subject to the room’s open mode. A mailbox carries no work payload and is never the sole record of pending work.
 
-`RoomHandle::open` takes `OpenMode { Interactive, OneShot }` under the Room API contract. Interactive open resumes eligible unfinished work. One-shot open never re-wakes or progresses work it did not create. `squad models` and `squad doctor` do not open the room or start executors. `--no-wait` exits after commit and prints the accepted cursor; its work runs at the next interactive open.
+`OpenMode` is the Protocol-owned M1 enum used by recovery; `RoomHandle::open` in M3 consumes it. M1 recovery tests use an open-mode runtime harness, not the M3 API. Interactive open resumes eligible unfinished work. One-shot open never re-wakes or progresses work it did not create. `squad models` and `squad doctor` read the `models` cache; they do not open the room, probe aliases or start executors. Alias probes run only during room open under synthetic work IDs with context `probe:{nick}` and normal attempt accounting. The synthetic ID is used only by `attempts`, `reservations` and `UsageRecord`, not by a fabricated conversational `work` row; the private startup capability authorizes these accounting-only records, which survive clear. `--no-wait` exits after commit and prints the accepted cursor; its work runs at the next interactive open.
 
 Startup proceeds in this order:
 
@@ -2563,7 +2986,7 @@ Startup proceeds in this order:
 4. Apply the Agents and OpenRouter startup model-resolution contract through the router-owned writer.
 5. Invalidate execution ownership left by the previous process. Advance lease fences before assigning recovered work.
 6. Distinguish unstarted attempts from calls that may have started. Reuse an unstarted ordinal when permitted; consume uncertain calls and retain their unresolved accounting reservations.
-7. Restore deadlines, held-work and deferred-history metadata, repair records and terminal tombstones. Apply contest and judge recovery according to Contests: debate, tournament, grill.
+7. Restore deadlines, held-work and deferred-history metadata, repair records and terminal tombstones. Apply contest and judge recovery according to Contests.
 8. Construct scoped agent contexts and spawn case-bound judge executors for eligible unfinished work. Rebuild presence as a fresh in-memory snapshot.
 9. In interactive mode, re-wake every context with eligible unfinished work and start periodic work scans. In one-shot mode, enable only work created by that invocation. Expose the recovered room state before new progression.
 
@@ -2577,7 +3000,7 @@ For census, crosscheck, survey and probe, recovery restores script versions, ste
 
 The router serializes cancellation, supersession, clear and result acceptance. The first accepted terminal transition wins. A late result cannot revive cancelled work, reopen a terminal contest automatically or write into a cleared room. Late accounting remains eligible for reconciliation without accepting stale conversational content.
 
-Global and targeted stop requests follow Agents and OpenRouter and Contests: debate, tournament, grill. A stopped debate keeps committed content and skips automatic judging. Stopping the debate cancels outstanding `judge.round` work and prevents further automatic round-scoring allocation. Explicit `/judge` uses the retained transcript and whatever round scores exist; it scores no rounds retroactively.
+Global and targeted stop requests follow Agents and OpenRouter and Contests. A stopped debate keeps committed content and skips automatic judging. Stopping the debate cancels outstanding `judge.round` work and prevents further automatic round-scoring allocation. Explicit `/judge` uses the retained transcript and whatever round scores exist; it scores no rounds retroactively.
 
 Stopping any of the four new modes retains its committed artifacts and fences further automatic progression under the script’s stop policy. A stopped or incomplete run cannot acquire a successful stop-rule result from missing work. Billed attempts remain accounted for.
 
@@ -2625,7 +3048,7 @@ The clear transaction:
 
 1. Advances the epoch and fences or cancels existing work.
 2. Preserves daily spending and the accounting records and reservations still required by Cost guard, without conversational content.
-3. Deletes room conversation rows, private histories, round scores, contest and case records, collection and pick records, tournament rankings and label maps, grill turns and plans, repair data, supersession state, scores, obsolete work and prior receipts in foreign-key-safe order.
+3. Deletes every event with seq below the `room.cleared` event in foreign-key-safe order; accounting survives only in `attempts`, `reservations` and `spend_daily`. Deletes room conversation rows, private histories, round scores, contest and case records, collection and pick records, tournament rankings and label maps, grill turns and plans, repair data, supersession state, scores, obsolete work and prior receipts in foreign-key-safe order.
 4. Restores configured room-variable defaults and recomputes the daily spending projection under Cost guard without resetting actual spending or unknown-cost counts.
 5. Preserves monotonic event and history allocation counters.
 6. Inserts `room.cleared` with the new epoch and the previous durable high-water mark.
