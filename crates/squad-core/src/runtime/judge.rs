@@ -63,6 +63,11 @@ impl JudgeAttemptRunner for Runner {
                         return failed(context, &grant, code).await;
                     }
                 };
+            if grant.work.kind == WorkKind::JudgeTournament {
+                return self
+                    .tournament_output(context, &grant, &output.content)
+                    .await;
+            }
             let validation = squad_agents::judge::validate_output(
                 &grant.work,
                 &output.content,
@@ -230,6 +235,11 @@ impl Runner {
             )
         } else {
             match &material {
+                CaseMaterial::Tournament { material } => self
+                    .pack
+                    .tournament_judge_inputs(material)
+                    .map(|inputs| ("judge.tournament", inputs)),
+
                 CaseMaterial::Standalone { messages, question } => self.pack.judge_inputs(
                     &self.config,
                     &grant.work,
@@ -314,5 +324,77 @@ impl Runner {
             return Err(ReaderError::NotRunnable);
         }
         Ok((request, debaters, tally, invocation, rubric))
+    }
+}
+
+impl Runner {
+    async fn tournament_output(
+        &self,
+        context: &AgentContext,
+        grant: &ExecutionGrant,
+        raw: &str,
+    ) -> Result<(), ReaderError> {
+        let values = context
+            .work
+            .prompt_values_for_work(grant.work.work_id)
+            .await?;
+        let material: CaseMaterial = serde_json::from_str(
+            values
+                .get("case_material_json")
+                .ok_or(ReaderError::NotRunnable)?,
+        )
+        .map_err(|_| ReaderError::NotRunnable)?;
+        let CaseMaterial::Tournament { material } = material else {
+            return Err(ReaderError::Forbidden);
+        };
+        let labels = material
+            .entries
+            .iter()
+            .map(|e| e.label.clone())
+            .collect::<Vec<_>>();
+        match TournamentJudgeResponse::from_json(raw, &labels) {
+            Ok(response) => acknowledged(
+                context
+                    .submit
+                    .submit(ExecutorRequest::Result {
+                        work_id: grant.work.work_id,
+                        attempt: grant.work.attempt,
+                        fence: grant.fence,
+                        epoch: grant.epoch,
+                        output: EnvelopePayload::TournamentJudgment(TournamentJudgment {
+                            generation: identity(grant),
+                            contest_id: grant.work.contest_id.ok_or(ReaderError::NotRunnable)?,
+                            case_id: grant.work.case_id.ok_or(ReaderError::NotRunnable)?,
+                            round: grant.work.round.ok_or(ReaderError::NotRunnable)?,
+                            replay: grant.work.replay.ok_or(ReaderError::NotRunnable)?,
+                            response,
+                        }),
+                    })
+                    .await,
+            ),
+            Err(_) => {
+                let mut error = crate::router::error(
+                    ErrorCode::JUDGE_INVALID_VERDICT,
+                    "Tournament ranking failed validation",
+                );
+                error.work_id = Some(grant.work.work_id);
+                error.case_id = grant.work.case_id;
+                error.contest_id = grant.work.contest_id;
+                let repair=(grant.work.attempt<3).then(||JudgeRepairData{attempt:grant.work.attempt+1,rejected_output:raw.into(),validation_errors:vec!["Return a strict permutation with integer scores 1 through 10 and one-line critiques".into()]});
+                acknowledged(
+                    context
+                        .submit
+                        .submit(ExecutorRequest::Failed {
+                            work_id: grant.work.work_id,
+                            attempt: grant.work.attempt,
+                            fence: grant.fence,
+                            epoch: grant.epoch,
+                            error,
+                            repair,
+                        })
+                        .await,
+                )
+            }
+        }
     }
 }

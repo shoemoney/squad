@@ -144,9 +144,29 @@ impl Work {
                 }
             }
         }
-        if self.kind == WorkKind::JudgeTournament || (self.kind == WorkKind::Reply && self.round.is_some()) {
-            ensure(self.contest_id.is_some() && self.debate_id.is_none() && self.round.is_some_and(|r|r>0) && self.replay.is_some(), "tournament work requires contest, round and replay")?;
-            ensure(self.prompt_ref.as_ref().is_some_and(|p|p.template_id.as_str() == if self.kind == WorkKind::Reply {"tournament.entrant.md"} else {"tournament.judge.md"}), "invalid tournament template")?;
+        if self.kind == WorkKind::JudgeTournament
+            || (self.kind == WorkKind::Reply && self.round.is_some())
+        {
+            ensure(
+                self.contest_id.is_some()
+                    && self.debate_id.is_none()
+                    && self.round.is_some_and(|r| r > 0)
+                    && self.replay.is_some(),
+                "tournament work requires contest, round and replay",
+            )?;
+            ensure(
+                self.prompt_ref.as_ref().is_some_and(|p| {
+                    if self.kind == WorkKind::Reply {
+                        p.template_id.as_str() == "tournament.entrant.md"
+                    } else {
+                        matches!(
+                            p.template_id.as_str(),
+                            "tournament.judge.md" | "judge.tournament"
+                        )
+                    }
+                }),
+                "invalid tournament template",
+            )?;
         }
         let ceiling = match self.kind {
             WorkKind::Judge | WorkKind::JudgeTournament => constants::FINAL_JUDGE_VISIBLE_TOKENS,

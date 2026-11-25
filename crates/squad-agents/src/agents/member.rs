@@ -64,6 +64,7 @@ impl WorkExecutor for MemberExecutor {
                 {
                     Ok(messages) => messages,
                     Err(error) => {
+                        tracing::error!(?error, work_id=%grant.work.work_id, "Member context preparation failed");
                         failed(
                             context,
                             &grant,
@@ -112,6 +113,13 @@ impl WorkExecutor for MemberExecutor {
                 match outcome {
                     Ok(output) => {
                         let payload = match &grant.work.target {
+                            Target::Member(entrant)
+                                if grant.work.kind == WorkKind::Reply
+                                    && grant.work.round.is_some() =>
+                            {
+                                super::tournament::entry(&grant, entrant.clone(), output)?
+                            }
+
                             Target::Member(speaker) if grant.work.kind == WorkKind::DebateTurn => {
                                 EnvelopePayload::DebateTurn(DebateTurn {
                                     generation: identity(&grant),

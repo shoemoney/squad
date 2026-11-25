@@ -3,6 +3,7 @@
 //! Store adapters must load all events and public artifact projections in one read
 //! transaction. Neither this renderer nor `ExportSource` opens the room runtime.
 //! Opaque generic artifact/report data is deliberately never serialized here.
+mod tournament;
 use crate::banner::{Banner, render_default};
 use squad_protocol::*;
 use std::collections::{BTreeMap, BTreeSet};
@@ -410,6 +411,7 @@ pub fn render(
                     block(&mut out, "What to steal from loser", suggestion);
                 }
             }
+            payload if tournament::render(&mut out, payload) => {}
             EnvelopePayload::CaseOpened(s) => {
                 if let CaseMaterial::Standalone { messages, question } = &s.material {
                     block(
@@ -520,6 +522,11 @@ pub fn render(
 }
 fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
     Some(match p {
+        EnvelopePayload::TournamentSetup(s) => (s.contest_id, ContestKind::Tournament),
+        EnvelopePayload::TournamentState(s) => (s.contest_id, ContestKind::Tournament),
+        EnvelopePayload::ContestState(ContestState::Tournament(s)) => {
+            (s.contest_id, ContestKind::Tournament)
+        }
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -537,6 +544,11 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         return Some(id);
     }
     match p {
+        EnvelopePayload::TournamentPreflight(s) => Some(s.base.contest_id),
+        EnvelopePayload::TournamentEntry(s) => Some(s.contest_id),
+        EnvelopePayload::TournamentRanking(s) => Some(s.contest_id),
+        EnvelopePayload::TournamentResult(s) => Some(s.contest_id),
+        EnvelopePayload::TournamentChampion(s) => Some(s.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

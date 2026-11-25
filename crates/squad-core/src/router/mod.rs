@@ -14,6 +14,7 @@ pub mod references;
 pub mod regen;
 pub mod retry;
 pub mod stop;
+pub mod tournaments;
 pub mod variables;
 pub mod verdict;
 use rusqlite::{OptionalExtension, params};
@@ -133,6 +134,8 @@ impl Router {
             for event in &outcome.events {
                 if let EnvelopePayload::DebateState(s) = &event.content {
                     scope.insert(s.debate_id);
+                } else if let EnvelopePayload::TournamentState(s) = &event.content {
+                    scope.insert(s.contest_id);
                 }
             }
         }
@@ -244,6 +247,9 @@ impl Router {
         let bindings = self.bindings.clone();
         let clear = matches!(request, Request::Clear { .. });
         let defaults = self.variable_defaults;
+        let tournament_max = self.daily_max;
+        let tournament_threshold = self.confirmation_threshold;
+        let tournament_config = self.engine_config.clone();
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
             match request {
                 Request::UserMessage {input,parsed,preconfirmed}=> {
@@ -252,6 +258,9 @@ impl Router {
                     let authoritative=match parse(input.text.as_str(),&meta,&ctx) {Ok(parsed)=>parsed,Err(e)=>return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)})};
                     if authoritative!=parsed {return Err(StoreError::Domain(ErrorCode::INVALID_COMMAND,"Parsed input does not match authoritative state"));}
                     if matches!(parsed,ParsedInput::QuestionFirst {..}) {picks::collect(tx,group,id,input,parsed,&bindings)?;return Ok(group.accepted(id));}
+                    if let ParsedInput::Tournament { input: conversation, entrants, prompt } = &parsed {
+                        return tournaments::prepare(tx,group,id,input,conversation,entrants,prompt,&bindings,tournament_max,tournament_threshold,tournament_config.as_ref(),preconfirmed);
+                    }
                     if let ParsedInput::Debate {input:conversation,..}=&parsed {
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
                         let request=Request::UserMessage {input,parsed,preconfirmed};
@@ -287,7 +296,7 @@ impl Router {
                             group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::Error(failure)))?;
                             continue;
                         }
-                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING') AND EXISTS(SELECT 1 FROM json_each(json_extract(state_json,'$.debaters')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?;
+                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING','WAITING_FOR_ENTRANTS','ANSWERING','ELIMINATING') AND EXISTS(SELECT 1 FROM json_each(COALESCE(json_extract(state_json,'$.debaters'),json_extract(state_json,'$.survivors'))) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?;
                         let held=held.map(|id|id.parse().map_err(|_|StoreError::Unavailable)).transpose()?;
                         let projection=squad_store::history::attributed(&event,ContextId(nick.to_string()),"ordinary.input",HistoryRole::User,None,content.clone());
                         if let Some(contest)=held {squad_store::history::defer(tx,contest,&projection)?;}else{squad_store::history::project(tx,&projection)?;}
@@ -427,6 +436,12 @@ impl Router {
                 let digest =
                     squad_store::commit::digest(&(work_id, attempt, fence, epoch, &output))?;
                 let producer = serde_json::to_string(&owner).map_err(StoreError::from)?;
+                let tournament_pack = crate::prompts::PromptPack::from_override_dir(
+                    self.engine_config
+                        .as_ref()
+                        .and_then(|c| c.prompts.directory.as_deref()),
+                )
+                .map_err(|_| StoreError::Unavailable)?;
                 self.store.commit(id, producer, digest, move |tx, group| {
                     let work = squad_store::work::check_fence(
                         tx,
@@ -438,7 +453,13 @@ impl Router {
                         group.accepted_at,
                     )?;
                     authorization::output(&work, &owner, &output)?;
-                    squad_store::cases::validate_invocation(tx,&work,&output)?;
+                    if work.kind == WorkKind::JudgeTournament || (work.kind==WorkKind::Reply && work.round.is_some()) { squad_store::tournaments::validate_execution(tx,&work)?; } else { squad_store::cases::validate_invocation(tx,&work,&output)?; }
+                    if let EnvelopePayload::TournamentJudgment(j) = &output {
+                        tournaments::accept(tx,group,id,&work,j,&tournament_pack)?;
+                        let usage=executor::stored_usage(tx,settle_usage(tx,&work,&output)?)?;
+                        group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::UsageRecord(usage)))?;
+                        return Ok(group.accepted(id));
+                    }
                     if let EnvelopePayload::AgentReply(reply) = output {
                         output = EnvelopePayload::MessageFinal(reply);
                     }
@@ -462,6 +483,12 @@ impl Router {
                     let seq = group.push(tx, event)?;
                     let event = squad_store::events::at(tx, seq.get())?;
                     match &output {
+                        EnvelopePayload::TournamentEntry(entry) => {
+                            squad_store::contests::associate(tx,entry.contest_id,ContestKind::Tournament,seq)?;
+                            let DebateTurnOutcome::Completed{content,..}=&entry.outcome else{return Err(authorization::forbidden());};
+                            squad_store::history::project(tx,&squad_store::history::attributed(&event,work.context_id.clone(),"tournament.entry",HistoryRole::Assistant,Some(entry.entrant.to_string()),content.clone()))?;
+                            squad_store::work::finish(tx,work_id,WorkStatus::Completed,seq)?;
+                        }
                         EnvelopePayload::MessageFinal(reply) => {
                             squad_store::history::project(
                                 tx,
@@ -657,6 +684,10 @@ fn settle_usage(
         EnvelopePayload::MessageFinal(reply) => reply.completed.usage.clone(),
         EnvelopePayload::Verdict(verdict) => verdict.completed.usage.clone(),
         EnvelopePayload::CaseRuling(ruling) => ruling.completed.usage.clone(),
+        EnvelopePayload::TournamentEntry(TournamentEntry {
+            outcome: DebateTurnOutcome::Completed { usage, .. },
+            ..
+        }) => usage.clone(),
         EnvelopePayload::DebateTurn(DebateTurn {
             outcome: DebateTurnOutcome::Completed { usage, .. },
             ..
@@ -815,6 +846,8 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
                 });
             }
             ctx.active_contest = Some(ContestState::Selection(state));
+        } else if let Ok(state) = serde_json::from_str::<TournamentState>(&raw) {
+            ctx.active_contest = Some(ContestState::Tournament(state));
         } else {
             ctx.active_contest = Some(ContestState::Debate(serde_json::from_str(&raw)?));
         }

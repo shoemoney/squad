@@ -87,7 +87,7 @@ fn unavailable() -> ReaderError {
         message: "Executor runtime unavailable".into(),
     }
 }
-fn prompt(pack: &PromptPack, config: &SquadConfig, id: &str) -> PromptRef {
+pub(crate) fn prompt(pack: &PromptPack, config: &SquadConfig, id: &str) -> PromptRef {
     let material = serde_json::json!({"template": id, "overrides": pack.overrides(), "user": config.user.name, "members": config.agents.iter().map(|a| (&a.nick, &a.model, &a.persona, a.reasoning_effort)).collect::<Vec<_>>(), "roomWords": config.prompts.limits.room_words, "turnWords": config.prompts.limits.turn_words, "finalWords": config.prompts.limits.final_turn_words, "effort": config.defaults.reasoning_effort, "judgeEffort": config.judge.reasoning_effort});
     PromptRef {
         pack_version: Text::new(pack.version()).expect("pack version"),

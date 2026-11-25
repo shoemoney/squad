@@ -114,6 +114,12 @@ impl WorkReader for ScopedReaders {
                 values.insert("case_material_json".into(), material);
                 values.insert("case_state_json".into(), state);
             }
+            if work.kind==WorkKind::Reply && work.round.is_some() {
+                let s=crate::tournaments::validate_execution(db,&work).map_err(map_error)?;
+                values.insert("contest_id".into(),s.contest_id.to_string());
+                values.insert("round".into(),s.round.to_string());
+                values.insert("entrants_remaining".into(),s.survivors.len().to_string());
+            }
             if let Some(debate) = work.debate_id {
                 let state = crate::contests::debate(db, debate).map_err(map_error)?;
                 if let Target::Member(nick) = &work.target {

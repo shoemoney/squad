@@ -13,6 +13,11 @@ pub fn insert(
 ) -> Result<()> {
     work.validate()
         .map_err(|_| invalid("Invalid executable work"))?;
+    if work.kind == WorkKind::JudgeTournament
+        || (work.kind == WorkKind::Reply && work.round.is_some())
+    {
+        crate::tournaments::validate_execution(db, work)?;
+    }
     if let Some(step) = work.step_id {
         let assignment: String = db.query_row(
             "SELECT assignment_json FROM contest_assignments WHERE step_id=? AND target=?",
@@ -81,13 +86,17 @@ pub fn insert(
             |r| r.get(0),
         )?;
         if let Some(raw) = raw {
-            let plan: DebatePreflight = decode(raw)?;
-            let total = crate::accounting::reservation_micros(plan.estimate.reserved_usd)
-                .map_err(|_| invalid("Invalid plan reservation"))?;
-            // Equal integral shares of the frozen aggregate attempt reserve.
-            // The sub-call rounding remainder stays reserved at plan scope.
-            let share = total / i64::from(plan.reserved_calls());
-            meta["planId"] = serde_json::json!(plan.plan_id);
+            let value: serde_json::Value = decode(raw)?;
+            let (plan_id,reserved,calls)=if value.get("base").is_some() {
+                let p:TournamentPreflight=serde_json::from_value(value)?;
+                (p.base.plan_id,p.base.estimate.reserved_usd,(2..=p.total_rounds+1).map(|n|2*(2*n+3)).sum())
+            } else {
+                let p:DebatePreflight=serde_json::from_value(value)?;
+                (p.plan_id,p.estimate.reserved_usd,p.reserved_calls())
+            };
+            let total=crate::accounting::reservation_micros(reserved).map_err(|_|invalid("Invalid plan reservation"))?;
+            let share=total/i64::from(calls);
+            meta["planId"]=serde_json::json!(plan_id);
             meta["attemptReservationMicros"] = serde_json::json!(share);
         }
     }

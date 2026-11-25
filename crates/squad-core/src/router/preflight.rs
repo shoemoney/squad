@@ -117,6 +117,14 @@ pub fn resolve(
     plan_id: PlanId,
     cancel: bool,
 ) -> Result<RequestResult> {
+    let kind: String = tx.query_row(
+        "SELECT kind FROM contests WHERE contest_id=?",
+        [debate.to_string()],
+        |r| r.get(0),
+    )?;
+    if kind == "tournament" {
+        return super::tournaments::resolve(tx, group, id, debate, plan_id, cancel);
+    }
     let mut state = squad_store::contests::debate(tx, debate)?;
     let (raw, pending): (Option<String>, Option<String>) = tx.query_row(
         "SELECT plan_json,pending_request_json FROM contests WHERE contest_id=?",

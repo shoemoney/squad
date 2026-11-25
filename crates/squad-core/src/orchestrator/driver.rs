@@ -108,7 +108,7 @@ impl Router {
             let mut q=db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='debate' AND json_type(state_json,'$.debaters')='array'")?;
             Ok(q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?)
         })?;
-        let mut outcomes = Vec::new();
+        let mut outcomes = self.drive_tournaments()?;
         for id in ids {
             let id = id.parse().map_err(|_| StoreError::Unavailable)?;
             if self
@@ -118,26 +118,20 @@ impl Router {
             {
                 continue;
             }
-            // A bounded loop is a bug guard, never a scheduling timer.
-            for _ in 0..256 {
+            outcomes.extend(contests::drive_script(|| -> Result<Option<CommitOutcome>> {
                 let s = self.engine_snapshot(id)?;
                 if s.state.state.is_terminal() {
-                    break;
+                    return Ok(None);
                 }
                 let failed_state = s.state.clone();
-                let moved = match self.engine_move(s) {
-                    Ok(moved) => moved,
+                match self.engine_move(s) {
+                    Ok(moved) => Ok(moved),
                     Err(error) => {
-                        tracing::error!(?error,state=?failed_state.state,contest_id=%id,"Contest engine move failed");
-                        outcomes.push(self.fail_engine(failed_state, error)?);
-                        break;
+                        tracing::error!(?error,contest_id=%id,"Contest engine move failed");
+                        self.fail_engine(failed_state, error).map(Some)
                     }
-                };
-                match moved {
-                    Some(outcome) => outcomes.push(outcome),
-                    None => break,
                 }
-            }
+            })?);
         }
         Ok(outcomes)
     }

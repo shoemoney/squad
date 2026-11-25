@@ -415,6 +415,9 @@ pub struct BudgetStateEvent {
 // Keep the shared by-value API specified by section 02.
 #[allow(clippy::large_enum_variant)]
 pub enum CaseMaterial {
+    Tournament {
+        material: TournamentCaseMaterial,
+    },
     Standalone {
         messages: Vec<ResolvedQuote>,
         question: Text,
@@ -550,10 +553,63 @@ fn validate_envelope(
     )?;
     let human_only = base.recipients == [Recipient::Me];
     match payload {
-        EnvelopePayload::TournamentState(s) => { ensure(base.sender == Actor::System && human_only, "tournament state requires system to human")?; s.validate()?; }
-        EnvelopePayload::TournamentEntry(e) => { ensure(human_only && (base.sender == Actor::Member(e.entrant.clone()) || (base.sender == Actor::System && matches!(e.outcome, DebateTurnOutcome::Forfeit { .. }))), "invalid tournament entry author")?; ensure(e.round > 0 && e.replay <= 1, "invalid entry execution")?; }
-        EnvelopePayload::TournamentJudgment(j) => { ensure(base.sender == Actor::Judge && human_only && j.round > 0 && j.replay <= 1, "invalid tournament judgment")?; }
-        EnvelopePayload::TournamentSetup(_) | EnvelopePayload::TournamentPreflight(_) | EnvelopePayload::TournamentRanking(_) | EnvelopePayload::TournamentResult(_) | EnvelopePayload::TournamentChampion(_) => { ensure(base.sender == Actor::System && human_only, "tournament announcement requires system to human")?; }
+        EnvelopePayload::TournamentState(s) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "tournament state requires system to human",
+            )?;
+            s.validate()?;
+        }
+        EnvelopePayload::TournamentEntry(e) => {
+            ensure(
+                human_only
+                    && (base.sender == Actor::Member(e.entrant.clone())
+                        || (base.sender == Actor::System
+                            && matches!(e.outcome, DebateTurnOutcome::Forfeit { .. }))),
+                "invalid tournament entry author",
+            )?;
+            ensure(e.round > 0 && e.replay <= 1, "invalid entry execution")?;
+        }
+        EnvelopePayload::TournamentJudgment(j) => {
+            ensure(
+                base.sender == Actor::Judge && human_only && j.round > 0 && j.replay <= 1,
+                "invalid tournament judgment",
+            )?;
+        }
+        EnvelopePayload::TournamentSetup(s) => {
+            ensure(
+                base.sender == Actor::System
+                    && human_only
+                    && s.entrants.len() >= 3
+                    && unique(&s.entrants)
+                    && s.total_rounds == s.entrants.len() as u32 - 1
+                    && !s.prompt.trim().is_empty(),
+                "invalid tournament setup",
+            )?;
+        }
+        EnvelopePayload::TournamentPreflight(p) => {
+            ensure(
+                base.sender == Actor::System
+                    && human_only
+                    && p.base.kind == ContestKind::Tournament
+                    && p.base.participants.len() >= 3
+                    && unique(&p.base.participants)
+                    && p.total_rounds == p.base.participants.len() as u32 - 1
+                    && p.replays == 1
+                    && p.entry_attempts == 2
+                    && p.judge_attempts == 3,
+                "invalid tournament preflight",
+            )?;
+            p.base.estimate.validate()?;
+        }
+        EnvelopePayload::TournamentRanking(_)
+        | EnvelopePayload::TournamentResult(_)
+        | EnvelopePayload::TournamentChampion(_) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "tournament announcement requires system to human",
+            )?;
+        }
         EnvelopePayload::UserMessage(message) => {
             ensure(base.sender == Actor::Me, "user.message requires me")?;
             ensure(
@@ -735,6 +791,12 @@ fn validate_envelope(
         EnvelopePayload::CaseOpened(case) => {
             same_contest(case.debate_id, case.contest_id)?;
             match &case.material {
+                CaseMaterial::Tournament { material } => {
+                    ensure(
+                        case.contest_id.is_some() && case.debate_id.is_none() && material.round > 0,
+                        "invalid tournament case",
+                    )?;
+                }
                 CaseMaterial::Standalone { messages, .. } => ensure(
                     !messages.is_empty() && messages.len() <= 12 && case.debate_id.is_none(),
                     "invalid standalone case",
@@ -765,6 +827,7 @@ fn validate_envelope(
         }
         EnvelopePayload::ContestState(state) => match state {
             ContestState::Debate(state) => state.validate()?,
+            ContestState::Tournament(state) => state.validate()?,
             ContestState::Generic(state) => ensure(
                 state.kind != ContestKind::Debate && unique(&state.artifact_event_ids),
                 "duplicate artifact references",
@@ -781,7 +844,11 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            submission.kind == ContestKind::Debate,
+            matches!(
+                (&submission.kind, &submission.transition),
+                (ContestKind::Debate, ContestTransition::Debate(_))
+                    | (ContestKind::Tournament, ContestTransition::Tournament(_))
+            ),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {

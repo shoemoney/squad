@@ -1,7 +1,7 @@
 //! Typed elimination tournament contracts. Label maps are never judge material.
 use crate::*;
-use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TournamentStatus {
@@ -43,6 +43,7 @@ pub struct TournamentState {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentEntry {
+    #[serde(flatten)]
     pub generation: GenerationIdentity,
     pub contest_id: ContestId,
     pub round: u32,
@@ -134,6 +135,7 @@ pub struct TournamentBlindEntry {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TournamentJudgment {
+    #[serde(flatten)]
     pub generation: GenerationIdentity,
     pub contest_id: ContestId,
     pub case_id: CaseId,
@@ -152,24 +154,47 @@ pub struct TournamentPreflight {
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum TournamentTransition { EntrantsDrained, EntriesResolved, RankingAccepted, EliminationCommitted, JudgeExhausted, Stop }
+pub enum TournamentTransition {
+    EntrantsDrained,
+    EntriesResolved,
+    RankingAccepted,
+    EliminationCommitted,
+    JudgeExhausted,
+    Stop,
+}
 impl TournamentStatus {
-    pub fn is_terminal(&self) -> bool { matches!(self, Self::Complete | Self::Stopped | Self::Failed) }
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, Self::Complete | Self::Stopped | Self::Failed)
+    }
 }
 impl TournamentJudgeResponse {
     pub fn validate(&self, labels: &[String]) -> validation::ValidationResult {
         use validation::ensure;
-        ensure(self.ranking.len() == labels.len() && validation::unique(labels), "ranking must include every label")?;
+        ensure(
+            self.ranking.len() == labels.len() && validation::unique(labels),
+            "ranking must include every label",
+        )?;
         let supplied: Vec<_> = self.ranking.iter().map(|e| e.label.clone()).collect();
-        ensure(validation::unique(&supplied) && supplied.iter().all(|l| labels.contains(l)), "ranking must be a permutation")?;
+        ensure(
+            validation::unique(&supplied) && supplied.iter().all(|l| labels.contains(l)),
+            "ranking must be a permutation",
+        )?;
         for e in &self.ranking {
-            ensure((1..=10).contains(&e.score), "score must be an integer from 1 to 10")?;
-            ensure(!e.critique.trim().is_empty() && !e.critique.contains(['\n','\r']), "critique must be one nonempty line")?;
+            ensure(
+                (1..=10).contains(&e.score),
+                "score must be an integer from 1 to 10",
+            )?;
+            ensure(
+                !e.critique.trim().is_empty() && !e.critique.contains(['\n', '\r']),
+                "critique must be one nonempty line",
+            )?;
         }
         Ok(())
     }
     pub fn from_json(raw: &str, labels: &[String]) -> Result<Self, validation::ValidationError> {
-        let value = serde_json::from_str(raw).map_err(|_|validation::ValidationError{message:"invalid ranking JSON".into()})?;
+        let value = serde_json::from_str(raw).map_err(|_| validation::ValidationError {
+            message: "invalid ranking JSON".into(),
+        })?;
         let response: Self = validation::decode(&value)?;
         response.validate(labels)?;
         Ok(response)
@@ -178,9 +203,24 @@ impl TournamentJudgeResponse {
 impl TournamentState {
     pub fn validate(&self) -> validation::ValidationResult {
         use validation::ensure;
-        ensure(self.round > 0 && self.replay <= 1 && validation::unique(&self.survivors) && validation::unique(&self.eliminated), "invalid tournament state")?;
-        ensure(self.survivors.iter().all(|n|!self.eliminated.contains(n)), "survivors and eliminated must be disjoint")?;
-        ensure(self.survivors.len()+self.eliminated.len() >= 3, "tournament needs at least three entrants")?;
-        ensure(self.state != TournamentStatus::Complete || self.survivors.len() == 1, "complete tournament requires one champion")
+        ensure(
+            self.round > 0
+                && self.replay <= 1
+                && validation::unique(&self.survivors)
+                && validation::unique(&self.eliminated),
+            "invalid tournament state",
+        )?;
+        ensure(
+            self.survivors.iter().all(|n| !self.eliminated.contains(n)),
+            "survivors and eliminated must be disjoint",
+        )?;
+        ensure(
+            self.survivors.len() + self.eliminated.len() >= 3,
+            "tournament needs at least three entrants",
+        )?;
+        ensure(
+            self.state != TournamentStatus::Complete || self.survivors.len() == 1,
+            "complete tournament requires one champion",
+        )
     }
 }
