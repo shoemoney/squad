@@ -150,7 +150,9 @@ pub fn snapshot(
                     .map(ContestState::Debate)
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
             } else if kind == "census" {
-                serde_json::from_str(&json).map(ContestState::Census)
+                serde_json::from_str(&json)
+                    .map(ContestState::Census)
+                    .or_else(|_| serde_json::from_str(&json).map(ContestState::Generic))
             } else {
                 serde_json::from_str(&json)
                     .map(ContestState::Selection)
@@ -161,9 +163,12 @@ pub fn snapshot(
             debates.push(debate.clone());
         }
         if active {
-            active_contest = Some(state);
+            active_contest = Some(state.clone());
         }
-        if let Some(plan) = plan {
+        if let Some(plan) = plan.filter(|_| {
+            kind != "census"
+                || matches!(&state,ContestState::Census(s) if s.status==CensusStatus::Preflight)
+        }) {
             let unexpired = expires.as_ref().is_none_or(|at| {
                 at.parse::<chrono::DateTime<chrono::Utc>>()
                     .is_ok_and(|at| at > chrono::Utc::now())

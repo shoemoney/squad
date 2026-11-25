@@ -776,10 +776,16 @@ fn validate_envelope(
             )?;
             h.output.validate()?;
         }
-        EnvelopePayload::CensusLedger(_) => ensure(
-            base.sender == Actor::Judge && human_only,
-            "ledger requires judge",
-        )?,
+        EnvelopePayload::CensusLedger(l) => {
+            ensure(
+                (l.stage == CensusLedgerStage::Finalized) == l.final_output.is_some(),
+                "ledger stage mismatch",
+            )?;
+            ensure(
+                base.sender == Actor::Judge && human_only,
+                "ledger requires judge",
+            )?;
+        }
         EnvelopePayload::CensusRating(r) => ensure(
             base.sender == Actor::Member(r.member.clone()) && human_only,
             "rating requires assigned member",

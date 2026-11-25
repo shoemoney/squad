@@ -44,6 +44,7 @@ pub struct Graphics {
     pub verdict: Rect,
     pub winner: Rect,
     pub totals: Vec<Rect>,
+    pub census_estimate: Rect,
 }
 fn identity(id: impl ToString) -> MessageId {
     id.to_string().parse().expect("protocol UUID")
@@ -253,11 +254,22 @@ impl Composed {
                 }
             }
             for (id, view) in &session.census {
-                let mut scratch=Buffer::empty(Rect::new(0,0,body_width,2048));
-                widgets::census::render(view,scratch.area,&mut scratch,palette);
-                let height=(0..2048).rfind(|y|(0..body_width).any(|x|scratch[(x,*y)].symbol()!=" ")).map_or(0,|y|usize::from(y)+1);
-                let mut model=TranscriptMessage::new(identity(id),"CENSUS","");
-                model.widget_rows=rows(&scratch,height);models.push(model);
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 2048));
+                let shapes = widgets::census::render(view, scratch.area, &mut scratch, palette);
+                self.graphics.insert(
+                    identity(id),
+                    Graphics {
+                        banners: vec![(squad_core::banner::Banner::Census, shapes.banner)],
+                        census_estimate: shapes.estimate_graphic,
+                        ..Default::default()
+                    },
+                );
+                let height = (0..2048)
+                    .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                    .map_or(0, |y| usize::from(y) + 1);
+                let mut model = TranscriptMessage::new(identity(id), "CENSUS", "");
+                model.widget_rows = rows(&scratch, height);
+                models.push(model);
             }
             for (id, view) in &session.cases {
                 let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 512));

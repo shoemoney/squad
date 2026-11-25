@@ -135,6 +135,7 @@ impl RoomApi for RoomHandle {
             .min();
         let mut work = BTreeMap::new();
         let mut debates = BTreeMap::new();
+        let mut census = BTreeMap::new();
         let mut addressed = BTreeSet::new();
         let mut terminal = BTreeSet::new();
         let mut failed = false;
@@ -213,11 +214,29 @@ impl RoomApi for RoomHandle {
                         }
                     }
                 }
+                EnvelopePayload::CensusState(s) => {
+                    census.insert(s.contest_id, s.status);
+                }
                 EnvelopePayload::DebateState(d) => {
                     debates.insert(d.debate_id, d.state.clone());
                 }
                 _ => (),
             }
+        }
+        if !census.is_empty() {
+            return if census
+                .values()
+                .any(|s| matches!(s, CensusStatus::Failed | CensusStatus::Stopped))
+            {
+                Progress::Failed
+            } else if census
+                .values()
+                .all(|s| matches!(s, CensusStatus::WaitingForPlan | CensusStatus::Complete))
+            {
+                Progress::Succeeded
+            } else {
+                Progress::Running
+            };
         }
         if !addressed.is_subset(&terminal)
             || work

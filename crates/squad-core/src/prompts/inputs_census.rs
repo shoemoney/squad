@@ -38,3 +38,19 @@ pub fn values(
         ("room_word_limit".into(), words.to_string()),
     ]))
 }
+
+/// Substitute source tokens once. Inserted source data is never scanned again.
+pub fn render_source(source: &str, values: &BTreeMap<String, String>) -> Result<String> {
+    let invalid = || StoreError::Domain(ErrorCode::CONFIG_INVALID, "Invalid frozen census prompt");
+    let mut out = String::new();
+    let mut rest = source;
+    while let Some(start) = rest.find("{{") {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 2..];
+        let (key, tail) = after.split_once("}}").ok_or_else(invalid)?;
+        out.push_str(values.get(key).ok_or_else(invalid)?);
+        rest = tail;
+    }
+    out.push_str(rest);
+    Ok(out)
+}

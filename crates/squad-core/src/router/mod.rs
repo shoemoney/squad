@@ -329,7 +329,7 @@ impl Router {
                     let state=squad_store::contests::debate(tx,debate_id)?;
                     debates::transition(tx,group,id,ContestTransitionSubmission {contest_id:debate_id,kind:ContestKind::Debate,expected_state_version:state.state_version,transition:ContestTransition::Debate(DebateTransition::JudgeOnlyRequested)})?;
                 },
-                Request::CensusContinue {contest_id,expected_state_version,plan_event_id,replacement_text,..}=>census::continue_plan(tx,group,id,contest_id,expected_state_version,plan_event_id,replacement_text)?,
+                Request::CensusContinue {contest_id,expected_state_version,plan_event_id,replacement_text,..}=>return census::continue_plan(tx,group,id,contest_id,expected_state_version,plan_event_id,replacement_text),
                 Request::SetVars {updates,..}=>variables::apply(tx,group,id,&updates)?,
                 Request::Stop {target,..}=>stop::apply(tx,group,id,target)?,
                 Request::Retry {work_id,..}=>retry::apply(tx,group,id,work_id)?,
@@ -834,6 +834,8 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
                 });
             }
             ctx.active_contest = Some(ContestState::Selection(state));
+        } else if let Ok(state) = serde_json::from_str::<GenericContestState>(&raw) {
+            ctx.active_contest = Some(ContestState::Generic(state));
         } else if let Ok(state) = serde_json::from_str::<CensusState>(&raw) {
             ctx.active_contest = Some(ContestState::Census(state));
         } else {

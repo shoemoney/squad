@@ -2972,7 +2972,11 @@ The human feed retains all accepted room activity. This is the sole projection t
 | Delta and presence | Human live feed only | No history entry |
 | Judge repair | Next authorized attempt, same case and work only | Previous `rejectedOutput`, `validationErrors`; never ordinary history |
 | Grill (M5.P6) | Declared shared floor only | Shared-floor rule; exact step field rows added in M5.P6 |
-| Census (M5.P7) | Isolated assigned step/case only | Blind hunts; raters receive gap id, omission and consequence only, with plan, no lenses, finders or counts; exact field rows added in M5.P7 |
+| Census hunt | One isolated member step | Redacted `plan`, `planVersion`, own `lens`; no ordinary history or peer findings |
+| Census merge | Fresh census judge case | Redacted `plan`, `planVersion`, shuffled `finds[].{id,omission,consequence,lens}` and exact `sourceIds`; random handles carry no member identity |
+| Census rating | One fresh isolated member step | Redacted `plan`, `planVersion`, `ledger[].{id,omission,consequence}` only; no lenses, source-find references, finder identities or counts |
+| Census finalization | Fresh census judge case | Redacted `plan`, `planVersion`, canonical gap dispositions and accepted vote breakdown/citations, anonymous addition handles; finder identities and missing-member identities excluded |
+| Census plan, pass report and human drilldown | Human only | Immutable plan versions, attributed hunts/ratings, finder table, omissions/consequences/lenses, citations, missing participation, Chao1 provenance, nullable range and discovery curve; no automatic ordinary-member history projection |
 | Crosscheck (M5.P8) | Isolated assigned step/case only | Inventory hides plan; reviews exclude self-origin items; fresh audits hide reviewer identities; exact field rows added in M5.P8 |
 | Tournament (M5.P5) | Own entrant context or blind case only | Own answers/results; anonymous judging; final placements shared; exact field rows added in M5.P5 |
 | Survey (M5.P9) | Isolated assigned ballot/case only | Unattributed claims and barrier-bundled anonymous reasons, no source answers, authors or counts; exact field rows added in M5.P9 |

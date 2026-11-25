@@ -254,8 +254,13 @@ impl RoomHandle {
         let store = Store::open(&path)?;
         let rounds = config.defaults.rounds;
         let grill = config.defaults.grill_rounds;
+        let census = config.defaults.census_passes;
         store.call(move |db| {
-            for (name, value) in [("ROUNDS", rounds), ("GRILL_ROUNDS", grill)] {
+            for (name, value) in [
+                ("ROUNDS", rounds),
+                ("GRILL_ROUNDS", grill),
+                ("CENSUS_PASSES", census),
+            ] {
                 if !existing_vars.iter().any(|stored| stored == name) {
                     db.execute(
                         "UPDATE vars SET value=? WHERE name=?",

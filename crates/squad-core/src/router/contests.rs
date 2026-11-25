@@ -18,6 +18,9 @@ impl Router {
         envelope_id: EventId,
         submission: ContestTransitionSubmission,
     ) -> Result<CommitOutcome> {
+        if submission.kind == ContestKind::Census {
+            return self.census_transition(envelope_id, submission);
+        }
         self.contest_request(InternalRequest::Transition {
             envelope_id,
             submission,

@@ -56,6 +56,7 @@ pub struct CensusSetup {
     pub plan_words: u32,
     pub models: std::collections::BTreeMap<String, ExecutorBinding>,
     pub prompt_refs: std::collections::BTreeMap<String, PromptRef>,
+    pub redaction_tokens: Vec<String>,
 }
 impl CensusSetup {
     pub fn validate(&self) -> ValidationResult {
@@ -180,6 +181,7 @@ pub struct CensusGap {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CensusMergeOutput {
+    #[schemars(length(max = 96))]
     pub ledger: Vec<CensusGap>,
 }
 impl CensusMergeOutput {
@@ -204,7 +206,16 @@ impl CensusMergeOutput {
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum CensusLedgerStage {
+    Merged,
+    Finalized,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CensusLedger {
+    pub stage: CensusLedgerStage,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub final_output: Option<CensusFinalOutput>,
     pub contest_id: ContestId,
     pub pass: u8,
     pub plan_version: u32,
@@ -244,6 +255,7 @@ pub struct CensusAddition {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CensusRatingOutput {
+    #[schemars(length(max = 96))]
     pub ratings: Vec<CensusGapRating>,
     #[schemars(length(max = 8))]
     pub additions: Vec<CensusAddition>,
@@ -309,9 +321,13 @@ pub struct CensusFinalAddition {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CensusFinalOutput {
+    #[schemars(length(max = 96))]
     pub confirmed: Vec<CensusFinalGap>,
+    #[schemars(length(max = 96))]
     pub covered: Vec<Text>,
+    #[schemars(length(max = 96))]
     pub trivial: Vec<Text>,
+    #[schemars(length(max = 96))]
     pub additions: Vec<CensusFinalAddition>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -355,6 +371,7 @@ pub struct CensusReport {
     pub pass: u8,
     pub plan_version: u32,
     pub gaps: Vec<CensusGapOutcome>,
+    #[schemars(length(max = 96))]
     pub additions: Vec<CensusFinalAddition>,
     pub missing: Vec<CensusMissing>,
     pub input_gap_ids: Vec<Text>,
@@ -468,4 +485,31 @@ pub fn census_validate_final(
                 .all(|a| !a.source_addition_ids.is_empty()),
         "invalid addition provenance",
     )
+}
+
+/// Only generated prose consumes the step budget, never identifiers or enums.
+pub fn census_prose_words(value: &serde_json::Value) -> usize {
+    match value {
+        serde_json::Value::Object(map) => map
+            .iter()
+            .map(|(k, v)| {
+                if [
+                    "omission",
+                    "consequence",
+                    "reason",
+                    "location",
+                    "quote",
+                    "priority",
+                ]
+                .contains(&k.as_str())
+                {
+                    v.as_str().map_or(0, |s| s.split_whitespace().count())
+                } else {
+                    census_prose_words(v)
+                }
+            })
+            .sum(),
+        serde_json::Value::Array(items) => items.iter().map(census_prose_words).sum(),
+        _ => 0,
+    }
 }

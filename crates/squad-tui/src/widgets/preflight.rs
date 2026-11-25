@@ -30,7 +30,14 @@ impl PreflightView {
             PendingPreflight::Contest(p) => (
                 &p.estimate,
                 p.participants.iter().map(ToString::to_string).collect(),
-                p.kind.as_str().to_owned(),
+                if p.kind == ContestKind::Census {
+                    format!(
+                        "census · {} passes · {} reserved attempts",
+                        p.settings["passes"], p.settings["reservedCalls"]
+                    )
+                } else {
+                    p.kind.as_str().to_owned()
+                },
                 p.warning.as_ref(),
             ),
         };

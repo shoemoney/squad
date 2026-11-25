@@ -243,7 +243,7 @@ impl ContestKind {
         }
     }
     pub fn is_built(self) -> bool {
-        self == Self::Debate
+        matches!(self, Self::Debate | Self::Census)
     }
 }
 impl ContestTransitionSubmission {

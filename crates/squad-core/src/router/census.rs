@@ -148,6 +148,16 @@ pub fn prepare(
     let contest = ContestId::new();
     let pack = PromptPack::from_override_dir(config.prompts.directory.as_deref())
         .map_err(|_| invalid())?;
+    let mut frozen_sources = serde_json::Map::new();
+    for name in ["census.hunt", "census.merge", "census.rate", "census.final"] {
+        let (system, user) = pack
+            .composition_source(name, false)
+            .map_err(|_| invalid())?;
+        frozen_sources.insert(
+            name.into(),
+            serde_json::json!({"system":system,"user":user}),
+        );
+    }
     let prompt_refs = ["census.hunt", "census.merge", "census.rate", "census.final"]
         .into_iter()
         .map(|name| {
@@ -183,6 +193,12 @@ pub fn prepare(
         plan_words: config.prompts.limits.plan_words,
         models,
         prompt_refs,
+        redaction_tokens: config
+            .agents
+            .iter()
+            .flat_map(|a| [a.nick.to_string(), a.model.clone(), a.persona.clone()])
+            .chain(std::iter::once(config.judge.model.clone()))
+            .collect(),
     };
     setup.validate().map_err(|_| invalid())?;
     // A conservative frozen input bound includes all possible generated material
@@ -258,6 +274,12 @@ pub fn prepare(
         "INSERT INTO census_passes(contest_id,pass,plan_event_seq) VALUES (?,1,?)",
         params![contest.to_string(), plan_seq.get()],
     )?;
+    squad_store::contest_steps::private_map(
+        tx,
+        contest,
+        "census.prompts",
+        &serde_json::json!({"compositions":frozen_sources,"personas":config.agents.iter().map(|a|(a.nick.to_string(),a.persona.clone())).collect::<BTreeMap<_,_>>(),"userName":config.user.name,"roster":setup.participants}),
+    )?;
     let map = script::lenses(&setup.participants);
     squad_store::contest_steps::private_map(
         tx,
@@ -292,7 +314,7 @@ pub fn prepare(
         id,
         EnvelopePayload::ContestPreflight(plan.clone()),
     )?;
-    tx.execute("UPDATE contests SET plan_id=?,plan_json=?,expires_at=?,pending_request_json=? WHERE contest_id=?",params![plan.plan_id.to_string(),serde_json::to_string(&plan)?,plan.expires_at.to_rfc3339(),serde_json::json!({"input":input,"preconfirmed":preconfirmed,"max":max}).to_string(),contest.to_string()])?;
+    tx.execute("UPDATE contests SET plan_id=?,plan_json=?,expires_at=?,pending_request_json=? WHERE contest_id=?",params![plan.plan_id.to_string(),serde_json::to_string(&plan)?,plan.expires_at.to_rfc3339(),serde_json::json!({"input":input,"preconfirmed":preconfirmed,"max":max,"threshold":threshold}).to_string(),contest.to_string()])?;
     if max <= daily.spent_micros + daily.reserved_micros
         || reserved * 1e6 > max.saturating_sub(daily.spent_micros + daily.reserved_micros) as f64
     {
@@ -415,7 +437,7 @@ pub fn continue_plan(
     version: u64,
     plan_event_id: Option<EventId>,
     replacement: Option<Text>,
-) -> Result<()> {
+) -> Result<RequestResult> {
     let mut state = squad_store::census::state(tx, contest)?;
     if state.state_version != version
         || state.status != CensusStatus::WaitingForPlan
@@ -440,20 +462,13 @@ pub fn continue_plan(
         [contest.to_string()],
         |r| r.get(0),
     )?;
-    let preflight: ContestPreflight = serde_json::from_str(&raw)?;
-    // Plan growth beyond the admitted input envelope requires a fresh cost review.
+    let mut preflight: ContestPreflight = serde_json::from_str(&raw)?;
     let original = squad_store::census::setup(tx, contest)?
         .plan
         .text
         .as_str()
         .len();
-    if plan.text.as_str().len() > original {
-        return Err(StoreError::Domain(
-            ErrorCode::CONTEST_PLAN_STALE,
-            "Replacement plan exceeds frozen bounds; stop and request a revised census preflight",
-        ));
-    }
-    let _ = preflight;
+    let revised = plan.text.as_str().len() > original;
     let seq = push(tx, group, id, EnvelopePayload::CensusPlan(plan.clone()))?;
     state.pass += 1;
     state.plan_version = plan.version;
@@ -469,14 +484,98 @@ pub fn continue_plan(
         "INSERT INTO census_passes(contest_id,pass,plan_event_seq) VALUES (?,?,?)",
         params![contest.to_string(), state.pass, seq.get()],
     )?;
-    save(tx, group, id, &state, Some(version))
+    if revised {
+        let setup = squad_store::census::setup(tx, contest)?;
+        let bound =
+            plan.text.as_str().len() as u64 + 32_768 + setup.participants.len() as u64 * 16_384;
+        for binding in setup.models.values() {
+            let length: i64 = tx.query_row(
+                "SELECT context_length FROM catalog WHERE slug=?",
+                [binding.model.as_str()],
+                |r| r.get(0),
+            )?;
+            if bound + u64::from(constants::REASONING_HIGH_TOKENS) + 8192 > length as u64 {
+                return Err(StoreError::Domain(
+                    ErrorCode::CONTEXT_TOO_LARGE,
+                    "Replacement census plan exceeds model context",
+                ));
+            }
+        }
+        let old_bound = preflight.settings["inputBound"]
+            .as_f64()
+            .ok_or_else(invalid)?;
+        let remaining = u32::from(setup.passes - state.pass + 1);
+        let ratio = bound as f64 / old_bound;
+        preflight.plan_id = PlanId::new();
+        preflight.expires_at = group.accepted_at + chrono::Duration::minutes(5);
+        preflight.estimate.estimated_usd *= ratio * f64::from(remaining) / f64::from(setup.passes);
+        preflight.estimate.reserved_usd *= ratio * f64::from(remaining) / f64::from(setup.passes);
+        preflight.estimate.model_calls = remaining * (2 * setup.participants.len() as u32 + 2);
+        preflight.settings = serde_json::json!({"passes":remaining,"reservedCalls":remaining*(4*setup.participants.len() as u32+6),"inputBound":bound,"planVersion":plan.version});
+        let pending: String = tx.query_row(
+            "SELECT pending_request_json FROM contests WHERE contest_id=?",
+            [contest.to_string()],
+            |r| r.get(0),
+        )?;
+        let pending: serde_json::Value = serde_json::from_str(&pending)?;
+        preflight.confirmation_required =
+            preflight.estimate.estimated_usd > pending["threshold"].as_f64().unwrap_or(0.0);
+        let rows = {
+            let mut q=tx.prepare("SELECT reservation_id,day,amount_micros FROM reservations WHERE contest_id=? AND work_id IS NULL AND unresolved=0")?;
+            q.query_map([contest.to_string()], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i64>(2)?,
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?
+        };
+        for (reservation, day, amount) in rows {
+            tx.execute(
+                "UPDATE spend_daily SET reserved_micros=reserved_micros-? WHERE day=?",
+                params![amount, day],
+            )?;
+            tx.execute(
+                "DELETE FROM reservations WHERE reservation_id=?",
+                [reservation],
+            )?;
+        }
+        tx.execute(
+            "UPDATE contests SET plan_id=?,plan_json=?,expires_at=? WHERE contest_id=?",
+            params![
+                preflight.plan_id.to_string(),
+                serde_json::to_string(&preflight)?,
+                preflight.expires_at.to_rfc3339(),
+                contest.to_string()
+            ],
+        )?;
+        state.status = CensusStatus::Preflight;
+        save(tx, group, id, &state, Some(version))?;
+        let seq = push(
+            tx,
+            group,
+            id,
+            EnvelopePayload::ContestPreflight(preflight.clone()),
+        )?;
+        if !preflight.confirmation_required || pending["preconfirmed"] == true {
+            return resolve(tx, group, id, contest, preflight.plan_id, false);
+        }
+        return Ok(RequestResult::PendingConfirmation {
+            request_id: id,
+            preflight: PendingPreflight::Contest(preflight),
+            cursor: seq,
+        });
+    }
+    save(tx, group, id, &state, Some(version))?;
+    Ok(group.accepted(id))
 }
 
 impl Router {
     pub(crate) fn drive_census(&mut self) -> Result<Vec<CommitOutcome>> {
         let ids = self.store.call(|db| {
             let mut q =
-                db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='census'")?;
+                db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='census' AND json_type(state_json,'$.pass')='integer'")?;
             Ok(q.query_map([], |r| r.get::<_, String>(0))?
                 .collect::<rusqlite::Result<Vec<_>>>()?)
         })?;
@@ -585,10 +684,16 @@ fn drive_move(
     let mut artifacts = vec![];
     let mut missing = vec![];
     for work_id in &state.unfinished_work_ids {
-        let record = squad_store::work::record(tx, *work_id)?.ok_or_else(invalid)?;
+        let mut record = squad_store::work::record(tx, *work_id)?.ok_or_else(invalid)?;
         let work = squad_store::work::template(tx, *work_id)?
             .ok_or_else(invalid)?
             .0;
+        if record.status == WorkStatus::Queued
+            && record.attempt >= if work.kind.census_judge() { 3 } else { 2 }
+        {
+            tx.execute("UPDATE work SET status='failed',runnable=0,lease_fence=lease_fence+1 WHERE work_id=?",[work_id.to_string()])?;
+            record.status = WorkStatus::Failed;
+        }
         if matches!(record.status, WorkStatus::Queued | WorkStatus::Running) {
             return Ok(group.accepted(id));
         }
@@ -752,6 +857,8 @@ fn drive_move(
                     Actor::Judge,
                     vec![Recipient::Me],
                     EnvelopePayload::CensusLedger(CensusLedger {
+                        stage: CensusLedgerStage::Merged,
+                        final_output: None,
                         contest_id: state.contest_id,
                         pass: state.pass,
                         plan_version: state.plan_version,
@@ -768,10 +875,18 @@ fn drive_move(
             state.status = CensusStatus::Rating;
         }
         CensusStatus::Rating => {
+            let mut additions = vec![];
+            let mut origins = serde_json::Map::new();
             for (work, artifact, _, _) in &artifacts {
                 let Target::Member(member) = &work.target else {
                     return Err(invalid());
                 };
+                let output: CensusRatingOutput = serde_json::from_value(artifact.data.clone())?;
+                for a in &output.additions {
+                    let handle = CellId::new().to_string();
+                    additions.push(serde_json::json!({"id":handle,"omission":script::blind_text(a.omission.as_str(),&setup),"consequence":script::blind_text(a.consequence.as_str(),&setup),"lens":a.lens}));
+                    origins.insert(handle,serde_json::json!({"member":member,"workId":work.work_id,"localId":a.local_id}));
+                }
                 let rating = CensusRating {
                     contest_id: state.contest_id,
                     pass: state.pass,
@@ -791,6 +906,13 @@ fn drive_move(
                 )?;
                 squad_store::contests::associate(tx, state.contest_id, ContestKind::Census, seq)?;
             }
+            additions.sort_by_key(|a| a["id"].as_str().unwrap_or_default().to_owned());
+            squad_store::contest_steps::private_map(
+                tx,
+                state.contest_id,
+                &format!("census.additions.{}", state.pass),
+                &serde_json::json!({"origins":origins,"additions":additions}),
+            )?;
             if artifacts.is_empty() {
                 state.status = CensusStatus::Failed;
                 state.terminal_reason = Some(Text::new("no_ratings").expect("reason"));
@@ -822,6 +944,24 @@ fn drive_move(
                 })
                 .collect::<Vec<_>>();
             let missing: Vec<CensusMissing> = serde_json::from_value(data["missing"].clone())?;
+            let final_seq = group.push(
+                tx,
+                envelope(
+                    id,
+                    Actor::Judge,
+                    vec![Recipient::Me],
+                    EnvelopePayload::CensusLedger(CensusLedger {
+                        contest_id: state.contest_id,
+                        pass: state.pass,
+                        plan_version: state.plan_version,
+                        work_id: artifacts.first().ok_or_else(invalid)?.0.work_id,
+                        stage: CensusLedgerStage::Finalized,
+                        final_output: Some(final_output.clone()),
+                        output: ledger(tx, &state)?,
+                    }),
+                ),
+            )?;
+            squad_store::contests::associate(tx, state.contest_id, ContestKind::Census, final_seq)?;
             let report = script::report(
                 state.contest_id,
                 state.pass,
@@ -832,7 +972,7 @@ fn drive_move(
                 &prior,
             );
             let seq = push(tx, group, id, EnvelopePayload::CensusReport(report.clone()))?;
-            tx.execute("UPDATE census_passes SET final_ledger_event_seq=?,report_event_seq=?,tally_json=? WHERE contest_id=? AND pass=?",params![seq.get(),seq.get(),serde_json::to_string(&report)?,state.contest_id.to_string(),state.pass])?;
+            tx.execute("UPDATE census_passes SET final_ledger_event_seq=?,report_event_seq=?,tally_json=? WHERE contest_id=? AND pass=?",params![final_seq.get(),seq.get(),serde_json::to_string(&report)?,state.contest_id.to_string(),state.pass])?;
             state.status = if state.pass < setup.passes {
                 CensusStatus::WaitingForPlan
             } else {
@@ -891,13 +1031,19 @@ fn final_data(
         setup.participants.len(),
         &finders,
     );
-    let mut additions = vec![];
-    for rating in &ratings {
-        for addition in &rating.output.additions {
-            let id = format!("{}:{}", rating.work_id, addition.local_id.as_str());
-            additions.push(serde_json::json!({"id":id,"omission":script::blind_text(addition.omission.as_str(),setup),"consequence":script::blind_text(addition.consequence.as_str(),setup),"lens":addition.lens}));
-        }
-    }
+    let raw: String = db.query_row(
+        "SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key=?",
+        params![
+            state.contest_id.to_string(),
+            format!("census.additions.{}", state.pass)
+        ],
+        |r| r.get(0),
+    )?;
+    let addition_map: serde_json::Value = serde_json::from_str(&raw)?;
+    let additions = addition_map["additions"]
+        .as_array()
+        .ok_or_else(invalid)?
+        .clone();
     let addition_ids = additions
         .iter()
         .map(|a| a["id"].clone())
@@ -950,7 +1096,7 @@ fn allocate(
                 state.contest_id, step_id, target
             ))
         };
-        let data = match kind {
+        let mut data = match kind {
             WorkKind::CensusHunt => {
                 let raw:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='census.lenses'",[state.contest_id.to_string()],|r|r.get(0))?;
                 let map: serde_json::Value = serde_json::from_str(&raw)?;
@@ -978,6 +1124,15 @@ fn allocate(
             WorkKind::CensusFinal => final_data(tx, state, setup, &plan)?,
             _ => return Err(invalid()),
         };
+        if kind == WorkKind::CensusFinal {
+            if let Some(outcomes) = data["outcomes"].as_array_mut() {
+                for outcome in outcomes {
+                    outcome["finders"] = serde_json::json!([]);
+                }
+            }
+            data.as_object_mut().expect("object").remove("missing");
+        }
+        script::redact_prose(&mut data, setup);
         let name = kind.census_composition().ok_or_else(invalid)?;
         let mut binding = setup.models[&target.to_string()].clone();
         if judge {
@@ -1002,7 +1157,7 @@ fn allocate(
             contest_id: Some(state.contest_id),
             step_id: Some(step_id),
         };
-        let input = crate::prompts::inputs_census::values(
+        let mut input = crate::prompts::inputs_census::values(
             state,
             &kind,
             &data,
@@ -1012,6 +1167,35 @@ fn allocate(
                 setup.room_words
             },
         )?;
+        let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='census.prompts'",[state.contest_id.to_string()],|r|r.get(0))?;
+        let frozen: serde_json::Value = serde_json::from_str(&frozen)?;
+        let mut render_values = input.clone();
+        render_values.insert("nick".into(), target.to_string());
+        render_values.insert("model_slug".into(), binding.model.to_string());
+        render_values.insert("judge_model_slug".into(), binding.model.to_string());
+        render_values.insert("member_nicks_json".into(), frozen["roster"].to_string());
+        render_values.insert("user_name_json".into(), frozen["userName"].to_string());
+        render_values.insert(
+            "persona_json".into(),
+            frozen["personas"][target.to_string()]
+                .as_str()
+                .map(|v| serde_json::json!(v).to_string())
+                .unwrap_or_else(|| "\"\"".into()),
+        );
+        let source = &frozen["compositions"][name];
+        let system = crate::prompts::inputs_census::render_source(
+            source["system"].as_str().ok_or_else(invalid)?,
+            &render_values,
+        )?;
+        let user = crate::prompts::inputs_census::render_source(
+            source["user"].as_str().ok_or_else(invalid)?,
+            &render_values,
+        )?;
+        input.insert(
+            "census_rendered_prompt".into(),
+            serde_json::json!({"system":system,"user":user,"provider_user_name":"squad"})
+                .to_string(),
+        );
         assignments.push(ContestAssignment {
             target,
             context_id: context,
@@ -1052,6 +1236,26 @@ fn allocate(
     squad_store::contests::associate(tx, state.contest_id, ContestKind::Census, seq)?;
     squad_store::contest_steps::insert(tx, &step, seq)?;
     for (mut item, (input, binding)) in work.iter().cloned().zip(values) {
+        if item.case_id.is_some() {
+            let data: serde_json::Value = serde_json::from_str(&input["mode_data_json"])?;
+            let seq = group.push(
+                tx,
+                envelope(
+                    id,
+                    Actor::System,
+                    vec![Recipient::Me],
+                    EnvelopePayload::CensusCaseMaterial(CensusCaseMaterial {
+                        contest_id: state.contest_id,
+                        pass: state.pass,
+                        plan_version: state.plan_version,
+                        step: Text::new(kind.census_composition().ok_or_else(invalid)?)
+                            .map_err(|_| invalid())?,
+                        data,
+                    }),
+                ),
+            )?;
+            squad_store::contests::associate(tx, state.contest_id, ContestKind::Census, seq)?;
+        }
         if let Some(case) = item.case_id {
             tx.execute("INSERT INTO cases(case_id,context_id,epoch,contest_id,judge_model,material_json,opened_event_seq,state_json) VALUES (?,?,(SELECT epoch FROM room_meta),?,?,?,?,'{}')",params![case.to_string(),item.context_id.0,state.contest_id.to_string(),binding.model.as_str(),input["mode_data_json"],seq.get()])?;
         }
@@ -1098,4 +1302,78 @@ fn allocate(
     next.unfinished_work_ids = work.iter().map(|w| w.work_id).collect();
     next.state_version += 1;
     save(tx, group, id, &next, Some(state.state_version))
+}
+
+impl Router {
+    /// The common ContestRouter transition hook delegates to the census script;
+    /// durable artifacts, barriers and pending slots remain the authority.
+    pub(crate) fn census_transition(
+        &mut self,
+        id: EventId,
+        submission: ContestTransitionSubmission,
+    ) -> Result<CommitOutcome> {
+        let digest = squad_store::commit::digest(&submission)?;
+        self.store
+            .commit(id, "contest-engine".into(), digest, move |tx, group| {
+                let mut state = squad_store::census::state(tx, submission.contest_id)?;
+                if submission.kind != ContestKind::Census
+                    || state.state_version != submission.expected_state_version
+                    || state.status.is_terminal()
+                {
+                    return Err(invalid());
+                }
+                let ContestTransition::Census(signal) = submission.transition else {
+                    return Err(invalid());
+                };
+                let matches = match signal {
+                    CensusTransition::ParticipantsReady => {
+                        state.status == CensusStatus::WaitingForParticipants
+                    }
+                    CensusTransition::HuntBarrier => {
+                        state.status == CensusStatus::Hunting && state.step_id.is_some()
+                    }
+                    CensusTransition::MergeAccepted => {
+                        state.status == CensusStatus::Merging && state.step_id.is_some()
+                    }
+                    CensusTransition::RatingBarrier => {
+                        state.status == CensusStatus::Rating && state.step_id.is_some()
+                    }
+                    CensusTransition::FinalAccepted => {
+                        state.status == CensusStatus::Finalizing && state.step_id.is_some()
+                    }
+                    CensusTransition::ReportCommitted => state.status == CensusStatus::Reporting,
+                    CensusTransition::Stop | CensusTransition::Fail => true,
+                    CensusTransition::Continue => false,
+                };
+                if !matches {
+                    return Err(invalid());
+                }
+                if matches!(signal, CensusTransition::Stop | CensusTransition::Fail) {
+                    let version = state.state_version;
+                    state.state_version += 1;
+                    state.status = if signal == CensusTransition::Stop {
+                        CensusStatus::Stopped
+                    } else {
+                        CensusStatus::Failed
+                    };
+                    state.terminal_reason = Some(
+                        Text::new(if signal == CensusTransition::Stop {
+                            "stopped"
+                        } else {
+                            "failed"
+                        })
+                        .expect("reason"),
+                    );
+                    save(tx, group, id, &state, Some(version))?;
+                    return Ok(group.accepted(id));
+                }
+                let result = drive_move(tx, group, id, state.clone())?;
+                if squad_store::census::state(tx, state.contest_id)?.state_version
+                    == state.state_version
+                {
+                    return Err(invalid());
+                }
+                Ok(result)
+            })
+    }
 }

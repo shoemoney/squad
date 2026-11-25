@@ -628,18 +628,42 @@ impl Session {
                 });
             }
             EnvelopePayload::CensusSetup(s) => {
-                self.census.entry(s.contest_id).or_default();
-                cue=Some(FxCue::ModeBannerReady{contest_id:s.contest_id.to_string().parse().expect("UUID"),mode:crate::fx::ReportMode::Census});
+                self.census.entry(s.contest_id).or_default().setup = Some(s.clone());
+                cue = Some(FxCue::ModeBannerReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    mode: crate::fx::ReportMode::Census,
+                });
             }
-            EnvelopePayload::CensusPlan(p) => {self.census.entry(p.contest_id).or_default().plans.push(p.clone());}
+            EnvelopePayload::CensusHunt(h) => {
+                self.census
+                    .entry(h.contest_id)
+                    .or_default()
+                    .hunts
+                    .push(h.clone());
+            }
+            EnvelopePayload::CensusPlan(p) => {
+                self.census
+                    .entry(p.contest_id)
+                    .or_default()
+                    .plans
+                    .push(p.clone());
+            }
             EnvelopePayload::CensusState(s) => {
-                self.census.entry(s.contest_id).or_default().state=Some(s.clone());
+                self.census.entry(s.contest_id).or_default().state = Some(s.clone());
                 self.restore_contest(ContestState::Census(s.clone()));
-                self.snapshot.context.active_contest=(!s.status.is_terminal()).then(||ContestState::Census(s.clone()));
+                self.snapshot.context.active_contest =
+                    (!s.status.is_terminal()).then(|| ContestState::Census(s.clone()));
             }
             EnvelopePayload::CensusReport(r) => {
-                self.census.entry(r.contest_id).or_default().reports.push(r.clone());
-                cue=Some(FxCue::CensusEstimateReady{contest_id:r.contest_id.to_string().parse().expect("UUID"),pass:u32::from(r.pass)});
+                self.census
+                    .entry(r.contest_id)
+                    .or_default()
+                    .reports
+                    .push(r.clone());
+                cue = Some(FxCue::CensusEstimateReady {
+                    contest_id: r.contest_id.to_string().parse().expect("UUID"),
+                    pass: u32::from(r.pass),
+                });
             }
             EnvelopePayload::DebatePreflight(p) => self
                 .snapshot
@@ -664,7 +688,7 @@ impl Session {
                 self.debate_streams.clear();
                 self.debate_messages.clear();
                 self.cases.clear();
-        self.census.clear();
+                self.census.clear();
                 self.pick = None;
                 self.snapshot.context.records.clear();
                 self.snapshot.context.active_contest = None;

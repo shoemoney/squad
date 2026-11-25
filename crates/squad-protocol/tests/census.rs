@@ -41,3 +41,11 @@ fn source_coverage_and_chao1() {
     assert_eq!(census_chao1(3, 0), (3.0, "zero_doubletons"));
     assert_eq!(census_chao1(0, 0).0, 0.0);
 }
+#[test]
+fn model_cannot_supply_tallies_or_exceed_eight_finds() {
+    let finds = (0..9)
+        .map(|i| json!({"localId":format!("g{i}"),"omission":"missing","consequence":"loss"}))
+        .collect::<Vec<_>>();
+    assert!(validation::decode::<CensusHuntOutput>(&json!({"gaps":finds})).is_err());
+    assert!(validation::decode::<CensusFinalOutput>(&json!({"confirmed":[],"covered":[],"trivial":[],"additions":[],"f1":0,"unseen":0,"estimateLow":0})).is_err());
+}

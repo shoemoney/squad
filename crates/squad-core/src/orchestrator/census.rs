@@ -75,19 +75,39 @@ pub fn lens(index: usize, pass: u8) -> &'static str {
 }
 /// Deterministic removal of attribution in blind text, retaining human originals.
 pub fn blind_text(text: &str, setup: &CensusSetup) -> String {
-    let mut value = text.to_owned();
-    let mut names = setup
-        .participants
-        .iter()
-        .map(ToString::to_string)
-        .chain(setup.models.values().map(|m| m.model.to_string()))
-        .collect::<Vec<_>>();
-    names.sort_by_key(|s| std::cmp::Reverse(s.len()));
-    names.dedup();
-    for name in names {
-        value = value.replace(&name, "[participant]");
+    let mut tokens = setup.redaction_tokens.clone();
+    tokens.extend(setup.participants.iter().map(ToString::to_string));
+    for model in setup.models.values() {
+        tokens.push(model.model.to_string());
     }
-    value
+    let slugs = tokens
+        .iter()
+        .filter(|t| t.contains('/'))
+        .cloned()
+        .collect::<Vec<_>>();
+    for slug in slugs {
+        tokens.extend(
+            slug.split(['/', '-', '_', '.', '~'])
+                .filter(|p| p.chars().any(char::is_alphabetic))
+                .map(str::to_owned),
+        );
+    }
+    tokens.retain(|t| !t.trim().is_empty());
+    tokens.sort_by_key(|s| std::cmp::Reverse(s.len()));
+    tokens.dedup();
+    if tokens.is_empty() {
+        return text.into();
+    }
+    let alternatives = tokens
+        .iter()
+        .map(|t| regex::escape(t.trim_start_matches('~')))
+        .collect::<Vec<_>>()
+        .join("|");
+    let pattern = format!(r"(?i)\b(?:{alternatives})\b");
+    regex::Regex::new(&pattern)
+        .expect("escaped redaction tokens")
+        .replace_all(text, "[redacted]")
+        .into_owned()
 }
 /// Anonymous rating projection contains no lenses, source references or counts.
 pub fn rating_data(
@@ -181,12 +201,20 @@ pub fn report(
                 .map(|g| identity(g.gap.omission.as_str()))
         })
         .collect::<BTreeSet<_>>();
+    for old in prior {
+        for addition in &old.additions {
+            known.insert(identity(addition.omission.as_str()));
+        }
+    }
     let before = known.len();
     for gap in gaps
         .iter()
         .filter(|g| g.disposition == CensusDisposition::Confirmed)
     {
         known.insert(identity(gap.gap.omission.as_str()));
+    }
+    for addition in &additions {
+        known.insert(identity(addition.omission.as_str()));
     }
     let mut discovery = prior
         .last()
@@ -214,5 +242,37 @@ pub fn report(
         estimate_low: None,
         estimate_high: None,
         discovery,
+    }
+}
+
+pub fn redact_prose(value: &mut serde_json::Value, setup: &CensusSetup) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, v) in map {
+                if [
+                    "plan",
+                    "omission",
+                    "consequence",
+                    "reason",
+                    "location",
+                    "quote",
+                    "priority",
+                ]
+                .contains(&key.as_str())
+                {
+                    if let Some(s) = v.as_str() {
+                        *v = serde_json::Value::String(blind_text(s, setup));
+                    }
+                } else {
+                    redact_prose(v, setup);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for v in items {
+                redact_prose(v, setup);
+            }
+        }
+        _ => {}
     }
 }

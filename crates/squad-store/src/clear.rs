@@ -20,7 +20,7 @@ impl From<&squad_protocol::config::RoomDefaults> for Defaults {
         Self {
             rounds: defaults.rounds,
             grill_rounds: defaults.grill_rounds,
-            ..Self::default()
+            census_passes: defaults.census_passes,
         }
     }
 }

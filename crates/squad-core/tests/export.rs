@@ -272,7 +272,7 @@ fn rejects_invalid_scopes_and_snapshots() {
     );
     assert_eq!(
         render(&s, ExportScope::Census, id),
-        Err(ExportError::UnsupportedScope)
+        Err(ExportError::ScopeMismatch)
     );
     s.events.push(s.events[0].clone());
     assert_eq!(

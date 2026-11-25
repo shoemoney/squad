@@ -133,6 +133,20 @@ impl Output<'_> {
             let author = value["sender"].as_str().unwrap_or("system");
             let kind = value["kind"].as_str().unwrap_or("event");
             let payload = &value["payload"];
+            if let EnvelopePayload::CensusReport(report) = &event.content {
+                return writeln!(
+                    self.stdout,
+                    "{}",
+                    squad_core::export::census::report_text(report)
+                );
+            }
+            if let EnvelopePayload::CensusState(state) = &event.content {
+                return writeln!(
+                    self.stdout,
+                    "CENSUS · pass {} · plan {} · {:?}",
+                    state.pass, state.plan_version, state.status
+                );
+            }
             if let EnvelopePayload::DebateRoundScore(score) = &event.content {
                 let late = if latest_round.is_some_and(|round| round > score.round) {
                     " (late)"

@@ -1,0 +1,90 @@
+---
+source: crates/squad-tui/tests/census.rs
+expression: result
+---
+Hunting
+CENSUS
+Estimate unavailable
+Pass 1 · plan version 1 · Hunting
+Plan 1: Build a database.
+Sources:
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+Missing: @member0 · census.hunt
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Discovery curve
+Pass 1 · plan 1: new 0, cumulative 0, singletons 0
+Send singletons to $grill. Stop census first to release its active-contest claim.
+Rating
+CENSUS
+Estimate unavailable
+Pass 1 · plan version 1 · Rating
+Plan 1: Build a database.
+Sources:
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+Missing: @member0 · census.hunt
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Discovery curve
+Pass 1 · plan 1: new 0, cumulative 0, singletons 0
+Send singletons to $grill. Stop census first to release its active-contest claim.
+WaitingForPlan
+CENSUS
+Estimate unavailable
+Pass 1 · plan version 1 · WaitingForPlan
+Plan 1: Build a database.
+Sources:
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+Missing: @member0 · census.hunt
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Discovery curve
+Pass 1 · plan 1: new 0, cumulative 0, singletons 0
+Send singletons to $grill. Stop census first to release its active-contest claim.
+/continue keeps this plan; /continue "replacement plan" patches it. /stop releases the
+contest claim.
+Stopped
+CENSUS
+Estimate unavailable
+Pass 1 · plan version 1 · Stopped
+Plan 1: Build a database.
+Sources:
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+Missing: @member0 · census.hunt
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Discovery curve
+Pass 1 · plan 1: new 0, cumulative 0, singletons 0
+Send singletons to $grill. Stop census first to release its active-contest claim.
+Failed
+CENSUS
+Estimate unavailable
+Pass 1 · plan version 1 · Failed
+Plan 1: Build a database.
+Sources:
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+Missing: @member0 · census.hunt
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Discovery curve
+Pass 1 · plan 1: new 0, cumulative 0, singletons 0
+Send singletons to $grill. Stop census first to release its active-contest claim.
+Complete
+CENSUS
+Estimate unavailable
+Pass 1 · plan version 1 · Complete
+Plan 1: Build a database.
+Sources:
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+Missing: @member0 · census.hunt
+Chao1 provenance: f1=0, f2=0, branch=zero_doubletons, unrounded U=0; input gaps:
+Discovery curve
+Pass 1 · plan 1: new 0, cumulative 0, singletons 0
+Send singletons to $grill. Stop census first to release its active-contest claim.

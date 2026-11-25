@@ -378,6 +378,62 @@ pub fn attach(
                     move |elapsed, buf, _| bubble.apply(elapsed, buf, &[]),
                 )
             }
+            FxCue::ModeBannerReady {
+                contest_id,
+                mode: fx::ReportMode::Census,
+            } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let Some((_, banner)) = shapes.banners.first() else {
+                    continue;
+                };
+                let rect = app.composed.graphic_rect(id, *banner, top, transcript);
+                let entrance = fx::banner::Entrance::new(
+                    &mut fx::banner::BannerCache::default(),
+                    squad_core::banner::Banner::Census,
+                    squad_core::banner::BannerMode::Off,
+                    rect.width,
+                    level,
+                    fx::banner::Palette {
+                        gold: palette.chrome(),
+                        tier: caps.color,
+                        ..Default::default()
+                    },
+                );
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    entrance.duration(),
+                    move |elapsed, buf, _| entrance.render(buf, rect, elapsed, &[]),
+                )
+            }
+            FxCue::CensusEstimateReady { contest_id, .. } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let rect = app
+                    .composed
+                    .graphic_rect(id, shapes.census_estimate, top, transcript);
+                let effect = fx::census::CensusEffect::new(
+                    fx::census::Motion::new(level, no_color, false),
+                    seed,
+                    None,
+                    None,
+                );
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    effect.duration(),
+                    move |elapsed, buf, _| {
+                        effect.render_graphic(buf, rect, elapsed, rect.width < 60, palette.chrome())
+                    },
+                )
+            }
             FxCue::DailySpendChanged => {
                 let gold = palette.chrome();
                 Pass::catalogue(

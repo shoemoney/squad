@@ -273,7 +273,9 @@ pub fn render(
         {
             continue;
         }
-        if census::render(&mut out,&e.content) {continue;}
+        if census::render(&mut out, &e.content) {
+            continue;
+        }
         match &e.content {
             EnvelopePayload::UserMessage(s) => {
                 heading(
@@ -523,8 +525,11 @@ pub fn render(
 }
 fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
     Some(match p {
-        EnvelopePayload::CensusSetup(s) => (s.contest_id,ContestKind::Census),
-        EnvelopePayload::CensusState(s) | EnvelopePayload::ContestState(ContestState::Census(s)) => (s.contest_id,ContestKind::Census),
+        EnvelopePayload::CensusSetup(s) => (s.contest_id, ContestKind::Census),
+        EnvelopePayload::CensusState(s)
+        | EnvelopePayload::ContestState(ContestState::Census(s)) => {
+            (s.contest_id, ContestKind::Census)
+        }
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),

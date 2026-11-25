@@ -155,17 +155,34 @@ impl Respond for Answers {
     fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
         let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
         let text = body["messages"][1]["content"].as_str().unwrap();
-        let data = text.rsplit_once("\n{\"").map(|_| ()).is_some();
-        let _ = data;
+        if body["response_format"]["json_schema"]["name"] != "census_response" {
+            return streaming("ordinary response", "stop");
+        }
         let material = extract_data(text);
         let output = if text.contains("Hunt independently") {
             serde_json::json!({"gaps":[{"localId":"one","omission":"No backup process","consequence":"Data may be lost"}]})
         } else if text.contains("Merge the independent findings") {
             serde_json::json!({"ledger":[{"id":"gap","omission":"No backup process","consequence":"Data may be lost","lenses":["failure modes"],"sourceFindIds":material["sourceIds"]}]})
         } else if text.contains("Independently rate") {
-            serde_json::json!({"ratings":material["ledger"].as_array().unwrap().iter().map(|g|serde_json::json!({"gapId":g["id"],"rating":"real","reason":"Missing","citation":null})).collect::<Vec<_>>(),"additions":[]})
+            let covered = material["plan"].as_str().unwrap().contains("back up daily");
+            let additions = if material["plan"].as_str().unwrap().contains("ADDITION_TEST") {
+                vec![
+                    serde_json::json!({"localId":"extra","omission":"No sunset process","consequence":"Unbounded operating costs","lens":"the day after success"}),
+                ]
+            } else {
+                vec![]
+            };
+            serde_json::json!({"ratings":material["ledger"].as_array().unwrap().iter().map(|g|serde_json::json!({"gapId":g["id"],"rating":if covered{"covered"}else{"real"},"reason":"Evidence","citation":if covered{serde_json::json!({"location":"plan","quote":"back up daily"})}else{serde_json::Value::Null}})).collect::<Vec<_>>(),"additions":additions})
         } else if text.contains("Finalize the ledger") {
-            serde_json::json!({"confirmed":material["outcomes"].as_array().unwrap().iter().map(|g|serde_json::json!({"gapId":g["gap"]["id"],"priority":"Prevent permanent loss"})).collect::<Vec<_>>(),"covered":[],"trivial":[],"additions":[]})
+            let outcomes = material["outcomes"].as_array().unwrap();
+            let additions = if material["additionIds"].as_array().unwrap().is_empty() {
+                vec![]
+            } else {
+                vec![
+                    serde_json::json!({"id":"addition","omission":"No sunset process","consequence":"Unbounded operating costs","sourceAdditionIds":material["additionIds"]}),
+                ]
+            };
+            serde_json::json!({"confirmed":outcomes.iter().filter(|g|matches!(g["disposition"].as_str(),Some("confirmed"|"unresolved"))).map(|g|serde_json::json!({"gapId":g["gap"]["id"],"priority":"Prevent permanent loss"})).collect::<Vec<_>>(),"covered":outcomes.iter().filter(|g|g["disposition"]=="covered").map(|g|g["gap"]["id"].clone()).collect::<Vec<_>>(),"trivial":outcomes.iter().filter(|g|g["disposition"]=="trivial").map(|g|g["gap"]["id"].clone()).collect::<Vec<_>>(),"additions":additions})
         } else {
             return streaming("ordinary response", "stop");
         };
@@ -278,4 +295,500 @@ async fn complete_pass_wait_continue_restart_and_clear() {
         .unwrap();
     assert_eq!(count, 0);
     room.shutdown().await.unwrap();
+}
+#[derive(Clone)]
+struct JudgeFault {
+    remaining: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+impl Respond for JudgeFault {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        use std::sync::atomic::Ordering;
+        if self
+            .remaining
+            .try_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1))
+            .is_ok()
+        {
+            streaming("{\"unseen\":0}", "stop")
+        } else {
+            Answers.respond(r)
+        }
+    }
+}
+impl Fixture {
+    fn status(&self) -> String {
+        self.db().query_row("SELECT json_extract(state_json,'$.status') FROM contests ORDER BY rowid DESC LIMIT 1",[],|r|r.get(0)).unwrap()
+    }
+    fn report(&self) -> CensusReport {
+        let raw: String = self
+            .db()
+            .query_row(
+                "SELECT payload FROM events WHERE kind='census.report' ORDER BY seq DESC LIMIT 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        serde_json::from_str(&raw).unwrap()
+    }
+    async fn judge_fault(&self, count: usize) {
+        Mock::given(method("POST"))
+            .and(path("/api/v1/chat/completions"))
+            .and(wiremock::matchers::body_partial_json(
+                serde_json::json!({"model":"fixture/judge"}),
+            ))
+            .respond_with(JudgeFault {
+                remaining: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(count)),
+            })
+            .with_priority(1)
+            .mount(&self.fake.server)
+            .await;
+    }
+}
+#[tokio::test]
+async fn skipped_member_and_judge_repair_preserve_missing_evidence() {
+    let f = Fixture::new().await;
+    f.judge_fault(1).await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(wiremock::matchers::body_partial_json(
+            serde_json::json!({"model":"fixture/member0"}),
+        ))
+        .respond_with(ResponseTemplate::new(500))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room
+        .submit(request(&f.config, "@all $census Build a database service."))
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("census.report") == 1).await;
+    let report = f.report();
+    assert_eq!(report.missing.len(), 2);
+    assert_eq!(report.gaps[0].finders.len(), 5);
+    assert_eq!(report.gaps[0].votes, 5);
+    assert_eq!(report.gaps[0].disposition, CensusDisposition::Unresolved);
+    assert!(!report.quiet());
+    let repairs: i64 = f
+        .db()
+        .query_row("SELECT COUNT(*) FROM judge_repairs", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(repairs, 1);
+    assert_eq!(f.fake.captured_bodies().await.len(), 17);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn judge_exhaustion_and_daily_refusal() {
+    let f = Fixture::new().await;
+    f.judge_fault(3).await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@all $census Build a database service."))
+        .await;
+    f.wait(|| f.status() == "FAILED").await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 8);
+    assert_eq!(f.count("census.report"), 0);
+    room.shutdown().await.unwrap();
+    let mut f = Fixture::new().await;
+    f.config.budget.daily_max_usd = 0.001;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room
+        .submit(request(&f.config, "@all $census Build a database service."))
+        .await;
+    assert!(
+        matches!(
+            result,
+            RequestResult::Rejected {
+                error: ErrorPayload {
+                    code: ErrorCode::DAILY_MAX_REACHED,
+                    ..
+                },
+                ..
+            }
+        ),
+        "{result:?}"
+    );
+    assert!(f.fake.captured_bodies().await.is_empty());
+    room.shutdown().await.unwrap();
+}
+#[derive(Clone)]
+struct SlowOnce(std::sync::Arc<std::sync::atomic::AtomicBool>);
+impl Respond for SlowOnce {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        if !self.0.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            Answers.respond(r).set_delay(Duration::from_secs(5))
+        } else {
+            Answers.respond(r)
+        }
+    }
+}
+#[tokio::test]
+async fn restart_mid_hunt_reuses_accepted_outputs_and_stop_fences_work() {
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(wiremock::matchers::body_partial_json(
+            serde_json::json!({"model":"fixture/member0"}),
+        ))
+        .respond_with(SlowOnce(std::sync::Arc::new(
+            std::sync::atomic::AtomicBool::new(false),
+        )))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@all $census Build a database service."))
+        .await;
+    f.wait(|| {
+        let n: i64 = f
+            .db()
+            .query_row(
+                "SELECT COUNT(*) FROM work WHERE kind='census.hunt' AND status='completed'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        n == 5
+    })
+    .await;
+    let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
+    let epoch: i64 = f
+        .db()
+        .query_row("SELECT epoch FROM room_meta", [], |r| r.get(0))
+        .unwrap();
+    let own: String = f
+        .db()
+        .query_row(
+            "SELECT work_id FROM work WHERE kind='census.hunt' AND target='member0'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let peer: String = f
+        .db()
+        .query_row(
+            "SELECT work_id FROM work WHERE kind='census.hunt' AND target='member1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let readers = squad_store::readers::ScopedReaders::new(
+        store.clone(),
+        ExecutorKey::Member(nick("member0")),
+        epoch as u64,
+    );
+    let values = readers
+        .prompt_values_for_work(own.parse().unwrap())
+        .await
+        .unwrap();
+    let projection: serde_json::Value = serde_json::from_str(&values["mode_data_json"]).unwrap();
+    assert_eq!(projection.as_object().unwrap().len(), 3);
+    assert!(!projection.to_string().contains("finds"));
+    assert!(matches!(
+        readers.prompt_values_for_work(peer.parse().unwrap()).await,
+        Err(ReaderError::Forbidden)
+    ));
+    assert!(matches!(
+        readers.for_work(peer.parse().unwrap()).await,
+        Err(ReaderError::Forbidden)
+    ));
+    assert!(matches!(readers.get(WorkId::new()).await, Ok(None)));
+    for h in readers.for_work(own.parse().unwrap()).await.unwrap() {
+        assert!(matches!(h.meta, HistoryMetadata::Anonymous { .. }));
+        assert_eq!(h.name.as_deref(), Some("squad"));
+    }
+    drop(store);
+    room.shutdown().await.unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| f.count("census.report") == 1).await;
+    let bodies = f.fake.captured_bodies().await;
+    for i in 1..6 {
+        assert_eq!(
+            bodies
+                .iter()
+                .filter(|b| b["model"] == format!("fixture/member{i}")
+                    && b["messages"][1]["content"]
+                        .as_str()
+                        .unwrap()
+                        .contains("Hunt independently"))
+                .count(),
+            1
+        );
+    }
+    let result = room
+        .submit(Request::Stop {
+            request_id: EventId::new(),
+            target: None,
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    assert_eq!(f.status(), "STOPPED");
+    let contest: String = f
+        .db()
+        .query_row(
+            "SELECT contest_id FROM contests WHERE kind='census'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let export = room
+        .export(ExportScope::Census, Some(contest.parse().unwrap()))
+        .await
+        .unwrap();
+    assert!(export.contains(CENSUS_RANGE_UNAVAILABLE));
+    assert!(export.contains("Finder"));
+    assert!(!export.contains("tieBreakSeed"));
+    assert!(!export.contains("census.prompts"));
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn revised_plan_preflight_idempotency_and_persisted_variable_precedence() {
+    let mut f = Fixture::new().await;
+    f.config.defaults.census_passes = 2;
+    let room = f.open(OpenMode::Interactive).await;
+    let first = request(&f.config, "@all $census Build a database service.");
+    let accepted = room.submit(first.clone()).await;
+    let duplicate = room.submit(first).await;
+    assert_eq!(accepted, duplicate);
+    f.wait(|| f.count("census.report") == 1).await;
+    let (contest, version): (String, i64) = f
+        .db()
+        .query_row(
+            "SELECT contest_id,state_version FROM contests WHERE active=1",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    let continuation = Request::CensusContinue {
+        request_id: EventId::new(),
+        contest_id: contest.parse().unwrap(),
+        expected_state_version: version as u64,
+        plan_event_id: None,
+        replacement_text: Some(
+            Text::new(
+                "Build a database service with replication, monitoring, and tested daily backups.",
+            )
+            .unwrap(),
+        ),
+    };
+    let result = room.submit(continuation.clone()).await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    assert_eq!(result, room.submit(continuation).await);
+    f.wait(|| f.count("census.report") == 2).await;
+    assert_eq!(f.count("contest.preflight"), 2);
+    assert_eq!(f.report().plan_version, 2);
+    assert_eq!(f.fake.captured_bodies().await.len(), 28);
+    let raw: String = f
+        .db()
+        .query_row(
+            "SELECT payload FROM events WHERE kind='census.report' ORDER BY seq LIMIT 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<CensusReport>(&raw)
+            .unwrap()
+            .plan_version,
+        1
+    );
+    let state = room.state().await;
+    assert!(state.pending_preflights.is_empty());
+    assert!(matches!(
+        room.submit(Request::SetVars {
+            request_id: EventId::new(),
+            updates: vec![VariableUpdate {
+                name: VariableName::CensusPasses,
+                value: 3
+            }]
+        })
+        .await,
+        RequestResult::Accepted { .. }
+    ));
+    room.shutdown().await.unwrap();
+    f.config.defaults.census_passes = 5;
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(room.state().await.vars.census_passes, 3);
+    room.submit(Request::Clear {
+        request_id: EventId::new(),
+    })
+    .await;
+    assert_eq!(room.state().await.vars.census_passes, 5);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn stop_during_hunt_cancels_all_outstanding_slots() {
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(wiremock::matchers::body_partial_json(
+            serde_json::json!({"model":"fixture/member0"}),
+        ))
+        .respond_with(SlowOnce(std::sync::Arc::new(
+            std::sync::atomic::AtomicBool::new(false),
+        )))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@all $census Build a database service."))
+        .await;
+    f.wait(|| {
+        f.db()
+            .query_row(
+                "SELECT COUNT(*) FROM work WHERE kind='census.hunt' AND status='completed'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .unwrap()
+            == 5
+    })
+    .await;
+    let result = room
+        .submit(Request::Stop {
+            request_id: EventId::new(),
+            target: Some(nick("member0")),
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    assert_eq!(f.status(), "STOPPED");
+    assert_eq!(f.count("census.report"), 0);
+    let pending: i64 = f
+        .db()
+        .query_row(
+            "SELECT COUNT(*) FROM work WHERE status IN ('queued','running')",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(pending, 0);
+    room.shutdown().await.unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(f.status(), "STOPPED");
+    assert_eq!(f.count("census.report"), 0);
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn latest_member_and_quoted_plans_use_all_room_members() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@member0 Propose a service."))
+        .await;
+    f.wait(|| f.count("message.final") == 1).await;
+    let event = room
+        .page_events(None, 500)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|e| matches!(e.content, EnvelopePayload::MessageFinal(_)))
+        .unwrap();
+    let EnvelopePayload::MessageFinal(reply) = &event.content else {
+        unreachable!()
+    };
+    let mut ctx = parser::ParseContext {
+        roster: f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        ..Default::default()
+    };
+    ctx.records.push(RecordSummary {
+        event_id: event.base.id,
+        message_id: Some(reply.completed.generation.message_id),
+        seq: event.commit.seq,
+        kind: Text::new("message.final").unwrap(),
+        author: event.base.sender.clone(),
+        recipients: event.base.recipients.clone(),
+        content: reply.content.clone(),
+        in_reply_to_message_id: Some(reply.in_reply_to_message_id),
+        contest_id: None,
+        case_id: None,
+        plan_event_id: None,
+        grid_event_id: None,
+        cell_ids: vec![],
+        state_version: None,
+        superseded: false,
+        eligible: true,
+    });
+    for (index, command) in ["@member0 $census", "@all $census"].into_iter().enumerate() {
+        let meta = if index == 0 {
+            parser::SubmissionMeta::default()
+        } else {
+            parser::SubmissionMeta {
+                quote: vec![event.base.id],
+                reply_to: vec![],
+            }
+        };
+        let parsed = parse(command, &meta, &ctx).unwrap();
+        let result = room
+            .submit(Request::from_parsed(EventId::new(), parsed, &meta, false).unwrap())
+            .await;
+        assert!(
+            matches!(result, RequestResult::Accepted { .. }),
+            "{result:?}"
+        );
+        f.wait(|| f.count("census.report") == index as i64 + 1)
+            .await;
+        let raw: String = f
+            .db()
+            .query_row(
+                "SELECT payload FROM events WHERE kind='census.setup' ORDER BY seq DESC LIMIT 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let setup: CensusSetup = serde_json::from_str(&raw).unwrap();
+        assert_eq!(setup.participants.len(), 6);
+        assert_eq!(setup.plan.text.as_str(), reply.content);
+        assert_eq!(setup.plan.source_event_ids, vec![event.base.id]);
+        room.submit(Request::Stop {
+            request_id: EventId::new(),
+            target: None,
+        })
+        .await;
+    }
+    assert_eq!(f.fake.captured_bodies().await.len(), 29);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn additions_never_inflate_initial_finders_and_covered_majority_keeps_citations() {
+    for plan in [
+        "ADDITION_TEST Build a database.",
+        "Build a database and back up daily.",
+    ] {
+        let f = Fixture::new().await;
+        let room = f.open(OpenMode::Interactive).await;
+        room.submit(request(&f.config, &format!("@all $census {plan}")))
+            .await;
+        f.wait(|| f.count("census.report") == 1).await;
+        let report = f.report();
+        report.validate().unwrap();
+        assert_eq!(report.gaps[0].finders.len(), 6);
+        if plan.contains("ADDITION_TEST") {
+            assert_eq!(report.additions.len(), 1);
+            assert_eq!(report.additions[0].source_addition_ids.len(), 6);
+            assert_eq!(report.discovery[0].new_confirmed, 2);
+        } else {
+            assert_eq!(report.gaps[0].disposition, CensusDisposition::Covered);
+            assert_eq!(report.gaps[0].citations.len(), 6);
+            assert!(report.input_gap_ids.is_empty());
+            assert_eq!(report.unseen, 0.0);
+            assert!(!report.quiet());
+        }
+        let finders: i64 = f
+            .db()
+            .query_row("SELECT COUNT(*) FROM census_finders", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(finders, 6);
+        room.shutdown().await.unwrap();
+    }
 }

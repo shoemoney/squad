@@ -68,6 +68,13 @@ pub fn validate_output(db: &Connection, work: &Work, output: &serde_json::Value)
     let values = input(db, work.work_id)?;
     let data: serde_json::Value =
         serde_json::from_str(values.get("mode_data_json").ok_or_else(invalid)?)?;
+    if census_prose_words(output)
+        > values["step_word_limit"]
+            .parse::<usize>()
+            .map_err(|_| invalid())?
+    {
+        return Err(invalid());
+    }
     let valid = match work.kind {
         WorkKind::CensusHunt => {
             validation::decode::<CensusHuntOutput>(output).and_then(|v| v.validate())

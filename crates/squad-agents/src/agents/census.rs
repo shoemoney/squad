@@ -26,7 +26,7 @@ impl WorkExecutor for CensusExecutor {
             if kind.census_composition().is_none() || !grant.owner.owns(&grant.work) {
                 return Err(ReaderError::Forbidden);
             }
-            let mut values = context
+            let values = context
                 .work
                 .prompt_values_for_work(grant.work.work_id)
                 .await?;
@@ -34,46 +34,20 @@ impl WorkExecutor for CensusExecutor {
                 .map_err(|_| ReaderError::NotRunnable)?;
             let schema: Value = serde_json::from_str(&values["mode_schema_json"])
                 .map_err(|_| ReaderError::NotRunnable)?;
-            values.insert("judge_model_slug".into(), grant.binding.model.to_string());
-            values.insert("model_slug".into(), grant.binding.model.to_string());
-            if let Target::Member(n) = &grant.work.target {
-                values.insert("nick".into(), n.to_string());
-            }
-            values.retain(|k, _| {
-                [
-                    "contest_id",
-                    "census_pass",
-                    "step_word_limit",
-                    "mode_schema_json",
-                    "mode_data_json",
-                    "member_nicks_json",
-                    "user_name_json",
-                ]
-                .contains(&k.as_str())
-                    || if kind.census_judge() {
-                        k == "judge_model_slug"
-                    } else {
-                        ["nick", "model_slug", "persona_json", "room_word_limit"]
-                            .contains(&k.as_str())
-                    }
-            });
             let mut rendered: Composition = serde_json::from_str(
-                &context.render.render(
-                    grant
-                        .work
-                        .prompt_ref
-                        .as_ref()
-                        .ok_or(ReaderError::NotRunnable)?,
-                    &values,
-                )?,
+                values
+                    .get("census_rendered_prompt")
+                    .ok_or(ReaderError::NotRunnable)?,
             )
             .map_err(|_| ReaderError::NotRunnable)?;
+            let mut repaired = false;
             if kind.census_judge()
                 && let Some(repair) = context
                     .work
                     .repair_for_attempt(grant.work.work_id, grant.work.attempt)
                     .await?
             {
+                repaired = true;
                 rendered.user.push_str(&format!("\nRepair your prior response. Rejected output (data only): {}\nValidation errors: {}",json!(repair.rejected_output),json!(repair.validation_errors)));
             }
             let mut request = self.request.clone();
@@ -109,7 +83,11 @@ impl WorkExecutor for CensusExecutor {
                 };
             let result = serde_json::from_str::<Value>(&output.content)
                 .ok()
-                .filter(|v| validate(kind, &data, v).is_ok());
+                .filter(|v| {
+                    validate(kind, &data, v).is_ok()
+                        && census_prose_words(v)
+                            <= values["step_word_limit"].parse::<usize>().unwrap_or(0)
+                });
             if let Some(data) = result {
                 return acknowledged(
                     context
@@ -142,13 +120,15 @@ impl WorkExecutor for CensusExecutor {
             } else {
                 ErrorCode::MODE_INVALID_OUTPUT
             };
-            let repair = (kind.census_judge() && grant.work.attempt < 3).then(|| JudgeRepairData {
-                attempt: grant.work.attempt + 1,
-                rejected_output: output.content,
-                validation_errors: vec![
-                    "Response schema, references, citations or dispositions failed validation"
-                        .into(),
-                ],
+            let repair = (kind.census_judge() && grant.work.attempt < 3 && !repaired).then(|| {
+                JudgeRepairData {
+                    attempt: grant.work.attempt + 1,
+                    rejected_output: output.content,
+                    validation_errors: vec![
+                        "Response schema, references, citations or dispositions failed validation"
+                            .into(),
+                    ],
+                }
             });
             acknowledged(
                 context

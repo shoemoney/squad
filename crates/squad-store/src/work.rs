@@ -88,7 +88,10 @@ pub fn insert(
                     (
                         plan.plan_id,
                         plan.estimate.reserved_usd,
-                        setup.reserved_calls(),
+                        plan.settings["reservedCalls"]
+                            .as_u64()
+                            .map(|v| v as u32)
+                            .unwrap_or_else(|| setup.reserved_calls()),
                     )
                 } else {
                     let plan: DebatePreflight = decode(raw)?;
