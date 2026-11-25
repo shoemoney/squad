@@ -152,7 +152,7 @@ pub fn admit(
         contest_id: contest,
         kind: ContestKind::Survey,
         plan_id: PlanId::new(),
-        expires_at: group.accepted_at + chrono::Duration::minutes(5),
+        expires_at: group.accepted_at + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64),
         estimate: DebateEstimate {
             estimated_usd: max_call * f64::from(calls),
             reserved_usd: reserved as f64 / 1e6,

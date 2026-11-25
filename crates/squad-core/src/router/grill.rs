@@ -263,7 +263,7 @@ pub fn prepare(
         contest_id: setup.contest_id,
         kind: ContestKind::Grill,
         plan_id: PlanId::new(),
-        expires_at: g.accepted_at + chrono::Duration::minutes(5),
+        expires_at: g.accepted_at + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64),
         estimate: DebateEstimate {
             estimated_usd: nominal,
             reserved_usd: reserved,
