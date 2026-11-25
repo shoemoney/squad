@@ -1,0 +1,492 @@
+---
+source: crates/squad-tui/tests/fx_meter.rs
+expression: frames
+---
+[
+    (
+        Full,
+        false,
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▒▒▒▒▒▒▒▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 4, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+                x: 13, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        false,
+        37,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▒▒▒▒▒▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 5, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+                x: 12, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        false,
+        75,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▒▒▒▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 7, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+                x: 12, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        false,
+        150,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        false,
+        167,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        true,
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        true,
+        37,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        true,
+        75,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        true,
+        150,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Full,
+        true,
+        167,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        false,
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        false,
+        37,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        false,
+        75,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        false,
+        150,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        false,
+        167,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        true,
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        true,
+        37,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        true,
+        75,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        true,
+        150,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Lite,
+        true,
+        167,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        false,
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        false,
+        37,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        false,
+        75,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        false,
+        150,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        false,
+        167,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 0, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
+                x: 30, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        true,
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        true,
+        37,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        true,
+        75,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        true,
+        150,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        Off,
+        true,
+        167,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 80, height: 2 },
+            content: [
+                "$7.00 / $20.00 · pending $0.00                                                  ",
+                "▰▰▰▰▰▰▰▰▰▰▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱                                                  ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+]

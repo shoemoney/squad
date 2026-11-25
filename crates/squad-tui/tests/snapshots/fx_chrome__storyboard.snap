@@ -1,0 +1,514 @@
+---
+source: crates/squad-tui/tests/fx_chrome.rs
+expression: frames
+---
+[
+    (
+        "logo",
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      /#▓▒░       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 7, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: DIM,
+                x: 12, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "logo",
+        275,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUA\       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 11, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: DIM,
+                x: 12, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "logo",
+        550,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "logo",
+        700,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 7, y: 1, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+                x: 8, y: 1, fg: Green, bg: Reset, underline: Reset, modifier: NONE,
+                x: 9, y: 1, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
+                x: 10, y: 1, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+                x: 11, y: 1, fg: Green, bg: Reset, underline: Reset, modifier: NONE,
+                x: 12, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "logo",
+        900,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 7, y: 1, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
+                x: 8, y: 1, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+                x: 9, y: 1, fg: Green, bg: Reset, underline: Reset, modifier: NONE,
+                x: 10, y: 1, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
+                x: 11, y: 1, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+                x: 12, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "logo",
+        1100,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "logo",
+        1117,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "roster",
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│ ······           │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 2, y: 3, fg: Cyan, bg: Reset, underline: Reset, modifier: DIM,
+                x: 8, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "roster",
+        60,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│ cla···           │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 2, y: 3, fg: Cyan, bg: Reset, underline: Reset, modifier: DIM,
+                x: 8, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "roster",
+        120,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│ claude           │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 2, y: 3, fg: Cyan, bg: Reset, underline: Reset, modifier: REVERSED,
+                x: 8, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "roster",
+        240,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│ claude           │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 2, y: 3, fg: Cyan, bg: Reset, underline: Reset, modifier: NONE,
+                x: 8, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "roster",
+        257,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│ claude           │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 2, y: 3, fg: Cyan, bg: Reset, underline: Reset, modifier: NONE,
+                x: 8, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "breath",
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Yellow, bg: Reset, underline: Reset, modifier: DIM,
+                x: 3, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "breath",
+        5000,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 12, y: 4, fg: Yellow, bg: Reset, underline: Reset, modifier: DIM,
+                x: 15, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "breath",
+        10000,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 11, y: 0, fg: Yellow, bg: Reset, underline: Reset, modifier: DIM,
+                x: 14, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "breath",
+        20000,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "breath",
+        20017,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "quit",
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "quit",
+        62,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "quit",
+        125,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "                    ",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "                    ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "quit",
+        250,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "                    ",
+                "                    ",
+                "  protected body    ",
+                "                    ",
+                "                    ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "quit",
+        267,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "                    ",
+                "                    ",
+                "  protected body    ",
+                "                    ",
+                "                    ",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "resize",
+        0,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 2, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 3, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+            ]
+        },
+    ),
+    (
+        "resize",
+        30,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 2, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 3, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+            ]
+        },
+    ),
+    (
+        "resize",
+        60,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 1, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 2, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+                x: 1, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+                x: 19, y: 3, fg: Yellow, bg: Reset, underline: Reset, modifier: BOLD,
+            ]
+        },
+    ),
+    (
+        "resize",
+        120,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+    (
+        "resize",
+        137,
+        Buffer {
+            area: Rect { x: 0, y: 0, width: 20, height: 5 },
+            content: [
+                "┌──────────────────┐",
+                "│      SQUAD       │",
+                "│ protected body   │",
+                "│                  │",
+                "└──────────────────┘",
+            ],
+            styles: [
+                x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+            ]
+        },
+    ),
+]
