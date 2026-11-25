@@ -8,3 +8,6 @@ pub mod room;
 pub mod router;
 pub mod runtime;
 pub mod state;
+
+pub use room::{RoomError, RoomHandle, export_offline};
+pub use state::{DailySpend, RoomState, RoomVars};

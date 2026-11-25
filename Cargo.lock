@@ -3137,10 +3137,12 @@ dependencies = [
  "squad-agents",
  "squad-protocol",
  "squad-store",
+ "tempfile",
  "tokio",
  "tokio-util",
  "tracing",
  "unicode-width",
+ "wiremock",
 ]
 
 [[package]]
