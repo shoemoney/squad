@@ -18,8 +18,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Isolate test data
-        run: echo "SQUAD_DATA_DIR=$(mktemp -d)" >> "$GITHUB_ENV"
       - name: Install pinned toolchain and development tools
         run: ./setup.sh --yes --no-build
       - name: Check formatting
@@ -40,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check shell scripts
-        run: shellcheck setup.sh scripts/test-setup.sh
+        run: shellcheck setup.sh scripts/*.sh
 
   setup:
     strategy:
@@ -52,5 +50,42 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test installer without host changes
         run: ./scripts/test-setup.sh
-      - name: Exercise dependency installation
-        run: ./setup.sh --yes --no-build
+
+  setup-containers:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [debian:stable-slim, fedora:latest]
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Prepare non-root installer user
+        shell: bash
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update
+            apt-get install -y sudo git curl ca-certificates
+          else
+            dnf install -y sudo git curl-minimal ca-certificates shadow-utils
+          fi
+          useradd --create-home --shell /bin/bash installer
+          printf 'installer ALL=(ALL) NOPASSWD: ALL\n' > /etc/sudoers.d/installer
+          chmod 440 /etc/sudoers.d/installer
+      - uses: actions/checkout@v4
+      - name: Full setup with dummy credential
+        shell: bash
+        run: |
+          chown -R installer:installer "$GITHUB_WORKSPACE"
+          sudo -H -u installer env OPENROUTER_API_KEY=sk-ci-dummy ./setup.sh --yes
+      - name: Full setup with missing credential must fail
+        shell: bash
+        run: |
+          set +e
+          sudo -H -u installer env OPENROUTER_API_KEY= ./setup.sh --yes > setup-empty-key.log 2>&1
+          status=$?
+          set -e
+          cat setup-empty-key.log
+          test "$status" -ne 0
+          grep -q 'OPENROUTER_API_KEY is required' setup-empty-key.log
+          grep -q 'squad doctor failed' setup-empty-key.log
