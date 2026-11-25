@@ -1,0 +1,15 @@
+---
+source: crates/squad-tui/tests/widget_pick.rs
+expression: t
+---
+CHOOSE WHO GETS GRILLED
+Type one name, e.g. @grok · Esc to
+cancel
+How should we ship safely?
+pick pending · restored
+▸ @grok · answered · eligible
+Verify before publishing.
+▸ @gemini · answered · eligible
+Keep a tested rollback.
+@claude · stopped
+Pick exactly one of: @grok, @gemini.

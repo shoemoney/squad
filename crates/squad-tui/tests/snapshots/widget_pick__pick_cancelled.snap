@@ -1,0 +1,12 @@
+---
+source: crates/squad-tui/tests/widget_pick.rs
+expression: t
+---
+STOPPED · pick_cancelled
+How should we ship safely?
+Ordinary answers
+@grok · answered
+Verify before publishing.
+@gemini · answered
+Keep a tested rollback.
+@claude · stopped

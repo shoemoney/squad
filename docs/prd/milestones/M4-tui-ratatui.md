@@ -149,7 +149,7 @@
   - [ ] M4.P3.L4.T4 — Consume core-owned default-font export banners through the shared export operation in `crates/squad-tui/src/actions.rs`, independent of terminal width and banner mode and without external commands.
 
 - **M4.P3.L5 — Render tournaments**
-  - [ ] M4.P3.L5.T1 — Implement inline collapsible tournament blocks, authoritative states, stable parallel entry cards, retry and forfeit labels, and inspectable previous rounds in `crates/squad-tui/src/widgets/tournament.rs`.
+  - [x] M4.P3.L5.T1 — Implement inline collapsible tournament blocks, authoritative states, stable parallel entry cards, retry and forfeit labels, and inspectable previous rounds in `crates/squad-tui/src/widgets/tournament.rs`.
   - [ ] M4.P3.L5.T2 — Consume tournament setup, state, entry, ranking, result, and champion events by canonical identity in `crates/squad-tui/src/session.rs`, rendering accepted ranks, scores, critiques, final placements, replay, and failure without local ranking decisions.
   - [ ] M4.P3.L5.T3 — Render eliminated participants and authoritative trophy counts in `crates/squad-tui/src/widgets/participants.rs`, deduplicating updates and retaining elimination marks for the rest of the tournament.
   - [ ] M4.P3.L5.T4 — Present the core's k + (k−1) + ... + 2 answer calls, k−1 judge calls, total estimate, remaining daily amount, and confirmation controls in `crates/squad-tui/src/widgets/preflight.rs`.
@@ -158,9 +158,9 @@
 
 - **M4.P3.L6 — Render grills**
   - [ ] M4.P3.L6.T1 — Implement eligible leader-plan preview and explicit source selection using the shared selected-or-quoted-message contract in `crates/squad-tui/src/selection.rs`.
-  - [ ] M4.P3.L6.T2 — Implement inline grill blocks, shared-floor participant scope, authoritative states, sequential turn headings and angles, questions, answers, `Plan changes`, passes, skipped turns, and counters in `crates/squad-tui/src/widgets/grill.rs`.
+  - [x] M4.P3.L6.T2 — Implement inline grill blocks, shared-floor participant scope, authoritative states, sequential turn headings and angles, questions, answers, `Plan changes`, passes, skipped turns, and counters in `crates/squad-tui/src/widgets/grill.rs`.
   - [ ] M4.P3.L6.T3 — Consume grill setup, state, question, answer, pass, plan, and completion events in `crates/squad-tui/src/session.rs`, preserving all plan versions and the last good plan after leader failure.
-  - [ ] M4.P3.L6.T4 — Render collapsible plan versions with the newest expanded, final plan, question-and-answer appendix, and `survived` completion in `crates/squad-tui/src/widgets/grill.rs`, without judge, winner, or scoreboard updates.
+  - [x] M4.P3.L6.T4 — Render collapsible plan versions with the newest expanded, final plan, question-and-answer appendix, and `survived` completion in `crates/squad-tui/src/widgets/grill.rs`, without judge, winner, or scoreboard updates.
   - [ ] M4.P3.L6.T5 — Present the authoritative rounds × (grillers × 2 + 1) model-call count, estimate, participants, and remaining daily amount in `crates/squad-tui/src/widgets/preflight.rs`.
   - [ ] M4.P3.L6.T6 — Add `GRILL`, `GRILL ROUND r`, and `FINAL PLAN` boundaries and turn-handoff, plan-version, and survived effect hooks in `crates/squad-tui/src/widgets/grill.rs` and `crates/squad-tui/src/widgets/banner.rs`.
   - [ ] M4.P3.L6.T7 — Connect `/export grill [id]` and its plan versions and complete appendix to shared core export and destination writes in `crates/squad-tui/src/actions.rs`.
