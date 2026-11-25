@@ -75,6 +75,7 @@ impl WorkExecutor for MemberExecutor {
                 + std::time::Duration::from_millis(constants::TOTAL_TIMEOUT_MS);
             loop {
                 if cancel.is_cancelled() {
+                    abandon(context, &grant).await;
                     return Err(ReaderError::StaleWork);
                 }
                 let mut request = self.shaped(&grant);
@@ -94,6 +95,7 @@ impl WorkExecutor for MemberExecutor {
                     Ok(messages) => messages,
                     Err(error) => {
                         tracing::error!(?error, work_id=%grant.work.work_id, "Member context preparation failed");
+                        abandon(context, &grant).await;
                         failed(
                             context,
                             &grant,

@@ -215,6 +215,17 @@ pub async fn stream_attempt(
         ExecutionError::Transport(error)
     })
 }
+/// Settle an attempt whose durable provider start was committed but whose call
+/// was never made (stopped or cleared first), so its reservation is released.
+pub async fn abandon(context: &AgentContext, grant: &ExecutionGrant) {
+    let mut account = AttemptAccounting::new(
+        grant,
+        chrono::Utc::now(),
+        chrono::Local::now().format("%Y-%m-%d").to_string(),
+    );
+    account.finish(UsageOutcome::Cancelled, chrono::Utc::now());
+    let _ = account.submit(context.submit.as_ref()).await;
+}
 pub async fn failed(
     context: &AgentContext,
     grant: &ExecutionGrant,
