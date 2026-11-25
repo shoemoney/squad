@@ -9,6 +9,11 @@ rust-version.workspace = true
 
 [dependencies]
 squad-protocol = { workspace = true }
+serde_json.workspace = true
+rusqlite = { version = "0.38", features = ["bundled"] }
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true
