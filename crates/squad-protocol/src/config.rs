@@ -46,8 +46,15 @@ impl fmt::Display for OpenRouterApiKey {
 
 /// Validated canonical member identifier.
 // TODO(M1.P1): share this validator with the protocol identity contracts.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize)]
+#[serde(transparent)]
 pub struct Nick(String);
+impl<'de> serde::Deserialize<'de> for Nick {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let value = <String as serde::Deserialize>::deserialize(d)?;
+        Self::new(&value).map_err(serde::de::Error::custom)
+    }
+}
 impl Nick {
     pub fn as_str(&self) -> &str {
         &self.0

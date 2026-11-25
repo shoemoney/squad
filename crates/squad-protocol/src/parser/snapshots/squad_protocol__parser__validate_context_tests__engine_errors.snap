@@ -1,0 +1,30 @@
+---
+source: crates/squad-protocol/src/parser/validate_context_tests.rs
+expression: values
+---
+[
+  {
+    "code": "CONTEST_BUSY",
+    "message": "A grill is already running. Stop it before starting another.",
+    "span": {
+      "start": 0,
+      "end": 0
+    }
+  },
+  {
+    "code": "CONTEST_NOT_ENOUGH_ANSWERS",
+    "message": "Not enough answers to start. 1 of 6 members answered.",
+    "span": {
+      "start": 0,
+      "end": 0
+    }
+  },
+  {
+    "code": "DAILY_MAX_REACHED",
+    "message": "Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.",
+    "span": {
+      "start": 0,
+      "end": 0
+    }
+  }
+]
