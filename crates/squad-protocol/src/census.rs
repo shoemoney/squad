@@ -339,6 +339,9 @@ pub struct CensusGapOutcome {
     pub covered: u32,
     pub trivial: u32,
     pub finders: Vec<MemberNick>,
+    pub finder_count: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<Text>,
     pub citations: Vec<CensusCitation>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -402,7 +405,10 @@ impl CensusReport {
                 && self.formula_branch.as_str() == branch
                 && self.input_gap_ids
                     == inputs.iter().map(|g| g.gap.id.clone()).collect::<Vec<_>>()
-                && self.gaps.iter().all(|g| unique(&g.finders)),
+                && self
+                    .gaps
+                    .iter()
+                    .all(|g| unique(&g.finders) && g.finder_count == g.finders.len() as u32),
             "invalid authoritative census tally",
         )?;
         ensure(
@@ -439,10 +445,20 @@ pub fn census_validate_final(
     data: &serde_json::Value,
 ) -> validation::ValidationResult {
     use validation::{ensure, unique};
-    let expected: Vec<CensusGapOutcome> = serde_json::from_value(data["outcomes"].clone())
-        .map_err(|_| validation::ValidationError {
-            message: "invalid final inputs".into(),
-        })?;
+    let invalid = || validation::ValidationError {
+        message: "invalid final inputs".into(),
+    };
+    let expected = data["outcomes"]
+        .as_array()
+        .ok_or_else(invalid)?
+        .iter()
+        .map(|g| {
+            let id = validation::decode::<Text>(&g["gap"]["id"])?;
+            let disposition = serde_json::from_value::<CensusDisposition>(g["disposition"].clone())
+                .map_err(|_| invalid())?;
+            Ok((id, disposition))
+        })
+        .collect::<Result<Vec<_>, validation::ValidationError>>()?;
     let ids = v
         .confirmed
         .iter()
@@ -454,12 +470,12 @@ pub fn census_validate_final(
         ids.len() == expected.len() && unique(&ids),
         "every ledger gap needs one disposition",
     )?;
-    for g in &expected {
-        let valid = match g.disposition {
-            CensusDisposition::Covered => v.covered.contains(&g.gap.id),
-            CensusDisposition::Trivial => v.trivial.contains(&g.gap.id),
+    for (id, disposition) in &expected {
+        let valid = match disposition {
+            CensusDisposition::Covered => v.covered.contains(id),
+            CensusDisposition::Trivial => v.trivial.contains(id),
             CensusDisposition::Confirmed | CensusDisposition::Unresolved => {
-                v.confirmed.iter().any(|r| r.gap_id == g.gap.id)
+                v.confirmed.iter().any(|r| &r.gap_id == id)
             }
         };
         ensure(valid, "judge changed application majority")?;
@@ -511,5 +527,26 @@ pub fn census_prose_words(value: &serde_json::Value) -> usize {
             .sum(),
         serde_json::Value::Array(items) => items.iter().map(census_prose_words).sum(),
         _ => 0,
+    }
+}
+
+impl CensusPreflight {
+    pub fn validate(&self) -> validation::ValidationResult {
+        self.base.estimate.validate()?;
+        ensure(
+            self.base.kind == ContestKind::Census
+                && (1..=5).contains(&self.passes)
+                && (3..=12).contains(&self.base.participants.len())
+                && unique(&self.base.participants),
+            "invalid census preflight participants or passes",
+        )?;
+        ensure(
+            self.plan.contest_id == self.base.contest_id
+                && self.plan.version > 0
+                && unique(&self.plan.source_event_ids)
+                && self.base.estimate.model_calls
+                    == u32::from(self.passes) * (2 * self.base.participants.len() as u32 + 2),
+            "invalid census preflight sources or calls",
+        )
     }
 }

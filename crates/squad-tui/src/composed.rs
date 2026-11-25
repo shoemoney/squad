@@ -253,9 +253,11 @@ impl Composed {
                     models.push(model);
                 }
             }
-            for (id, view) in &session.census {
+            for (id, source) in &session.census {
+                let mut view = source.clone();
+                view.details_expanded = self.verdict_expanded;
                 let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 2048));
-                let shapes = widgets::census::render(view, scratch.area, &mut scratch, palette);
+                let shapes = widgets::census::render(&view, scratch.area, &mut scratch, palette);
                 self.graphics.insert(
                     identity(id),
                     Graphics {

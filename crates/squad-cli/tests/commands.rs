@@ -387,3 +387,19 @@ fn json_startup_failures_have_error_records_without_fabricated_request_ids() {
     assert!(value.get("requestId").is_none());
     assert!(value.get("cursor").is_none());
 }
+#[test]
+fn invalid_census_seed_reports_exact_error_and_continues_independent_doctor_checks() {
+    let temp = tempfile::tempdir().unwrap();
+    std::fs::write(
+        temp.path().join(".env"),
+        "OPENROUTER_API_KEY=fixture\nSQUAD_CENSUS_PASSES=6\n",
+    )
+    .unwrap();
+    let output = invoke(temp.path(), &["doctor"], None);
+    assert_eq!(output.status.code(), Some(1));
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("SQUAD_CENSUS_PASSES must be an integer from 1 to 5."));
+    assert!(text.contains("Data directory: writable"));
+    assert!(text.contains("Terminal capabilities:"));
+    assert!(text.contains("Daily accounting:"));
+}

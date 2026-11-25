@@ -45,3 +45,19 @@ fn response_model_mismatches_keep_work_attempt_and_concrete_slugs() {
     assert!(output.contains(ID));
     assert!(output.contains("selected p/model-20261101; response p/other-20261102"));
 }
+#[test]
+fn census_diagnostics_read_persisted_value_without_writing_or_replacing_seed() {
+    let temp = tempfile::tempdir().unwrap();
+    let absent =
+        squad_cli::diagnostics::census_passes(temp.path(), Some(5), "process environment").unwrap();
+    assert!(absent.contains("effective 5; source process environment"));
+    assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);
+    let db = database(temp.path(), vec![]);
+    db.execute("INSERT INTO vars(name,value) VALUES ('CENSUS_PASSES',3) ON CONFLICT(name) DO UPDATE SET value=3",[]).unwrap();
+    let before = db.total_changes();
+    let stored =
+        squad_cli::diagnostics::census_passes(temp.path(), Some(5), "process environment").unwrap();
+    assert!(stored.contains("effective 3; source persisted room value"));
+    assert!(stored.contains("seed 5; default 2; range 1..=5"));
+    assert_eq!(db.total_changes(), before);
+}

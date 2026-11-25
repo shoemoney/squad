@@ -100,11 +100,11 @@ pub fn source(db: &Connection, source: &parser::PlanSource) -> Result<(String, V
             )?
         }
     };
-    let text = match event.content {
-        EnvelopePayload::MessageFinal(m) => m.content,
-        EnvelopePayload::UserMessage(m) => m.body,
+    let text = match &event.content {
+        EnvelopePayload::MessageFinal(m) => m.content.clone(),
+        EnvelopePayload::UserMessage(m) => m.body.clone(),
         EnvelopePayload::CensusPlan(p) => p.text.to_string(),
-        _ => return Err(invalid()),
+        _ => script::grill_plan_text(&serde_json::to_value(&event.content)?).ok_or_else(invalid)?,
     };
     Ok((text, vec![event.base.id]))
 }
@@ -308,6 +308,13 @@ pub fn prepare(
         warning: None,
         settings: serde_json::json!({"passes":passes,"reservedCalls":setup.reserved_calls(),"planVersion":1,"inputBound":input_bound}),
     };
+    CensusPreflight {
+        base: plan.clone(),
+        passes,
+        plan: setup.plan.clone(),
+    }
+    .validate()
+    .map_err(|_| invalid())?;
     let seq = push(
         tx,
         group,
@@ -571,69 +578,7 @@ pub fn continue_plan(
     Ok(group.accepted(id))
 }
 
-impl Router {
-    pub(crate) fn drive_census(&mut self) -> Result<Vec<CommitOutcome>> {
-        let ids = self.store.call(|db| {
-            let mut q =
-                db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='census' AND json_type(state_json,'$.pass')='integer'")?;
-            Ok(q.query_map([], |r| r.get::<_, String>(0))?
-                .collect::<rusqlite::Result<Vec<_>>>()?)
-        })?;
-        let mut outcomes = vec![];
-        for raw in ids {
-            let contest: ContestId = raw.parse().map_err(|_| invalid())?;
-            if self
-                .engine_scope
-                .as_ref()
-                .is_some_and(|s| !s.contains(&contest))
-            {
-                continue;
-            }
-            for _ in 0..64 {
-                let snapshot = self
-                    .store
-                    .call(move |db| squad_store::census::state(db, contest))?;
-                if snapshot.status.is_terminal() || snapshot.status == CensusStatus::WaitingForPlan
-                {
-                    break;
-                }
-                let id = EventId::new();
-                let state = snapshot.clone();
-                let outcome = self.store.commit(
-                    id,
-                    "contest-engine".into(),
-                    squad_store::commit::digest(&snapshot)?,
-                    move |tx, group| drive_move(tx, group, id, state),
-                );
-                match outcome {
-                    Ok(o) if o.events.is_empty() => break,
-                    Ok(o) => outcomes.push(o),
-                    Err(e) => {
-                        tracing::error!(?e,%contest,"Census engine move failed");
-                        outcomes.push(self.store.commit(
-                            EventId::new(),
-                            "contest-engine".into(),
-                            "census-failure".into(),
-                            move |tx, group| {
-                                let mut state = squad_store::census::state(tx, contest)?;
-                                let version = state.state_version;
-                                state.status = CensusStatus::Failed;
-                                state.terminal_reason =
-                                    Some(Text::new("invalid_step").expect("reason"));
-                                state.state_version += 1;
-                                save(tx, group, id, &state, Some(version))?;
-                                Ok(group.accepted(id))
-                            },
-                        )?);
-                        break;
-                    }
-                }
-            }
-        }
-        Ok(outcomes)
-    }
-}
-fn drive_move(
+pub(crate) fn drive_move(
     tx: &Transaction<'_>,
     group: &mut CommitGroup,
     id: EventId,
@@ -672,6 +617,7 @@ fn drive_move(
     if state.status == CensusStatus::Reporting {
         let version = state.state_version;
         state.status = CensusStatus::Complete;
+        state.terminal_reason = Some(Text::new("Pass limit reached").expect("reason"));
         state.state_version += 1;
         save(tx, group, id, &state, Some(version))?;
         return Ok(group.accepted(id));
@@ -836,6 +782,24 @@ fn drive_move(
             let sources: serde_json::Value = serde_json::from_str(&raw)?;
             for gap in &mut output.ledger {
                 gap.id = Text::new(CellId::new().to_string()).map_err(|_| invalid())?;
+                let mut lenses = gap
+                    .source_find_ids
+                    .iter()
+                    .map(|source| {
+                        let lens = sources["finds"]
+                            .as_array()
+                            .ok_or_else(invalid)?
+                            .iter()
+                            .find(|f| f["id"].as_str() == Some(source.as_str()))
+                            .and_then(|f| f["lens"].as_str())
+                            .ok_or_else(invalid)?;
+                        Text::new(lens).map_err(|_| invalid())
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                lenses.sort_by(|a, b| a.as_str().cmp(b.as_str()));
+                lenses.dedup();
+                gap.lenses = lenses;
+
                 for source in &gap.source_find_ids {
                     let finder = &sources["sources"][source.as_str()];
                     tx.execute(
@@ -884,7 +848,7 @@ fn drive_move(
                 let output: CensusRatingOutput = serde_json::from_value(artifact.data.clone())?;
                 for a in &output.additions {
                     let handle = CellId::new().to_string();
-                    additions.push(serde_json::json!({"id":handle,"omission":script::blind_text(a.omission.as_str(),&setup),"consequence":script::blind_text(a.consequence.as_str(),&setup),"lens":a.lens}));
+                    additions.push(serde_json::json!({"id":handle,"omission":script::blind_text(a.omission.as_str(),&setup),"consequence":script::blind_text(a.consequence.as_str(),&setup),"lens":script::blind_text(a.lens.as_str(),&setup)}));
                     origins.insert(handle,serde_json::json!({"member":member,"workId":work.work_id,"localId":a.local_id}));
                 }
                 let rating = CensusRating {
@@ -933,6 +897,13 @@ fn drive_move(
                 .map(|(i, g)| (g.gap_id.to_string(), i))
                 .collect::<BTreeMap<_, _>>();
             outcomes.sort_by_key(|g| order.get(g.gap.id.as_str()).copied().unwrap_or(usize::MAX));
+            for gap in &mut outcomes {
+                gap.priority = final_output
+                    .confirmed
+                    .iter()
+                    .find(|r| r.gap_id == gap.gap.id)
+                    .map(|r| r.priority.clone());
+            }
             let prior = squad_store::census::events(tx, state.contest_id)?
                 .into_iter()
                 .filter_map(|e| {
@@ -1127,7 +1098,9 @@ fn allocate(
         if kind == WorkKind::CensusFinal {
             if let Some(outcomes) = data["outcomes"].as_array_mut() {
                 for outcome in outcomes {
-                    outcome["finders"] = serde_json::json!([]);
+                    let outcome = outcome.as_object_mut().expect("typed outcome");
+                    outcome.remove("finders");
+                    outcome.remove("finderCount");
                 }
             }
             data.as_object_mut().expect("object").remove("missing");
@@ -1343,7 +1316,7 @@ impl Router {
                     }
                     CensusTransition::ReportCommitted => state.status == CensusStatus::Reporting,
                     CensusTransition::Stop | CensusTransition::Fail => true,
-                    CensusTransition::Continue => false,
+                    CensusTransition::Continue => state.status == CensusStatus::WaitingForPlan,
                 };
                 if !matches {
                     return Err(invalid());

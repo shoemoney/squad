@@ -6,6 +6,7 @@ use squad_protocol::*;
 #[derive(Debug, Clone, Default)]
 pub struct CensusView {
     pub setup: Option<CensusSetup>,
+    pub details_expanded: bool,
     pub hunts: Vec<CensusHunt>,
     pub state: Option<CensusState>,
     pub plans: Vec<CensusPlan>,
@@ -58,7 +59,10 @@ impl CensusView {
             ));
         }
         for report in &self.reports {
-            out.push_str(&squad_core::export::census::report_text(report));
+            out.push_str(&squad_core::export::census::report_text_with_details(
+                report,
+                self.details_expanded,
+            ));
         }
         if self
             .state

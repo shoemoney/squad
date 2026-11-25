@@ -647,6 +647,14 @@ impl Session {
                     .or_default()
                     .plans
                     .push(p.clone());
+                self.record(
+                    base,
+                    committed,
+                    "census.plan",
+                    None,
+                    None,
+                    p.text.to_string(),
+                );
             }
             EnvelopePayload::CensusState(s) => {
                 self.census.entry(s.contest_id).or_default().state = Some(s.clone());
@@ -660,6 +668,14 @@ impl Session {
                     .or_default()
                     .reports
                     .push(r.clone());
+                self.record(
+                    base,
+                    committed,
+                    "census.report",
+                    None,
+                    None,
+                    squad_core::export::census::report_text(r),
+                );
                 cue = Some(FxCue::CensusEstimateReady {
                     contest_id: r.contest_id.to_string().parse().expect("UUID"),
                     pass: u32::from(r.pass),

@@ -161,6 +161,15 @@ pub fn run(
         for check in [
             squad_cli::diagnostics::accounting(path, &day, limit),
             squad_cli::diagnostics::identities(path),
+            squad_cli::diagnostics::census_passes(
+                path,
+                config.as_ref().ok().map(|c| c.defaults.census_passes),
+                match effective.source("SQUAD_CENSUS_PASSES") {
+                    squad_protocol::config::VariableSource::Default => "built-in default",
+                    squad_protocol::config::VariableSource::File(_) => "environment file",
+                    squad_protocol::config::VariableSource::Process => "process environment",
+                },
+            ),
         ] {
             match check {
                 Ok(report) => text.push_str(&report),

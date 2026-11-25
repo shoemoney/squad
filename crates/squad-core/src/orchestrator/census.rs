@@ -163,6 +163,8 @@ pub fn outcomes(
                 votes: v,
                 covered,
                 trivial,
+                finder_count: members.len() as u32,
+                priority: None,
                 finders: members,
                 citations: votes.iter().filter_map(|r| r.citation.clone()).collect(),
             }
@@ -275,4 +277,87 @@ pub fn redact_prose(value: &mut serde_json::Value, setup: &CensusSetup) {
         }
         _ => {}
     }
+}
+
+// Mode script driver. The shared orchestrator invokes this on the serialized
+// router thread; each move uses the same transactional step/work/barrier store.
+use crate::router::{
+    Router,
+    census::{drive_move, invalid, save},
+};
+use squad_store::{Result, commit::CommitOutcome};
+impl Router {
+    pub(crate) fn drive_census(&mut self) -> Result<Vec<CommitOutcome>> {
+        let ids = self.store.call(|db| {
+            let mut q =
+                db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='census' AND json_type(state_json,'$.pass')='integer'")?;
+            Ok(q.query_map([], |r| r.get::<_, String>(0))?
+                .collect::<rusqlite::Result<Vec<_>>>()?)
+        })?;
+        let mut outcomes = vec![];
+        for raw in ids {
+            let contest: ContestId = raw.parse().map_err(|_| invalid())?;
+            if self
+                .engine_scope
+                .as_ref()
+                .is_some_and(|s| !s.contains(&contest))
+            {
+                continue;
+            }
+            for _ in 0..64 {
+                let snapshot = self
+                    .store
+                    .call(move |db| squad_store::census::state(db, contest))?;
+                if snapshot.status.is_terminal() || snapshot.status == CensusStatus::WaitingForPlan
+                {
+                    break;
+                }
+                let id = EventId::new();
+                let state = snapshot.clone();
+                let outcome = self.store.commit(
+                    id,
+                    "contest-engine".into(),
+                    squad_store::commit::digest(&snapshot)?,
+                    move |tx, group| drive_move(tx, group, id, state),
+                );
+                match outcome {
+                    Ok(o) if o.events.is_empty() => break,
+                    Ok(o) => outcomes.push(o),
+                    Err(e) => {
+                        tracing::error!(?e,%contest,"Census engine move failed");
+                        outcomes.push(self.store.commit(
+                            EventId::new(),
+                            "contest-engine".into(),
+                            "census-failure".into(),
+                            move |tx, group| {
+                                let mut state = squad_store::census::state(tx, contest)?;
+                                let version = state.state_version;
+                                state.status = CensusStatus::Failed;
+                                state.terminal_reason =
+                                    Some(Text::new("invalid_step").expect("reason"));
+                                state.state_version += 1;
+                                save(tx, group, id, &state, Some(version))?;
+                                Ok(group.accepted(id))
+                            },
+                        )?);
+                        break;
+                    }
+                }
+            }
+        }
+        Ok(outcomes)
+    }
+}
+
+/// Read the canonical GrillPlan wire view without coupling this mode branch to
+/// the sibling mode's payload variant. Callers supply retained typed envelopes.
+pub fn grill_plan_text(value: &serde_json::Value) -> Option<String> {
+    (value["kind"] == "grill.plan")
+        .then(|| {
+            value["payload"]["text"]
+                .as_str()
+                .filter(|s| !s.trim().is_empty())
+                .map(str::to_owned)
+        })
+        .flatten()
 }

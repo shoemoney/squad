@@ -750,13 +750,82 @@ async fn latest_member_and_quoted_plans_use_all_room_members() {
         assert_eq!(setup.participants.len(), 6);
         assert_eq!(setup.plan.text.as_str(), reply.content);
         assert_eq!(setup.plan.source_event_ids, vec![event.base.id]);
+        if index == 1 {
+            let (contest, version): (String, i64) = f
+                .db()
+                .query_row(
+                    "SELECT contest_id,state_version FROM contests WHERE active=1",
+                    [],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .unwrap();
+            let result = room
+                .submit(Request::CensusContinue {
+                    request_id: EventId::new(),
+                    contest_id: contest.parse().unwrap(),
+                    expected_state_version: version as u64,
+                    plan_event_id: Some(event.base.id),
+                    replacement_text: None,
+                })
+                .await;
+            assert!(
+                matches!(result, RequestResult::Accepted { .. }),
+                "{result:?}"
+            );
+            f.wait(|| f.count("census.report") == 3).await;
+            assert_eq!(f.report().plan_version, 2);
+        }
         room.submit(Request::Stop {
             request_id: EventId::new(),
             target: None,
         })
         .await;
     }
-    assert_eq!(f.fake.captured_bodies().await.len(), 29);
+    assert_eq!(f.fake.captured_bodies().await.len(), 43);
+    let report_event = room
+        .page_events(None, 500)
+        .await
+        .unwrap()
+        .into_iter()
+        .rev()
+        .find(|e| matches!(e.content, EnvelopePayload::CensusReport(_)))
+        .unwrap();
+    let automatic:i64=f.db().query_row("SELECT COUNT(*) FROM history WHERE context_id='member0' AND content LIKE '%CENSUS · pass%'",[],|r|r.get(0)).unwrap();
+    assert_eq!(automatic, 0);
+    ctx.records.push(RecordSummary {
+        event_id: report_event.base.id,
+        message_id: None,
+        seq: report_event.commit.seq,
+        kind: Text::new("census.report").unwrap(),
+        author: Actor::System,
+        recipients: vec![Recipient::Me],
+        content: "Census report".into(),
+        in_reply_to_message_id: None,
+        contest_id: None,
+        case_id: None,
+        plan_event_id: None,
+        grid_event_id: None,
+        cell_ids: vec![],
+        state_version: None,
+        superseded: false,
+        eligible: true,
+    });
+    let meta = parser::SubmissionMeta {
+        quote: vec![report_event.base.id],
+        reply_to: vec![],
+    };
+    let parsed = parse("@member0 Inspect this report.", &meta, &ctx).unwrap();
+    let result = room
+        .submit(Request::from_parsed(EventId::new(), parsed, &meta, false).unwrap())
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("message.final") == 2).await;
+    let quoted:i64=f.db().query_row("SELECT COUNT(*) FROM history WHERE context_id='member0' AND content LIKE '%CENSUS · pass%'",[],|r|r.get(0)).unwrap();
+    assert_eq!(quoted, 1);
+
     room.shutdown().await.unwrap();
 }
 #[tokio::test]
@@ -789,6 +858,216 @@ async fn additions_never_inflate_initial_finders_and_covered_majority_keeps_cita
             .query_row("SELECT COUNT(*) FROM census_finders", [], |r| r.get(0))
             .unwrap();
         assert_eq!(finders, 6);
+        room.shutdown().await.unwrap();
+    }
+}
+#[derive(Clone)]
+struct DelayStep {
+    needle: &'static str,
+    seen: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+impl Respond for DelayStep {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+        let matches = body["messages"][1]["content"]
+            .as_str()
+            .unwrap()
+            .contains(self.needle)
+            && (body["model"] == "fixture/judge" || body["model"] == "fixture/member0");
+        let response = Answers.respond(r);
+        if matches && !self.seen.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            response.set_delay(Duration::from_secs(5))
+        } else {
+            response
+        }
+    }
+}
+#[tokio::test]
+async fn restart_and_stop_each_later_step_preserve_committed_inputs_and_fences() {
+    for needle in [
+        "Merge the independent findings",
+        "Independently rate",
+        "Finalize the ledger",
+    ] {
+        for restart in [true, false] {
+            let f = Fixture::new().await;
+            let seen = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+            Mock::given(method("POST"))
+                .and(path("/api/v1/chat/completions"))
+                .respond_with(DelayStep {
+                    needle,
+                    seen: seen.clone(),
+                })
+                .with_priority(1)
+                .mount(&f.fake.server)
+                .await;
+            let room = f.open(OpenMode::Interactive).await;
+            room.submit(request(
+                &f.config,
+                "@all $census Build for MEMBER0 and PERSONA_0 using fixture/member0.",
+            ))
+            .await;
+            f.wait(|| seen.load(std::sync::atomic::Ordering::SeqCst) && (needle!="Independently rate" || f.db().query_row("SELECT COUNT(*) FROM work WHERE kind='census.rate' AND status='completed'",[],|r|r.get::<_,i64>(0)).unwrap()==5)).await;
+            if restart {
+                room.shutdown().await.unwrap();
+                let changed = f._dir.path().join("changed-prompts");
+                std::fs::create_dir_all(&changed).unwrap();
+                let (file, original) = match needle {
+                    "Merge the independent findings" => (
+                        "census.merge.md",
+                        include_str!("../../../prompts/census.merge.md"),
+                    ),
+                    "Independently rate" => (
+                        "census.rate.md",
+                        include_str!("../../../prompts/census.rate.md"),
+                    ),
+                    _ => (
+                        "census.final.md",
+                        include_str!("../../../prompts/census.final.md"),
+                    ),
+                };
+                std::fs::write(
+                    changed.join(file),
+                    format!("CHANGED_PROMPT_CANARY\n{original}"),
+                )
+                .unwrap();
+                let mut changed_config = f.config.clone();
+                changed_config.prompts.directory = Some(changed);
+                let room = RoomHandle::open_with_client(
+                    changed_config,
+                    "main",
+                    OpenMode::Interactive,
+                    OpenRouterClient::new(&f.fake.base_url(), "fake-key").unwrap(),
+                )
+                .await
+                .unwrap();
+
+                f.wait(|| f.count("census.report") == 1).await;
+                let bodies = f.fake.captured_bodies().await;
+                assert!(
+                    bodies
+                        .iter()
+                        .all(|b| !b["messages"].to_string().contains("CHANGED_PROMPT_CANARY"))
+                );
+                assert_eq!(bodies.len(), 15, "{needle}");
+                let target = if needle == "Independently rate" {
+                    "fixture/member0"
+                } else {
+                    "fixture/judge"
+                };
+                let calls = bodies
+                    .iter()
+                    .filter(|b| {
+                        b["model"] == target
+                            && b["messages"][1]["content"]
+                                .as_str()
+                                .unwrap()
+                                .contains(needle)
+                    })
+                    .collect::<Vec<_>>();
+                assert_eq!(calls.len(), 2);
+                assert_eq!(calls[0]["messages"], calls[1]["messages"]);
+                for body in &bodies {
+                    let data = extract_data(body["messages"][1]["content"].as_str().unwrap());
+                    let plan = data["plan"].as_str().unwrap();
+                    assert!(!plan.contains("MEMBER0"));
+                    assert!(!plan.contains("PERSONA_0"));
+                    assert!(!plan.contains("fixture/member0"));
+                }
+                room.shutdown().await.unwrap();
+            } else {
+                room.submit(Request::Stop {
+                    request_id: EventId::new(),
+                    target: None,
+                })
+                .await;
+                assert_eq!(f.status(), "STOPPED");
+                assert_eq!(f.count("census.report"), 0);
+                let mut q = f.db();
+                let tx = q.transaction().unwrap();
+                let (work,attempt,fence,epoch):(String,i64,i64,i64)=tx.query_row("SELECT work_id,attempt,lease_fence,epoch FROM work WHERE status='cancelled' ORDER BY rowid DESC LIMIT 1",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
+                let work: WorkId = work.parse().unwrap();
+                let (template, _) = squad_store::work::template(&tx, work).unwrap().unwrap();
+                let owner = squad_store::work::owner(&template).unwrap();
+                assert!(
+                    squad_store::work::check_fence(
+                        &tx,
+                        work,
+                        &owner,
+                        attempt as u32,
+                        fence.saturating_sub(1) as u64,
+                        epoch as u64,
+                        chrono::Utc::now()
+                    )
+                    .is_err()
+                );
+                tx.commit().unwrap();
+                room.shutdown().await.unwrap();
+            }
+        }
+    }
+}
+#[derive(Clone)]
+struct WordyOnce {
+    judge: bool,
+    seen: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+impl Respond for WordyOnce {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+        let user = body["messages"][1]["content"].as_str().unwrap();
+        let selected = if self.judge {
+            user.contains("Merge the independent findings")
+        } else {
+            user.contains("Hunt independently")
+        };
+        if selected && !self.seen.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            let omission = "word ".repeat(1000);
+            let output = if self.judge {
+                let data = extract_data(user);
+                serde_json::json!({"ledger":[{"id":"g1","omission":omission,"consequence":"Loss","lenses":["failure modes"],"sourceFindIds":data["sourceIds"]}]})
+            } else {
+                serde_json::json!({"gaps":[{"localId":"one","omission":omission,"consequence":"Loss"}]})
+            };
+            return streaming(&output.to_string(), "stop");
+        }
+        Answers.respond(r)
+    }
+}
+#[tokio::test]
+async fn prose_budget_failures_use_member_plain_retry_and_one_private_judge_repair() {
+    for judge in [false, true] {
+        let mut f = Fixture::new().await;
+        f.config.prompts.limits.room_words = 40;
+        f.config.prompts.limits.plan_words = 80;
+        let model = if judge {
+            "fixture/judge"
+        } else {
+            "fixture/member0"
+        };
+        Mock::given(method("POST"))
+            .and(path("/api/v1/chat/completions"))
+            .and(wiremock::matchers::body_partial_json(
+                serde_json::json!({"model":model}),
+            ))
+            .respond_with(WordyOnce {
+                judge,
+                seen: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            })
+            .with_priority(1)
+            .mount(&f.fake.server)
+            .await;
+        let room = f.open(OpenMode::Interactive).await;
+        room.submit(request(&f.config, "@all $census Build a database service."))
+            .await;
+        f.wait(|| f.count("census.report") == 1).await;
+        assert!(f.report().missing.is_empty());
+        assert_eq!(f.fake.captured_bodies().await.len(), 15);
+        let repairs: i64 = f
+            .db()
+            .query_row("SELECT COUNT(*) FROM judge_repairs", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(repairs, i64::from(judge));
         room.shutdown().await.unwrap();
     }
 }

@@ -788,10 +788,20 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             .to_owned();
         let (message_id, content, reply) = match &event.content {
             EnvelopePayload::UserMessage(m) => (Some(m.input.message_id), m.body.clone(), None),
+            EnvelopePayload::CensusPlan(p) => (None, p.text.to_string(), None),
+            EnvelopePayload::CensusReport(r) => (None, crate::export::census::report_text(r), None),
             EnvelopePayload::MessageFinal(m) => (
                 Some(m.completed.generation.message_id),
                 m.content.clone(),
                 Some(m.in_reply_to_message_id),
+            ),
+            _ if kind == "grill.plan" => (
+                None,
+                crate::orchestrator::census::grill_plan_text(&serde_json::to_value(
+                    &event.content,
+                )?)
+                .unwrap_or_default(),
+                None,
             ),
             _ => (None, String::new(), None),
         };

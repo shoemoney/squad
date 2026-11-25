@@ -135,10 +135,10 @@
   - [ ] M2.P2.L7.T8 — Test question-first collection as ordinary mutually invisible replies, continued chat while a pick is pending, and retention of collected answers after cancellation in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
 
 - **M2.P2.L8 — Execute census work**
-  - [ ] M2.P2.L8.T1 — Execute census hunt and rating Work with the assigned lens, frozen plan version, anonymous ledger, and owning result schemas in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L8.T2 — Execute census merge and finalization Work through the case-bound judge adapter and owning templates in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L8.T3 — Capture requests to verify blind hunts, the eight-gap bound, anonymous rating inputs without finder counts, covered citations, and no executor-computed authoritative estimate in crate `squad-agents`, file `crates/squad-agents/tests/agents_census.rs`.
-  - [ ] M2.P2.L8.T4 — Test committed per-member delivery, patched plan versions between passes, frozen retry inputs, and exclusion of the human’s provenance table from member contexts in crate `squad-core`, file `crates/squad-core/tests/agents_census.rs`.
+  - [x] M2.P2.L8.T1 — Execute census hunt and rating Work with the assigned lens, frozen plan version, anonymous ledger, and owning result schemas in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L8.T2 — Execute census merge and finalization Work through the case-bound judge adapter and owning templates in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L8.T3 — Capture requests to verify blind hunts, the eight-gap bound, anonymous rating inputs without finder counts, covered citations, and no executor-computed authoritative estimate in crate `squad-agents`, file `crates/squad-agents/tests/agents_census.rs`.
+  - [x] M2.P2.L8.T4 — Test committed per-member delivery, patched plan versions between passes, frozen retry inputs, and exclusion of the human’s provenance table from member contexts in crate `squad-core`, file `crates/squad-core/tests/agents_census.rs`.
 
 - **M2.P2.L9 — Execute crosscheck work and fresh audits**
   - [ ] M2.P2.L9.T1 — Execute crosscheck inventory and cell-review Work with only the authorized goal, constraints, lens, plan, and assigned-cell projection in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.

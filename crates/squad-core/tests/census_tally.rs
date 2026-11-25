@@ -88,6 +88,8 @@ fn singleton_zero_doubleton_estimate_and_cross_pass_identity() {
             covered: 0,
             trivial: 0,
             finders: vec!["member0".parse().unwrap()],
+            finder_count: 1,
+            priority: None,
             citations: vec![],
         });
     }
@@ -144,4 +146,13 @@ fn redaction_uses_unicode_boundaries_and_leaves_originals() {
             .count(),
         8
     );
+}
+#[test]
+fn canonical_grill_plan_text_is_available_to_the_census_source_adapter() {
+    let plan = serde_json::json!({"kind":"grill.plan","payload":{"contestId":"01900000-0000-7000-8000-000000000001","round":1,"version":2,"leader":"member0","text":"Complete rebuilt plan"}});
+    assert_eq!(
+        grill_plan_text(&plan).as_deref(),
+        Some("Complete rebuilt plan")
+    );
+    assert!(grill_plan_text(&serde_json::json!({"kind":"contest.artifact","payload":{"text":"not an admitted plan"}})).is_none());
 }

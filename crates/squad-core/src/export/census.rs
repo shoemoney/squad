@@ -2,6 +2,9 @@
 use squad_protocol::*;
 use std::fmt::Write;
 pub fn report_text(report: &CensusReport) -> String {
+    report_text_with_details(report, true)
+}
+pub fn report_text_with_details(report: &CensusReport, details: bool) -> String {
     let mut out = format!(
         "CENSUS · pass {} · plan version {}\n\n{}\n{}\n\n",
         report.pass, report.plan_version, CENSUS_RANGE_UNAVAILABLE, CENSUS_CAVEAT
@@ -15,12 +18,16 @@ pub fn report_text(report: &CensusReport) -> String {
         let _ = writeln!(
             out,
             "  Finders ({}): {} · lens: {} · accepted ratings: {} (covered {}, trivial {})",
-            gap.finders.len(),
-            gap.finders
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join(", "),
+            gap.finder_count,
+            if details {
+                gap.finders
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            } else {
+                "F7: member-by-gap details".into()
+            },
             gap.gap
                 .lenses
                 .iter()
@@ -31,7 +38,10 @@ pub fn report_text(report: &CensusReport) -> String {
             gap.covered,
             gap.trivial
         );
-        if gap.finders.len() == 1 && gap.disposition == CensusDisposition::Confirmed {
+        if let Some(priority) = &gap.priority {
+            let _ = writeln!(out, "  Priority: {priority}");
+        }
+        if gap.finder_count == 1 && gap.disposition == CensusDisposition::Confirmed {
             out.push_str("  Singleton: the other members missed this gap.\n");
         }
         for citation in &gap.citations {
