@@ -1,0 +1,15 @@
+[package]
+name = "squad-tui"
+description = "Squad terminal UI built on Ratatui."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+squad-protocol = { workspace = true }
+squad-core = { workspace = true }
+
+[lints]
+workspace = true

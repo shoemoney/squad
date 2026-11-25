@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/shoemoney/squad"
+rust-version = "1.99"
+
+[workspace.dependencies]
+squad-protocol = { path = "crates/squad-protocol" }
+squad-store = { path = "crates/squad-store" }
+squad-agents = { path = "crates/squad-agents" }
+squad-core = { path = "crates/squad-core" }
+squad-tui = { path = "crates/squad-tui" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }

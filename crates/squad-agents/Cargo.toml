@@ -1,0 +1,14 @@
+[package]
+name = "squad-agents"
+description = "Squad agent executors: OpenRouter client, model registry and context-bound workers."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+squad-protocol = { workspace = true }
+
+[lints]
+workspace = true

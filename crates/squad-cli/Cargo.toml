@@ -1,0 +1,20 @@
+[package]
+name = "squad-cli"
+description = "The squad binary."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "squad"
+path = "src/main.rs"
+
+[dependencies]
+squad-protocol = { workspace = true }
+squad-core = { workspace = true }
+squad-tui = { workspace = true }
+
+[lints]
+workspace = true
