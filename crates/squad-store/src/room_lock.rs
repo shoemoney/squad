@@ -21,7 +21,10 @@ impl RoomLock {
             use std::os::unix::fs::PermissionsExt;
             file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
         }
-        if file.try_lock_exclusive().is_err() {
+        if let Err(error) = file.try_lock_exclusive() {
+            if error.kind() != std::io::ErrorKind::WouldBlock {
+                return Err(error);
+            }
             let mut pid = String::new();
             file.read_to_string(&mut pid)?;
             let pid = pid

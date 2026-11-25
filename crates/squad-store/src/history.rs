@@ -109,6 +109,6 @@ pub fn release(db: &Connection, contest: ContestId) -> Result<()> {
         "DELETE FROM deferred_history WHERE contest_id=?",
         [contest.to_string()],
     )?;
-    db.execute("UPDATE work SET held_by_contest_id=NULL,runnable=1 WHERE held_by_contest_id=? AND status='queued'",[contest.to_string()])?;
+    db.execute("UPDATE work SET held_by_contest_id=NULL,runnable=CASE WHEN json_type(scheduling_meta,'$.openModeDormant') IS NULL THEN 1 ELSE 0 END,scheduling_meta=CASE WHEN json_type(scheduling_meta,'$.openModeDormant') IS NULL THEN scheduling_meta ELSE json_set(scheduling_meta,'$.openModeDormant',1) END WHERE held_by_contest_id=? AND status='queued'",[contest.to_string()])?;
     Ok(())
 }

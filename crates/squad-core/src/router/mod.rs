@@ -2,7 +2,9 @@
 pub mod accounting;
 pub mod authorization;
 pub mod cases;
+pub mod clear;
 pub mod ephemeral;
+pub mod recovery;
 pub mod references;
 pub mod regen;
 pub mod retry;
@@ -19,6 +21,7 @@ pub struct Router {
     roster: Vec<MemberNick>,
     bindings: BTreeMap<String, ExecutorBinding>,
     daily_max: i64,
+    pub variable_defaults: squad_store::clear::Defaults,
     pub ephemeral: ephemeral::Ephemeral,
 }
 pub fn envelope(
@@ -90,6 +93,7 @@ impl Router {
             roster,
             bindings,
             daily_max,
+            variable_defaults: Default::default(),
             ephemeral: Default::default(),
         })
     }
@@ -105,9 +109,13 @@ impl Router {
         request: Request,
         owner: Option<ExecutorKey>,
     ) -> Result<CommitOutcome> {
+        let trace_id = request_id(&request);
+        tracing::debug!(request_id=%trace_id,"Router request received");
         if let Some(owner) = owner {
             if let Request::Internal(InternalRequest::Executor(request)) = request {
-                return self.executor(request, owner);
+                let outcome = self.executor(request, owner)?;
+                trace_outcome(trace_id, &outcome);
+                return Ok(outcome);
             }
             return Err(authorization::forbidden());
         }
@@ -144,6 +152,7 @@ impl Router {
         let roster = self.roster.clone();
         let bindings = self.bindings.clone();
         let clear = matches!(request, Request::Clear { .. });
+        let defaults = self.variable_defaults;
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
             match request {
                 Request::UserMessage {input,parsed,..}=> {
@@ -187,28 +196,19 @@ impl Router {
                 Request::Stop {target,..}=>stop::apply(tx,group,id,target)?,
                 Request::Retry {work_id,..}=>retry::apply(tx,group,id,work_id)?,
                 Request::Regen {message_id,..}=>regen::apply(tx,group,id,message_id)?,
-                Request::Clear {..}=> {
-                    let previous:i64=tx.query_row("SELECT next_event_seq-1 FROM room_meta",[],|r|r.get(0))?;
-                    squad_store::clear::content(tx)?;group.epoch+=1;
-                    group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::RoomCleared(RoomCleared {epoch:group.epoch as u64,previous_through:Cursor::new(previous).ok()})))?;
-                }
+                Request::Clear {..}=>clear::apply(tx,group,id,defaults)?,
+
                 _=>return Err(StoreError::Domain(ErrorCode::COMMAND_NOT_IMPLEMENTED,"Operation is not implemented")),
             }
             Ok(group.accepted(id))
         })?;
         if clear && !outcome.duplicate {
             self.ephemeral = Default::default();
-            if self
-                .store
-                .call(|db| {
-                    db.execute_batch("VACUUM")?;
-                    Ok(())
-                })
-                .is_err()
-            {
+            if self.store.vacuum_after_clear().is_err() {
                 tracing::warn!("Clear committed; deferred VACUUM remains pending");
             }
         }
+        trace_outcome(trace_id, &outcome);
         Ok(outcome)
     }
     fn executor(&mut self, request: ExecutorRequest, owner: ExecutorKey) -> Result<CommitOutcome> {
@@ -218,7 +218,8 @@ impl Router {
                 let result = self.store.call(move |db| {
                     let tx =
                         db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-                    let grant = squad_store::work::claim(&tx, work_id, &owner, chrono::Utc::now())?;
+                    let grant =
+                        squad_store::leases::claim(&tx, work_id, &owner, chrono::Utc::now())?;
                     tx.commit()?;
                     Ok(RequestResult::Internal(
                         grant.map_or(InternalResult::NoWork, InternalResult::Claimed),
@@ -571,6 +572,27 @@ fn settle_usage(
     squad_store::accounting::reconcile(tx, &record)?;
     Ok(record)
 }
+/// Log canonical identities after commit, without conversational bodies or metadata.
+fn trace_outcome(request_id: EventId, outcome: &CommitOutcome) {
+    for event in &outcome.events {
+        let work_id = match &event.content {
+            EnvelopePayload::WorkState(w) => Some(w.work_id),
+            EnvelopePayload::UsageRecord(w) => Some(w.work_id),
+            EnvelopePayload::MessageFinal(w) | EnvelopePayload::AgentReply(w) => {
+                Some(w.completed.generation.work_id)
+            }
+            _ => None,
+        };
+        tracing::debug!(%request_id,event_id=%event.base.id,correlation_id=%event.base.correlation_id,causation_id=?event.base.causation_id,?work_id,cursor=%event.commit.seq.get(),"Router commit accepted");
+    }
+    if let RequestResult::Internal(
+        InternalResult::Claimed(grant) | InternalResult::Started(grant),
+    ) = &outcome.result
+    {
+        tracing::debug!(%request_id,work_id=%grant.work.work_id,correlation_id=%grant.work.trigger_event_id,causation_id=%grant.work.trigger_event_id,attempt=grant.work.attempt,fence=grant.fence,epoch=grant.epoch,"Executor grant acknowledged");
+    }
+}
+
 pub fn request_id(request: &Request) -> EventId {
     match request {
         Request::UserMessage { input, .. } => input
