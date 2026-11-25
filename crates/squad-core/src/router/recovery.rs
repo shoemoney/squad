@@ -206,7 +206,7 @@ impl<H: CaseExecutors> RuntimeHarness<H> {
             let result = self.router.store.call(move |db| {
                 let tx = db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
                 let grant =
-                    squad_store::leases::claim_in_scope(&tx, id, &key, chrono::Utc::now(), &scope)?;
+                    squad_store::leases::claim(&tx, id, &key, chrono::Utc::now(), Some(&scope))?;
                 tx.commit()?;
                 Ok(RequestResult::Internal(
                     grant.map_or(InternalResult::NoWork, InternalResult::Claimed),

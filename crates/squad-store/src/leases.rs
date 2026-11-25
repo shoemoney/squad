@@ -47,29 +47,8 @@ pub fn eligible_at(db: &Connection, now: DateTime) -> Result<Vec<WorkRecord>> {
         .collect()
 }
 
-/// Enforce attempt budgets and persisted deadlines before the shared claim path.
-pub fn claim(
-    db: &Connection,
-    id: WorkId,
-    key: &ExecutorKey,
-    now: DateTime,
-) -> Result<Option<ExecutionGrant>> {
-    claim_with_scope(db, id, key, now, None)
-}
-
-/// OneShot has a private scheduling set. Dormant earlier work in the same
-/// context must neither execute nor block work accepted by this invocation.
-pub fn claim_in_scope(
-    db: &Connection,
-    id: WorkId,
-    key: &ExecutorKey,
-    now: DateTime,
-    scope: &[WorkId],
-) -> Result<Option<ExecutionGrant>> {
-    claim_with_scope(db, id, key, now, Some(scope))
-}
 /// Single lease authority for interactive and invocation-scoped dispatch.
-pub fn claim_with_scope(
+pub fn claim(
     db: &Connection,
     id: WorkId,
     key: &ExecutorKey,

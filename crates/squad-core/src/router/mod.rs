@@ -306,7 +306,7 @@ impl Router {
                     let tx =
                         db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
                     let grant =
-                        squad_store::leases::claim(&tx, work_id, &owner, chrono::Utc::now())?;
+                        squad_store::leases::claim(&tx, work_id, &owner, chrono::Utc::now(), None)?;
                     tx.commit()?;
                     Ok(RequestResult::Internal(
                         grant.map_or(InternalResult::NoWork, InternalResult::Claimed),

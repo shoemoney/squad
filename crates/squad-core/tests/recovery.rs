@@ -157,6 +157,7 @@ fn recovery_reuses_only_unstarted_ordinals_and_fences_stopped_workers() {
                 id,
                 &ExecutorKey::Member(nick("alice")),
                 chrono::Utc::now(),
+                None,
             )?
             .unwrap();
             tx.commit()?;
@@ -193,8 +194,9 @@ fn recovery_reuses_only_unstarted_ordinals_and_fences_stopped_workers() {
             squad_store::leases::recover(&tx, true, chrono::Utc::now())?;
             tx.commit()?;
             let tx = db.transaction()?;
-            let next = squad_store::leases::claim(&tx, id, &second_copy.owner, chrono::Utc::now())?
-                .unwrap();
+            let next =
+                squad_store::leases::claim(&tx, id, &second_copy.owner, chrono::Utc::now(), None)?
+                    .unwrap();
             assert_eq!(next.work.attempt, 2);
             assert_eq!(
                 squad_store::accounting::daily(&tx, "2026-11-24")?.unknown_calls,
@@ -429,7 +431,7 @@ fn case_lifecycle_double_recovers_repairs_retires_and_spawns_for_a_later_summon(
         tx.commit()?;
         let tx=db.transaction()?;squad_store::leases::recover(&tx,true,chrono::Utc::now())?;tx.commit()?;
         let tx=db.transaction()?;
-        let resumed=squad_store::leases::claim(&tx,id,&ExecutorKey::Case(case),chrono::Utc::now())?.unwrap();
+        let resumed=squad_store::leases::claim(&tx,id,&ExecutorKey::Case(case),chrono::Utc::now(), None)?.unwrap();
         assert_eq!(resumed.work.attempt,2);
         assert_eq!(tx.query_row("SELECT rejected_output FROM judge_repairs WHERE work_id=?",[id.to_string()],|r|r.get::<_,String>(0))?,"bad output");
         tx.execute("UPDATE work SET status='completed',runnable=0,lease_fence=lease_fence+1 WHERE work_id=?",[id.to_string()])?;

@@ -153,15 +153,6 @@ pub fn record(db: &Connection, id: WorkId) -> Result<Option<WorkRecord>> {
         error: error.map(decode).transpose()?,
     }))
 }
-pub fn claim(
-    db: &Connection,
-    id: WorkId,
-    key: &ExecutorKey,
-    now: DateTime,
-) -> Result<Option<ExecutionGrant>> {
-    crate::leases::claim_with_scope(db, id, key, now, None)
-}
-
 pub fn check_fence(
     db: &Connection,
     id: WorkId,

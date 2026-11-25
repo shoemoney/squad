@@ -157,7 +157,7 @@ impl Router {
                     DebateStatus::Failed
                 };
                 state.state_version += 1;
-                state.terminal_reason = Some(Text::new(format!("{code:?}")).expect("code"));
+                state.terminal_reason = Some(format!("{code:?}"));
                 let mut error = crate::router::error(code, "Contest could not advance");
                 error.debate_id = Some(state.debate_id);
                 error.contest_id = Some(state.debate_id);

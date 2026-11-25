@@ -43,6 +43,7 @@ pub type RoomFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, RoomError>> +
 pub trait RoomRuntime: Send + Sync {
     fn ready(&mut self) -> RoomFuture<'_, ()>;
     fn wake(&self, work_ids: &[WorkId]);
+    fn pause(&mut self) -> RoomFuture<'_, ()> { Box::pin(async { Ok(()) }) }
     fn reset(&mut self) -> RoomFuture<'_, ()> {
         Box::pin(async { Ok(()) })
     }
@@ -96,6 +97,9 @@ impl RoomRuntime for LiveRuntime {
     }
     fn wake(&self, ids: &[WorkId]) {
         self.handle.as_ref().expect("runtime").wake(ids);
+    }
+    fn pause(&mut self) -> RoomFuture<'_, ()> {
+        Box::pin(async { if let Some(handle)=self.handle.take(){handle.shutdown().await.map_err(runtime_error)?;} Ok(()) })
     }
     fn reset(&mut self) -> RoomFuture<'_, ()> {
         Box::pin(async {
@@ -439,8 +443,16 @@ impl RoomHandle {
             })
             .unwrap_or(true);
         let clear = matches!(request, Request::Clear { .. });
+        if clear && !duplicate {
+            let resources = self.resources.lock().expect("room resources").take();
+            if let Some(mut resources) = resources {
+                let stopped = resources.runtime.pause().await;
+                *self.resources.lock().expect("room resources") = Some(resources);
+                if let Err(error) = stopped { return RequestResult::Rejected { request_id: id, error: crate::router::error(error.code, error.message) }; }
+            }
+        }
         let result = bus.send(request).await;
-        if clear && !duplicate && matches!(result, RequestResult::Accepted { .. }) {
+        if clear && !duplicate {
             let resources = self.resources.lock().expect("room resources").take();
             if let Some(mut resources) = resources {
                 let restarted = resources.runtime.reset().await;

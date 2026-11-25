@@ -29,7 +29,7 @@ fn interrupted_round_calls_keep_two_attempt_limit_and_unknown_accounting() {
             for ordinal in 1..=2 {
                 let tx = db.transaction()?;
                 let grant =
-                    squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now())?.unwrap();
+                    squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now(), None)?.unwrap();
                 assert_eq!(grant.work.attempt, ordinal);
                 squad_store::accounting::start(
                     &tx,
@@ -64,7 +64,9 @@ fn interrupted_round_calls_keep_two_attempt_limit_and_unknown_accounting() {
                 );
             }
             let tx = db.transaction()?;
-            assert!(squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now())?.is_none());
+            assert!(
+                squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now(), None)?.is_none()
+            );
             assert_eq!(squad_store::work::record(&tx, id)?.unwrap().attempt, 2);
             assert_eq!(
                 squad_store::accounting::daily(&tx, "2026-11-24")?.unknown_calls,
@@ -91,14 +93,14 @@ fn expired_unstarted_lease_reuses_ordinal_but_retains_deadline_and_frozen_bounda
                 rusqlite::params![deadline.to_rfc3339(), id.to_string()],
             )?;
             let tx = db.transaction()?;
-            let first = squad_store::leases::claim(&tx, id, &owner, now)?.unwrap();
+            let first = squad_store::leases::claim(&tx, id, &owner, now, None)?.unwrap();
             tx.commit()?;
             let after = now + chrono::Duration::minutes(2);
             let tx = db.transaction()?;
             assert_eq!(squad_store::leases::recover(&tx, false, after)?, vec![id]);
             tx.commit()?;
             let tx = db.transaction()?;
-            let next = squad_store::leases::claim(&tx, id, &owner, after)?.unwrap();
+            let next = squad_store::leases::claim(&tx, id, &owner, after, None)?.unwrap();
             assert_eq!(next.work.attempt, 1);
             assert!(next.fence > first.fence);
             assert_eq!(next.work.history_through, first.work.history_through);
@@ -106,7 +108,7 @@ fn expired_unstarted_lease_reuses_ordinal_but_retains_deadline_and_frozen_bounda
             tx.commit()?;
             let tx = db.transaction()?;
             squad_store::leases::recover(&tx, false, deadline)?;
-            assert!(squad_store::leases::claim(&tx, id, &owner, deadline)?.is_none());
+            assert!(squad_store::leases::claim(&tx, id, &owner, deadline, None)?.is_none());
             tx.commit()?;
             Ok(())
         })
@@ -119,7 +121,8 @@ fn an_unstarted_repair_claim_does_not_inherit_the_previous_calls_started_flag() 
     store
         .call(move |db| {
             let tx = db.transaction()?;
-            let first = squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now())?.unwrap();
+            let first =
+                squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now(), None)?.unwrap();
             squad_store::accounting::start(
                 &tx,
                 &first,
@@ -132,13 +135,14 @@ fn an_unstarted_repair_claim_does_not_inherit_the_previous_calls_started_flag() 
                 "UPDATE work SET status='queued' WHERE work_id=?",
                 [id.to_string()],
             )?;
-            let second = squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now())?.unwrap();
+            let second =
+                squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now(), None)?.unwrap();
             assert_eq!(second.work.attempt, 2);
             tx.commit()?;
             let tx = db.transaction()?;
             squad_store::leases::recover(&tx, true, chrono::Utc::now())?;
             let recovered =
-                squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now())?.unwrap();
+                squad_store::leases::claim(&tx, id, &owner, chrono::Utc::now(), None)?.unwrap();
             assert_eq!(recovered.work.attempt, 2);
             assert!(recovered.fence > second.fence);
             assert_eq!(

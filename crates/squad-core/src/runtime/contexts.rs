@@ -86,19 +86,17 @@ impl ExecutorSubmit for ScopedSubmit {
     fn submit(&self, request: ExecutorRequest) -> SubmitFuture<'_> {
         Box::pin(async move {
             if let ExecutorRequest::Claim { work_id } = request {
-                let scope = squad_store::dispatch::DispatchScope {
-                    work_ids: self.scope.ids.lock().expect("dispatch scope").clone(),
-                };
+                let scope = self.scope.ids.lock().expect("dispatch scope").clone();
                 let owner = self.owner.clone();
                 return match self.store.call(move |db| {
                     let tx =
                         db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-                    let grant = squad_store::dispatch::claim_scoped(
+                    let grant = squad_store::leases::claim(
                         &tx,
                         work_id,
                         &owner,
                         chrono::Utc::now(),
-                        &scope,
+                        Some(&scope),
                     )?;
                     tx.commit()?;
                     Ok(grant)
