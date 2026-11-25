@@ -490,9 +490,13 @@ async fn cancellation_and_expiry_do_not_call_provider() {
 #[tokio::test]
 async fn daily_refusal_before_any_grill_attempt() {
     let mut f = Fixture::new().await;
-    f.config.budget.daily_max_usd = 0.05;
     let room = f.open(OpenMode::Interactive).await;
     seed(&f, &room).await;
+    room.shutdown().await.unwrap();
+    // The ordinary seed call must itself fit its priced reservation. Apply the
+    // small cap after collecting the plan, before admitting the grill.
+    f.config.budget.daily_max_usd = 0.05;
+    let room = f.open(OpenMode::Interactive).await;
     let result = send(&f, &room, "@member0 $grill").await;
     assert!(
         matches!(

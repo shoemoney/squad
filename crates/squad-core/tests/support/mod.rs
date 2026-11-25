@@ -46,7 +46,7 @@ impl Fixture {
             output_limit: 65536,
             supported_parameters: vec!["reasoning".into()],
             reasoning_efforts: vec!["low".into(), "high".into()],
-            pricing: serde_json::json!({}),
+            pricing: serde_json::json!({"prompt":"0", "completion":"0"}),
         };
         let pinned = |name: String| PinnedModel {
             nick: name,
@@ -90,6 +90,10 @@ impl Fixture {
             },
         );
         let store = Store::open(dir.path().join("room.sqlite")).unwrap();
+        store.call(|db| {
+            db.execute("INSERT INTO catalog VALUES (?,131072,65536,'{\"prompt\":\"0\",\"completion\":\"0\"}','[\"reasoning\"]','2026-11-25T00:00:00Z')", [MODEL])?;
+            Ok(())
+        }).unwrap();
         let bus = InProcessBus::start(
             Router::new(
                 store.clone(),

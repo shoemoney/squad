@@ -81,6 +81,12 @@ async fn exhausted_member_does_not_block_other_member_or_persist_provisional_tex
 async fn real_room_daily_max_exact_message_restart_and_raised_max() {
     let mut f = Fixture::new().await;
     f.config.budget.daily_max_usd = 0.000045;
+    f.fake.server.reset().await;
+    f.fake.catalog(serde_json::json!({"data":[
+        {"id":"fixture/member0","context_length":1000000,"pricing":{"prompt":"0.000000000001","completion":"0.000000000002"}},
+        {"id":"fixture/member1","context_length":1000000,"pricing":{"prompt":"0.000000000001","completion":"0.000000000002"}},
+        {"id":"fixture/judge","context_length":1000000,"pricing":{"prompt":"0.000000000001","completion":"0.000000000002"}}
+    ]})).await;
     f.fake
         .completions(vec![
             streaming("first", "stop"),
@@ -251,10 +257,7 @@ async fn credentials_and_provider_reasoning_never_reach_feed_export_debug_or_sql
     }
 }
 
-// Executable release blockers. Keep their milestone checkboxes unticked until
-// ordinary dispatch prices and atomically reserves all permitted attempts.
 #[tokio::test]
-#[ignore = "ordinary dispatch currently starts without creating a priced reservation"]
 async fn ordinary_missing_cost_must_retain_a_positive_priced_reservation() {
     let f = Fixture::new().await;
     f.fake.completions(vec![missing_cost()]).await;

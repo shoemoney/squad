@@ -208,7 +208,7 @@ pub fn start(
         let (_, binding) = squad_store::work::template(tx, work_id)?.ok_or(StoreError::Unavailable)?;
         let grant = ExecutionGrant { binding, work, owner, fence, epoch: epoch as u64, lease_until: record.lease_until.ok_or(StoreError::Unavailable)?, deadline: record.deadline };
         let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-        match squad_store::accounting::start(tx, &grant, group.accepted_at, &day, max) {
+        match squad_store::accounting::start_priced(tx, &grant, group.accepted_at, &day, max) {
             Ok(()) => Ok(RequestResult::Internal(InternalResult::Started(grant))),
             Err(StoreError::Domain(code, message)) => {
                 let text = if code == ErrorCode::DAILY_MAX_REACHED {
