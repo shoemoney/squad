@@ -75,9 +75,8 @@ pub fn render(view: &CaseView, area: Rect, buf: &mut Buffer, palette: &Palette) 
     let body = Style::default();
     out.heading = c.line(
         &format!(
-            "{} Case {} · @judge · {}",
+            "{} Judging · @judge · {}",
             if view.collapsed { "▸" } else { "▾" },
-            view.opened.case_id,
             view.opened.judge_model
         ),
         accent,
@@ -89,24 +88,19 @@ pub fn render(view: &CaseView, area: Rect, buf: &mut Buffer, palette: &Palette) 
     if let Some(warning) = &view.warning {
         c.line(warning, body);
     }
-    if let Some(verdict) = view.original_verdict {
-        c.line(&format!("Follow-up to verdict {verdict}"), body);
+    if view.original_verdict.is_some() {
+        c.line("Follow-up to accepted verdict", body);
     }
     match &view.opened.material {
         CaseMaterial::Standalone { messages, question } => {
             c.line(&format!("Question: {question}"), accent);
             for quote in messages {
-                out.material.push(c.line(
-                    &format!("{} [{}]: {}", quote.author, quote.event_id, quote.text),
-                    body,
-                ));
+                out.material
+                    .push(c.line(&format!("{}: {}", quote.author, quote.text), body));
             }
         }
         CaseMaterial::Debate { setup, .. } => {
-            c.line(
-                &format!("Debate {} · {}", setup.debate_id, setup.topic_text),
-                body,
-            );
+            c.line(&format!("Debate · {}", setup.topic_text), body);
         }
     }
     for entry in &view.entries {
@@ -114,21 +108,16 @@ pub fn render(view: &CaseView, area: Rect, buf: &mut Buffer, palette: &Palette) 
             CaseEntry::Ruling(ruling) => {
                 c.line(
                     &format!(
-                        "@judge · {} · {:?}",
-                        ruling.completed.model, ruling.completed.finish_reason
+                        "@judge · {} · {}",
+                        ruling.completed.model,
+                        super::debate::finish_label(&ruling.completed.finish_reason)
                     ),
                     accent,
                 );
                 out.rulings.push(c.line(ruling.content.as_str(), body));
             }
             CaseEntry::Followup { event, text } => {
-                c.line(
-                    &format!(
-                        "Follow-up [{}] · case {}",
-                        event.user_event_id, event.case_id
-                    ),
-                    accent,
-                );
+                c.line("Follow-up", accent);
                 out.followups.push(c.line(text, body));
                 if !view.entries.iter().any(|e| matches!(e, CaseEntry::Ruling(r) if r.judge_invocation_id == event.judge_invocation_id)) { c.line("@judge · awaiting follow-up ruling", body); }
             }

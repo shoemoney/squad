@@ -291,6 +291,15 @@ impl StatefulWidget for InputWidget {
                 }
             }
         }
+        if state.text.is_empty() && area.width > 2 {
+            buf.set_stringn(
+                area.x + 2,
+                area.y,
+                "Ask the squad…",
+                usize::from(area.width - 2),
+                Style::default().add_modifier(Modifier::DIM),
+            );
+        }
         // Overflow labels occupy reserved rows and never cover text or the caret.
         for (show, label, y) in [
             (labels && state.scroll > 0, "more above", area.y),

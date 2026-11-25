@@ -164,9 +164,6 @@ pub fn render(view: &PickView, area: Rect, buf: &mut Buffer, palette: &Palette) 
     if pending {
         p.text(view.kind.hint(), Style::default());
     }
-    if let Some(id) = view.id {
-        p.text(&format!("ID {id}"), Style::default());
-    }
     p.text(&view.question, Style::default());
     rects.status = p.text(
         if pending {

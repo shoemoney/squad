@@ -1,8 +1,5 @@
 //! Independently scrollable roster. All accounting is supplied as authoritative snapshots.
-use crate::{
-    fx::Palette,
-    markdown::{sanitize, wrap_lines},
-};
+use crate::{fx::Palette, markdown::sanitize};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -106,12 +103,88 @@ impl ParticipantView {
                     ""
                 }
             )),
-            Line::raw(
+            Line::styled(
                 self.tokens_per_second
                     .filter(|n| n.is_finite() && *n >= 0.)
-                    .map_or_else(|| "ready".into(), |n| format!("{n:.1} tok/s · estimated")),
+                    .map_or_else(|| "rate n/a".into(), |n| format!("~{n:.1} tok/s")),
+                Style::default().add_modifier(if self.presence == PresenceStatus::Streaming {
+                    Modifier::empty()
+                } else {
+                    Modifier::DIM
+                }),
+            ),
+            Line::styled(
+                format!(
+                    "model {}",
+                    if self.model.is_empty() {
+                        "n/a"
+                    } else {
+                        &self.model
+                    }
+                ),
+                Style::default().add_modifier(Modifier::DIM),
+            ),
+            Line::styled(
+                format!(
+                    "{} tok · {}",
+                    self.tokens.map_or("n/a".into(), |n| n.to_string()),
+                    self.cost_usd.map_or("n/a".into(), |n| format!("${n:.3}"))
+                ),
+                Style::default().add_modifier(Modifier::DIM),
             ),
         ]
+    }
+    fn compact_rows(&self, width: u16, palette: &Palette) -> Vec<Line<'static>> {
+        let lines = self.lines(palette);
+        let status = match self.presence {
+            PresenceStatus::Idle => "idle",
+            PresenceStatus::Thinking => "think",
+            PresenceStatus::Streaming => "live",
+            PresenceStatus::Error => "error",
+            PresenceStatus::Offline => "off",
+        };
+        let status = format!(
+            "{status}{}{}",
+            if self.queue_depth > 0 {
+                format!(" q{}", self.queue_depth)
+            } else {
+                String::new()
+            },
+            if self.eliminated { " · out" } else { "" }
+        );
+        let name = lines[0].to_string();
+        let heading = format!("{name} · {status}");
+        let mut rows = crate::text::wrap(&heading, usize::from(width.max(1)))
+            .into_iter()
+            .map(|row| {
+                Line::styled(
+                    row.cells
+                        .into_iter()
+                        .map(|cell| cell.display)
+                        .collect::<String>(),
+                    lines[0].style,
+                )
+            })
+            .collect::<Vec<_>>();
+        rows.push(lines[3].clone());
+        rows.push(lines[4].clone());
+        rows.push(if width < 20 && self.tokens.is_some() {
+            Line::styled(
+                format!(
+                    "{}t {}",
+                    self.tokens.map_or("n/a".into(), |n| n.to_string()),
+                    self.cost_usd.map_or("n/a".into(), |n| format!("${n:.3}"))
+                ),
+                lines[5].style,
+            )
+        } else {
+            lines[5].clone()
+        });
+        rows.push(Line::raw(format!(
+            "W{} L{} · T{}",
+            self.wins, self.losses, self.trophies
+        )));
+        rows
     }
 }
 pub struct ParticipantsView<'a> {
@@ -126,7 +199,7 @@ pub struct ParticipantsRects {
     pub animatable: Vec<Rect>,
     pub total_rows: usize,
 }
-/// Entries wrap without truncating identity. `scroll` is a visual row offset.
+/// Fixed metric rows preserve density. `scroll` is a visual row offset.
 pub fn render(view: &ParticipantsView<'_>, area: Rect, buf: &mut Buffer) -> ParticipantsRects {
     let area = area.intersection(buf.area);
     let mut geometry = ParticipantsRects::default();
@@ -134,35 +207,28 @@ pub fn render(view: &ParticipantsView<'_>, area: Rect, buf: &mut Buffer) -> Part
         return geometry;
     }
     let mut offset = 0;
+    let mut hidden = 0;
+    let total: usize = view
+        .members
+        .iter()
+        .map(|m| m.compact_rows(area.width, view.palette).len())
+        .sum();
     for member in view.members {
-        let rows = wrap_lines(
-            &member.lines(view.palette),
-            usize::from(area.width).saturating_add(4),
-        );
-        let record_start = wrap_lines(
-            &member.lines(view.palette)[..2],
-            usize::from(area.width) + 4,
-        )
-        .len();
-        let record_end = record_start
-            + wrap_lines(
-                &member.lines(view.palette)[2..3],
-                usize::from(area.width) + 4,
-            )
-            .len();
+        let rows = member.compact_rows(area.width, view.palette);
+        let overflow = total > usize::from(area.height);
+        let available = usize::from(area.height).saturating_sub(usize::from(overflow));
+        if offset + rows.len() > view.scroll + available {
+            hidden += 1;
+            offset += rows.len();
+            continue;
+        }
+        let record_start = rows.len() - 1;
+        let record_end = rows.len();
         for (i, row) in rows.iter().enumerate() {
             let absolute = offset + i;
             if absolute >= view.scroll && absolute - view.scroll < usize::from(area.height) {
                 let y = area.y + (absolute - view.scroll) as u16;
-                // wrap_lines adds two-cell body padding; the roster uses all available columns.
-                let text = Line::from(
-                    row.spans
-                        .iter()
-                        .skip(1)
-                        .take(row.spans.len().saturating_sub(2))
-                        .cloned()
-                        .collect::<Vec<_>>(),
-                );
+                let text = row.clone();
                 text.render(Rect::new(area.x, y, area.width, 1), buf);
                 let rect = Rect::new(area.x, y, area.width, 1);
                 if i == 0 {
@@ -175,9 +241,18 @@ pub fn render(view: &ParticipantsView<'_>, area: Rect, buf: &mut Buffer) -> Part
                 }
             }
         }
-        offset += rows.len() + 1;
+        offset += rows.len();
     }
-    geometry.total_rows = offset.saturating_sub(1);
+    geometry.total_rows = offset;
+    if hidden > 0 {
+        buf.set_stringn(
+            area.x,
+            area.bottom() - 1,
+            format!("+{hidden} more · scroll"),
+            usize::from(area.width),
+            Style::default().fg(view.palette.chrome()),
+        );
+    }
     geometry
 }
 
@@ -204,9 +279,7 @@ impl ParticipantsState {
             .focused
             .saturating_add_signed(delta)
             .min(members.len() - 1);
-        let rows = |member: &ParticipantView| {
-            wrap_lines(&member.lines(palette), usize::from(width) + 4).len() + 1
-        };
+        let rows = |member: &ParticipantView| member.compact_rows(width, palette).len();
         let start: usize = members[..self.focused].iter().map(rows).sum();
         let end = start + rows(&members[self.focused]);
         if start < self.scroll {

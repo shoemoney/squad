@@ -3,26 +3,26 @@ source: crates/squad-tui/tests/ui_composed.rs
 expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
-$0.42 / $2.00 · pending $0.16 · remaining $1.42
-▰▰▰▰▰▰▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱
-claude           │   recovery boring, even when its models are surprising.
-idle
-0-0 · trophies 0 │grok · complete
-ready            │  Twelve models talking at once? Excellent way to discover
-                 │  your supposedly asynchronous UI is a slideshow. Set a
-fable            │  frame budget, bound the queues, and inject a slow judge.
-idle             │  If typing stutters, the benchmark fails. Pretty pixels do
-0-0 · trophies 0 │  not get an exemption.
-ready
-                 │muse · complete
-openai           │  Ship a rehearsal before asking for credentials. Let
-idle             │  someone watch an idea grow, survive a challenge, and
-0-0 · trophies 0 │  become a better plan. The first minute should show the
-ready            │  whole journey: question, disagreement, evidence, and a
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · idle    │  history at every interruption point. A reliable room makes
+rate n/a         │   recovery boring, even when its models are surprising.
+model demo/model
+n/a tok · n/a    │grok · complete
+W0 L0 · T0       │  Twelve models talking at once? Excellent way to discover
+fable · idle     │  your supposedly asynchronous UI is a slideshow. Set a
+rate n/a         │  frame budget, bound the queues, and inject a slow judge.
+model demo/model │  If typing stutters, the benchmark fails. Pretty pixels do
+n/a tok · n/a    │  not get an exemption.
+W0 L0 · T0
+openai · idle    │muse · complete
+rate n/a         │  Ship a rehearsal before asking for credentials. Let
+model demo/model │  someone watch an idea grow, survive a challenge, and
+n/a tok · n/a    │  become a better plan. The first minute should show the
+W0 L0 · T0       │  whole journey: question, disagreement, evidence, and a
                  │  verdict that keeps the best part of both answers.
-gemini
->
++3 more · scroll
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
 
 
-
-F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit

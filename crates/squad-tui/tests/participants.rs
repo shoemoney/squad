@@ -130,3 +130,52 @@ fn protocol_models_keep_personas_distinct_exclude_judge_and_presence_is_idempote
     assert_eq!(a.wins, 0);
     assert_eq!(a.trophies, 0);
 }
+
+#[test]
+fn compact_metrics_do_not_wrap_and_old_rates_are_dim() {
+    use ratatui::style::Modifier;
+    let mut members = roster();
+    members[0].nick = "claude".into();
+    members[0].version.clear();
+    members[0].queue_depth = 0;
+    members[0].presence = PresenceStatus::Idle;
+    let palette = Palette::new(ColorTier::TrueColor);
+    let mut buf = Buffer::empty(Rect::new(0, 0, 16, 17));
+    render(
+        &ParticipantsView {
+            members: &members,
+            palette: &palette,
+            scroll: 0,
+        },
+        buf.area,
+        &mut buf,
+    );
+    let row = (0..16).map(|x| buf[(x, 1)].symbol()).collect::<String>();
+    assert!(row.contains("~24.5 tok/s"));
+    assert!(buf[(0, 1)].modifier.contains(Modifier::DIM));
+    assert_eq!(buf[(0, 16)].symbol(), "+");
+}
+
+#[test]
+fn compact_roster_preserves_long_identity_across_heading_rows() {
+    let mut members = roster();
+    members.truncate(1);
+    let palette = Palette::new(ColorTier::NoColor);
+    let mut buf = Buffer::empty(Rect::new(0, 0, 16, 24));
+    render(
+        &ParticipantsView {
+            members: &members,
+            palette: &palette,
+            scroll: 0,
+        },
+        buf.area,
+        &mut buf,
+    );
+    let text = (0..24)
+        .flat_map(|y| (0..16).map(move |x| (x, y)))
+        .map(|p| buf[p].symbol())
+        .collect::<String>()
+        .replace(' ', "");
+    assert!(text.contains(&members[0].nick));
+    assert!(text.contains("q2"));
+}

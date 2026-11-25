@@ -3,44 +3,44 @@ source: crates/squad-tui/tests/ui_composed.rs
 expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
-$1.57 / $2.00 · pending $0.10 · remaining $0.33
-▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▒▒▱▱▱▱▱ !
-claude               │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
-idle                 │                                       \ \ / /|  _| | |_) | | | | | |     | |
-1-0 · trophies 0     │                                        \ V / | |___|  _ <| |_| | | |___  | |
-ready                │                                         \_/  |_____|_| \_\____/___\____| |_|
-                     │Case: 00000000-0000-7000-8000-000000000001
-fable                │[Collapse debate] · /stop · /stop @nick
-idle
-0-0 · trophies 0     │JUDGE
-ready                │VERDICT · Judge: demo/judge
-                     │Criteria · scale 1–10                claude             openai
-openai               │Fit                                    8/10               7/10
-idle                 │Feasibility                            8/10               7/10
-0-1 · trophies 0     │Originality                            8/10               7/10
-ready                │Survived attacks                       8/10               7/10
-                     │@claude weighted total: 8.00 / 10
-gemini               │@openai weighted total: 7.00 / 10
-idle                 │Winner: @claude
-0-0 · trophies 0     │Round tally · @claude: 24
-ready                │Round tally · @openai: 21
-                     │Round 1
-grok                 │@claude: 8/10 · Clear durability contract
-idle                 │@openai: 7/10 · Strong responsiveness argument
-0-0 · trophies 0     │Round 2
-ready                │@claude: 8/10 · Clear durability contract
-                     │@openai: 7/10 · Strong responsiveness argument
-muse                 │Round 3
-idle                 │@claude: 8/10 · Clear durability contract
-0-0 · trophies 0     │@openai: 7/10 · Strong responsiveness argument
-ready                │Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · idle        │                           |_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
+rate n/a             │Closing statements
+model demo/model     │@claude · complete
+n/a tok · n/a        │  Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
+W1 L0 · T0           │  reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery
+fable · idle         │  contract: durability is the foundation, and latency is how people experience it.
+rate n/a             │@openai · complete
+model demo/model     │  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
+n/a tok · n/a        │  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
+W0 L0 · T0           │  product before a real provider is connected.
+openai · idle        │@claude: 8/10
+rate n/a             │@openai: 7/10
+model demo/model     │[Expand scorecard]
+n/a tok · n/a        │Authoritative tally: @claude 24 · @openai 21
+W0 L1 · T0           │[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────]
+gemini · idle        │                                      __     _______ ____  ____ ___ ____ _____
+rate n/a             │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
+model demo/model     │                                       \ \ / /|  _| | |_) | | | | | |     | |
+n/a tok · n/a        │                                        \ V / | |___|  _ <| |_| | | |___  | |
+W0 L0 · T0           │                                         \_/  |_____|_| \_\____/___\____| |_|
+grok · idle          │Judging complete
+rate n/a
+model demo/model     │JUDGE
+n/a tok · n/a        │VERDICT · Winner: @claude
+W0 L0 · T0           │Judge: demo/judge
+muse · idle          │@claude weighted total: 8.00 / 10
+rate n/a             │@openai weighted total: 7.00 / 10
+model demo/model     │Round tally · @claude: 24
+n/a tok · n/a        │Round tally · @openai: 21
+W0 L0 · T0           │Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a
                      │responsive room that survives restarts.
                      │RESPECT · What to steal from the loser
                      │• Bounded input-first scheduling
-                     │[Follow up with @judge]
+                     │F7 Expand scores & reasons · Follow up with @judge
 
->
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Ask the squad…
 
 
-
-F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C Quit
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · Esc Stop · Ctrl+C Quit

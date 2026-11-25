@@ -3,26 +3,26 @@ source: crates/squad-tui/tests/ui_composed.rs
 expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
-$1.57 / $2.00 · pending $0.10 · remaining $0.33
-▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▒▒▱▱▱▱▱ !
-claude           │[Follow up with @judge]
-idle
-1-0 · trophies 0 │grok · complete
-ready            │  Grill me on this plan: ship one writer, one reducer, and a
-                 │   twelve-stream release gate. Ask what happens when the
-fable            │  writer stalls; my answer is bounded backpressure and
-idle             │  visible pending receipts, never a frozen keyboard.
-0-0 · trophies 0
-ready            │PICK
-                 │CHOOSE WHO GETS GRILLED
-openai           │Type one name, e.g. @grok · Esc to cancel
-idle             │ID 00000000-0000-7000-8000-000000000001
-0-1 · trophies 0 │
-ready            │pick pending
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · idle    │RESPECT · What to steal from the loser
+rate n/a         │• Bounded input-first scheduling
+model demo/model │F7 Expand scores & reasons · Follow up with @judge
+n/a tok · n/a
+W1 L0 · T0       │grok · complete
+fable · idle     │  Grill me on this plan: ship one writer, one reducer, and a
+rate n/a         │   twelve-stream release gate. Ask what happens when the
+model demo/model │  writer stalls; my answer is bounded backpressure and
+n/a tok · n/a    │  visible pending receipts, never a frozen keyboard.
+W0 L0 · T0
+openai · idle    │PICK
+rate n/a         │CHOOSE WHO GETS GRILLED
+model demo/model │Type one name, e.g. @grok · Esc to cancel
+n/a tok · n/a    │
+W0 L1 · T0       │pick pending
                  │▸ @grok · answered · eligible
-gemini
->
-
++3 more · scroll
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
 
 
 Pick 1: @grok · other messages remain available

@@ -72,8 +72,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         unknown_calls: spend.unknown_calls,
         refusal: None,
     };
-    // Two compact rows keep both exact accounting and the graphic meter visible.
-    let spend_area = Rect::new(geometry.spend.x, geometry.spend.y, geometry.spend.width, 2);
+    let spend_area = geometry.spend;
     let budget_rects = crate::widgets::budget::render_effect(
         &budget,
         spend_area,
@@ -83,11 +82,43 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         now,
     );
     let mut transcript_area = geometry.transcript;
-    transcript_area.y += 1;
-    transcript_area.height = transcript_area.height.saturating_sub(1);
-    let mut participants_area = geometry.participants;
-    participants_area.y += 1;
-    participants_area.height = participants_area.height.saturating_sub(1);
+    let participants_area = geometry.participants;
+    let active = app.session.debates.values().find(|v| {
+        matches!(
+            v.state.state,
+            squad_protocol::DebateStatus::RoundRunning
+                | squad_protocol::DebateStatus::RoundCommitting
+                | squad_protocol::DebateStatus::Judging
+        )
+    });
+    if let Some(view) = active {
+        Paragraph::new(format!(
+            "@{} vs @{} · {}",
+            view.state.debaters[0],
+            view.state.debaters[1],
+            crate::widgets::debate::status_label(&view.state)
+        ))
+        .style(theme.chrome())
+        .render(
+            Rect::new(
+                transcript_area.x,
+                transcript_area.y,
+                transcript_area.width,
+                1,
+            ),
+            buffer,
+        );
+        transcript_area.y += 1;
+        transcript_area.height = transcript_area.height.saturating_sub(1);
+    }
+    let top = if app.session.transcript.follow {
+        app.composed
+            .transcript
+            .total_rows()
+            .saturating_sub(usize::from(transcript_area.height))
+    } else {
+        top
+    };
     let members = participant_models(app);
     let roster = crate::widgets::participants::render(
         &crate::widgets::participants::ParticipantsView {
@@ -130,6 +161,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     protected.extend(roster.protected.iter().copied());
     protected.push(geometry.input);
     protected.push(budget_rects.labels);
+    protected.push(budget_rects.amounts);
     let mut graphics = roster.names.iter().map(|(_, r)| *r).collect::<Vec<_>>();
     for (id, shapes) in &app.composed.graphics {
         for rect in shapes
@@ -177,9 +209,36 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         &transcript,
         budget_rects.meter,
     );
-    frame.render_stateful_widget(InputWidget, geometry.input, &mut app.input);
+    let editor = Rect::new(
+        geometry.input.x,
+        geometry.input.y + 1,
+        geometry.input.width,
+        geometry.input.height.saturating_sub(1),
+    );
+    let recipients = app
+        .preview
+        .as_ref()
+        .map_or("squad".into(), |v| v.recipients.join(" "));
+    let chrome = Style::default()
+        .fg(theme.palette.chrome())
+        .add_modifier(if app.focus_input {
+            Modifier::BOLD
+        } else {
+            Modifier::DIM
+        });
+    Paragraph::new(format!(
+        "─ Input · To {recipients} · quotes {} {}",
+        app.quotes.ids.len(),
+        "─".repeat(usize::from(geometry.input.width))
+    ))
+    .style(chrome)
+    .render(
+        Rect::new(geometry.input.x, geometry.input.y, geometry.input.width, 1),
+        frame.buffer_mut(),
+    );
+    frame.render_stateful_widget(InputWidget, editor, &mut app.input);
     if app.focus_input
-        && let Some((x, y)) = app.input.cursor_in(geometry.input)
+        && let Some((x, y)) = app.input.cursor_in(editor)
     {
         frame.set_cursor_position((x, y));
     }
@@ -192,6 +251,8 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 .collect::<Vec<_>>()
                 .join(" · ")
         )
+    } else if app.stop_confirmation.is_some_and(|until| now < until) {
+        "Press Esc again within 2 s to stop the active contest.".into()
     } else if let Some(notice) = &app.notice {
         notice.clone()
     } else if let Some(error) = &app.session.last_error {
@@ -209,15 +270,10 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 .collect::<Vec<_>>()
                 .join(" ")
         )
-    } else if let Ok(valid) = &app.preview {
-        format!(
-            "To {} · quotes {} · F6 Focus · Tab Complete · Esc Stop",
-            valid.recipients.join(" "),
-            app.quotes.ids.len()
-        )
+    } else if area.width < 100 {
+        "F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit".into()
     } else {
-        "F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C Quit"
-            .into()
+        "F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · Esc Stop · Ctrl+C Quit".into()
     };
     Paragraph::new(footer)
         .style(Style::default().add_modifier(Modifier::DIM))
@@ -341,6 +397,32 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
             debug_rect,
             frame.buffer_mut(),
         );
+        if app.debug_open {
+            let mut details = app
+                .session
+                .debates
+                .values()
+                .map(|v| {
+                    format!(
+                        "Debate {} · {:?} · cases {:?}",
+                        v.state.debate_id, v.state.state, v.state.case_ids
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            for id in app.session.cases.keys() {
+                details.push_str(&format!("\nCase {id}"));
+            }
+            for id in app.session.contests.keys() {
+                details.push_str(&format!("\nContest {id}"));
+            }
+            let mut detail_rect = debug_rect;
+            detail_rect.y += 3;
+            detail_rect.height = detail_rect.height.saturating_sub(3);
+            Paragraph::new(details)
+                .wrap(Wrap { trim: false })
+                .render(detail_rect, frame.buffer_mut());
+        }
     }
 }
 
@@ -397,17 +479,52 @@ fn participant_models(app: &App) -> Vec<crate::widgets::participants::Participan
                 .scoreboard
                 .iter()
                 .find(|s| &s.nick == nick);
+            let latest =
+                app.session
+                    .snapshot
+                    .events
+                    .iter()
+                    .rev()
+                    .find_map(|event| match &event.content {
+                        squad_protocol::EnvelopePayload::MessageFinal(value)
+                        | squad_protocol::EnvelopePayload::AgentReply(value)
+                            if event.base.sender == squad_protocol::Actor::Member(nick.clone()) =>
+                        {
+                            Some((
+                                value.completed.model.to_string(),
+                                value.completed.usage.as_ref(),
+                            ))
+                        }
+                        squad_protocol::EnvelopePayload::DebateTurn(turn)
+                            if &turn.speaker == nick =>
+                        {
+                            if let squad_protocol::DebateTurnOutcome::Completed {
+                                model,
+                                usage,
+                                ..
+                            } = &turn.outcome
+                            {
+                                Some((model.to_string(), usage.as_ref()))
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
+                    });
             crate::widgets::participants::ParticipantView {
                 nick: nick.to_string(),
                 version: String::new(),
-                model: String::new(),
+                model: latest.as_ref().map_or(String::new(), |v| v.0.clone()),
                 slot,
                 presence: presence
                     .map_or(squad_protocol::PresenceStatus::Idle, |p| p.status.clone()),
                 queue_depth: presence.map_or(0, |p| p.queue_depth),
                 contest: None,
-                tokens: None,
-                cost_usd: None,
+                tokens: latest
+                    .as_ref()
+                    .and_then(|v| v.1)
+                    .map(|u| u.input_tokens.saturating_add(u.output_tokens)),
+                cost_usd: latest.as_ref().and_then(|v| v.1).and_then(|u| u.cost_usd),
                 tokens_per_second: app.session.stream_rates.get(nick).copied(),
                 wins: score.map_or(0, |s| s.wins as u32),
                 losses: score.map_or(0, |s| s.losses as u32),

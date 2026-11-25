@@ -2,9 +2,13 @@
 source: crates/squad-tui/tests/widget_debate.rs
 expression: screen(&buf)
 ---
-▾ Debate 01900000-0000-7000-8000-000000000001 · RoundRunning
+▾ Debate 1 · Round 1 of 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-@claude   VS   @gemini
+│ claude  W0 L0                                                gemini  W0 L0                                           │
+│                                                      _   __ ____                                                     │
+│                                                      | | / / __/                                                     │
+│                                                      |___/___/                                                       │
+│ Topic unavailable                                                                                                    │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 2 rounds · Judge: judge/test
                                                         ROUND 1
@@ -17,6 +21,4 @@ A simpler deployment with fewer moving parts.
 [Collapse scorecard]
 Authoritative tally: @claude 17 · @gemini 19
 [━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────]
-Case: 01900000-0000-7000-8000-000000000002
-[Collapse debate] · /stop · /stop @nick
-Press Esc again within 2 s to stop the active contest.
+Judging follows closing statements

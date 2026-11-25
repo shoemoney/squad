@@ -2,24 +2,18 @@
 source: crates/squad-tui/tests/widget_case.rs
 expression: text
 ---
-▾ Case 01900000-0000-7000-8000-
-000000000001 · @judge · judge/
+▾ Judging · @judge · judge/
 actual
-Follow-up to verdict 01900000-
-0000-7000-8000-000000000004
+Follow-up to accepted verdict
 Question: Which proposal is
 safer?
-claude [01900000-0000-7000-8000-
-000000000003]: Use a reversible
+claude: Use a reversible
 migration.
-@judge · judge/actual · Stop
+@judge · judge/actual · complete
 Prefer the reversible migration.
 Verify the rollback before
 proceeding.
-Follow-up [01900000-0000-7000-
-8000-000000000005] · case
-01900000-0000-7000-8000-
-000000000001
+Follow-up
 What should the rollback verify?
 @judge · awaiting follow-up
 ruling

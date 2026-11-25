@@ -3,26 +3,26 @@ source: crates/squad-tui/tests/ui_composed.rs
 expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
-$1.57 / $2.00 · pending $0.10 · remaining $0.33
-▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▒▒▱▱▱▱▱ !
-claude           │Round 1
-idle             │@claude: 8/10 · Clear durability contract
-1-0 · trophies 0 │@openai: 7/10 · Strong responsiveness argument
-ready            │Round 2
-                 │@claude: 8/10 · Clear durability contract
-fable            │@openai: 7/10 · Strong responsiveness argument
-idle             │Round 3
-0-0 · trophies 0 │@claude: 8/10 · Clear durability contract
-ready            │@openai: 7/10 · Strong responsiveness argument
-                 │Durability wins the foundation; take bounded, input-first
-openai           │scheduling from the other proposal. Together they make a
-idle             │responsive room that survives restarts.
-0-1 · trophies 0 │RESPECT · What to steal from the loser
-ready            │• Bounded input-first scheduling
-                 │[Follow up with @judge]
-gemini
->
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · idle    │                           VERDICT
+rate n/a         │Judging complete
+model demo/model
+n/a tok · n/a    │JUDGE
+W1 L0 · T0       │VERDICT · Winner: @claude
+fable · idle     │Judge: demo/judge
+rate n/a         │@claude weighted total: 8.00 / 10
+model demo/model │@openai weighted total: 7.00 / 10
+n/a tok · n/a    │Round tally · @claude: 24
+W0 L0 · T0       │Round tally · @openai: 21
+openai · idle    │Durability wins the foundation; take bounded, input-first
+rate n/a         │scheduling from the other proposal. Together they make a
+model demo/model │responsive room that survives restarts.
+n/a tok · n/a    │RESPECT · What to steal from the loser
+W0 L1 · T0       │• Bounded input-first scheduling
+                 │F7 Expand scores & reasons · Follow up with @judge
++3 more · scroll
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
 
 
-
-F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit

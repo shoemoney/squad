@@ -117,7 +117,7 @@ pub fn render_effect(
             money(view.actual)
         );
         let left = (prefix.len() as u16).min(area.width);
-        let bar_width = area.width.saturating_sub(left).saturating_sub(10).min(10);
+        let bar_width = area.width.saturating_sub(left).saturating_sub(55).min(8);
         buf.set_stringn(area.x, area.y, prefix, usize::from(left), Style::default());
         rects.labels.width = left;
         rects.meter = Rect::new(area.x + left, area.y, bar_width, 1);
@@ -152,7 +152,7 @@ pub fn render_effect(
             1,
         );
         let suffix = format!(
-            " {}{} · pending {} · left {}{}",
+            " {}{} · pending {} · remaining {}{}",
             money(view.max),
             if view.refusal.is_some() || view.heat() == Some(Heat::Max) {
                 " · DAILY_MAX_REACHED"

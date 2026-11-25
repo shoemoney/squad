@@ -14,7 +14,7 @@ fn screen(app: &mut App, width: u16, height: u16) -> String {
         .draw(|frame| ui::render(app, frame, Duration::ZERO))
         .unwrap();
     let buffer = terminal.backend().buffer();
-    let mut text = (0..height)
+    (0..height)
         .map(|y| {
             (0..width)
                 .map(|x| buffer[(x, y)].symbol())
@@ -23,18 +23,7 @@ fn screen(app: &mut App, width: u16, height: u16) -> String {
                 .to_owned()
         })
         .collect::<Vec<_>>()
-        .join("\n");
-    // UUIDs are presentation identities; keep their width but normalize entropy.
-    let mut i = 0;
-    while i + 36 <= text.len() {
-        if text.is_char_boundary(i + 36) && text[i..i + 36].parse::<EventId>().is_ok() {
-            text.replace_range(i..i + 36, "00000000-0000-7000-8000-000000000001");
-            i += 36;
-        } else {
-            i += text[i..].chars().next().unwrap().len_utf8();
-        }
-    }
-    text
+        .join("\n")
 }
 #[tokio::test(start_paused = true)]
 async fn composed_screens() {
@@ -97,8 +86,53 @@ async fn composed_screens() {
             }
             app.session.restore(state);
             let output = screen(&mut app, width, height);
+            assert!(!output.contains("RoundRunning"));
+            assert!(!output.contains(" · Stop"));
+            assert!(!output.contains("Case:"));
+            assert!(!output.contains("estimated"));
+            assert!(!output.contains("Press Esc again"));
+            assert!(output.contains("Input · To"));
+            assert!(output.contains("Ask the squad…"));
+            assert!(output.contains("remaining"));
+            assert!(!output.lines().any(|l| l.ends_with("Ctrl+C")));
+            for word in output.split_whitespace() {
+                assert!(word.parse::<EventId>().is_err(), "raw UUID {word}");
+            }
+            if stage == "verdict" {
+                assert!(output.contains("Winner: @claude"), "{output}");
+                assert!(output.contains("@claude weighted total:"));
+                assert!(output.contains("@openai weighted total:"));
+            }
             insta::assert_snapshot!(format!("composed_{stage}_{width}x{height}"), output);
+            app.stop_confirmation = Some(Duration::from_secs(2));
+            assert!(screen(&mut app, width, height).contains("Press Esc again within 2 s"));
+            app.expire(Duration::from_secs(3));
+            assert!(!screen(&mut app, width, height).contains("Press Esc again"));
             assert!(app.fx.queue_mut().is_empty());
+            if stage == "verdict" {
+                use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+                app.handle(
+                    Event::Key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE)),
+                    Duration::ZERO,
+                );
+                assert!(app.composed.verdict_expanded);
+                screen(&mut app, width, height);
+                app.handle(
+                    Event::Key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE)),
+                    Duration::ZERO,
+                );
+                assert!(screen(&mut app, width, height).contains("Winner: @claude"));
+                app.handle(
+                    Event::Key(KeyEvent::new(KeyCode::F(12), KeyModifiers::NONE)),
+                    Duration::ZERO,
+                );
+                let id = app.session.debates.keys().next().unwrap().to_string();
+                assert!(screen(&mut app, width, height).contains(&id));
+                app.handle(
+                    Event::Key(KeyEvent::new(KeyCode::F(12), KeyModifiers::NONE)),
+                    Duration::ZERO,
+                );
+            }
         }
     }
 }

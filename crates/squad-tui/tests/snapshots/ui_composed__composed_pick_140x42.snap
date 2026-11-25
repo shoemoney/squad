@@ -3,44 +3,44 @@ source: crates/squad-tui/tests/ui_composed.rs
 expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
-$1.57 / $2.00 · pending $0.10 · remaining $0.33
-▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▒▒▱▱▱▱▱ !
-claude               │Originality                            8/10               7/10
-idle                 │Survived attacks                       8/10               7/10
-1-0 · trophies 0     │@claude weighted total: 8.00 / 10
-ready                │@openai weighted total: 7.00 / 10
-                     │Winner: @claude
-fable                │Round tally · @claude: 24
-idle                 │Round tally · @openai: 21
-0-0 · trophies 0     │Round 1
-ready                │@claude: 8/10 · Clear durability contract
-                     │@openai: 7/10 · Strong responsiveness argument
-openai               │Round 2
-idle                 │@claude: 8/10 · Clear durability contract
-0-1 · trophies 0     │@openai: 7/10 · Strong responsiveness argument
-ready                │Round 3
-                     │@claude: 8/10 · Clear durability contract
-gemini               │@openai: 7/10 · Strong responsiveness argument
-idle                 │Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a
-0-0 · trophies 0     │responsive room that survives restarts.
-ready                │RESPECT · What to steal from the loser
-                     │• Bounded input-first scheduling
-grok                 │[Follow up with @judge]
-idle
-0-0 · trophies 0     │grok · complete
-ready                │  Grill me on this plan: ship one writer, one reducer, and a twelve-stream release gate. Ask what happens when the
-                     │  writer stalls; my answer is bounded backpressure and visible pending receipts, never a frozen keyboard.
-muse
-idle                 │PICK
-0-0 · trophies 0     │CHOOSE WHO GETS GRILLED
-ready                │Type one name, e.g. @grok · Esc to cancel
-                     │ID 00000000-0000-7000-8000-000000000001
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · idle        │@openai: 7/10
+rate n/a             │[Expand scorecard]
+model demo/model     │Authoritative tally: @claude 24 · @openai 21
+n/a tok · n/a        │[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────]
+W1 L0 · T0           │                                      __     _______ ____  ____ ___ ____ _____
+fable · idle         │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
+rate n/a             │                                       \ \ / /|  _| | |_) | | | | | |     | |
+model demo/model     │                                        \ V / | |___|  _ <| |_| | | |___  | |
+n/a tok · n/a        │                                         \_/  |_____|_| \_\____/___\____| |_|
+W0 L0 · T0           │Judging complete
+openai · idle
+rate n/a             │JUDGE
+model demo/model     │VERDICT · Winner: @claude
+n/a tok · n/a        │Judge: demo/judge
+W0 L1 · T0           │@claude weighted total: 8.00 / 10
+gemini · idle        │@openai weighted total: 7.00 / 10
+rate n/a             │Round tally · @claude: 24
+model demo/model     │Round tally · @openai: 21
+n/a tok · n/a        │Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a
+W0 L0 · T0           │responsive room that survives restarts.
+grok · idle          │RESPECT · What to steal from the loser
+rate n/a             │• Bounded input-first scheduling
+model demo/model     │F7 Expand scores & reasons · Follow up with @judge
+n/a tok · n/a
+W0 L0 · T0           │grok · complete
+muse · idle          │  Grill me on this plan: ship one writer, one reducer, and a twelve-stream release gate. Ask what happens when the
+rate n/a             │  writer stalls; my answer is bounded backpressure and visible pending receipts, never a frozen keyboard.
+model demo/model
+n/a tok · n/a        │PICK
+W0 L0 · T0           │CHOOSE WHO GETS GRILLED
+                     │Type one name, e.g. @grok · Esc to cancel
                      │
                      │pick pending
                      │▸ @grok · answered · eligible
 
->
-
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Ask the squad…
 
 
 Pick 1: @grok · other messages remain available

@@ -106,9 +106,7 @@ pub fn render(view: &GrillView, area: Rect, buf: &mut Buffer, palette: &Palette)
     if !view.expanded {
         return rects;
     }
-    if let Some(id) = view.id {
-        p.text(&format!("ID {id}"), Style::default());
-    }
+
     p.text(
         &format!(
             "Leader @{} · grillers {}",

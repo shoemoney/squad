@@ -3,26 +3,26 @@ source: crates/squad-tui/tests/ui_composed.rs
 expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
-$0.42 / $2.00 · pending $0.16 · remaining $1.42
-▰▰▰▰▰▰▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱
-claude           │  experience it.
-idle             │@openai · Stop
-0-0 · trophies 0 │  Closing: make both promises observable. Track commit
-ready            │  receipts and p99 draw time in the same rehearsal. Fail the
-                 │   release if either regresses. Keep the writer small, keep
-fable            │  input immediate, and let a deterministic demo prove the
-idle             │  product before a real provider is connected.
-0-0 · trophies 0 │@claude: 8/10
-ready            │@openai: 7/10
-                 │[Expand scorecard]
-openai           │Authoritative tally: @claude 24 · @openai 21
-idle             │[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────]
-0-0 · trophies 0 │Case: 00000000-0000-7000-8000-000000000001
-ready            │[Collapse debate] · /stop · /stop @nick
-                 │Press Esc again within 2 s to stop the active contest.
-gemini
->
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · idle    @claude vs @openai · Round 3 of 3
+rate n/a         │  input-first scheduler as part of the delivery contract:
+model demo/model │  durability is the foundation, and latency is how people
+n/a tok · n/a    │  experience it.
+W0 L0 · T0       │@openai · complete
+fable · idle     │  Closing: make both promises observable. Track commit
+rate n/a         │  receipts and p99 draw time in the same rehearsal. Fail the
+model demo/model │   release if either regresses. Keep the writer small, keep
+n/a tok · n/a    │  input immediate, and let a deterministic demo prove the
+W0 L0 · T0       │  product before a real provider is connected.
+openai · idle    │@claude: 8/10
+rate n/a         │@openai: 7/10
+model demo/model │[Expand scorecard]
+n/a tok · n/a    │Authoritative tally: @claude 24 · @openai 21
+W0 L0 · T0       │[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────]
+                 │Judging follows closing statements
++3 more · scroll
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
 
 
-
-F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit

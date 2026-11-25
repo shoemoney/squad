@@ -2,42 +2,43 @@
 source: crates/squad-tui/tests/participants.rs
 expression: "screen(120, 40, 0)"
 ---
-persona_0_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
+persona_0_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
+persona_1_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
+persona_2_with_a_very_long_name · 4.7 · live q2 · out
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
+persona_3_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
+persona_4_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
+persona_5_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
+persona_6_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
 
-persona_1_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
 
-persona_2_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1 · eliminated
-24.5 tok/s · estimated
 
-persona_3_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
 
-persona_4_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
-
-persona_5_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
-
-persona_6_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
-
-persona_7_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
++5 more · scroll

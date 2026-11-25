@@ -106,9 +106,7 @@ pub fn render(
     if !view.expanded {
         return rects;
     }
-    if let Some(id) = view.id {
-        p.text(&format!("ID {id}"), Style::default());
-    }
+
     p.text(&view.prompt, Style::default());
     p.text(
         &format!(
