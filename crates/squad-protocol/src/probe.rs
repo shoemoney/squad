@@ -44,7 +44,7 @@ impl ProbeSetup {
     pub fn validate(&self) -> ValidationResult {
         let m = self.participants.len();
         ensure(
-            (4..=12).contains(&m) && m % 2 == 0 && unique(&self.participants),
+            (4..=12).contains(&m) && m.is_multiple_of(2) && unique(&self.participants),
             "probe needs distinct even participants",
         )?;
         ensure(
@@ -272,21 +272,96 @@ pub struct ProbeReport {
     pub inseparable_groups: Vec<ProbeInseparableGroup>,
     pub limitations: Vec<Text>,
 }
+impl ProbeCaseMaterial {
+    pub fn validate(&self) -> ValidationResult {
+        let ids = self
+            .explanations
+            .iter()
+            .map(|e| e.id)
+            .collect::<BTreeSet<_>>();
+        ensure(
+            !ids.is_empty()
+                && ids.len() == self.explanations.len()
+                && !self.checks.is_empty()
+                && unique(&self.checks.iter().map(|c| c.id).collect::<Vec<_>>()),
+            "invalid probe evidence identities",
+        )?;
+        ensure(
+            self.prediction_matrix
+                .keys()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                == ids,
+            "matrix explanation coverage differs",
+        )?;
+        let missing = self
+            .prediction_matrix
+            .iter()
+            .filter_map(|(id, p)| p.is_none().then_some(*id))
+            .collect::<BTreeSet<_>>();
+        ensure(
+            unique(&self.missing_rows)
+                && self.missing_rows.iter().copied().collect::<BTreeSet<_>>() == missing,
+            "missing rows differ from matrix",
+        )?;
+        for c in &self.checks {
+            c.data.validate()?;
+        }
+        for row in self.prediction_matrix.values().flatten() {
+            row.validate_against(&self.checks)?;
+        }
+        Ok(())
+    }
+}
 impl ProbeReport {
     pub fn validate_against(&self, material: &ProbeCaseMaterial) -> ValidationResult {
+        material.validate()?;
         ensure(
             self.prediction_matrix == material.prediction_matrix,
             "report changed locked predictions",
         )?;
-        let explanations: BTreeSet<_> = material.explanations.iter().map(|e| e.id).collect();
+        let explanations = material
+            .explanations
+            .iter()
+            .map(|e| e.id)
+            .collect::<BTreeSet<_>>();
+        let prediction = |explanation: &CellId, check: CellId| {
+            material
+                .prediction_matrix
+                .get(explanation)
+                .and_then(Option::as_ref)
+                .and_then(|r| r.predictions.iter().find(|p| p.check_id == check))
+        };
+        let separates = |a: &CellId, b: &CellId, check: CellId| match (
+            prediction(a, check),
+            prediction(b, check),
+        ) {
+            (Some(a), Some(b)) if a.predictable && b.predictable => {
+                a.expected_outcome_ids
+                    .iter()
+                    .map(Text::as_str)
+                    .collect::<BTreeSet<_>>()
+                    != b.expected_outcome_ids
+                        .iter()
+                        .map(Text::as_str)
+                        .collect::<BTreeSet<_>>()
+            }
+            _ => false,
+        };
         let mut used = BTreeSet::new();
         let mut visited = BTreeSet::new();
-        let mut stack = vec![(self.decision_tree.root.as_str(), BTreeSet::new())];
-        while let Some((id, mut path)) = stack.pop() {
-            ensure(path.insert(id), "cyclic decision tree")?;
-            ensure(visited.insert(id), "decision tree contains shared node")?;
+        let mut stack = vec![(
+            self.decision_tree.root.as_str(),
+            BTreeSet::new(),
+            explanations.clone(),
+        )];
+        while let Some((id, mut path, possible)) = stack.pop() {
+            ensure(
+                path.insert(id) && visited.insert(id),
+                "cyclic or shared decision node",
+            )?;
             let node = self.decision_tree.nodes.get(id);
-            ensure(node.is_some(), "unknown tree node")?;
+            ensure(node.is_some(), "unknown decision node")?;
             match node.expect("checked") {
                 ProbeNode::Check {
                     check_id,
@@ -304,30 +379,53 @@ impl ProbeReport {
                                 .outcomes
                                 .iter()
                                 .all(|o| branches.contains_key(o.id.as_str())),
-                        "tree changed measurements or outcomes",
+                        "tree changed measurement or outcomes",
+                    )?;
+                    ensure(
+                        possible.iter().any(|a| {
+                            possible
+                                .iter()
+                                .any(|b| a != b && separates(a, b, *check_id))
+                        }),
+                        "recommended check does not distinguish explanations",
                     )?;
                     ensure(
                         matches!(self.decision_tree.nodes.get(unexpected.as_str()),Some(ProbeNode::Leaf{reassess:true,remaining,..}) if remaining.iter().copied().collect::<BTreeSet<_>>()==explanations),
                         "unexpected result must reopen brief",
                     )?;
                     used.insert(*check_id);
-                    for next in branches.values().chain(std::iter::once(unexpected)) {
-                        stack.push((next.as_str(), path.clone()));
+                    for (outcome, next) in branches {
+                        let mut compatible = possible
+                            .iter()
+                            .filter(|e| {
+                                prediction(e, *check_id).is_none_or(|p| {
+                                    !p.predictable
+                                        || p.expected_outcome_ids
+                                            .iter()
+                                            .any(|id| id.as_str() == outcome)
+                                })
+                            })
+                            .copied()
+                            .collect::<BTreeSet<_>>();
+                        if compatible.is_empty() {
+                            compatible = explanations.clone();
+                        }
+                        stack.push((next.as_str(), path.clone(), compatible));
                     }
+                    stack.push((unexpected.as_str(), path, explanations.clone()));
                 }
-                ProbeNode::Leaf { remaining, .. } => {
-                    ensure(
-                        !remaining.is_empty()
-                            && unique(remaining)
-                            && remaining.iter().all(|e| explanations.contains(e)),
-                        "invalid remaining explanations",
-                    )?;
-                }
+                ProbeNode::Leaf { remaining, .. } => ensure(
+                    !remaining.is_empty()
+                        && unique(remaining)
+                        && remaining.iter().all(|e| explanations.contains(e))
+                        && possible.iter().all(|e| remaining.contains(e)),
+                    "leaf eliminated compatible, missing or uncertain predictions",
+                )?,
             }
         }
         ensure(
             visited.len() == self.decision_tree.nodes.len(),
-            "unreachable tree nodes",
+            "unreachable decision node",
         )?;
         ensure(
             unique(
@@ -351,49 +449,30 @@ impl ProbeReport {
             ensure(
                 group.explanations.len() >= 2
                     && unique(&group.explanations)
-                    && group
-                        .explanations
-                        .iter()
-                        .all(|id| explanations.contains(id)),
+                    && group.explanations.iter().all(|e| explanations.contains(e)),
                 "invalid inseparable group references",
             )?;
-        }
-        for group in &self.inseparable_groups {
             ensure(
-                group.explanations.len() >= 2
-                    && unique(&group.explanations)
-                    && group.explanations.iter().all(|e| explanations.contains(e)),
-                "invalid inseparable group",
-            )?;
-        }
-        // Missing and unpredictable rows must survive every outcome: neither is negative evidence.
-        let uncertain: BTreeSet<_> = material
-            .prediction_matrix
-            .iter()
-            .filter(|(_, p)| {
-                p.as_ref()
-                    .is_none_or(|p| p.predictions.iter().any(|p| !p.predictable))
-            })
-            .map(|(id, _)| *id)
-            .collect();
-        for node in self.decision_tree.nodes.values() {
-            if let ProbeNode::Leaf { remaining, .. } = node {
-                ensure(
-                    uncertain.iter().all(|id| remaining.contains(id)),
-                    "tree eliminated uncertain evidence",
-                )?;
-            }
-        }
-        for group in &self.inseparable_groups {
-            ensure(
-                group.explanations.len() >= 2
-                    && unique(&group.explanations)
-                    && group
+                !group.explanations.iter().any(|a| {
+                    group
                         .explanations
                         .iter()
-                        .all(|id| explanations.contains(id)),
-                "invalid inseparable explanation references",
+                        .any(|b| a != b && material.checks.iter().any(|c| separates(a, b, c.id)))
+                }),
+                "group contains distinguishable explanations",
             )?;
+        }
+        for a in &explanations {
+            for b in explanations.range(*a..).filter(|b| *b != a) {
+                if !material.checks.iter().any(|c| separates(a, b, c.id)) {
+                    ensure(
+                        self.inseparable_groups
+                            .iter()
+                            .any(|g| g.explanations.contains(a) && g.explanations.contains(b)),
+                        "missing inseparable explanation group",
+                    )?;
+                }
+            }
         }
         Ok(())
     }

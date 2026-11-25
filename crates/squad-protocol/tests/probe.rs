@@ -98,7 +98,7 @@ fn tree_requires_unchanged_matrix_reachable_nodes_and_reassessment() {
             reason: text("Not linked"),
         }],
     };
-    let material = ProbeCaseMaterial {
+    let mut material = ProbeCaseMaterial {
         brief: ProbeBrief {
             observation: text("Noise"),
             ruled_out: "Fan".into(),
@@ -117,8 +117,28 @@ fn tree_requires_unchanged_matrix_reachable_nodes_and_reassessment() {
         missing_rows: vec![],
         skipped_members: vec![],
     };
+    let e2 = CellId::new();
+    material.explanations.push(ProbeItem {
+        id: e2,
+        data: material.explanations[0].data.clone(),
+    });
+    material.prediction_matrix =
+        BTreeMap::from([("red", e), ("green", e2)].map(|(outcome, id)| {
+            (
+                id,
+                Some(ProbePrediction {
+                    predictions: vec![ProbePredictionItem {
+                        check_id: c.id,
+                        predictable: true,
+                        expected_outcome_ids: vec![text(outcome)],
+                        expected_observation: Some(text(outcome)),
+                        reason: text("Observable outcome"),
+                    }],
+                }),
+            )
+        }));
     let leaf = ProbeNode::Leaf {
-        remaining: vec![e],
+        remaining: vec![e, e2],
         next_action: text("Revisit brief"),
         reassess: true,
     };

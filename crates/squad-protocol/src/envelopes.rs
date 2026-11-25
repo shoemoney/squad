@@ -771,6 +771,9 @@ fn validate_envelope(
                 "probe member output must be human-only",
             )?;
             generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
             v.data.validate()?;
         }
         EnvelopePayload::ProbeExplanation(v) => {
@@ -779,6 +782,9 @@ fn validate_envelope(
                 "probe member output must be human-only",
             )?;
             generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
         }
         EnvelopePayload::ProbePrediction(v) => {
             ensure(
@@ -786,6 +792,9 @@ fn validate_envelope(
                 "probe member output must be human-only",
             )?;
             generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
         }
         EnvelopePayload::ProbeReport(v) => {
             ensure(
@@ -793,6 +802,9 @@ fn validate_envelope(
                 "probe report must be judge-to-human",
             )?;
             generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
         }
         EnvelopePayload::ContestState(state) => match state {
             ContestState::Probe(state) => state.validate()?,

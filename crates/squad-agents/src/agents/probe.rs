@@ -63,7 +63,7 @@ pub async fn execute(
             if grant.work.kind == WorkKind::ProbeReport {
                 ErrorCode::JUDGE_INVALID_VERDICT
             } else {
-                ErrorCode::PROVIDER_ERROR
+                ErrorCode::MODE_INVALID_OUTPUT
             },
         )
         .await;

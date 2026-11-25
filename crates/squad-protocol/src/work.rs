@@ -98,6 +98,12 @@ impl Work {
                     "probe requires contest and step",
                 )?;
                 ensure(
+                    self.prompt_ref.as_ref().is_some_and(|p| {
+                        Some(p.template_id.as_str()) == self.kind.probe_composition()
+                    }),
+                    "probe requires its owning composition",
+                )?;
+                ensure(
                     if self.kind == WorkKind::ProbeReport {
                         self.target == Target::Judge && self.attempt <= 3
                     } else {

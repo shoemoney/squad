@@ -155,6 +155,26 @@ pub struct Session {
     pub stream_rates: BTreeMap<Nick, f64>,
 }
 impl Session {
+    pub fn probe_participant_status(&self, nick: &MemberNick) -> Option<String> {
+        self.probes.values().find_map(|view| {
+            let state = view.state.as_ref()?;
+            if state.state.is_terminal() {
+                return None;
+            }
+            let setup = view.setup.as_ref()?;
+            let role = if setup.sitting_out.as_ref() == Some(nick) {
+                "sitting out"
+            } else if setup.explainers.contains(nick) {
+                "explainer"
+            } else if setup.checkers.contains(nick) {
+                "checker"
+            } else {
+                return None;
+            };
+            Some(format!("probe · {role} · {:?}", state.state))
+        })
+    }
+
     pub fn restore(&mut self, mut snapshot: RoomSnapshot) {
         self.presentation_epoch = self.presentation_epoch.wrapping_add(1);
         let anchor = self.transcript.anchor;

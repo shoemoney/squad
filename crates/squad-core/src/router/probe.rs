@@ -45,7 +45,7 @@ pub fn prepare(
         ));
     }
     let mut participants = participants;
-    let sitting_out = if participants.len() % 2 == 1 {
+    let sitting_out = if !participants.len().is_multiple_of(2) {
         participants.pop()
     } else {
         None
@@ -192,7 +192,7 @@ pub fn prepare(
             warning: setup.sitting_out.as_ref().map(|n| {
                 Text::new(format!("@{n} sits out to keep equal groups")).expect("nonempty")
             }),
-            settings: serde_json::json!({"scriptVersion":"probe-v1","prompts":frozen_prompts,"bindings":bindings,"roomWords":config.map(|c|c.prompts.limits.room_words).unwrap_or(300),"planWords":config.map(|c|c.prompts.limits.plan_words).unwrap_or(1500)}),
+            settings: serde_json::json!({"scriptVersion":"probe-v1","packVersion":pack.version(),"prompts":frozen_prompts,"bindings":bindings,"roomWords":config.map(|c|c.prompts.limits.room_words).unwrap_or(300),"planWords":config.map(|c|c.prompts.limits.plan_words).unwrap_or(1500)}),
         },
         reserved_attempts: setup.attempts(),
         setup: setup.clone(),
@@ -408,12 +408,20 @@ pub fn allocate(
     id: EventId,
     step: ContestStep,
     work: Vec<Work>,
-    bindings: &BTreeMap<String, ExecutorBinding>,
+    _bindings: &BTreeMap<String, ExecutorBinding>,
 ) -> Result<RequestResult> {
     let mut state = squad_store::probe::state(tx, step.contest_id)?;
     if state.step_id.is_some() || state.state.is_terminal() {
         return Err(invalid());
     }
+    let raw: String = tx.query_row(
+        "SELECT plan_json FROM contests WHERE contest_id=?",
+        [state.contest_id.to_string()],
+        |r| r.get(0),
+    )?;
+    let plan: ProbePreflight = serde_json::from_str(&raw)?;
+    let bindings: BTreeMap<String, ExecutorBinding> =
+        serde_json::from_value(plan.base.settings["bindings"].clone())?;
     let actors = actors(tx, &state)?;
     if work.len() != actors.len()
         || step.assignments.len() != actors.len()
@@ -436,6 +444,15 @@ pub fn allocate(
         if !actors.contains(&(w.target.clone(), w.kind.clone()))
             || w.contest_id != Some(state.contest_id)
             || w.step_id != Some(step.step_id)
+        {
+            return Err(invalid());
+        }
+        let composition = w.kind.probe_composition().ok_or_else(invalid)?;
+        let prompt = w.prompt_ref.as_ref().ok_or_else(invalid)?;
+        if prompt.template_id.as_str() != composition
+            || Some(prompt.template_hash.as_str())
+                != plan.base.settings["prompts"][composition]["hash"].as_str()
+            || Some(prompt.pack_version.as_str()) != plan.base.settings["packVersion"].as_str()
         {
             return Err(invalid());
         }

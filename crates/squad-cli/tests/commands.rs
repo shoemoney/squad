@@ -8,6 +8,8 @@ fn invoke(root: &Path, args: &[&str], key: Option<&str>) -> Output {
     command
         .env_clear()
         .env("HOME", root)
+        .env("HTTPS_PROXY", "http://127.0.0.1:9")
+        .env("HTTP_PROXY", "http://127.0.0.1:9")
         .current_dir(root)
         .stdin(Stdio::null())
         .args(args);
@@ -36,16 +38,22 @@ fn help_and_version_have_no_side_effects() {
 }
 
 #[test]
-fn bound_commands_report_unavailable_runtime_without_fake_output() {
+fn bound_commands_reject_invalid_input_without_fake_output() {
     let temp = tempfile::tempdir().unwrap();
     for (args, expected) in [
-        (vec![], "Room runtime integration is not installed"),
+        (vec![], "Cannot initialize credential redaction."),
         (
             vec!["send", "hello"],
-            "Room runtime integration is not installed",
+            "MODEL_RESOLUTION_FAILED catalog: OpenRouter transport: Network",
         ),
     ] {
-        let output = invoke(temp.path(), &args, Some("sk-test-not-a-real-key"));
+        // A malformed header prevents the interactive path from making network calls.
+        let key = if args.is_empty() {
+            "fixture\ninvalid"
+        } else {
+            "fixture"
+        };
+        let output = invoke(temp.path(), &args, Some(key));
         assert_eq!(output.status.code(), Some(1));
         assert!(output.stdout.is_empty());
         assert_eq!(String::from_utf8(output.stderr).unwrap().trim(), expected);
@@ -63,7 +71,9 @@ fn bound_commands_report_unavailable_runtime_without_fake_output() {
         .unwrap()
         .map(|e| e.unwrap().file_name())
         .collect();
-    assert_eq!(entries, [std::ffi::OsString::from("logs")]);
+    for expected in ["logs", "main.lock", "squad.db"] {
+        assert!(entries.contains(&std::ffi::OsString::from(expected)));
+    }
 }
 
 #[test]
@@ -208,7 +218,7 @@ fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
         assert_eq!(output.status.code(), Some(1));
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            "Room runtime integration is not installed"
+            "MODEL_RESOLUTION_FAILED catalog: OpenRouter transport: Network"
         );
         assert_eq!(
             std::fs::metadata(&data).unwrap().permissions().mode() & 0o777,
@@ -246,8 +256,9 @@ fn quoted_references_do_not_consume_the_message() {
         let output = invoke(temp.path(), &args, Some("fixture"));
         assert_eq!(output.status.code(), Some(1));
         assert!(
+            String::from_utf8_lossy(&output.stderr).contains("MODEL_RESOLUTION_FAILED catalog:"),
+            "{}",
             String::from_utf8_lossy(&output.stderr)
-                .contains("Room runtime integration is not installed")
         );
     }
 }
@@ -283,7 +294,7 @@ fn all_export_scopes_are_visible_typed_and_preserve_renderer_errors() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            if matches!(scope, "census" | "crosscheck" | "survey" | "probe") {
+            if matches!(scope, "census" | "crosscheck" | "survey") {
                 "export scope is not implemented"
             } else {
                 "could not read export snapshot"

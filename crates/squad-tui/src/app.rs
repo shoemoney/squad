@@ -305,6 +305,9 @@ impl App {
                     }
                     KeyCode::F(7) => {
                         self.composed.toggle_verdict();
+                        for view in self.session.probes.values_mut() {
+                            view.toggle_matrix();
+                        }
                         self.dirty = true;
                         return;
                     }

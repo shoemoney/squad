@@ -75,6 +75,12 @@ pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
             }
             for c in &m.checks {
                 block(out, &c.id.to_string(), c.data.check.as_str());
+                block(out, "Procedure", c.data.procedure.as_str());
+                block(out, "Measure", c.data.measurement.as_str());
+                for outcome in &c.data.outcomes {
+                    block(out, outcome.id.as_str(), outcome.description.as_str());
+                }
+                block(out, "Effort", c.data.effort.as_str());
             }
             for id in &m.missing_rows {
                 block(out, "Missing prediction row", &id.to_string());

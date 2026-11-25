@@ -1,0 +1,189 @@
+---
+source: crates/squad-core/tests/probe_export.rs
+expression: "render(&snapshot, ExportScope::Probe, Some(contest)).unwrap()"
+---
+# Squad transcript
+
+```text
+ ____  ____   ___  ____  _____
+|  _ \|  _ \ / _ \| __ )| ____|
+| |_) | |_) | | | |  _ \|  _|
+|  __/|  _ <| |_| | |_) | |___
+|_|   |_| \_\\___/|____/|_____|
+```
+
+## Probe 019b0000-0000-7000-8000-000000000001
+
+## Diagnostic brief
+
+Noise only during charging
+
+## Ruled out
+
+Cooling fan
+
+## Inspectable resources
+
+External indicator only
+
+## Explainers
+
+alpha, beta
+
+## Checkers
+
+gamma, delta
+
+## Sitting out
+
+epsilon
+
+## Probe · Complete
+
+## Skipped member
+
+delta
+
+## Explanation
+
+Loose connector
+
+## Key assumption
+
+Charging vibrates the connector
+
+## Limitation
+
+Not observed
+
+## Explanation
+
+Regulator vibration
+
+## Key assumption
+
+Regulator changes indicator state
+
+## Check
+
+Read indicator
+
+## Procedure
+
+Observe the outside indicator without opening the case
+
+## Measure
+
+Indicator color
+
+## red
+
+Red indicator
+
+## green
+
+Green indicator
+
+## Effort
+
+One minute
+
+## Safety
+
+Do not open or modify the case
+
+## Frozen anonymous items
+
+## 00000000-0000-4000-8000-000000000001
+
+Loose connector
+
+## 00000000-0000-4000-8000-000000000002
+
+Regulator vibration
+
+## 00000000-0000-4000-8000-000000000003
+
+Read indicator
+
+## Procedure
+
+Observe the outside indicator without opening the case
+
+## Measure
+
+Indicator color
+
+## red
+
+Red indicator
+
+## green
+
+Green indicator
+
+## Effort
+
+One minute
+
+## Skipped member
+
+delta
+
+## Prediction matrix
+
+## Explanation 00000000-0000-4000-8000-000000000001
+
+## Check 00000000-0000-4000-8000-000000000003
+
+red
+
+Conditional on the explanation
+
+## Explanation 00000000-0000-4000-8000-000000000002
+
+## Check 00000000-0000-4000-8000-000000000003
+
+green
+
+Conditional on the explanation
+
+## Decision tree
+
+Start at root
+
+## Node green
+
+Remaining possibilities: 00000000-0000-4000-8000-000000000002
+
+Review regulator documentation
+
+## Node red
+
+Remaining possibilities: 00000000-0000-4000-8000-000000000001
+
+Inspect the connector within the brief's limits
+
+## Node root
+
+Check 00000000-0000-4000-8000-000000000003: measure Indicator color
+
+green → green
+
+red → red
+
+Unexpected result → unexpected; reopen the diagnostic brief.
+
+## Node unexpected
+
+Remaining possibilities: 00000000-0000-4000-8000-000000000001, 00000000-0000-4000-8000-000000000002
+
+Reopen the brief; neither predicted result occurred
+
+Reassess the diagnostic brief.
+
+## Limitation
+
+Checks have not been executed
+
+These are instructions for inspection. No explanation is declared true and no check has been executed.

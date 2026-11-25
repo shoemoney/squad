@@ -519,6 +519,21 @@ fn participant_models(app: &App) -> Vec<crate::widgets::participants::Participan
                                 value.completed.usage.as_ref(),
                             ))
                         }
+                        squad_protocol::EnvelopePayload::ProbeExplanation(v)
+                            if event.base.sender == squad_protocol::Actor::Member(nick.clone()) =>
+                        {
+                            Some((v.completed.model.to_string(), v.completed.usage.as_ref()))
+                        }
+                        squad_protocol::EnvelopePayload::ProbeCheck(v)
+                            if event.base.sender == squad_protocol::Actor::Member(nick.clone()) =>
+                        {
+                            Some((v.completed.model.to_string(), v.completed.usage.as_ref()))
+                        }
+                        squad_protocol::EnvelopePayload::ProbePrediction(v)
+                            if event.base.sender == squad_protocol::Actor::Member(nick.clone()) =>
+                        {
+                            Some((v.completed.model.to_string(), v.completed.usage.as_ref()))
+                        }
                         squad_protocol::EnvelopePayload::DebateTurn(turn)
                             if &turn.speaker == nick =>
                         {
@@ -552,7 +567,7 @@ fn participant_models(app: &App) -> Vec<crate::widgets::participants::Participan
                 presence: presence
                     .map_or(squad_protocol::PresenceStatus::Idle, |p| p.status.clone()),
                 queue_depth: presence.map_or(0, |p| p.queue_depth),
-                contest: None,
+                contest: app.session.probe_participant_status(nick),
                 tokens: latest
                     .as_ref()
                     .and_then(|v| v.1)

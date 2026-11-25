@@ -122,26 +122,48 @@ impl Router {
                     let step_id = StepId::new();
                     let case = CaseId::new();
                     let trigger=self.store.call(move|db|{let raw:String=db.query_row("SELECT e.id FROM contest_events c JOIN events e ON e.seq=c.event_seq WHERE c.contest_id=? ORDER BY e.seq DESC LIMIT 1",[id.to_string()],|r|r.get(0))?;raw.parse().map_err(|_|StoreError::Unavailable)})?;
+                    let plan = self.store.call(move |db| {
+                        let raw: String = db.query_row(
+                            "SELECT plan_json FROM contests WHERE contest_id=?",
+                            [id.to_string()],
+                            |r| r.get(0),
+                        )?;
+                        Ok(serde_json::from_str::<ProbePreflight>(&raw)?)
+                    })?;
                     let work = actors
                         .into_iter()
-                        .map(|(target, kind)| {
+                        .map(|(target, kind)| -> Result<Work> {
                             let context_id = match &target {
                                 Target::Member(n) => {
                                     ContextId(format!("contest:{id}:{step_id}:{n}"))
                                 }
                                 Target::Judge => ContextId(format!("judge:{case}")),
                             };
-                            Work {
+                            let composition =
+                                kind.probe_composition().ok_or(StoreError::Unavailable)?;
+                            let pack_version = Text::new(
+                                plan.base.settings["packVersion"]
+                                    .as_str()
+                                    .ok_or(StoreError::Unavailable)?,
+                            )
+                            .map_err(|_| StoreError::Unavailable)?;
+                            let template_hash = Text::new(
+                                plan.base.settings["prompts"][composition]["hash"]
+                                    .as_str()
+                                    .ok_or(StoreError::Unavailable)?,
+                            )
+                            .map_err(|_| StoreError::Unavailable)?;
+                            Ok(Work {
                                 work_id: WorkId::new(),
                                 message_id: MessageId::new(),
                                 in_reply_to_message_id: None,
                                 prompt_ref: Some(PromptRef {
-                                    pack_version: Text::new("v1").expect("literal"),
+                                    pack_version,
                                     template_id: Text::new(
                                         kind.probe_composition().expect("probe"),
                                     )
                                     .expect("literal"),
-                                    template_hash: Text::new("probe-v1").expect("literal"),
+                                    template_hash,
                                 }),
                                 max_output_tokens: Some(if target == Target::Judge {
                                     constants::FINAL_JUDGE_VISIBLE_TOKENS
@@ -160,9 +182,9 @@ impl Router {
                                 replay: None,
                                 contest_id: Some(id),
                                 step_id: Some(step_id),
-                            }
+                            })
                         })
-                        .collect::<Vec<_>>();
+                        .collect::<Result<Vec<_>>>()?;
                     let step = ContestStep {
                         contest_id: id,
                         step_id,

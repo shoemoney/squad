@@ -26,7 +26,7 @@ async fn run(
     client: &OpenRouterClient,
 ) -> Result<(), ReaderError> {
     let Some(model) = models.get(grant.binding.model.as_str()) else {
-        return failed(context, &grant, ErrorCode::MODEL_UNAVAILABLE).await;
+        return failed(context, grant, ErrorCode::MODEL_UNAVAILABLE).await;
     };
     let values = context
         .work
@@ -103,7 +103,7 @@ async fn run(
     };
     let mut request = squad_agents::registry::Registry::new(config)
         .map_err(|_| ReaderError::NotRunnable)?
-        .work_request(member, model, &grant)
+        .work_request(member, model, grant)
         .map_err(|_| ReaderError::NotRunnable)?;
     request.messages = vec![
         ChatMessage {
@@ -126,7 +126,7 @@ async fn run(
     if squad_agents::context::estimate(&request.messages)
         > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
     {
-        return failed(context, &grant, ErrorCode::CONTEXT_TOO_LARGE).await;
+        return failed(context, grant, ErrorCode::CONTEXT_TOO_LARGE).await;
     }
-    squad_agents::agents::probe::execute(context, &grant, client, request, &input, cancel).await
+    squad_agents::agents::probe::execute(context, grant, client, request, &input, cancel).await
 }
