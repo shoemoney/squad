@@ -1,0 +1,15 @@
+---
+source: crates/squad-tui/tests/banners.rs
+expression: "paint(&steps, BannerMode::Compact, width, &palette)"
+---
+── Round(1) · Compact · 4 rows
+     ___  ___  _   _ _  _ ___    _
+    | _ \/ _ \| | | | \| |   \  / |
+    |   / (_) | |_| | .` | |) | | |
+    |_|_\\___/ \___/|_|\_|___/  |_|
+── FinalRound · Divider · 1 rows
+         ──── FINAL ROUND ────
+── TournamentRound { round: 2, remaining: 4 } · Divider · 1 rows
+      ──── ROUND 2 · 4 REMAIN ────
+── GrillRound(3) · Divider · 1 rows
+        ──── GRILL ROUND 3 ────

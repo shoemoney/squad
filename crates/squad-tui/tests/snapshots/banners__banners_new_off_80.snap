@@ -1,0 +1,12 @@
+---
+source: crates/squad-tui/tests/banners.rs
+expression: text
+---
+── Census · Label · 1 rows
+                                     CENSUS
+── Crosscheck · Label · 1 rows
+                                   CROSSCHECK
+── Survey · Label · 1 rows
+                                     SURVEY
+── Probe · Label · 1 rows
+                                     PROBE
