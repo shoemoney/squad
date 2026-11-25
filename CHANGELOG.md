@@ -4,6 +4,54 @@ All notable changes to Squad will be documented in this file, following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-11-25
+
+Test-coverage and keyboard-reachability release: six gap branches merged on top
+of 0.1.0, plus the fixes their tests exposed.
+
+### Added
+
+- Prompt pack: grill focus, already-asked list and shared floor plans; census,
+  survey and probe shared-move compositions; composition provenance hashes and
+  prompt refs; named constants for the new modes' medium judge effort and
+  4,096-token visible ceiling; expanded prompt-pack guide.
+- Step, pass and execution attribution on `UsageRecord` for the new modes.
+- `squad doctor` reports the effective value, source and default for
+  `SQUAD_BANNERS` and `SQUAD_FX`.
+- TUI: retry, regenerate and per-target stop through `RoomHandle`; source
+  selection for debate solutions and grill plans with previews; per-mode
+  preflight breakdowns and post-pick context; pick routing, judge validation
+  and contest progress cards.
+- TUI: Ctrl+F transcript search and OSC 52 clipboard copy (Ctrl+Y); anchored
+  PageUp/PageDown and wheel paging with a new-activity count; presentation
+  expansion for tournament rankings and grill plans; incomplete and superseded
+  replies rendered in the transcript.
+- TUI keys with the room focused: `r` regenerates the focused reply (or the
+  latest), `t` retries its failed or cancelled work item, `x` stops only its
+  member. Search and copy keys added to the README key table.
+- Tests: judge request capture and provenance for the new modes; router
+  revalidation and contest error-code mapping; contest engine scripts, one
+  active contest across seven modes, storage limits at maximum census passes,
+  12-member probe and 25 survey claims; privacy injection; 20 s work-lease
+  renewal; grill isolation and restart; room-level and CLI tests across modes
+  (requests, actions, judge, history, state, feed, clear, export, send,
+  output); PTY end-to-end with streamed round trip, terminal restore and SIGHUP
+  recovery; banner snapshots at 120/80/40 columns, completion popups and render
+  budget layouts.
+
+### Fixed
+
+- Explicit debate solution selections map reply events to their own debate.
+- Judge case follow-ups use their own invocation.
+- Replayed preflight receipts compare equal (`serde_json` `float_roundtrip`).
+- Terminal control bytes in model text are neutralised in export.
+- A started attempt cancelled before its provider call (stop or `/clear`)
+  releases its spend reservation instead of leaking it.
+
+### Changed
+
+- Workspace version is 0.1.1.
+
 ## [0.1.0] - 2026-11-25
 
 First public release: a single-binary terminal room for six models over

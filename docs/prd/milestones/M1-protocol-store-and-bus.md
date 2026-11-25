@@ -138,7 +138,7 @@
   - [x] M1.P3.L1.T6 — Commit parser-produced inline variable changes with the associated operation in crate `squad-core`, file `crates/squad-core/src/router/variables.rs`.
   - [x] M1.P3.L1.T7 — Authorize round-score submissions only for their fenced `judge.round` work and derive `me` as the sole recipient in crate `squad-core`, file `crates/squad-core/src/router/authorization.rs`.
   - [x] M1.P3.L1.T8 — Reject quote or reference projections that would expose a debate’s round scores to member histories before its verdict in crate `squad-core`, file `crates/squad-core/src/router/references.rs` and file `crates/squad-core/tests/router_visibility.rs`.
-  - [ ] M1.P3.L1.T9 — Map shared contest conflicts, invalid picks, insufficient answers, tournament entrant minimums, missing grill plans and daily-max refusals to their canonical codes and strings in crate `squad-core`, file `crates/squad-core/tests/router_validation.rs`.
+  - [x] M1.P3.L1.T9 — Map shared contest conflicts, invalid picks, insufficient answers, tournament entrant minimums, missing grill plans and daily-max refusals to their canonical codes and strings in crate `squad-core`, file `crates/squad-core/tests/router_validation.rs`.
 
 - **M1.P3.L2 — Commit visible events**
   - [x] M1.P3.L2.T1 — Implement atomic event, history, work, receipt and state writes on the dedicated writer thread in crate `squad-store`, file `crates/squad-store/src/commit.rs`.
@@ -156,7 +156,7 @@
   - [x] M1.P3.L3.T3 — Test duplicate chunks and obsolete streaming attempts through ingress in crate `squad-core`, file `crates/squad-core/tests/router_streaming.rs`.
   - [x] M1.P3.L3.T4 — Persist held-work, deferred-history and execution-boundary metadata required by agent and contest scheduling in crate `squad-store`, file `crates/squad-store/src/work.rs`.
   - [x] M1.P3.L3.T5 — Verify that no result or notification indicates durable acceptance before commit in crate `squad-core`, file `crates/squad-core/tests/bus_commit_boundary.rs`.
-  - [ ] M1.P3.L3.T6 — Persist judge-case turn projections and pending round-scoring allocation metadata at numbered-round barriers, supporting idempotent allocation after commit in crate `squad-store`, file `crates/squad-store/src/work.rs` and file `crates/squad-store/src/history.rs`.
+  - [x] M1.P3.L3.T6 — Persist judge-case turn projections and pending round-scoring allocation metadata at numbered-round barriers, supporting idempotent allocation after commit in crate `squad-store`, file `crates/squad-store/src/work.rs` and file `crates/squad-store/src/history.rs`.
   - [x] M1.P3.L3.T7 — Defer held ordinary-message projections until contest release and preserve source order and identities on delivery in crate `squad-store`, file `crates/squad-store/src/history.rs` and file `crates/squad-store/tests/held_history.rs`.
   - [x] M1.P3.L3.T8 — Verify that mid-debate messages and quoted current-round content cannot enter either attempt’s frozen round context in crate `squad-core`, file `crates/squad-core/tests/router_visibility.rs`.
   - [x] M1.P3.L3.T9 — Saturate ingress and mailboxes to prove wake-up coalescing cannot deadlock the router or lose durable work in crate `squad-core`, file `crates/squad-core/tests/bus_backpressure.rs`.
@@ -167,9 +167,9 @@
   - [x] M1.P3.L4.T3 — Commit verdict-linked scoreboard changes once per accepted verdict in crate `squad-core`, file `crates/squad-core/src/router/verdict.rs`.
   - [x] M1.P3.L4.T4 — Implement idempotent attempt-ledger, reservation and daily spending projection writes in crate `squad-store`, file `crates/squad-store/src/accounting.rs`.
   - [x] M1.P3.L4.T5 — Implement `/clear` fencing, content deletion, variable reset and scoreboard reset while preserving daily accounting in crate `squad-core`, file `crates/squad-core/src/router/clear.rs`.
-  - [ ] M1.P3.L4.T6 — Expose consistent room and contest read boundaries for M3 markdown export in crate `squad-store`, file `crates/squad-store/src/export.rs`.
+  - [x] M1.P3.L4.T6 — Expose consistent room and contest read boundaries for M3 markdown export in crate `squad-store`, file `crates/squad-store/src/export.rs`.
   - [x] M1.P3.L4.T7 — Compute final `roundTally`, validate required override justification and project per-round outcomes with the verdict announcement without changing win-loss accounting for round scores in crate `squad-core`, file `crates/squad-core/src/router/verdict.rs` and file `crates/squad-core/tests/router_verdict.rs`.
-  - [ ] M1.P3.L4.T8 — Support the accumulating debate judge case and fresh explicit-judge cases containing retained round scores without duplicate source projections in crate `squad-store`, file `crates/squad-store/src/cases.rs`.
+  - [x] M1.P3.L4.T8 — Support the accumulating debate judge case and fresh explicit-judge cases containing retained round scores without duplicate source projections in crate `squad-store`, file `crates/squad-store/src/cases.rs`.
   - [x] M1.P3.L4.T9 — Persist rejected judge output and validation errors per work attempt, expose them only through the case-bound reader and delete them with conversational content in crate `squad-store`, file `crates/squad-store/src/judge_repairs.rs` and file `crates/squad-store/tests/judge_repairs.rs`.
   - [x] M1.P3.L4.T10 — Store all contest case IDs, prior terminal status and prompt invocation provenance without replacing sealed cases in crate `squad-store`, file `crates/squad-store/src/cases.rs` and file `crates/squad-store/tests/cases.rs`.
 
@@ -195,7 +195,7 @@
   - [x] M1.P3.L7.T3 — Implement step-bound history readers that exclude ordinary member history and restricted metadata, including fresh audit contexts, in crate `squad-store`, file `crates/squad-store/src/readers.rs`.
   - [x] M1.P3.L7.T8 — Authorize generic artifact producers against work, step, assignment and case identity, leaving typed coverage checks to mode M5 validators, in `crates/squad-core/src/router/authorization.rs`.
   - [x] M1.P3.L7.T9 — Persist skipped-member outcomes and recoverable next-step allocations atomically with barriers, work completion and accounting in crate `squad-store`, file `crates/squad-store/src/contest_steps.rs`.
-  - [ ] M1.P3.L7.T10 — Revalidate parsed AST snapshots, staged `CENSUS_PASSES` and generic source references without duplicating grammar; reject runtime admission of unbuilt modes in `crates/squad-core/tests/router_validation.rs`.
+  - [x] M1.P3.L7.T10 — Revalidate parsed AST snapshots, staged `CENSUS_PASSES` and generic source references without duplicating grammar; reject runtime admission of unbuilt modes in `crates/squad-core/tests/router_validation.rs`.
   - [ ] M1.P3.L7.T11 — Expose consistent generic artifact/report reads without raw private maps for M3 export and M4 rendering in `crates/squad-store/src/export.rs`; typed readers land in M5.
 
 ## Phase M1.P4 — Recovery, replay and storage
@@ -225,14 +225,14 @@
   - [x] M1.P4.L3.T1 — Verify that accepted events, histories, receipts and terminal work records remain until clear in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs`.
   - [x] M1.P4.L3.T2 — Test that ordinary operation preserves referenced case material and active contest anchors in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs`.
   - [x] M1.P4.L3.T3 — Verify WAL settings and rollback or recovery across interrupted transactions in crate `squad-store`, file `crates/squad-store/tests/crash_recovery.rs`.
-  - [ ] M1.P4.L3.T4 — Enforce storage admission limits while preserving completion, cleanup, reconciliation and export reads in crate `squad-store`, file `crates/squad-store/src/admission.rs`.
+  - [x] M1.P4.L3.T4 — Enforce storage admission limits while preserving completion, cleanup, reconciliation and export reads in crate `squad-store`, file `crates/squad-store/src/admission.rs`.
   - [x] M1.P4.L3.T5 — Verify that case histories and room-lifetime receipts survive restart and follow the clear lifecycle in crate `squad-store`, file `crates/squad-store/tests/clear.rs`.
   - [x] M1.P4.L3.T6 — Verify monotonic counters, the new replay floor, retained unresolved accounting and post-commit `VACUUM` in crate `squad-store`, file `crates/squad-store/tests/clear.rs`.
   - [x] M1.P4.L3.T7 — Verify round-score retention across restart and foreign-key-safe deletion of round scores, case projections and round work during clear while preserving required accounting in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs` and file `crates/squad-store/tests/clear.rs`.
   - [x] M1.P4.L3.T8 — Verify clear deletes generic contest/step/map/pick records and judge repair content while retaining daily spending and unknown-cost reconciliation in `crates/squad-store/tests/clear.rs`; mode-table deletion tests land in M5.
 
 - **M1.P4.L4 — Verify contest and daily accounting boundaries**
-  - [ ] M1.P4.L4.T1 — Test competing contest claims, persistent pending picks, rejected picks preserving state, ordinary routing while pending and `pick_cancelled` retention in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`.
+  - [x] M1.P4.L4.T1 — Test competing contest claims, persistent pending picks, rejected picks preserving state, ordinary routing while pending and `pick_cancelled` retention in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`.
   - [x] M1.P4.L4.T5 — Test reported costs, billed failures and cancellations, unknown costs, duplicate reconciliation, transaction rollback, local midnight and clear preserving daily totals in crate `squad-store`, file `crates/squad-store/tests/daily_spend.rs`.
   - [x] M1.P4.L4.T6 — Test daily-max refusal before new provider calls and contest admission, in-flight completion after the cap, and admission after a new day or raised configured max in crate `squad-core`, file `crates/squad-core/tests/daily_admission.rs`.
 

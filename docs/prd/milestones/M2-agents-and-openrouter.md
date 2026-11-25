@@ -132,7 +132,7 @@
   - [x] M2.P2.L7.T5 — Assemble the latest plan, current-round shared floor, assigned angle, and earlier-question list without earlier full answers in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
   - [x] M2.P2.L7.T6 — Test grill attribution, exact `PASS`, answer and rebuild limits, frozen retry inputs, and absence of executor-owned judging or scheduling in crate `squad-agents`, file `crates/squad-agents/tests/agents_grill.rs`.
   - [x] M2.P2.L7.T7 — Test controlled router fixtures delivering grill content to exactly the participants and retaining full history while supplying the round working projection in crate `squad-core`, file `crates/squad-core/tests/agents_grill.rs`.
-  - [ ] M2.P2.L7.T8 — Test question-first collection as ordinary mutually invisible replies, continued chat while a pick is pending, and retention of collected answers after cancellation in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
+  - [x] M2.P2.L7.T8 — Test question-first collection as ordinary mutually invisible replies, continued chat while a pick is pending, and retention of collected answers after cancellation in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
 
 - **M2.P2.L8 — Execute census work**
   - [x] M2.P2.L8.T1 — Execute census hunt and rating Work with the assigned lens, frozen plan version, anonymous ledger, and owning result schemas in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.

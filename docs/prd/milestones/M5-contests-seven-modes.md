@@ -74,7 +74,7 @@
   - [ ] M5.P1.L5.T4 — Convert a debate pick into selected solutions with the original question, no round 0, and automatic judging enabled in `crates/squad-core/src/orchestrator/selection.rs`.
   - [ ] M5.P1.L5.T5 — Preserve ordinary room use while collecting and picking, and map insufficient answers and wrong picks to the parser-owned strings in `crates/squad-core/src/orchestrator/selection.rs`.
   - [ ] M5.P1.L5.T6 — Test collection completion, partial failures, source freezing, invalid picks, duplicate picks, automatic judging, and post-pick preflight in `crates/squad-core/tests/orchestrator/selection.rs`.
-  - [ ] M5.P1.L5.T7 — Test that collection calls count as ordinary daily spend and are excluded from the execution preflight estimate in `crates/squad-core/tests/orchestrator/budget.rs`.
+  - [x] M5.P1.L5.T7 — Test that collection calls count as ordinary daily spend and are excluded from the execution preflight estimate in `crates/squad-core/tests/orchestrator/budget.rs`.
 
 - **M5.P1.L6 — Execute shared moves and versioned scripts**
   - [ ] M5.P1.L6.T1 — Implement `collect`, `pick`, `fanout`, `turns`, `judge`, `tally`, `barrier` and `report` with persisted step identities, actors, visibility projections, limits and failure policies in `crates/squad-core/src/orchestrator/`.
@@ -372,7 +372,7 @@
   - [x] M5.P6.L3.T6 — Verify final-plan and appendix export through the shared core export API in `crates/squad-core/tests/orchestrator/export.rs`.
 
 - **M5.P6.L4 — Recover and verify grill integration**
-  - [ ] M5.P6.L4.T1 — Recover floor delivery, turn order, angles, plan version, questions, answers, and incomplete rebuild work in `crates/squad-core/src/orchestrator/recovery.rs`.
+  - [x] M5.P6.L4.T1 — Recover floor delivery, turn order, angles, plan version, questions, answers, and incomplete rebuild work in `crates/squad-core/src/orchestrator/recovery.rs`.
   - [x] M5.P6.L4.T2 — Fence grill work on stop, preserve the last good plan, and release holds and unused reservations in `crates/squad-core/src/orchestrator/stop.rs`.
   - [ ] M5.P6.L4.T3 — Test restart after a question, answer, pass, plan commit, and terminal transition in `crates/squad-core/tests/orchestrator/grill_recovery.rs`.
   - [ ] M5.P6.L4.T4 — Test direct and question-first grill commands, normal room use during picking, daily-cap failure, and cross-kind active-contest exclusion through `RoomHandle` in `crates/squad-core/tests/orchestrator/grill_integration.rs`.
@@ -389,7 +389,7 @@
   - [x] M5.P6.L6.T3 — Commit grill setup, questions, answers, passes and plan versions to exactly the participant histories and retain appendix references in crate `squad-store`, file `crates/squad-store/src/grills.rs`. (Deferred from M1.P3.L5.T5.)
   - [x] M5.P6.L6.T4 — Implement authorised grill working-context selection using the latest plan, current-round exchanges and prior-question list in crate `squad-store`, file `crates/squad-store/src/readers.rs`. (Deferred from M1.P3.L5.T6.)
   - [x] M5.P6.L6.T5 — Prove grill shared-floor delivery reaches exactly the participants and that working reads exclude full earlier-round answers while preserving the no-repeat question list in crate `squad-store`, file `crates/squad-store/tests/grills.rs`. (Deferred from M1.P4.L4.T4.)
-  - [ ] M5.P6.L6.T6 — Add the exact grill per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P6.L6.T6 — Add the exact grill per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
 
 ## Phase M5.P7 — Census
 

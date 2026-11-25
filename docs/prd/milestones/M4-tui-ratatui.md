@@ -121,7 +121,7 @@
   - [x] M4.P3.L1.T1 — Implement collapsible debate blocks, round 0, rounds, parallel turns, retries, forfeits, closing statements, and waiting states in `crates/squad-tui/src/widgets/debate.rs`.
   - [ ] M4.P3.L1.T2 — Implement authoritative Protocol-owned preflight estimate display, model-call count, debaters, round count, judge and opening-round flags, auto-confirmation status, and explicit Confirm and Cancel controls bound to plan identity in `crates/squad-tui/src/widgets/preflight.rs`.
   - [ ] M4.P3.L1.T3 — Implement solution previews, distinct debate selection, and explicit solution references in `crates/squad-tui/src/selection.rs`.
-  - [ ] M4.P3.L1.T4 — Connect global stop, targeted stop, acknowledged cancellation, and eligible later judging in `crates/squad-tui/src/session.rs`.
+  - [x] M4.P3.L1.T4 — Connect global stop, targeted stop, acknowledged cancellation, and eligible later judging in `crates/squad-tui/src/session.rs`.
   - [x] M4.P3.L1.T5 — Consume `debate.round_score` by debate, case, and round identity and render pending, scored, unscored, and canceled scoring states, expandable reasons, and authoritative tallies in `crates/squad-tui/src/session.rs` and `crates/squad-tui/src/widgets/debate.rs`.
   - [x] M4.P3.L1.T6 — Present late scores without blocking later turns, outstanding scoring before final judging, no scoring for round 0 or unjudged debates, and no retroactive scoring when judging a stopped debate in `crates/squad-tui/src/widgets/debate.rs`.
   - [ ] M4.P3.L1.T7 — Verify the displayed authoritative preflight includes one round-scoring judge call per configured round when judging is requested in `crates/squad-tui/src/widgets/preflight.rs` and `crates/squad-tui/tests/debate.rs`.
@@ -136,7 +136,7 @@
   - [ ] M4.P3.L2.T6 — Verify concrete-model conflict warnings substitute the reported nick, standalone judging follows the shared conflict contract, and tournaments never display a substitution warning in `crates/squad-tui/tests/cases.rs`.
 
 - **M4.P3.L3 — Integrate recovery and Foundations actions**
-  - [ ] M4.P3.L3.T1 — Connect ordinary-reply retry actions and regeneration without restarting successful siblings in `crates/squad-tui/src/session.rs`.
+  - [x] M4.P3.L3.T1 — Connect ordinary-reply retry actions and regeneration without restarting successful siblings in `crates/squad-tui/src/session.rs`.
   - [ ] M4.P3.L3.T2 — Render incomplete output, superseded replies, replacement work, and authoritative clear results in `crates/squad-tui/src/transcript.rs`.
   - [ ] M4.P3.L3.T3 — Connect Foundations command presentation, help, roster detail, and export destination handling in `crates/squad-tui/src/actions.rs`.
   - [ ] M4.P3.L3.T4 — Implement the F12 debug pane using shared redacted diagnostics in `crates/squad-tui/src/widgets/debug.rs`.
@@ -169,7 +169,7 @@
   - [x] M4.P3.L7.T1 — Consume `contest.collecting`, `contest.pick_requested`, and `contest.picked`, preserving ordinary answer cards and authoritative candidate eligibility in `crates/squad-tui/src/session.rs`.
   - [x] M4.P3.L7.T2 — Render inline `CHOOSE YOUR DEBATE BROS` and `CHOOSE WHO GETS GRILLED` banners, exact hints, candidate lists, and `pick pending` status in `crates/squad-tui/src/widgets/pick.rs` and `crates/squad-tui/src/widgets/banner.rs`.
   - [ ] M4.P3.L7.T3 — Route accepted mentions-only picks through `ContestPick { contestId, nicks }`, preserve unrelated ordinary messages, and display exact wrong-pick and insufficient-answer strings in `crates/squad-tui/src/validation.rs` and `crates/squad-tui/src/session.rs`.
-  - [ ] M4.P3.L7.T4 — Present post-pick preflight with selected debate solutions or grill leadership, default judging for question-first debates, and exclusion of already billed collection answers from the estimate in `crates/squad-tui/src/widgets/preflight.rs`.
+  - [x] M4.P3.L7.T4 — Present post-pick preflight with selected debate solutions or grill leadership, default judging for question-first debates, and exclusion of already billed collection answers from the estimate in `crates/squad-tui/src/widgets/preflight.rs`.
   - [x] M4.P3.L7.T5 — Restore pending picks without expiry and reflect acknowledged `pick_cancelled` while retaining ordinary answers in `crates/squad-tui/src/session.rs` and `crates/squad-tui/src/widgets/pick.rs`.
   - [ ] M4.P3.L7.T6 — Expose eligible-candidate row and banner-entrance effect hooks in `crates/squad-tui/src/widgets/participants.rs` and `crates/squad-tui/src/widgets/pick.rs`, keeping text eligibility complete with effects off.
 

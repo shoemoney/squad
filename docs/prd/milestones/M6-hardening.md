@@ -121,7 +121,7 @@ stalled; this unresolved validation failure is retained in the report.
   - [x] M6.P1.L6.T8 — Verify pending picks never expire and survive restart with their eligible answers and original references, without regenerating answers or applying preflight expiry to the pick, in `crates/squad-core/tests/recovery.rs`.
 
 - **M6.P1.L7 — Shared engine verification**
-  - [ ] M6.P1.L7.T1 — Verify all seven scripts use the shared moves with their declared actors, payload visibility, prompt templates, schemas, word limits, and failure rules in `crates/squad-core/tests/contest_engine.rs`.
+  - [x] M6.P1.L7.T1 — Verify all seven scripts use the shared moves with their declared actors, payload visibility, prompt templates, schemas, word limits, and failure rules in `crates/squad-core/tests/contest_engine.rs`.
   - [ ] M6.P1.L7.T2 — Verify one active contest across every mode pairing, including collection, picks, and between-pass states, using the existing busy-contest error in `crates/squad-core/tests/contest_engine.rs`.
   - [ ] M6.P1.L7.T3 — Verify parallel completion orders, atomic barrier commits, exact delivery destinations, and replay without duplicate artifacts or histories in `crates/squad-core/tests/contest_engine.rs`.
   - [ ] M6.P1.L7.T4 — Verify model-call accounting for `collect`, `fanout`, `turns`, `judge`, and report variants, with no provider calls for `pick`, `tally`, or `barrier`, in `crates/squad-core/tests/contest_engine.rs`.
@@ -171,11 +171,11 @@ stalled; this unresolved validation failure is retained in the report.
   - [x] M6.P2.L1.T8 — Run the 12-stream latency and memory gate with `SQUAD_FX=full` in `crates/squad-cli/tests/performance.rs` and record results for `squad-cli` and `squad-tui` in `docs/performance.md`.
   - [x] M6.P2.L1.T9 — Verify the frame-budget governor sheds effects under load and that `SQUAD_FX=off` and `NO_COLOR` each produce no animation frames when idle in `crates/squad-tui/tests/effects.rs`.
   - [x] M6.P2.L1.T10 — Verify capacity-1 synchronous mailbox `try_send`, Full as a pending wake-up, no router waits on agent-owned channels, bounded ingress, and feed-lag recovery from the last cursor in `crates/squad-core/tests/limits.rs`.
-  - [ ] M6.P2.L1.T11 — Verify work lease expiry and 20-second renewals under the 60-second lease contract in `crates/squad-core/tests/recovery.rs`.
+  - [x] M6.P2.L1.T11 — Verify work lease expiry and 20-second renewals under the 60-second lease contract in `crates/squad-core/tests/recovery.rs`.
   - [x] M6.P2.L1.T12 — Verify the single TUI event loop’s effect-driven timer, 60 Hz cap, idle disarming, input priority, and feed batches of at most 256 in `crates/squad-tui/tests/event_loop.rs`.
   - [x] M6.P2.L1.T13 — Verify palette ownership, internal live/replay tagging, inline settling, colour-only clear, resolved-state roster effects, verdict timing, and unset-only automatic lite mode in `crates/squad-tui/tests/effects.rs`.
   - [ ] M6.P2.L1.T14 — Verify new-mode tracing correlates script steps, work attempts, barriers, and reports without default body capture or reasoning disclosure in `crates/squad-core/tests/observability.rs`.
-  - [ ] M6.P2.L1.T15 — Exercise maximum census passes, a capped crosscheck grid, 25 survey claims, and a 12-member probe while verifying paging, bounded delivery, context-fit failures, responsive input, and effects shedding in `crates/squad-core/tests/limits.rs` and `crates/squad-tui/tests/effects.rs`.
+  - [x] M6.P2.L1.T15 — Exercise maximum census passes, a capped crosscheck grid, 25 survey claims, and a 12-member probe while verifying paging, bounded delivery, context-fit failures, responsive input, and effects shedding in `crates/squad-core/tests/limits.rs` and `crates/squad-tui/tests/effects.rs`.
 
 - **M6.P2.L2 — Daily spending enforcement**
   - [x] M6.P2.L2.T1 — Verify idempotent reservation reconciliation using the owning accounting contract in `crates/squad-core/tests/budget.rs`.
@@ -226,5 +226,5 @@ stalled; this unresolved validation failure is retained in the report.
   - [x] M6.P3.L2.T5 — Verify that logging and accounting never forward reasoning text or emit telemetry in `crates/squad-core/tests/privacy.rs`.
   - [x] M6.P3.L2.T6 — Verify the exact shipped example and Foundations setup requirements for `squad-cli` using `.env.example` and `setup.sh`.
   - [x] M6.P3.L2.T7 — Verify Escape dismisses the topmost transient first, contest stopping requires a second Escape within 2 s, expired confirmation does not stop, and animation skipping consumes no Escape or input keys in `crates/squad-tui/tests/interaction.rs`.
-  - [ ] M6.P3.L2.T8 — Inject routing instructions, forged author metadata, terminal controls, automatic risk acceptance, and executable-looking checks into new-mode artifacts; verify they cannot grant visibility, authorize spending, accept risks, execute checks, or control the terminal in `crates/squad-core/tests/isolation.rs` and `crates/squad-tui/tests/terminal_safety.rs`.
+  - [x] M6.P3.L2.T8 — Inject routing instructions, forged author metadata, terminal controls, automatic risk acceptance, and executable-looking checks into new-mode artifacts; verify they cannot grant visibility, authorize spending, accept risks, execute checks, or control the terminal in `crates/squad-core/tests/isolation.rs` and `crates/squad-tui/tests/terminal_safety.rs`.
 

@@ -3162,7 +3162,7 @@ dependencies = [
 
 [[package]]
 name = "squad-agents"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-stream",
  "chrono",
@@ -3183,7 +3183,7 @@ dependencies = [
 
 [[package]]
 name = "squad-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "clap",
@@ -3210,7 +3210,7 @@ dependencies = [
 
 [[package]]
 name = "squad-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "figlet-rs",
@@ -3234,7 +3234,7 @@ dependencies = [
 
 [[package]]
 name = "squad-protocol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "http",
@@ -3253,7 +3253,7 @@ dependencies = [
 
 [[package]]
 name = "squad-store"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "fs2",
@@ -3267,7 +3267,7 @@ dependencies = [
 
 [[package]]
 name = "squad-tui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "crossterm",
