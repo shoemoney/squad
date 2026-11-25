@@ -42,6 +42,7 @@ crates/
       prompts/
       export/
       banner/
+    prompts/
   squad-tui/
     src/
       lib.rs
@@ -55,7 +56,6 @@ crates/
       models.rs
       doctor.rs
       debug.rs
-prompts/
 setup.sh
 .env.example
 .gitignore

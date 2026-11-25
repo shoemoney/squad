@@ -74,9 +74,9 @@ macOS arm64 installation evidence remain pending the owner's decision.
 - A noninteractive refusal ("Re-run with --yes") leaves the pending preflight
   stored, so the re-run is rejected with `CONTEST_BUSY` or `DEBATE_BUSY` until
   the plan expires.
-- `squad-core` embeds the repository-root `prompts/` directory, which is not
-  part of its package, so a registry package of `squad-core` cannot build.
-  `cargo install --path` and cargo-dist builds are unaffected.
+- (fixed) the prompt pack now lives in `crates/squad-core/prompts/`, inside the
+  `squad-core` package, so a registry package of `squad-core` carries every
+  embedded prompt.
 
 ### Planned after v1
 

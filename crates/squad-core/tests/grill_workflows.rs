@@ -603,7 +603,7 @@ async fn restart_preserves_accepted_turns_and_frozen_prompts() {
         overrides.join("grill.answer.md"),
         format!(
             "CHANGED_TEMPLATE_AFTER_ADMISSION\n{}",
-            include_str!("../../../prompts/grill.answer.md")
+            include_str!("../prompts/grill.answer.md")
         ),
     )
     .unwrap();

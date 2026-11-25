@@ -919,15 +919,14 @@ async fn restart_and_stop_each_later_step_preserve_committed_inputs_and_fences()
                 let (file, original) = match needle {
                     "Merge the independent findings" => (
                         "census.merge.md",
-                        include_str!("../../../prompts/census.merge.md"),
+                        include_str!("../prompts/census.merge.md"),
                     ),
-                    "Independently rate" => (
-                        "census.rate.md",
-                        include_str!("../../../prompts/census.rate.md"),
-                    ),
+                    "Independently rate" => {
+                        ("census.rate.md", include_str!("../prompts/census.rate.md"))
+                    }
                     _ => (
                         "census.final.md",
-                        include_str!("../../../prompts/census.final.md"),
+                        include_str!("../prompts/census.final.md"),
                     ),
                 };
                 std::fs::write(

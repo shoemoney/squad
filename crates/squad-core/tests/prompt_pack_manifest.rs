@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use serde_json::Value;
 
 fn prompt_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../prompts")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("prompts")
 }
 
 fn manifest() -> Value {

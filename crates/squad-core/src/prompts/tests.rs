@@ -347,7 +347,7 @@ fn strict_input_names_and_numeric_identity_validation() {
 #[test]
 fn embedded_text_matches_repository_pack() {
     let pack = PromptPack::embedded().unwrap();
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../prompts");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("prompts");
     for spec in &pack.manifest().templates {
         assert_eq!(
             pack.template(&spec.id).unwrap(),

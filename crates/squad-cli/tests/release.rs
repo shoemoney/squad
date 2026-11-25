@@ -382,12 +382,10 @@ fn every_crate_packages_without_secrets_and_the_cli_ships_its_sources() {
     }
 }
 
-/// PRODUCT BUG (reported, not fixed here): squad-core embeds the repository-root
-/// `prompts/` directory with `include_str!("../../../../prompts/...")`
-/// (crates/squad-core/src/prompts/embedded.rs), which lies outside the crate, so a
-/// packaged squad-core (and a crates.io `cargo install squad-cli`) cannot compile.
+/// Regression: the embedded prompt pack must live inside the squad-core crate
+/// (`crates/squad-core/prompts/`), or a packaged squad-core and a crates.io
+/// `cargo install squad-cli` cannot compile.
 #[test]
-#[ignore = "product bug: squad-core package omits prompts/ (src/prompts/embedded.rs)"]
 fn packaged_squad_core_contains_every_embedded_prompt() {
     let output = Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".into()))
         .args([
@@ -407,10 +405,10 @@ fn packaged_squad_core_contains_every_embedded_prompt() {
             .unwrap();
     for line in embedded
         .lines()
-        .filter(|line| line.contains("include_str!(\"../../../../prompts/"))
+        .filter(|line| line.contains("include_str!(\"../../prompts/"))
     {
         let name = line
-            .split("prompts/")
+            .split("../../prompts/")
             .nth(1)
             .unwrap()
             .split('"')
