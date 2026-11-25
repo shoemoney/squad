@@ -126,7 +126,7 @@ fn reviewer_and_fresh_auditor_requests_receive_only_their_own_cells_and_sampled_
     };
     let r = render(&mode_work("crosscheck.cell", "beta", 1), &material, None);
     assert_eq!(r.user.matches("OWN_CELL_ITEM").count(), 1);
-    assert_eq!(r.user.matches(&cell.to_string()).count() >= 1, true);
+    assert!(r.user.contains(&cell.to_string()));
     assert!(!all_text(&r).contains("OTHER_CELL_ITEM"));
     let audit = CrosscheckCaseMaterial::Audit {
         plan: t("PLAN_CANARY"),
