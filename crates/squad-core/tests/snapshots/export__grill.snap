@@ -1,0 +1,37 @@
+---
+source: crates/squad-core/tests/export.rs
+expression: grill
+---
+# Squad transcript
+
+```text
+ _____ ___ _   _    _    _       ____  _        _    _   _
+|  ___|_ _| \ | |  / \  | |     |  _ \| |      / \  | \ | |
+| |_   | ||  \| | / _ \ | |     | |_) | |     / _ \ |  \| |
+|  _|  | || |\  |/ ___ \| |___  |  __/| |___ / ___ \| |\  |
+|_|   |___|_| \_/_/   \_\_____| |_|   |_____/_/   \_\_| \_|
+```
+
+## grill 01900000-0000-7000-8000-000000000200 · COMPLETED
+
+## Plan · version 1 · alpha
+
+Draft
+
+## Final plan · version 2 · alpha
+
+Revised plan
+
+## Question-and-answer appendix
+
+## Round 1 · beta asks
+
+What about cost?
+
+## alpha answers
+
+Cache it
+
+## Resulting plan changes
+
+Added caching

@@ -1,0 +1,109 @@
+---
+source: crates/squad-core/tests/export.rs
+expression: output
+---
+# Squad transcript
+
+## Debate 01900000-0000-7000-8000-000000000100
+
+## Topic
+
+Build a search engine
+
+Judge: judge/model
+
+## Original solution · alpha
+
+Use an index
+
+## Original solution · beta
+
+Scan everything
+
+```text
+  ___  ____  _____ _   _ ___ _   _  ____
+ / _ \|  _ \| ____| \ | |_ _| \ | |/ ___|
+| | | | |_) |  _| |  \| || ||  \| | |  _
+| |_| |  __/| |___| |\  || || |\  | |_| |
+ \___/|_|   |_____|_| \_|___|_| \_|\____|
+```
+
+```text
+ ____   ___  _   _ _   _ ____    _
+|  _ \ / _ \| | | | \ | |  _ \  / |
+| |_) | | | | | | |  \| | | | | | |
+|  _ <| |_| | |_| | |\  | |_| | | |
+|_| \_\\___/ \___/|_| \_|____/  |_|
+```
+
+## alpha · debate 01900000-0000-7000-8000-000000000100 · round 1
+
+Index the pages.
+
+```text
+ _____ ___ _   _    _    _       ____   ___  _   _ _   _ ____
+|  ___|_ _| \ | |  / \  | |     |  _ \ / _ \| | | | \ | |  _ \
+| |_   | ||  \| | / _ \ | |     | |_) | | | | | | |  \| | | | |
+|  _|  | || |\  |/ ___ \| |___  |  _ <| |_| | |_| | |\  | |_| |
+|_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
+```
+
+## Debate 01900000-0000-7000-8000-000000000100 · round 1 score
+
+alpha: 9/10 — Clear
+
+beta: 7/10 — Slow
+
+Tally · alpha: 1
+
+Tally · beta: 0
+
+## Debate 01900000-0000-7000-8000-000000000100 · round 3 score
+
+Unscored
+
+Tally · alpha: 1
+
+Tally · beta: 0
+
+## beta · debate 01900000-0000-7000-8000-000000000100 · round 3
+
+Forfeit (Timeout): Timed out
+
+```text
+__     _______ ____  ____ ___ ____ _____
+\ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
+ \ \ / /|  _| | |_) | | | | | |     | |
+  \ V / | |___|  _ <| |_| | | |___  | |
+   \_/  |_____|_| \_\____/___\____| |_|
+```
+
+## Verdict · debate 01900000-0000-7000-8000-000000000100 · judge public/model
+
+Winner: alpha
+
+## Decision
+
+The design fits the brief.
+
+## alpha · Fit · 9/10
+
+Matches the question.
+
+Weighted total · alpha: 8.5
+
+Weighted total · beta: 8
+
+roundTally · alpha: 1
+
+roundTally · beta: 2
+
+## tallyOverrideReason
+
+Stronger overall design.
+
+## What to steal from loser
+
+Borrow the index.
+
+## Debate 01900000-0000-7000-8000-000000000100 · Completed
