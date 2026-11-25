@@ -98,8 +98,43 @@ impl HistoryReader for ScopedReaders {
     }
 }
 impl WorkReader for ScopedReaders {
-    // Integration TODO: implement the agents worker's additive prompt_values_for_work
-    // once merged. Values must come from frozen work/setup rows, never room history.
+    fn prompt_values_for_work(
+        &self,
+        id: WorkId,
+    ) -> ReaderFuture<'_, std::collections::BTreeMap<String, String>> {
+        Box::pin(async move {
+            self.read(move |db, owner| {
+            let record = owned(db, owner, id)?;
+            if record.status != WorkStatus::Running || !record.runnable { return Err(ReaderError::NotRunnable); }
+            let work = record.executable.ok_or(ReaderError::NotRunnable)?;
+            let mut values = std::collections::BTreeMap::new();
+            if let Some(case) = work.case_id {
+                if !matches!(owner, ExecutorKey::Case(owned) if *owned == case) { return Err(ReaderError::Forbidden); }
+                let (material, state): (String, String) = db.query_row("SELECT material_json,state_json FROM cases WHERE case_id=? AND epoch=(SELECT epoch FROM room_meta)", [case.to_string()], |r| Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::NotFound)?;
+                values.insert("case_material_json".into(), material);
+                values.insert("case_state_json".into(), state);
+            }
+            if let Some(debate) = work.debate_id {
+                let state = crate::contests::debate(db, debate).map_err(map_error)?;
+                if let Target::Member(nick) = &work.target {
+                    let opponent = state.debaters.iter().find(|n| *n != nick).ok_or(ReaderError::Forbidden)?;
+                    if !state.debaters.contains(nick) { return Err(ReaderError::Forbidden); }
+                    values.insert("opponent".into(), opponent.to_string());
+                }
+                values.insert("debate_id".into(), debate.to_string());
+                let (_, binding)=crate::work::template(db,id).map_err(map_error)?.ok_or(ReaderError::NotFound)?;
+                values.insert("model_slug".into(),binding.model.to_string());
+                if let Target::Member(nick) = &work.target {
+                    values.insert("nick".into(), nick.to_string());
+                    values.insert("round_data_json".into(), serde_json::json!({"debate_id":debate,"round":work.round,"rounds":state.total_rounds,"self":nick,"opponent":values.get("opponent"),"closing_required":work.round.is_some_and(|r|r>0 && r==state.total_rounds)}).to_string());
+                }
+                values.insert("rounds".into(), state.total_rounds.to_string());
+                if let Some(round) = work.round { values.insert("round".into(), round.to_string()); }
+            }
+            Ok(values)
+        })
+        })
+    }
 
     fn unfinished(&self) -> ReaderFuture<'_, Vec<WorkRecord>> {
         Box::pin(async move {

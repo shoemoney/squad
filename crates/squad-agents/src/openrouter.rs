@@ -227,6 +227,17 @@ impl fmt::Debug for OpenRouterClient {
 pub type EventStream = Pin<Box<dyn Stream<Item = StreamEvent> + Send>>;
 
 impl OpenRouterClient {
+    /// Production constructor keeps credentials in their sensitive header wrapper.
+    pub fn from_config(config: &squad_protocol::SquadConfig) -> Result<Self, TransportError> {
+        let authorization = config
+            .openrouter_api_key
+            .authorization_header()
+            .map_err(|_| TransportError::InvalidConfiguration)?;
+        let mut client = Self::new("https://openrouter.ai/api/v1/", "unused")?;
+        client.authorization = authorization;
+        Ok(client)
+    }
+
     /// `base_url` includes `/api/v1/`; tests supply a loopback fake.
     pub fn new(base_url: &str, api_key: &str) -> Result<Self, TransportError> {
         let base =

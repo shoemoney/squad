@@ -107,7 +107,7 @@ pub async fn run(
                 .any(|r| r.work_id == *id && r.attempt == *attempt)
         });
         records.retain(|r| {
-            !completed.contains(&(r.work_id, r.attempt))
+            (r.status == WorkStatus::Queued || !completed.contains(&(r.work_id, r.attempt)))
                 && matches!(r.status, WorkStatus::Queued | WorkStatus::Running)
         });
         // WorkReader supplies durable FIFO order. Do not reorder same-millisecond
@@ -166,12 +166,19 @@ pub async fn run(
             let mut renewal =
                 tokio::time::interval(Duration::from_millis(constants::WORK_LEASE_RENEWAL_MS));
             renewal.tick().await;
+            let mut cancellation_check = tokio::time::interval(Duration::from_millis(100));
             let mut stopping = false;
             let result = loop {
                 tokio::select! {
                     biased;
                     _ = context.cancel.cancelled(), if !stopping => { stopping = true; cancel.cancel(); },
                     result = &mut future => break result,
+                    _ = cancellation_check.tick() => {
+                        match context.work.get(id).await {
+                            Ok(Some(current)) if current.status == WorkStatus::Running => {},
+                            _ => cancel.cancel(),
+                        }
+                    },
                     _ = heartbeat.tick() => {
                         match context.work.get(id).await {
                             Ok(Some(current)) if matches!(current.status, WorkStatus::Running) => {},
