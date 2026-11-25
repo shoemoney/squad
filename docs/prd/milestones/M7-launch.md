@@ -33,9 +33,9 @@
   - [ ] M7.P1.L1.T14 — Document persistent `CENSUS_PASSES`, optional `SQUAD_CENSUS_PASSES`, new-mode call counts and skipped-member behavior, the shared engine, and the human-directed recommended pipeline in `README.md`.
 
 - **M7.P1.L2 — Release artifacts**
-  - [ ] M7.P1.L2.T1 — Configure and verify `cargo-dist` builds for the `squad-cli` binary on macOS arm64 and Linux x64 in `dist-workspace.toml`.
-  - [ ] M7.P1.L2.T2 — Prepare and verify the Homebrew formula for `squad-cli` in `dist/homebrew/squad.rb`.
-  - [ ] M7.P1.L2.T3 — Verify package contents and clean `cargo install` for `squad-cli` using `crates/squad-cli/Cargo.toml` and its workspace dependencies.
+  - [x] M7.P1.L2.T1 — Configure and verify `cargo-dist` builds for the `squad-cli` binary on macOS arm64 and Linux x64 in `dist-workspace.toml`.
+  - [x] M7.P1.L2.T2 — Prepare and verify the Homebrew formula for `squad-cli` in `dist/homebrew/squad.rb`.
+  - [x] M7.P1.L2.T3 — Verify package contents and clean `cargo install` for `squad-cli` using `crates/squad-cli/Cargo.toml` and its workspace dependencies.
   - [ ] M7.P1.L2.T4 — Verify all shipped commands, JSON output, exit codes, pre-confirmation, and markdown export from release artifacts in `crates/squad-cli/tests/release.rs`.
   - [ ] M7.P1.L2.T5 — Verify the Foundations `setup.sh` flags, reruns, `.env` preservation and permissions, doctor output, and next command for `squad-cli` in `docs/release-checklist.md`.
   - [ ] M7.P1.L2.T6 — Record supported-platform artifact and installation evidence for `squad-cli` in `docs/release-checklist.md`.
