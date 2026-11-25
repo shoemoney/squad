@@ -65,7 +65,7 @@ fn fixture(names: BTreeSet<String>) -> Inputs {
             ) || name.ends_with("word_limit")
             {
                 json!(3)
-            } else if matches!(name.as_str(), "contest_id" | "debate_id") {
+            } else if matches!(name.as_str(), "contest_id" | "debate_id" | "case_id") {
                 json!("019c1a80-0000-7000-8000-000000000001")
             } else if name == "mode_step" {
                 json!("census.merge")

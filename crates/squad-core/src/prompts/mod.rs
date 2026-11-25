@@ -6,6 +6,7 @@
 //! its effective text, so subsequent filesystem changes cannot alter it.
 
 mod embedded;
+pub mod inputs;
 mod load;
 mod render;
 
@@ -139,3 +140,57 @@ impl PromptPack {
 
 #[cfg(test)]
 mod tests;
+
+/// Protocol adapter: JSON slots contain serialized native JSON values; numeric
+/// slots contain decimal integers; other slots contain literal strings. A
+/// registered composition returns a JSON object with system/user/step/name,
+/// while a template ID (optionally ending in `.md`) returns plain rendered text.
+/// The caller freezes and verifies provenance hashes when allocating work.
+impl squad_protocol::PromptRenderer for PromptPack {
+    fn render(
+        &self,
+        prompt: &squad_protocol::PromptRef,
+        values: &BTreeMap<String, String>,
+    ) -> Result<String, squad_protocol::ReaderError> {
+        let invalid = || squad_protocol::ReaderError::StoreUnavailable {
+            message: "prompt rendering failed".into(),
+        };
+        if prompt.pack_version.as_str() != self.version() {
+            return Err(invalid());
+        }
+        let id = prompt
+            .template_id
+            .as_str()
+            .strip_suffix(".md")
+            .unwrap_or(prompt.template_id.as_str());
+        let mut inputs = Inputs::new();
+        for (key, value) in values {
+            let value = if key.ends_with("_json")
+                || key.ends_with("word_limit")
+                || matches!(
+                    key.as_str(),
+                    "round"
+                        | "rounds"
+                        | "grill_rounds"
+                        | "census_pass"
+                        | "plan_version"
+                        | "next_plan_version"
+                        | "entrants_remaining"
+                ) {
+                serde_json::from_str(value).map_err(|_| invalid())?
+            } else {
+                Value::String(value.clone())
+            };
+            inputs.insert(key.clone(), value);
+        }
+        if self.composition(id).is_ok() {
+            let repair = inputs.contains_key("invalid_output_json");
+            let rendered = self
+                .render_composition(id, &inputs, repair)
+                .map_err(|_| invalid())?;
+            serde_json::to_string(&rendered).map_err(|_| invalid())
+        } else {
+            self.render_template(id, &inputs).map_err(|_| invalid())
+        }
+    }
+}

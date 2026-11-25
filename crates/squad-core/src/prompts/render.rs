@@ -8,7 +8,7 @@ use super::{CompositionSpec, PromptError, PromptPack};
 /// `serde_json::to_string` performs their sole encoding during rendering.
 pub type Inputs = BTreeMap<String, Value>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RenderedComposition {
     pub system: String,
     pub user: String,
@@ -136,6 +136,8 @@ fn encode(id: &str, name: &str, value: &Value) -> Result<String, PromptError> {
         squad_protocol::Nick::new(text).is_ok()
     } else if matches!(name, "contest_id" | "debate_id") {
         text.parse::<squad_protocol::ContestId>().is_ok()
+    } else if name == "case_id" {
+        text.parse::<squad_protocol::CaseId>().is_ok()
     } else if name == "mode_step" {
         matches!(
             text.split('.').next(),
