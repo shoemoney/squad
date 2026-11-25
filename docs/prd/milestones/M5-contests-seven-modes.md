@@ -37,18 +37,18 @@
 ## Phase M5.P1 — Admission and state machine
 
 - **M5.P1.L1 — Define shared debate contracts**
-  - [ ] M5.P1.L1.T2 — Add frozen source, model, prompt, limit, and plan records in `crates/squad-core/src/orchestrator/types.rs`.
-  - [ ] M5.P1.L1.T4 — Verify debate types reuse canonical IDs, `Work`, `ErrorCode`, and envelope fields in `crates/squad-protocol/src/debate.rs`.
-  - [ ] M5.P1.L1.T6 — Integrate the M1-defined transition, adjudication-bundle, committed-verdict, and optional case-opening work-reference contracts in `crates/squad-core/src/orchestrator/types.rs`.
+  - [x] M5.P1.L1.T2 — Add frozen source, model, prompt, limit, and plan records in `crates/squad-core/src/orchestrator/types.rs`.
+  - [x] M5.P1.L1.T4 — Verify debate types reuse canonical IDs, `Work`, `ErrorCode`, and envelope fields in `crates/squad-protocol/src/debate.rs`.
+  - [x] M5.P1.L1.T6 — Integrate the M1-defined transition, adjudication-bundle, committed-verdict, and optional case-opening work-reference contracts in `crates/squad-core/src/orchestrator/types.rs`.
 
 - **M5.P1.L2 — Implement source selection and admission**
-  - [ ] M5.P1.L2.T1 — Implement completed-source lookup, supersession exclusion, explicit selection, and shared-topic validation in `crates/squad-core/src/orchestrator/sources.rs`.
-  - [ ] M5.P1.L2.T2 — Detect fresh topics and one-missing-source opening rounds in `crates/squad-core/src/orchestrator/sources.rs`.
-  - [ ] M5.P1.L2.T3 — Implement frozen estimates, context bounds, expiry, and unconditional preflight feed emission in `crates/squad-core/src/orchestrator/preflight.rs`.
-  - [ ] M5.P1.L2.T4 — Implement threshold auto-confirmation, confirmation and cancellation Requests, and pre-confirmed CLI admission in `crates/squad-core/src/orchestrator/preflight.rs`.
+  - [x] M5.P1.L2.T1 — Implement completed-source lookup, supersession exclusion, explicit selection, and shared-topic validation in `crates/squad-core/src/orchestrator/sources.rs`.
+  - [x] M5.P1.L2.T2 — Detect fresh topics and one-missing-source opening rounds in `crates/squad-core/src/orchestrator/sources.rs`.
+  - [x] M5.P1.L2.T3 — Implement frozen estimates, context bounds, expiry, and unconditional preflight feed emission in `crates/squad-core/src/orchestrator/preflight.rs`.
+  - [x] M5.P1.L2.T4 — Implement threshold auto-confirmation, confirmation and cancellation Requests, and pre-confirmed CLI admission in `crates/squad-core/src/orchestrator/preflight.rs`.
   - [ ] M5.P1.L2.T5 — Use the `squad-store` transaction API for atomic active-contest claims, daily reservations, and confirmed direct-command commits without ordinary reply work in `crates/squad-core/src/router/debates.rs`.
   - [ ] M5.P1.L2.T6 — Implement member holds and `WAITING_FOR_DEBATERS` using the existing queue contract in `crates/squad-core/src/orchestrator/admission.rs`.
-  - [ ] M5.P1.L2.T7 — Include one round-scoring invocation per numbered round, two attempts per invocation, low reasoning effort, a 1,024-token reasoning budget, a 512-token visible output ceiling, and accumulating judge context in automatic-judge estimates and reservations in `crates/squad-core/src/orchestrator/preflight.rs`.
+  - [x] M5.P1.L2.T7 — Include one round-scoring invocation per numbered round, two attempts per invocation, low reasoning effort, a 1,024-token reasoning budget, a 512-token visible output ceiling, and accumulating judge context in automatic-judge estimates and reservations in `crates/squad-core/src/orchestrator/preflight.rs`.
   - [ ] M5.P1.L2.T8 — Defer held ordinary messages and quotes from participant histories until hold release in `crates/squad-core/src/router/debates.rs`.
   - [ ] M5.P1.L2.T9 — Consume the protocol-owned preflight payload, compare `estimatedUsd` for confirmation, and display planned calls separately from reserved attempts in `crates/squad-core/src/orchestrator/preflight.rs`.
   - [ ] M5.P1.L2.T10 — Check and reserve the remaining daily amount atomically through the canonical accounting contract in `crates/squad-core/src/orchestrator/admission.rs`.
@@ -58,14 +58,14 @@
   - [ ] M5.P1.L3.T2 — Test duplicate admission, stale confirmation, expiry, and competing debate starts against temporary SQLite databases in `crates/squad-core/tests/orchestrator/admission.rs`.
   - [ ] M5.P1.L3.T3 — Test that earlier ordinary work drains and later work remains held in `crates/squad-core/tests/orchestrator/queues.rs`.
   - [ ] M5.P1.L3.T4 — Test canonical parser error mapping, frozen room settings, and the 10-default, 1-to-20 round bounds in `crates/squad-core/tests/orchestrator/admission.rs`.
-  - [ ] M5.P1.L3.T5 — Test that automatic-judge preflight includes round-scoring attempts and context growth, while round 0 and debates without automatic judging add no scoring calls, in `crates/squad-core/tests/orchestrator/budget.rs`.
+  - [x] M5.P1.L3.T5 — Test that automatic-judge preflight includes round-scoring attempts and context growth, while round 0 and debates without automatic judging add no scoring calls, in `crates/squad-core/tests/orchestrator/budget.rs`.
   - [ ] M5.P1.L3.T6 — Test held-message and held-quote exclusion from debate prompts before release in `crates/squad-core/tests/orchestrator/queues.rs`.
   - [ ] M5.P1.L3.T7 — Test daily-cap rejection, concurrent reservation checks, actual-cost replacement, unknown charges, and completion of in-flight calls at the cap in `crates/squad-core/tests/orchestrator/budget.rs`.
 
 - **M5.P1.L4 — Implement the shared contest claim**
   - [ ] M5.P1.L4.T1 — Generalise active ownership, admission, holds, terminal release, and state-version checks across contest kinds in `crates/squad-core/src/orchestrator/contests.rs`.
   - [ ] M5.P1.L4.T2 — Integrate protocol-owned contest records and frozen plan provenance in `crates/squad-core/src/router/contests.rs`.
-  - [ ] M5.P1.L4.T3 — Test competing contest kinds and the exact active-contest error in `crates/squad-core/tests/orchestrator/contests.rs`.
+  - [x] M5.P1.L4.T3 — Test competing contest kinds and the exact active-contest error in `crates/squad-core/tests/orchestrator/contests.rs`.
 
 - **M5.P1.L5 — Collect question-first answers and accept picks**
   - [ ] M5.P1.L5.T1 — Implement `COLLECTING_ANSWERS` using ordinary reply work linked to the originating contest and question in `crates/squad-core/src/orchestrator/selection.rs`.
@@ -91,7 +91,7 @@
   - [ ] M5.P2.L1.T3 — Integrate `debate.round0.md` and commit opening outcomes as setup solutions in `crates/squad-core/src/orchestrator/rounds.rs`.
   - [ ] M5.P2.L1.T4 — Verify opening independence and final-round composition for one-round and multi-round debates in `crates/squad-core/tests/orchestrator/rounds.rs`.
   - [ ] M5.P2.L1.T5 — Enqueue one canonical `judge.round` work item after each automatically judged numbered-round barrier without waiting before dispatching later debate turns in `crates/squad-core/src/orchestrator/rounds.rs`.
-  - [ ] M5.P2.L1.T6 — Reuse each round’s frozen history boundary for both slot attempts in `crates/squad-core/src/orchestrator/rounds.rs`.
+  - [x] M5.P2.L1.T6 — Reuse each round’s frozen history boundary for both slot attempts in `crates/squad-core/src/orchestrator/rounds.rs`.
   - [ ] M5.P2.L1.T7 — Test that a retry cannot see later ordinary messages, quotes, or an opponent’s current-round result in `crates/squad-core/tests/orchestrator/isolation.rs`.
 
 - **M5.P2.L2 — Commit visible history**
@@ -111,7 +111,7 @@
   - [ ] M5.P2.L3.T5 — Test single and double forfeits, interrupted attempt accounting, and terminal queue release in `crates/squad-core/tests/orchestrator/failures.rs`.
   - [ ] M5.P2.L3.T6 — Cancel and fence outstanding round-scoring work on stop in `crates/squad-core/src/orchestrator/stop.rs`, and recover scoring attempts and final-judge readiness without duplicate commits in `crates/squad-core/src/orchestrator/recovery.rs`.
   - [ ] M5.P2.L3.T7 — Test stop during round scoring, rejected late scores, interrupted scoring attempts, and restart before final judge enqueue in `crates/squad-core/tests/orchestrator/recovery.rs`.
-  - [ ] M5.P2.L3.T8 — Respect interactive versus one-shot wake-up rules and test that unrelated contest work remains dormant on one-shot open in `crates/squad-core/tests/orchestrator/recovery.rs`.
+  - [x] M5.P2.L3.T8 — Respect interactive versus one-shot wake-up rules and test that unrelated contest work remains dormant on one-shot open in `crates/squad-core/tests/orchestrator/recovery.rs`.
   - [ ] M5.P2.L3.T9 — Recover collecting slots and pending picks without expiry, duplicate answer calls, or lost candidates in `crates/squad-core/src/orchestrator/recovery.rs`.
   - [ ] M5.P2.L3.T10 — Implement `pick_cancelled` stop behavior while preserving ordinary answers in `crates/squad-core/src/orchestrator/stop.rs`.
   - [ ] M5.P2.L3.T11 — Test pending-pick restart, cancellation, continued ordinary chat, and active-contest exclusion in `crates/squad-core/tests/orchestrator/selection.rs`.
@@ -238,7 +238,7 @@
 ## Phase M5.P4 — Judge integration and verdict delivery
 
 - **M5.P4.L1 — Summon isolated judges**
-  - [ ] M5.P4.L1.T1 — Implement concrete-model conflict detection, fallback skipping, and the exact model-naming swap warning in `crates/squad-core/src/orchestrator/judge.rs`.
+  - [x] M5.P4.L1.T1 — Implement concrete-model conflict detection, fallback skipping, and the exact model-naming swap warning in `crates/squad-core/src/orchestrator/judge.rs`.
   - [ ] M5.P4.L1.T2 — Commit referenced adjudication material to case histories and enqueue canonical judge work in `crates/squad-core/src/router/debates.rs`.
   - [ ] M5.P4.L1.T3 — Integrate the case-bound judge executor using the restricted `AgentContext` in `crates/squad-agents/src/agents/judge.rs`.
   - [ ] M5.P4.L1.T4 — Verify complete case evidence and exclusion of member histories and personas in `crates/squad-core/tests/orchestrator/judge_context.rs`.
@@ -253,10 +253,10 @@
 - **M5.P4.L2 — Verify verdict validation integration**
   - [ ] M5.P4.L2.T1 — Test invalid JSON, duplicate candidates, missing criteria, noninteger scores, ties, and inconsistent winners against M1 validation in `crates/squad-core/tests/orchestrator/verdict.rs`.
   - [ ] M5.P4.L2.T2 — Test the shared transport-and-repair attempt ceiling and `JUDGE_INVALID_VERDICT` outcome in `crates/squad-core/tests/orchestrator/verdict.rs`.
-  - [ ] M5.P4.L2.T3 — Verify locally computed totals and instruction-based equal-total decisions in `crates/squad-core/tests/orchestrator/verdict.rs`.
-  - [ ] M5.P4.L2.T4 — Test required nullable `tallyOverrideReason`, repair when an override explanation is missing, equal and zero round tallies, and preservation of the weighted-total winner rule in `crates/squad-core/tests/orchestrator/verdict.rs`.
-  - [ ] M5.P4.L2.T5 — Test round-score nick validation, integer bounds, reason length, strict JSON, and the shared two-attempt transport-and-repair ceiling in `crates/squad-core/tests/orchestrator/round_scores.rs`.
-  - [ ] M5.P4.L2.T6 — Test schema-first validation of missing nullable fields and unknown properties before serde deserialization in `crates/squad-core/tests/orchestrator/verdict.rs`.
+  - [x] M5.P4.L2.T3 — Verify locally computed totals and instruction-based equal-total decisions in `crates/squad-core/tests/orchestrator/verdict.rs`.
+  - [x] M5.P4.L2.T4 — Test required nullable `tallyOverrideReason`, repair when an override explanation is missing, equal and zero round tallies, and preservation of the weighted-total winner rule in `crates/squad-core/tests/orchestrator/verdict.rs`.
+  - [x] M5.P4.L2.T5 — Test round-score nick validation, integer bounds, reason length, strict JSON, and the shared two-attempt transport-and-repair ceiling in `crates/squad-core/tests/orchestrator/round_scores.rs`.
+  - [x] M5.P4.L2.T6 — Test schema-first validation of missing nullable fields and unknown properties before serde deserialization in `crates/squad-core/tests/orchestrator/verdict.rs`.
   - [ ] M5.P4.L2.T7 — Verify visible-plus-reasoning token limits and final judge deadlines against the fake provider in `crates/squad-core/tests/orchestrator/verdict.rs`.
 
 - **M5.P4.L3 — Commit verdicts and scores**
@@ -275,10 +275,10 @@
   - [ ] M5.P4.L4.T3 — Implement verdict-quote case reopening with prior case follow-ups in `crates/squad-core/src/orchestrator/cases.rs`.
   - [ ] M5.P4.L4.T4 — Test fresh-case isolation, follow-up isolation, sealed verdicts, and unchanged score records in `crates/squad-core/tests/orchestrator/cases.rs`.
   - [ ] M5.P4.L4.T5 — Test manual judging cancellation and repeated `/judge` on an already judged debate in `crates/squad-core/tests/orchestrator/manual_judge.rs`.
-  - [ ] M5.P4.L4.T6 — Supply existing round scores and unscored-round information to fresh manual-judge cases without retroactive scoring in `crates/squad-core/src/orchestrator/judge.rs`.
+  - [x] M5.P4.L4.T6 — Supply existing round scores and unscored-round information to fresh manual-judge cases without retroactive scoring in `crates/squad-core/src/orchestrator/judge.rs`.
   - [ ] M5.P4.L4.T7 — Test manual judging of stopped debates with partial scores and unjudged debates with no scores, asserting no `judge.round` work is created, in `crates/squad-core/tests/orchestrator/manual_judge.rs`.
   - [ ] M5.P4.L4.T8 — Persist judge-only prior terminal snapshots, explicit preparation transitions, and the case-ID list in `crates/squad-core/src/orchestrator/judge.rs`.
-  - [ ] M5.P4.L4.T9 — Test restoration after judge-only rejection, cancellation, expiry, and restart without losing earlier cases in `crates/squad-core/tests/orchestrator/manual_judge.rs`.
+  - [x] M5.P4.L4.T9 — Test restoration after judge-only rejection, cancellation, expiry, and restart without losing earlier cases in `crates/squad-core/tests/orchestrator/manual_judge.rs`.
 
 - **M5.P4.L5 — Verify complete integration**
   - [ ] M5.P4.L5.T1 — Run the exact canonical commands through `RoomHandle` against the M2 fake OpenRouter service in `crates/squad-core/tests/orchestrator/integration.rs`.
