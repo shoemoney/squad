@@ -1,0 +1,122 @@
+---
+source: crates/squad-tui/tests/fx_survey.rs
+expression: shots
+---
+initial 0
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+······································································
+
+
+initial 100
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+###################======?????········································
+
+
+initial 200
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+################################==========??????????··················
+
+
+initial 400
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+##########################################==============??????????????
+
+
+initial 416
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+##########################################==============??????????????
+
+
+re-vote 0
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+############===============================================???????????
+
+
+re-vote 100
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+#########################=================================????????????
+
+
+re-vote 200
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+###################################======================?????????????
+
+
+re-vote 400
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+##########################################==============??????????????
+
+
+re-vote 416
+Consensus · C1 5–1
+Contested · C2 confidence 4 · reason: evidence
+Lone insights · C3
+Lone dissents · C4
+Rejected outliers · C5 likely error
+Switched: grok · settling question: which evidence?
+
+AGREE 3  DISAGREE 1  UNSURE 1  MISSING 1
+##########################################==============??????????????

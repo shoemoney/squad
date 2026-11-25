@@ -322,8 +322,8 @@
   - [ ] M4.P5.L11.T2 — `squad-tui/src/fx/tournament.rs` and `squad-tui/src/fx/verdict.rs`: reuse the celebration for `CHAMPION`, with one trophy tick and no debate W-L tick.
   - [ ] M4.P5.L11.T3 — `squad-tui/tests/fx_tournament.rs`: snapshot ranking, elimination and champion sequences; test duplicate cues, resize, replay, rejected judge output and all effect levels against the static render.
 - **M4.P5.L12 — Grill effects**
-  - [ ] M4.P5.L12.T1 — `squad-tui/src/fx/grill.rs`: turn handoff, plan version badge bump and `SURVIVED` treatment keyed to the authoritative completion reason; preserve plan and Q&A glyphs.
-  - [ ] M4.P5.L12.T2 — `squad-tui/tests/fx_grill.rs`: snapshots and state-change tests for sequential handoff, `PASS`, rebuild, survived early end, normal completion and leader failure retaining the last good plan.
+  - [x] M4.P5.L12.T1 — `squad-tui/src/fx/grill.rs`: turn handoff, plan version badge bump and `SURVIVED` treatment keyed to the authoritative completion reason; preserve plan and Q&A glyphs.
+  - [x] M4.P5.L12.T2 — `squad-tui/tests/fx_grill.rs`: snapshots and state-change tests for sequential handoff, `PASS`, rebuild, survived early end, normal completion and leader failure retaining the last good plan.
 - **M4.P5.L13 — Question-first pick effects**
   - [ ] M4.P5.L13.T1 — `squad-tui/src/fx/banner.rs` and `squad-tui/src/fx/pick.rs`: animate `CHOOSE YOUR DEBATE BROS` and `CHOOSE WHO GETS GRILLED` inline; retain the TUI-owned hint and highlight only eligible candidate rows while the pick is pending.
   - [ ] M4.P5.L13.T2 — `squad-tui/src/fx/pick.rs`: remove candidate effects on accepted pick, cancellation or failure; use static markers in `lite`, `off` and `NO_COLOR`, and after replay restoration.
@@ -338,21 +338,21 @@
   - [ ] M4.P5.L15.T3 — `squad-tui/src/fx/banner.rs`: reuse the shared entrance for `CENSUS`, `CROSSCHECK`, `SURVEY` and `PROBE` in gold, with step-divider accents, immediate settlement on early output and existing `SQUAD_BANNERS` behavior.
   - [ ] M4.P5.L15.T4 — `squad-tui/tests/fx_banner.rs`: snapshot all four banners at wide and narrow sizes in all levels and colour tiers; cover disabled banners, early output, duplicate setup/state delivery and static restart restoration.
 - **M4.P5.L16 — Census effects**
-  - [ ] M4.P5.L16.T1 — `squad-tui/src/fx/census.rs`: implement the pass-to-pass estimate count-down in a dedicated graphic rect using stored range endpoints; preserve the exact headline, shared-blind-spots caveat, ledger, citations, singleton markers and discovery curve.
-  - [ ] M4.P5.L16.T2 — `squad-tui/tests/fx_census.rs`: snapshot first-pass, falling, rising and unavailable estimates; assert no invented zero, no forced decline, and no quiet message unless present in the authoritative report.
-  - [ ] M4.P5.L16.T3 — `squad-tui/tests/fx_census.rs`: cover partial member failure, stop, replay, collapse, resize and all effect levels against the static census report.
+  - [x] M4.P5.L16.T1 — `squad-tui/src/fx/census.rs`: implement the pass-to-pass estimate count-down in a dedicated graphic rect using stored range endpoints; preserve the exact headline, shared-blind-spots caveat, ledger, citations, singleton markers and discovery curve.
+  - [x] M4.P5.L16.T2 — `squad-tui/tests/fx_census.rs`: snapshot first-pass, falling, rising and unavailable estimates; assert no invented zero, no forced decline, and no quiet message unless present in the authoritative report.
+  - [x] M4.P5.L16.T3 — `squad-tui/tests/fx_census.rs`: cover partial member failure, stop, replay, collapse, resize and all effect levels against the static census report.
 - **M4.P5.L17 — Crosscheck effects**
-  - [ ] M4.P5.L17.T1 — `squad-tui/src/fx/crosscheck.rs`: fill committed cell results in fixed grid order with one bounded staggered batch effect; keep statuses and evidence readable and retain open, pending, skipped, challenged and accepted-risk distinctions.
-  - [ ] M4.P5.L17.T2 — `squad-tui/tests/fx_crosscheck.rs`: snapshot single-cell and 200-cell batches, audit challenges and rulings; assert no cell removal or reordering and no false closed or complete appearance.
-  - [ ] M4.P5.L17.T3 — `squad-tui/tests/fx_crosscheck.rs`: cover duplicate batches, superseding rulings, stop, replay, collapse, resize, narrow summary fallback and every effect level.
+  - [x] M4.P5.L17.T1 — `squad-tui/src/fx/crosscheck.rs`: fill committed cell results in fixed grid order with one bounded staggered batch effect; keep statuses and evidence readable and retain open, pending, skipped, challenged and accepted-risk distinctions.
+  - [x] M4.P5.L17.T2 — `squad-tui/tests/fx_crosscheck.rs`: snapshot single-cell and 200-cell batches, audit challenges and rulings; assert no cell removal or reordering and no false closed or complete appearance.
+  - [x] M4.P5.L17.T3 — `squad-tui/tests/fx_crosscheck.rs`: cover duplicate batches, superseding rulings, stop, replay, collapse, resize, narrow summary fallback and every effect level.
 - **M4.P5.L18 — Survey effects**
-  - [ ] M4.P5.L18.T1 — `squad-tui/src/fx/survey.rs`: animate initial AGREE / DISAGREE / UNSURE bar splits and revised tally boundaries from stored counts; use explicit labels and patterned fallbacks without moving claim rows.
-  - [ ] M4.P5.L18.T2 — `squad-tui/tests/fx_survey.rs`: snapshot all five bands and vote changes; preserve reasons, confidence, switch details and settling questions, distinguish missing votes from UNSURE, and assert no winner or record effects.
-  - [ ] M4.P5.L18.T3 — `squad-tui/tests/fx_survey.rs`: cover partial votes, duplicate tallies, stop, replay, collapse, resize, narrow rendering and every effect level against the static survey report.
+  - [x] M4.P5.L18.T1 — `squad-tui/src/fx/survey.rs`: animate initial AGREE / DISAGREE / UNSURE bar splits and revised tally boundaries from stored counts; use explicit labels and patterned fallbacks without moving claim rows.
+  - [x] M4.P5.L18.T2 — `squad-tui/tests/fx_survey.rs`: snapshot all five bands and vote changes; preserve reasons, confidence, switch details and settling questions, distinguish missing votes from UNSURE, and assert no winner or record effects.
+  - [x] M4.P5.L18.T3 — `squad-tui/tests/fx_survey.rs`: cover partial votes, duplicate tallies, stop, replay, collapse, resize, narrow rendering and every effect level against the static survey report.
 - **M4.P5.L19 — Probe effects**
-  - [ ] M4.P5.L19.T1 — `squad-tui/src/fx/probe.rs`: trace accepted decision-tree connectors branch by branch in stored root-first order within 900 ms; leave all node text and prediction-matrix entries visible and unchanged.
-  - [ ] M4.P5.L19.T2 — `squad-tui/tests/fx_probe.rs`: snapshot branch progression, unexpected results and inseparable explanations; preserve role and sit-out notices and assert that no explanation becomes a winner.
-  - [ ] M4.P5.L19.T3 — `squad-tui/tests/fx_probe.rs`: cover rejected report output, partial failure, stop, replay, collapse, resize, narrow wrapping and every effect level against the static probe report.
+  - [x] M4.P5.L19.T1 — `squad-tui/src/fx/probe.rs`: trace accepted decision-tree connectors branch by branch in stored root-first order within 900 ms; leave all node text and prediction-matrix entries visible and unchanged.
+  - [x] M4.P5.L19.T2 — `squad-tui/tests/fx_probe.rs`: snapshot branch progression, unexpected results and inseparable explanations; preserve role and sit-out notices and assert that no explanation becomes a winner.
+  - [x] M4.P5.L19.T3 — `squad-tui/tests/fx_probe.rs`: cover rejected report output, partial failure, stop, replay, collapse, resize, narrow wrapping and every effect level against the static probe report.
 - **M4.P5.L20 — Four-mode integration gates**
   - [ ] M4.P5.L20.T1 — `squad-tui/tests/fx_invariants.rs`: extend final-render, protected-glyph, dropped-cue, duplicate-cue, resize and replay properties to the four modes, including restoration of partial committed reports.
   - [ ] M4.P5.L20.T2 — `squad-tui/tests/fx_input.rs` and `squad-tui/tests/fx_integration.rs`: verify normal input, skip and Escape handling during each new effect; assert that animation never delays a shared move or barrier and leaves member deliveries and Markdown exports unchanged.

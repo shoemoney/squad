@@ -1,0 +1,74 @@
+---
+source: crates/squad-tui/tests/fx_probe.rs
+expression: shots
+---
+0
+Root: measure voltage
+├── high: A or B remain inseparable
+│   └── next check: inspect cable
+└── Unexpected result: revisit assumptions
+Matrix: A check1 cannot-predict · B check1 high
+Explainers: a,b · Checkers: c,d · Sit-out: e
+Skipped check: no permission · partial failure
+
+
+
+
+
+accents: (0,1):Rgb(255, 210, 63)/NONE
+225
+Root: measure voltage
+├── high: A or B remain inseparable
+│   └── next check: inspect cable
+└── Unexpected result: revisit assumptions
+Matrix: A check1 cannot-predict · B check1 high
+Explainers: a,b · Checkers: c,d · Sit-out: e
+Skipped check: no permission · partial failure
+
+
+
+
+
+accents: (0,1):Rgb(242, 203, 74)/NONE (1,1):Rgb(242, 203, 74)/NONE (2,1):Rgb(242, 203, 74)/NONE
+450
+Root: measure voltage
+├── high: A or B remain inseparable
+│   └── next check: inspect cable
+└── Unexpected result: revisit assumptions
+Matrix: A check1 cannot-predict · B check1 high
+Explainers: a,b · Checkers: c,d · Sit-out: e
+Skipped check: no permission · partial failure
+
+
+
+
+
+accents: (0,1):Rgb(229, 195, 85)/NONE (1,1):Rgb(229, 195, 85)/NONE (2,1):Rgb(229, 195, 85)/NONE (0,2):Rgb(229, 195, 85)/NONE (4,2):Rgb(229, 195, 85)/NONE (5,2):Rgb(229, 195, 85)/NONE
+900
+Root: measure voltage
+├── high: A or B remain inseparable
+│   └── next check: inspect cable
+└── Unexpected result: revisit assumptions
+Matrix: A check1 cannot-predict · B check1 high
+Explainers: a,b · Checkers: c,d · Sit-out: e
+Skipped check: no permission · partial failure
+
+
+
+
+
+accents:
+916
+Root: measure voltage
+├── high: A or B remain inseparable
+│   └── next check: inspect cable
+└── Unexpected result: revisit assumptions
+Matrix: A check1 cannot-predict · B check1 high
+Explainers: a,b · Checkers: c,d · Sit-out: e
+Skipped check: no permission · partial failure
+
+
+
+
+
+accents:
