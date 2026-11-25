@@ -3,6 +3,7 @@ pub mod banner;
 pub mod budget;
 pub mod case;
 pub mod completion;
+pub mod contest_status;
 pub mod debate;
 pub mod debug;
 pub mod grill;

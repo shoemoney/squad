@@ -116,6 +116,28 @@ pub fn is_new_report_scope(scope: &ExportScope) -> bool {
         ExportScope::Census | ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
     )
 }
+/// Report scope for a contest kind; the core renders the Markdown.
+pub fn scope_for(kind: ContestKind) -> ExportScope {
+    match kind {
+        ContestKind::Debate => ExportScope::Debate,
+        ContestKind::Grill => ExportScope::Grill,
+        ContestKind::Tournament => ExportScope::Tournament,
+        ContestKind::Census => ExportScope::Census,
+        ContestKind::Crosscheck => ExportScope::Crosscheck,
+        ContestKind::Survey => ExportScope::Survey,
+        ContestKind::Probe => ExportScope::Probe,
+    }
+}
+/// Export a contest report to a destination chosen by the caller. Success is
+/// reported only after the whole report was written and flushed.
+pub async fn export_report(
+    room: &dyn crate::session::RoomPort,
+    kind: ContestKind,
+    id: ContestId,
+    destination: &mut impl std::io::Write,
+) -> Result<(), Box<dyn std::error::Error>> {
+    export_to(room, scope_for(kind), Some(id), destination).await
+}
 pub fn export_request(scope: ExportScope, id: Option<ContestId>) -> Request {
     Request::Export { scope, id }
 }

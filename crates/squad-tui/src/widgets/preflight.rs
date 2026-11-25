@@ -144,6 +144,21 @@ impl PreflightView {
         let list = p.settings.get("sourceEventIds")?.as_array()?;
         (!list.is_empty()).then(|| format!("sources: {}", list.len()))
     }
+    /// Tournaments are blind and never swap judges, so a substitution warning is
+    /// never displayed for them even if one arrives.
+    fn visible_warning<'a>(&self, warning: Option<&'a Text>) -> &'a str {
+        let text = warning.map(Text::as_str).unwrap_or("");
+        let tournament = matches!(
+            &self.plan,
+            PendingPreflight::Contest(p) if p.kind == ContestKind::Tournament
+        );
+        let lower = text.to_ascii_lowercase();
+        if tournament && (lower.contains("substitut") || lower.contains("swap")) {
+            ""
+        } else {
+            text
+        }
+    }
     pub fn text(&self) -> String {
         self.text_with(None)
     }
@@ -188,7 +203,7 @@ impl PreflightView {
         ];
         lines.extend(self.sources());
         lines.extend(post_pick.map(PostPick::text));
-        lines.push(warning.map(Text::as_str).unwrap_or("").to_owned());
+        lines.push(self.visible_warning(warning).to_owned());
         lines.push(
             if self.pending {
                 "Waiting for acknowledgement…"

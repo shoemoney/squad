@@ -324,3 +324,22 @@ pub fn short_version(slug: &str) -> String {
         .map(|(i, _)| i);
     start.map_or_else(|| name.to_owned(), |i| name[i..].to_owned())
 }
+
+/// Roster rows of members who may be picked, for candidate-row effects. The row
+/// text is unchanged; eligibility is always available as text via `pick_marker`.
+pub fn pick_candidate_rows(rects: &ParticipantsRects, eligible: &[String]) -> Vec<(String, Rect)> {
+    rects
+        .names
+        .iter()
+        .filter(|(nick, _)| eligible.iter().any(|e| e == nick))
+        .cloned()
+        .collect()
+}
+/// Text eligibility marker; complete with effects off.
+pub fn pick_marker(nick: &str, eligible: &[String]) -> &'static str {
+    if eligible.iter().any(|e| e == nick) {
+        "eligible to pick"
+    } else {
+        ""
+    }
+}
