@@ -1,11 +1,14 @@
 //! The M1 core/debate schema. Later modes add migrations when built.
 use rusqlite::Connection;
 pub const INITIAL: &str = include_str!("../migrations/0001_initial.sql");
+/// Apply the shared durability and integrity settings to one connection.
+pub fn configure(connection: &Connection) -> rusqlite::Result<()> {
+    connection
+        .execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;")
+}
 /// Apply the initial schema atomically, once. Foreign keys remain enabled.
 pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
-    connection.execute_batch(
-        "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;",
-    )?;
+    configure(connection)?;
     let tx = connection.transaction()?;
     let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
     if version == 0 {

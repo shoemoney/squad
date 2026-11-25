@@ -1,7 +1,7 @@
 //! Squad wire types: envelopes, work, errors, config and the command parser.
 
 pub mod config;
-pub use config::{Nick, SquadConfig};
+pub use config::{Nick, ReasoningEffort, SquadConfig};
 /// Compatibility path; shared values live in [`constants`].
 pub use constants as limits;
 

@@ -20,6 +20,8 @@ pub enum ContestKind {
 pub enum ContestSelectionStatus {
     CollectingAnswers,
     AwaitingPick,
+    Failed,
+    Stopped,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -57,7 +59,7 @@ pub struct ContestPicked {
     pub contest_id: ContestId,
     pub kind: ContestKind,
     pub nicks: Vec<MemberNick>,
-    pub source_message_ids: Vec<EventId>,
+    pub source_message_ids: Vec<MessageId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -94,6 +96,7 @@ pub struct GenericContestState {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub step_id: Option<StepId>,
     pub artifact_event_ids: Vec<EventId>,
+    #[schemars(extend("x-required-nullable" = true))]
     pub terminal_reason: Option<Text>, // nullable
 }
 
@@ -246,7 +249,7 @@ impl ContestTransitionSubmission {
     pub fn into_debate(
         self,
     ) -> Result<(DebateId, u64, DebateTransition), crate::validation::ValidationError> {
-        crate::validation::require(
+        crate::validation::ensure(
             self.kind == ContestKind::Debate,
             "transition kind does not match debate",
         )?;

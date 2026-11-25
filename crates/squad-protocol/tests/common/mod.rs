@@ -104,7 +104,7 @@ pub fn fixtures() -> Vec<(&'static str, Value)> {
         ),
         (
             "debate.preflight",
-            json!({"debateId":ID,"planId":ID,"expiresAt":TIME,"estimate":estimate(),"confirmationRequired":false,"debaters":["a","b"],"rounds":1,"judgeRequested":false,"openingRoundRequired":false}),
+            json!({"debateId":ID,"planId":ID,"expiresAt":TIME,"estimate":estimate(),"judgeOnly":false,"confirmationRequired":false,"debaters":["a","b"],"rounds":1,"judgeRequested":false,"openingRoundRequired":false}),
         ),
         (
             "debate.preflight.result",
@@ -149,11 +149,11 @@ pub fn fixtures() -> Vec<(&'static str, Value)> {
         ),
         (
             "contest.setup",
-            json!({"contestId":ID,"kind":"debate","scriptVersion":"v1","participants":["a","b"],"sourceEventIds":[],"settings":{}}),
+            json!({"contestId":ID,"kind":"grill","scriptVersion":"v1","participants":["a","b"],"sourceEventIds":[],"settings":{}}),
         ),
         (
             "contest.state",
-            json!({"kind":"generic","state":{"contestId":ID,"kind":"debate","stateVersion":0,"status":"PREPARING","artifactEventIds":[],"terminalReason":null}}),
+            json!({"kind":"generic","state":{"contestId":ID,"kind":"grill","stateVersion":0,"status":"PREPARING","artifactEventIds":[],"terminalReason":null}}),
         ),
         (
             "contest.preflight",

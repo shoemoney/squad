@@ -771,6 +771,7 @@ pub struct DebateEstimate {
 }
 
 pub struct DebatePreflight {
+    pub judgeOnly: bool,
     pub debateId: DebateId,
     pub planId: PlanId,
     pub expiresAt: DateTime,
@@ -876,11 +877,15 @@ pub struct DebateRoundScore {
 
 `DebateSetup`, `DebateState`, `DebateTransition`, `DebateAdjudicationBundle` and `Verdict` remain owned by Contests. `DebateTransition` has one variant per row of that section’s transition table. `DebateAdjudicationBundle` contains that section’s seven prescribed material items. `Verdict` combines `JudgeVerdict` with `weightedTotals: Vec<{nick,total}>` and `roundTally: BTreeMap<MemberNick,u32>`. Their declarations and validators are implemented in M1 rather than deferred to M5.
 
+Envelope decoding performs structural and payload self-consistency checks only. Before commit, the router must call `DebateVerdict::validate_against(&DebateState, &authoritative_tally)` or `DebateRoundScore::validate_against(&DebateState)` with stored admitted state. These gates check debate/case identity, admitted debaters and round limits; verdict validation also checks the accepted round tally.
+
 The verdict envelope includes that contract’s nested scores, non-null winner, `whatToStealFromLoser`, router-computed weighted totals, router-computed `roundTally` and nullable `tallyOverrideReason`. The worker cannot supply authoritative totals. `roundTally` contains exactly the two debater nicks and their integer sums of accepted round scores. When the winner differs from the unique round-tally leader, a nonempty `tallyOverrideReason` is required; missing justification triggers the verdict repair path. A tied round tally does not permit a tied final verdict.
 
-`DebateRoundScore.round` is from 1 through the debate’s `totalRounds`. A scored payload contains exactly the two debater nicks in `scores`, with integer scores from 1 to 10 and one sentence of reason per debater, at most 200 characters each. Equal scores are valid. `reason` is omitted for a scored round. An exhausted round has `scores: null` and `reason: "unscored"`.
+`DebateRoundScore.round` is from 1 through the debate’s `totalRounds`. A scored payload contains exactly the two debater nicks in `scores`, with integer scores from 1 to 10 and one sentence of reason per debater, at most 200 characters each. Equal scores are valid. `reason` is omitted for a scored round. An exhausted round has `scores: null` and `reason: "unscored"`. Its sender may be `system`; a scored round requires `judge`. A `debate.turn` normally uses the speaker as sender; an orchestrator-recorded forfeit may use `system`.
 
 `tally` always contains exactly the two debater nicks. The router computes it from all scored rounds accepted so far for the debate; unscored rounds contribute nothing. It is an acceptance-time running sum, not an assumption that all earlier numbered rounds have arrived. The model produces only `scores`; the router supplies the debate, case and round identities from the fenced work and computes `tally`. Duplicate results cannot add a round twice.
+
+`judgeOnly` is required on debate preflights. When true it requires `judgeRequested` and exactly one estimated model call; otherwise the estimate must equal the full planned call count.
 
 Every successful preflight emits `debate.preflight` with its estimate before admission. The threshold comparison uses `estimate.estimatedUsd`. The reservation includes every permitted attempt and the opening round when required. For a debate with `@judge`, the estimate adds one `judge.round` call per numbered round plus the final judge call, and the reservation covers their permitted attempts. Round 0 is not scored. The estimate presentation states the planned round count and number of model calls using the debate-owned plan. `remainingUsd` is the remaining daily amount after actual spending and outstanding reservations. A plan that cannot fit is rejected with `DAILY_MAX_REACHED`.
 
@@ -930,6 +935,8 @@ pub enum ContestKind {
 pub enum ContestSelectionStatus {
     CollectingAnswers,
     AwaitingPick,
+    Failed, // not enough answers
+    Stopped, // pick_cancelled
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -967,7 +974,7 @@ pub struct ContestPicked {
     pub contest_id: ContestId,
     pub kind: ContestKind,
     pub nicks: Vec<MemberNick>,
-    pub source_message_ids: Vec<EventId>,
+    pub source_message_ids: Vec<MessageId>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1533,6 +1540,8 @@ pub enum WorkKind {
 
 pub struct Work {
     pub workId: WorkId,
+    pub messageId: MessageId,
+    pub inReplyToMessageId: Option<MessageId>,
     pub kind: WorkKind,
     pub target: Target,
     pub contextId: ContextId,
@@ -1549,6 +1558,8 @@ pub struct Work {
     pub stepId: Option<StepId>,
 }
 ```
+
+`messageId` is allocated by the router before execution and survives retries. Reply work requires `inReplyToMessageId`, including regenerated replies whose trigger is a supersession event. The grant exposes both through `work`; `binding` freezes the resolved model slug and reasoning effort for this execution.
 
 This is the sole execution-work schema. Its durable representation is in `work`. Status, leases, scheduling flags, receipts and completion tombstones are operational records and never enter prompt history.
 
@@ -1845,7 +1856,10 @@ pub struct Model {
 #[serde(rename_all = "lowercase")]
 pub enum HistoryRole { System, User, Assistant }
 
-#[serde(untagged)]
+// Serializes as true; rejects false during deserialization.
+pub struct True;
+
+#[serde(untagged, deny_unknown_fields)]
 pub enum HistoryMetadata {
     Attributed {
         originEventId: EventId,
@@ -1853,7 +1867,7 @@ pub enum HistoryMetadata {
         author: Actor,
         projectionKey: Text,
     },
-    Anonymous { anonymous: bool }, // always true; no additional fields
+    Anonymous { anonymous: True }, // marker accepts/serializes only literal true; no additional fields
 }
 
 pub struct HistoryEntry {
@@ -1866,6 +1880,8 @@ pub struct HistoryEntry {
 
 pub struct WorkRecord {
     pub workId: WorkId,
+    pub messageId: MessageId,
+    pub inReplyToMessageId: Option<MessageId>,
     pub kind: WorkKind,
     pub target: Target,
     pub contextId: ContextId,
@@ -1886,7 +1902,13 @@ pub enum ReaderError {
     StoreUnavailable { message: String },
 }
 
+pub struct ExecutorBinding {
+    pub model: Text,
+    pub effort: ReasoningEffort,
+}
+
 pub struct ExecutionGrant {
+    pub binding: ExecutorBinding,
     pub work: Work,
     pub owner: ExecutorKey,
     pub fence: u64,
@@ -1906,7 +1928,7 @@ pub enum ExecutorRequest {
         attempt: u32,
         fence: u64,
         epoch: u64,
-        output: ProducerEnvelope,
+        output: EnvelopePayload,
     },
 }
 
@@ -1945,12 +1967,15 @@ pub enum InternalResult {
 }
 ```
 
+Executor results carry only `EnvelopePayload`; the router supplies the envelope identity, timestamp, recipients and correlation ID from the fenced work and admission state.
+
 `ExecutorSubmit` binds requests to one `ExecutorKey` and the current room epoch; callers never supply a producer identity. `StartAttempt` and `RenewLease` use that bound epoch, and the router checks the grant, attempt and fence. Claim/start replies use `RequestResult::Internal`; durable producer and barrier replies use `Accepted` or `Rejected`. Deltas and presence return `Accepted` with no cursor or event IDs. `HistoryMetadata::Anonymous` serializes directly as `{anonymous:true}` (untagged on the wire), while attributed metadata contains only its declared fields. Anonymous readers expose neither the barrier event ID nor contributor source IDs.
 
 ### Structural isolation types
 
 ```rust
 pub struct AgentContext {
+    pub executor: ExecutorKey,
     pub mailbox: tokio::sync::mpsc::Receiver<Wakeup>,
     pub history: std::sync::Arc<dyn HistoryReader>,
     pub work: std::sync::Arc<dyn WorkReader>,
@@ -1959,6 +1984,7 @@ pub struct AgentContext {
     pub cancel: tokio_util::sync::CancellationToken,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Wakeup;
 
 pub struct JudgeRepairData {
@@ -2041,7 +2067,7 @@ An agent task receives exactly this capability set. It cannot query `events`, en
 
 A judge executor receives the same shape bound to `judge:{caseId}`. It cannot read member history or another case. The orchestrator receives reference and lifecycle interfaces and never assembles prompt text.
 
-Read-only connections may serve typed queries under WAL mode. Only the router can request mutations from the dedicated writer thread. Workers never update leases, attempts or status directly.
+`squad_store::open` configures WAL, synchronous=FULL and foreign_keys=ON on every connection, including readers. Read-only connections may serve typed queries under WAL mode. Only the router can request mutations from the dedicated writer thread. Workers never update leases, attempts or status directly.
 
 ### SQL schema
 
@@ -2265,6 +2291,7 @@ CREATE TABLE work (
     trigger_event_seq INTEGER NOT NULL REFERENCES events(seq),
     trigger_event_id TEXT NOT NULL REFERENCES events(id),
     message_id TEXT NOT NULL UNIQUE,
+    in_reply_to_message_id TEXT,
     history_through INTEGER CHECK (history_through >= 1),
     attempt INTEGER NOT NULL DEFAULT 0 CHECK (attempt >= 0),
     status TEXT NOT NULL CHECK (status IN (
@@ -2295,6 +2322,7 @@ CREATE TABLE work (
     ),
     completed_event_seq INTEGER REFERENCES events(seq),
     step_id TEXT REFERENCES contest_steps(step_id),
+    CHECK (kind <> 'reply' OR in_reply_to_message_id IS NOT NULL),
     CHECK (
         kind <> 'debate.turn'
         OR (debate_id IS NOT NULL AND round IS NOT NULL)
@@ -2861,6 +2889,8 @@ Survey question-first collection also uses `contest_answers`, without creating `
 The attempt’s local day is fixed when its provider-call start record commits. Responses and later reconciliation update that day even if they arrive after midnight. Before a new provider call, the router rechecks the current local day and transfers any unstarted reservation to that day atomically. An in-flight call retains its original day. A new day selects a new daily row; it does not erase prior spending or unresolved calls.
 
 Actual cost is added once for each `(work_id, attempt)`. A later correction applies only the difference from `reported_cost_micros`. A response without a cost increments `unknown_calls` once and retains the unresolved reservation under Cost guard; later reported cost replaces that unknown state atomically. Billed failures and cancellations follow the same path as successful calls.
+
+`models::save_roster(tx, models)` atomically replaces member cache rows, preserving the judge and removing departed members. Delete/reinsert avoids roster-order UNIQUE conflicts and respects the non-null member-order constraint; invalid input or a write failure preserves the previous roster. `save_model` returns a typed domain error for invalid cache roles, roster order or context length.
 
 `models` is a startup cache, not a configuration source. Persona text, prompts and credentials are not model-cache fields. Member rows use their nick and roster order; the judge row uses reserved key `judge`, role `judge` and no roster order. `catalog` stores normalised model metadata and fetch time for the Agents-owned 24-hour fallback policy.
 

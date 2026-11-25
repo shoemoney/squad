@@ -16,6 +16,7 @@ pub struct DebateEstimate {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct DebatePreflight {
+    pub judge_only: bool,
     pub debate_id: DebateId,
     pub plan_id: PlanId,
     pub expires_at: DateTime,
@@ -90,6 +91,7 @@ pub enum DebateTurnOutcome {
         content: String,
         model: Text,
         finish_reason: FinishReason,
+        #[schemars(extend("x-required-nullable" = true))]
         usage: Option<Usage>, // nullable
     },
     Forfeit {
@@ -136,6 +138,7 @@ pub struct DebateRoundScore {
     pub debate_id: DebateId,
     pub case_id: CaseId,
     pub round: u32,
+    #[schemars(extend("x-required-nullable" = true))]
     pub scores: Option<std::collections::BTreeMap<MemberNick, RoundScore>>, // nullable
     pub tally: std::collections::BTreeMap<MemberNick, u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -172,13 +175,19 @@ pub struct DebateState {
     pub judge_model: String,
     pub judge_requested: bool,
     pub state_version: u64,
+    #[schemars(extend("x-required-nullable" = true))]
     pub terminal_reason: Option<String>, // nullable
-    pub case_id: Option<CaseId>,         // nullable
+    #[schemars(extend("x-required-nullable" = true))]
+    pub case_id: Option<CaseId>, // nullable
     pub case_ids: Vec<CaseId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
 pub enum DebateTransition {
     Prepare,
     PlanReady,
@@ -215,7 +224,7 @@ pub enum DebateTransition {
 #[serde(rename_all = "camelCase")]
 pub struct DebateSolution {
     pub nick: MemberNick,
-    pub message_id: EventId,
+    pub message_id: MessageId,
     pub text: String,
 }
 
@@ -223,7 +232,7 @@ pub struct DebateSolution {
 #[serde(rename_all = "camelCase")]
 pub struct DebateSetup {
     pub debate_id: DebateId,
-    pub topic_message_id: EventId,
+    pub topic_message_id: MessageId,
     pub topic_text: String,
     pub solutions: [DebateSolution; 2],
     pub instruction: String,
@@ -235,7 +244,7 @@ pub struct DebateSetup {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct AdjudicationTopic {
-    pub message_id: EventId,
+    pub message_id: MessageId,
     pub text: String,
 }
 
@@ -315,6 +324,7 @@ pub struct JudgeVerdict {
     pub scores: Vec<JudgeScore>,
     pub reasoning: String,
     pub what_to_steal_from_loser: Vec<String>,
+    #[schemars(extend("x-required-nullable" = true))]
     pub tally_override_reason: Option<String>, // nullable
 }
 
@@ -343,7 +353,7 @@ pub struct RoundJudgeResponse {
 
 impl DebateEstimate {
     pub fn validate(&self) -> crate::validation::ValidationResult {
-        crate::validation::require(
+        crate::validation::ensure(
             [self.estimated_usd, self.reserved_usd, self.remaining_usd]
                 .into_iter()
                 .all(crate::validation::money),
@@ -353,6 +363,9 @@ impl DebateEstimate {
 }
 impl DebatePreflight {
     pub fn planned_calls(&self) -> u32 {
+        if self.judge_only {
+            return 1;
+        }
         2 * (self.rounds + u32::from(self.opening_round_required))
             + if self.judge_requested {
                 self.rounds + 1
@@ -361,6 +374,9 @@ impl DebatePreflight {
             }
     }
     pub fn reserved_calls(&self) -> u32 {
+        if self.judge_only {
+            return u32::from(constants::FINAL_JUDGE_ATTEMPTS);
+        }
         4 * (self.rounds + u32::from(self.opening_round_required))
             + if self.judge_requested {
                 2 * self.rounds + 3
@@ -370,13 +386,19 @@ impl DebatePreflight {
     }
     pub fn validate(&self) -> crate::validation::ValidationResult {
         self.estimate.validate()?;
-        crate::validation::require(
-            self.debaters[0] != self.debaters[1] && (1..=20).contains(&self.rounds),
+        crate::validation::ensure(
+            self.debaters[0] != self.debaters[1]
+                && (u32::from(constants::MIN_ROUNDS)..=u32::from(constants::MAX_ROUNDS))
+                    .contains(&self.rounds),
             "invalid debate participants or rounds",
         )?;
+        crate::validation::ensure(
+            !self.judge_only || self.judge_requested,
+            "judgeOnly requires judgeRequested",
+        )?;
         // A judge-only plan has one final call and retains the admitted round snapshot.
-        crate::validation::require(
-            self.estimate.model_calls == self.planned_calls() || self.estimate.model_calls == 1,
+        crate::validation::ensure(
+            self.estimate.model_calls == self.planned_calls(),
             "invalid planned call count",
         )
     }
@@ -398,9 +420,10 @@ impl DebatePreflight {
 }
 impl DebateState {
     pub fn validate(&self) -> crate::validation::ValidationResult {
-        crate::validation::require(
+        crate::validation::ensure(
             self.debaters[0] != self.debaters[1]
-                && (1..=20).contains(&self.total_rounds)
+                && (u32::from(constants::MIN_ROUNDS)..=u32::from(constants::MAX_ROUNDS))
+                    .contains(&self.total_rounds)
                 && self.round <= self.total_rounds
                 && crate::validation::unique(&self.case_ids)
                 && self.case_id.is_none_or(|id| self.case_ids.contains(&id)),
@@ -424,12 +447,40 @@ impl DebateStatus {
 }
 impl DebateSetup {
     pub fn validate(&self) -> crate::validation::ValidationResult {
-        crate::validation::require(
-            (1..=20).contains(&self.rounds)
+        crate::validation::ensure(
+            (u32::from(constants::MIN_ROUNDS)..=u32::from(constants::MAX_ROUNDS))
+                .contains(&self.rounds)
                 && self.solutions[0].nick != self.solutions[1].nick
                 && !self.topic_text.trim().is_empty()
                 && self.solutions.iter().all(|s| !s.text.trim().is_empty()),
             "invalid debate setup",
         )
+    }
+}
+
+impl DebateVerdict {
+    /// Router commit gate using admitted state and the authoritative accepted tally.
+    pub fn validate_against(
+        &self,
+        state: &DebateState,
+        tally: &BTreeMap<MemberNick, u32>,
+    ) -> validation::ValidationResult {
+        state.validate()?;
+        validation::ensure(
+            self.debate_id == state.debate_id && state.case_id == Some(self.case_id),
+            "verdict debate/case differs from admitted state",
+        )?;
+        verdict::validate_committed_verdict(&self.verdict, &state.debaters, tally)
+    }
+}
+impl DebateRoundScore {
+    /// Router commit gate using the admitted participants, case and round limit.
+    pub fn validate_against(&self, state: &DebateState) -> validation::ValidationResult {
+        state.validate()?;
+        validation::ensure(
+            self.debate_id == state.debate_id && state.case_id == Some(self.case_id),
+            "round score debate/case differs from admitted state",
+        )?;
+        verdict::validate_round_score(self, &state.debaters, state.total_rounds)
     }
 }

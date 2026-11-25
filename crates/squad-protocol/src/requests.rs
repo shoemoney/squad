@@ -155,7 +155,7 @@ pub enum ExecutorRequest {
         attempt: u32,
         fence: u64,
         epoch: u64,
-        output: ProducerEnvelope,
+        output: EnvelopePayload,
     },
 }
 
@@ -309,10 +309,7 @@ impl Request {
             }
             _ => Self::UserMessage {
                 input: UserMessageInput {
-                    message_id: request_id
-                        .to_string()
-                        .parse()
-                        .expect("same UUIDv7 identity"),
+                    message_id: MessageId::from_event(request_id),
                     text: Text::new(parsed.raw())
                         .map_err(|e| crate::validation::ValidationError { message: e.into() })?,
                     quote: (!meta.quote.is_empty()).then(|| meta.quote.clone()),

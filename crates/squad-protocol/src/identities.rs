@@ -123,3 +123,9 @@ impl JsonSchema for crate::VariableName {
         schemars::json_schema!({"enum":["ROUNDS","GRILL_ROUNDS","CENSUS_PASSES"]})
     }
 }
+
+impl MessageId {
+    pub fn from_event(event: EventId) -> Self {
+        Self(event.0)
+    }
+}

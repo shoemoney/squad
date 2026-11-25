@@ -161,7 +161,8 @@ pub fn validate_round_score(
     total_rounds: u32,
 ) -> Result<(), ValidationError> {
     ensure(
-        (1..=total_rounds).contains(&score.round) && total_rounds <= 20,
+        (u32::from(constants::MIN_ROUNDS)..=total_rounds).contains(&score.round)
+            && total_rounds <= u32::from(constants::MAX_ROUNDS),
         "score requires admitted numbered round",
     )?;
     exact_keys(&score.tally, debaters)?;

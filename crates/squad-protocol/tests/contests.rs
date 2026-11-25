@@ -24,7 +24,7 @@ fn selection_state_and_generic_preflights_have_one_shared_shape() {
     ] {
         assert_eq!(kind.is_built(), kind == ContestKind::Debate);
     }
-    let v = json!({"contestId":ID,"kind":"debate","expectedStateVersion":3,"transition":{"kind":"debate","transition":{"kind":"round_score_accepted","score_event_id":ID}}});
+    let v = json!({"contestId":ID,"kind":"debate","expectedStateVersion":3,"transition":{"kind":"debate","transition":{"kind":"round_score_accepted","scoreEventId":ID}}});
     let submission: ContestTransitionSubmission = validation::decode(&v).unwrap();
     assert_eq!(submission.kind, ContestKind::Debate);
 }
@@ -49,7 +49,7 @@ fn parsed_inputs_map_to_atomic_requests() {
 }
 #[test]
 fn preflight_call_counts_expiry_and_daily_projection_are_exact() {
-    let p:DebatePreflight=validation::decode(&json!({"debateId":ID,"planId":ID,"expiresAt":TIME,"estimate":{"estimatedUsd":1.0,"reservedUsd":2.0,"remainingUsd":20.0,"modelCalls":12},"confirmationRequired":true,"debaters":["a","b"],"rounds":3,"judgeRequested":true,"openingRoundRequired":true})).unwrap();
+    let p:DebatePreflight=validation::decode(&json!({"debateId":ID,"planId":ID,"expiresAt":TIME,"estimate":{"estimatedUsd":1.0,"reservedUsd":2.0,"remainingUsd":20.0,"modelCalls":12},"judgeOnly":false,"confirmationRequired":true,"debaters":["a","b"],"rounds":3,"judgeRequested":true,"openingRoundRequired":true})).unwrap();
     assert_eq!(p.planned_calls(), 12);
     assert_eq!(p.reserved_calls(), 25);
     assert!(p.validate().is_ok());
@@ -114,10 +114,10 @@ fn every_debate_transition_uses_its_declared_discriminant_and_reference_fields()
     for kind in variants {
         let mut value = json!({"kind":kind});
         let reference = match kind {
-            "slot_resolved" => Some("outcome_event_id"),
-            "verdict_accepted" => Some("verdict_event_id"),
-            "round_score_accepted" => Some("score_event_id"),
-            "round_score_exhausted" => Some("work_id"),
+            "slot_resolved" => Some("outcomeEventId"),
+            "verdict_accepted" => Some("verdictEventId"),
+            "round_score_accepted" => Some("scoreEventId"),
+            "round_score_exhausted" => Some("workId"),
             _ => None,
         };
         if let Some(field) = reference {

@@ -820,3 +820,22 @@ fn invalid_authorization_header_errors_are_redacted() {
     assert!(!format!("{error:?} {error} {c:?}").contains(key));
     assert!(!format!("{error:?} {error}").contains("fixture-invalid-credential"));
 }
+
+#[test]
+fn usd_settings_accept_only_plain_decimal_syntax() {
+    let fixture = Fixture::new();
+    for name in ["SQUAD_DAILY_MAX_USD", "SQUAD_DEBATE_CONFIRM_USD"] {
+        for value in ["+2", "1e1", " 2", "2.", ".2", "2..1", "-0", "NaN", "inf"] {
+            assert!(
+                fixture.load(&[(name, value)]).is_err(),
+                "{name} accepted {value:?}"
+            );
+        }
+        for value in ["2", "2.0", "0.01"] {
+            assert!(
+                fixture.load(&[(name, value)]).is_ok(),
+                "{name} rejected {value}"
+            );
+        }
+    }
+}

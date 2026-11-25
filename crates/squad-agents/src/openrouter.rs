@@ -32,13 +32,11 @@ pub struct ChatMessage {
     pub content: String,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum ReasoningEffort {
-    Low,
-    Medium,
-    High,
+pub use squad_protocol::config::ReasoningEffort;
+trait ReasoningReservation {
+    fn reservation(self) -> (&'static str, u32);
 }
-impl ReasoningEffort {
+impl ReasoningReservation for ReasoningEffort {
     fn reservation(self) -> (&'static str, u32) {
         match self {
             Self::Low => ("low", limits::REASONING_LOW_TOKENS),

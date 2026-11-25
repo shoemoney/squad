@@ -22,6 +22,7 @@ pub enum FinishReason {
 pub struct Usage {
     pub input_tokens: u64,
     pub output_tokens: u64,
+    #[schemars(extend("x-required-nullable" = true))]
     pub cost_usd: Option<f64>, // nullable
 }
 
@@ -118,6 +119,7 @@ pub struct CompletedGeneration {
     pub generation: GenerationIdentity,
     pub model: Text,
     pub finish_reason: FinishReason,
+    #[schemars(extend("x-required-nullable" = true))]
     pub usage: Option<Usage>, // nullable
 }
 
@@ -361,6 +363,7 @@ pub struct UsageRecord {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ended_at: Option<DateTime>,
     pub outcome: UsageOutcome,
+    #[schemars(extend("x-required-nullable" = true))]
     pub usage: Option<Usage>, // nullable
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub estimated_cost_usd: Option<f64>,
@@ -370,6 +373,7 @@ pub struct UsageRecord {
     pub case_id: Option<CaseId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contest_id: Option<ContestId>,
+    #[schemars(extend("x-required-nullable" = true))]
     pub response_model: Option<Text>, // nullable
     pub day: String,
 }
@@ -476,6 +480,7 @@ pub struct RoomCleared {
 }
 
 impl ProducerEnvelope {
+    /// Structural and self-consistency check; debate committers must also call `validate_against` with stored state.
     pub fn from_value(
         value: &serde_json::Value,
     ) -> Result<Self, crate::validation::ValidationError> {
@@ -488,6 +493,7 @@ impl ProducerEnvelope {
     }
 }
 impl CommittedEnvelope {
+    /// Structural and self-consistency check; debate committers must also call `validate_against` with stored state.
     pub fn from_value(
         value: &serde_json::Value,
     ) -> Result<Self, crate::validation::ValidationError> {
@@ -496,13 +502,13 @@ impl CommittedEnvelope {
         Ok(envelope)
     }
     pub fn validate(&self) -> crate::validation::ValidationResult {
-        use crate::validation::require;
+        use crate::validation::ensure;
         validate_envelope(&self.base, &self.content)?;
-        require(
+        ensure(
             self.content.is_durable(),
             "only canonical durable kinds may be committed",
         )?;
-        require(
+        ensure(
             self.commit.commit_size > 0 && self.commit.commit_index < self.commit.commit_size,
             "invalid commit group",
         )
@@ -520,30 +526,30 @@ fn validate_envelope(
     base: &EnvelopeBase,
     payload: &EnvelopePayload,
 ) -> crate::validation::ValidationResult {
-    use crate::validation::{money, require, unique};
-    require(base.version == 1, "unsupported protocol version")?;
-    require(
+    use crate::validation::{ensure, money, unique};
+    ensure(base.version == 1, "unsupported protocol version")?;
+    ensure(
         !base.recipients.is_empty() && unique(&base.recipients),
         "recipients must be nonempty and unique",
     )?;
     let human_only = base.recipients == [Recipient::Me];
     match payload {
         EnvelopePayload::UserMessage(message) => {
-            require(base.sender == Actor::Me, "user.message requires me")?;
-            require(
+            ensure(base.sender == Actor::Me, "user.message requires me")?;
+            ensure(
                 base.id.as_uuid() == message.input.message_id.as_uuid(),
                 "user message identity must equal event identity",
             )?;
             if let Some(ids) = &message.input.quote {
-                require(ids.len() <= 12 && unique(ids), "invalid quote references")?;
+                ensure(ids.len() <= 12 && unique(ids), "invalid quote references")?;
             }
             if let Some(ids) = &message.input.reply_to {
-                require(
+                ensure(
                     ids.len() <= 2 && unique(ids) && message.debate_id.is_some(),
                     "replyTo is debate-only",
                 )?;
             }
-            require(
+            ensure(
                 message.input.quote.as_deref().unwrap_or_default()
                     == message
                         .resolved_quotes
@@ -555,48 +561,53 @@ fn validate_envelope(
             same_contest(message.debate_id, message.contest_id)?;
         }
         EnvelopePayload::AgentReply(completion) | EnvelopePayload::MessageFinal(completion) => {
-            require(
+            ensure(
                 matches!(base.sender, Actor::Member(_)),
                 "ordinary completion requires member actor",
             )?;
             completed(&completion.completed, &completion.content)?;
         }
         EnvelopePayload::Delta(delta) => {
-            require(
+            ensure(
                 matches!(base.sender, Actor::Member(_) | Actor::Judge),
                 "delta requires executor",
             )?;
             generation(&delta.generation)?;
-            require(
+            ensure(
                 delta.debate_id.is_none() || delta.case_id.is_some() || delta.round.is_some(),
                 "debate delta needs round",
             )?;
-            require(delta.round.is_none_or(|r| r <= 20), "invalid delta round")?;
-            require(
+            ensure(
+                delta
+                    .round
+                    .is_none_or(|r| r <= u32::from(constants::MAX_ROUNDS)),
+                "invalid delta round",
+            )?;
+            ensure(
                 delta.step_id.is_none() || delta.contest_id.is_some(),
                 "step delta needs contest",
             )?;
             same_contest(delta.debate_id, delta.contest_id)?;
         }
         EnvelopePayload::Presence(presence) => {
-            require(
+            ensure(
                 base.sender == Actor::System || base.sender == Actor::Member(presence.nick.clone()),
                 "presence actor does not match nick",
             )?;
-            require(
+            ensure(
                 matches!(
                     presence.status,
                     PresenceStatus::Thinking | PresenceStatus::Streaming
                 ) == presence.work_id.is_some(),
                 "active presence requires work identity; idle presence omits it",
             )?;
-            require(
+            ensure(
                 presence.error_code.is_none() || presence.status == PresenceStatus::Error,
                 "errorCode requires error presence",
             )?;
         }
         EnvelopePayload::UsageRecord(record) => {
-            require(
+            ensure(
                 record.attempt > 0
                     && money_optional(record.estimated_cost_usd)
                     && valid_day(&record.day),
@@ -607,7 +618,7 @@ fn validate_envelope(
             }
             same_contest(record.debate_id, record.contest_id)?;
         }
-        EnvelopePayload::BudgetState(budget) => require(
+        EnvelopePayload::BudgetState(budget) => ensure(
             [
                 budget.spent_usd,
                 budget.reserved_usd,
@@ -619,7 +630,7 @@ fn validate_envelope(
                 && valid_day(&budget.day),
             "invalid daily spending projection",
         )?,
-        EnvelopePayload::VarChange(change) => require(
+        EnvelopePayload::VarChange(change) => ensure(
             variable_value(&change.name, change.value)
                 && variable_value(&change.name, change.previous_value),
             "invalid variable value",
@@ -628,7 +639,7 @@ fn validate_envelope(
             if let Some(error) = &state.error {
                 validate_error(error)?;
             }
-            require(
+            ensure(
                 !matches!(state.status, WorkStatus::Running | WorkStatus::Completed)
                     || state.attempt > 0,
                 "running/completed work requires an attempt",
@@ -640,9 +651,10 @@ fn validate_envelope(
         EnvelopePayload::DebatePreflightResult(result) => {
             validate_preflight_result(&result.status, &result.confirmation, &result.error)?
         }
-        EnvelopePayload::DebateOpening(opening) => require(
+        EnvelopePayload::DebateOpening(opening) => ensure(
             opening.round == 0
-                && (1..=20).contains(&opening.rounds)
+                && (u32::from(constants::MIN_ROUNDS)..=u32::from(constants::MAX_ROUNDS))
+                    .contains(&opening.rounds)
                 && opening.debaters[0] != opening.debaters[1],
             "invalid opening",
         )?,
@@ -650,8 +662,11 @@ fn validate_envelope(
         EnvelopePayload::DebateState(state) => state.validate()?,
         EnvelopePayload::DebateTurn(turn) => {
             generation(&turn.generation)?;
-            require(
-                turn.round <= 20 && base.sender == Actor::Member(turn.speaker.clone()),
+            ensure(
+                turn.round <= u32::from(constants::MAX_ROUNDS)
+                    && (base.sender == Actor::Member(turn.speaker.clone())
+                        || (base.sender == Actor::System
+                            && matches!(turn.outcome, DebateTurnOutcome::Forfeit { .. }))),
                 "invalid debate speaker or round",
             )?;
             if let DebateTurnOutcome::Completed {
@@ -668,10 +683,10 @@ fn validate_envelope(
             }
         }
         EnvelopePayload::Verdict(verdict) => {
-            require(base.sender == Actor::Judge, "verdict requires judge actor")?;
+            ensure(base.sender == Actor::Judge, "verdict requires judge actor")?;
             generation(&verdict.completed.generation)?;
             let scores = &verdict.verdict.verdict.scores;
-            require(scores.len() == 2, "verdict requires two score entries")?;
+            ensure(scores.len() == 2, "verdict requires two score entries")?;
             let nicks = [scores[0].nick.clone(), scores[1].nick.clone()];
             crate::verdict::validate_committed_verdict(
                 &verdict.verdict,
@@ -683,24 +698,30 @@ fn validate_envelope(
             }
         }
         EnvelopePayload::DebateRoundScore(score) => {
-            require(
-                base.sender == Actor::Judge && human_only,
+            ensure(
+                (base.sender == Actor::Judge
+                    || (base.sender == Actor::System && score.scores.is_none()))
+                    && human_only,
                 "round scores are judge-to-human only",
             )?;
-            require(score.tally.len() == 2, "tally requires two debaters")?;
+            ensure(score.tally.len() == 2, "tally requires two debaters")?;
             let nicks = score.tally.keys().cloned().collect::<Vec<_>>();
-            crate::verdict::validate_round_score(score, &[nicks[0].clone(), nicks[1].clone()], 20)?;
+            crate::verdict::validate_round_score(
+                score,
+                &[nicks[0].clone(), nicks[1].clone()],
+                u32::from(constants::MAX_ROUNDS),
+            )?;
         }
         EnvelopePayload::CaseOpened(case) => {
             same_contest(case.debate_id, case.contest_id)?;
             match &case.material {
-                CaseMaterial::Standalone { messages, .. } => require(
+                CaseMaterial::Standalone { messages, .. } => ensure(
                     !messages.is_empty() && messages.len() <= 12 && case.debate_id.is_none(),
                     "invalid standalone case",
                 )?,
                 CaseMaterial::Debate { setup, .. } => {
                     setup.validate()?;
-                    require(
+                    ensure(
                         case.debate_id == Some(setup.debate_id),
                         "case debate mismatch",
                     )?;
@@ -708,25 +729,27 @@ fn validate_envelope(
             }
         }
         EnvelopePayload::CaseRuling(ruling) => {
-            require(
+            ensure(
                 base.sender == Actor::Judge && human_only,
                 "case ruling requires judge-to-human",
             )?;
             completed(&ruling.completed, ruling.content.as_str())?;
         }
         EnvelopePayload::ContestSetup(setup) => {
-            require(
-                setup.settings.is_object() && distinct_members(&setup.participants),
+            ensure(
+                setup.kind != ContestKind::Debate
+                    && setup.settings.is_object()
+                    && distinct_members(&setup.participants),
                 "invalid generic setup",
             )?;
         }
         EnvelopePayload::ContestState(state) => match state {
             ContestState::Debate(state) => state.validate()?,
-            ContestState::Generic(state) => require(
-                unique(&state.artifact_event_ids),
+            ContestState::Generic(state) => ensure(
+                state.kind != ContestKind::Debate && unique(&state.artifact_event_ids),
                 "duplicate artifact references",
             )?,
-            ContestState::Selection(state) => require(
+            ContestState::Selection(state) => ensure(
                 distinct_members(&state.addressed)
                     && (1..=2).contains(&state.required_picks)
                     && state
@@ -737,33 +760,36 @@ fn validate_envelope(
                 "invalid selection state",
             )?,
         },
-        EnvelopePayload::ContestTransition(submission) => require(
+        EnvelopePayload::ContestTransition(submission) => ensure(
             submission.kind == ContestKind::Debate,
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {
             preflight.estimate.validate()?;
-            require(
-                preflight.settings.is_object() && distinct_members(&preflight.participants),
+            ensure(
+                preflight.kind != ContestKind::Debate
+                    && preflight.settings.is_object()
+                    && distinct_members(&preflight.participants),
                 "invalid generic preflight",
             )?;
         }
         EnvelopePayload::ContestPreflightResult(result) => {
             validate_preflight_result(&result.status, &result.confirmation, &result.error)?
         }
-        EnvelopePayload::ContestCollecting(collection) => require(
+        EnvelopePayload::ContestCollecting(collection) => ensure(
             distinct_members(&collection.addressed) && !collection.question.trim().is_empty(),
             "invalid collection",
         )?,
-        EnvelopePayload::ContestPickRequested(pick) => require(
+        EnvelopePayload::ContestPickRequested(pick) => ensure(
             human_only
                 && distinct_members(&pick.eligible)
                 && (1..=2).contains(&pick.required_picks)
                 && usize::from(pick.required_picks) <= pick.eligible.len(),
             "invalid pending pick",
         )?,
-        EnvelopePayload::ContestPicked(pick) => require(
-            distinct_members(&pick.nicks)
+        EnvelopePayload::ContestPicked(pick) => ensure(
+            pick.kind.is_built()
+                && distinct_members(&pick.nicks)
                 && unique(&pick.source_message_ids)
                 && pick.nicks.len() == pick.source_message_ids.len()
                 && match pick.kind {
@@ -774,13 +800,13 @@ fn validate_envelope(
             "invalid picked selection",
         )?,
         EnvelopePayload::ContestStep(step) => {
-            require(
+            ensure(
                 step.ordinal > 0 && unique(&step.inputs),
                 "invalid step ordinal or references",
             )?;
             for assignment in &step.assignments {
                 match &assignment.target {
-                    Target::Member(nick) => require(
+                    Target::Member(nick) => ensure(
                         assignment.context_id.0 == nick.as_str()
                             || assignment.context_id.0
                                 == format!("contest:{}:{}:{nick}", step.contest_id, step.step_id),
@@ -792,11 +818,11 @@ fn validate_envelope(
                             .0
                             .strip_prefix("judge:")
                             .and_then(|s| s.parse::<CaseId>().ok());
-                        require(case.is_some(), "invalid judge assignment context")?;
+                        ensure(case.is_some(), "invalid judge assignment context")?;
                     }
                 }
             }
-            require(
+            ensure(
                 unique(
                     &step
                         .assignments
@@ -807,11 +833,11 @@ fn validate_envelope(
                 "duplicate assignment target",
             )?;
         }
-        EnvelopePayload::ContestArtifact(artifact) => require(
+        EnvelopePayload::ContestArtifact(artifact) => ensure(
             artifact.data.is_object() && unique(&artifact.source_refs),
             "invalid artifact",
         )?,
-        EnvelopePayload::ContestReport(report) => require(
+        EnvelopePayload::ContestReport(report) => ensure(
             report.data.is_object()
                 && unique(&report.artifact_event_ids)
                 && unique(&report.skipped_work_ids),
@@ -826,7 +852,7 @@ fn validate_envelope(
     Ok(())
 }
 pub fn validate_usage(usage: &Usage) -> crate::validation::ValidationResult {
-    crate::validation::require(money_optional(usage.cost_usd), "invalid cost")
+    crate::validation::ensure(money_optional(usage.cost_usd), "invalid cost")
 }
 fn money_optional(value: Option<f64>) -> bool {
     value.is_none_or(crate::validation::money)
@@ -840,7 +866,7 @@ fn distinct_members(nicks: &[MemberNick]) -> bool {
 }
 pub fn variable_value(name: &VariableName, value: u8) -> bool {
     match name {
-        VariableName::Rounds => (1..=20).contains(&value),
+        VariableName::Rounds => (constants::MIN_ROUNDS..=constants::MAX_ROUNDS).contains(&value),
         VariableName::GrillRounds => (1..=10).contains(&value),
         VariableName::CensusPasses => (1..=5).contains(&value),
     }
@@ -849,16 +875,16 @@ fn same_contest(
     debate: Option<DebateId>,
     contest: Option<ContestId>,
 ) -> crate::validation::ValidationResult {
-    crate::validation::require(
+    crate::validation::ensure(
         debate.zip(contest).is_none_or(|(d, c)| d == c),
         "contest and debate identities differ",
     )
 }
 fn generation(identity: &GenerationIdentity) -> crate::validation::ValidationResult {
-    crate::validation::require(identity.attempt > 0, "generation attempt must be positive")
+    crate::validation::ensure(identity.attempt > 0, "generation attempt must be positive")
 }
 fn visible_content(content: &str, finish: &FinishReason) -> crate::validation::ValidationResult {
-    crate::validation::require(
+    crate::validation::ensure(
         !content.is_empty() || *finish == FinishReason::ContentFilter,
         "empty answer requires content_filter",
     )
@@ -876,7 +902,7 @@ fn completed(
 }
 fn validate_error(error: &ErrorPayload) -> crate::validation::ValidationResult {
     same_contest(error.debate_id, error.contest_id)?;
-    crate::validation::require(
+    crate::validation::ensure(
         error
             .retry_action
             .as_ref()
@@ -889,7 +915,7 @@ fn validate_preflight_result(
     confirmation: &Option<Confirmation>,
     error: &Option<ErrorPayload>,
 ) -> crate::validation::ValidationResult {
-    crate::validation::require(
+    crate::validation::ensure(
         (*status == PreflightStatus::Confirmed) == confirmation.is_some()
             && (*status != PreflightStatus::Confirmed || error.is_none()),
         "invalid preflight result",
