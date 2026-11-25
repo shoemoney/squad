@@ -1,0 +1,15 @@
+---
+source: crates/squad-tui/tests/participants.rs
+expression: "screen(80, 24, 48)"
+---
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_10_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_11_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
