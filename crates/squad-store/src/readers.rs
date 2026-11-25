@@ -92,7 +92,40 @@ impl HistoryReader for ScopedReaders {
                     return Err(ReaderError::StaleWork);
                 }
                 let work = record.executable.ok_or(ReaderError::NotRunnable)?;
-                crate::history::read(db, &work.context_id, work.history_through).map_err(map_error)
+                let mut history = crate::history::read(db, &work.context_id, work.history_through)
+                    .map_err(map_error)?;
+                if work.kind == WorkKind::Reply && work.round.is_some() {
+                    history.retain(|entry| {
+                        let HistoryMetadata::Attributed {
+                            origin_event_id,
+                            projection_key,
+                            ..
+                        } = &entry.meta
+                        else {
+                            return true;
+                        };
+                        if !projection_key.as_str().starts_with("tournament.") {
+                            return true;
+                        }
+                        let Ok(Some(source)) = crate::events::by_id(db, *origin_event_id) else {
+                            return false;
+                        };
+                        match source.content {
+                            EnvelopePayload::TournamentResult(r) => {
+                                Some(r.contest_id) == work.contest_id
+                                    && Some(r.round + 1) == work.round
+                            }
+                            EnvelopePayload::TournamentEntry(e) => {
+                                Some(e.contest_id) == work.contest_id
+                            }
+                            EnvelopePayload::TournamentState(s) => {
+                                Some(s.contest_id) == work.contest_id
+                            }
+                            _ => false,
+                        }
+                    });
+                }
+                Ok(history)
             })
         })
     }
@@ -113,6 +146,23 @@ impl WorkReader for ScopedReaders {
                 let (material, state): (String, String) = db.query_row("SELECT material_json,state_json FROM cases WHERE case_id=? AND epoch=(SELECT epoch FROM room_meta)", [case.to_string()], |r| Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::NotFound)?;
                 values.insert("case_material_json".into(), material);
                 values.insert("case_state_json".into(), state);
+            }
+            if work.kind==WorkKind::Reply && work.round.is_some() {
+                let s=crate::tournaments::validate_execution(db,&work).map_err(map_error)?;
+                values.insert("contest_id".into(),s.contest_id.to_string());
+                values.insert("round".into(),s.round.to_string());
+                values.insert("entrants_remaining".into(),s.survivors.len().to_string());
+            }
+            if work.kind==WorkKind::Reply && let Some(round)=work.round {
+                let raw:String=db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='tournament.member_prompts'",[work.contest_id.ok_or(ReaderError::Forbidden)?.to_string()],|r|r.get(0)).map_err(|_|ReaderError::NotFound)?;
+                let frozen:serde_json::Value=serde_json::from_str(&raw).map_err(|_|ReaderError::Forbidden)?;
+                values.insert("tournament_frozen_system".into(),frozen["systems"][work.target.to_string()].as_str().ok_or(ReaderError::Forbidden)?.into());
+                values.insert("tournament_frozen_instruction".into(),frozen["instructions"][round.to_string()].as_str().ok_or(ReaderError::Forbidden)?.into());
+            }
+            if work.kind==WorkKind::JudgeTournament {
+                crate::tournaments::validate_execution(db,&work).map_err(map_error)?;
+                let raw:String=db.query_row("SELECT state_json FROM tournament_rounds WHERE contest_id=? AND round=? AND replay=? AND judge_work_id=?",rusqlite::params![work.contest_id.unwrap().to_string(),work.round,work.replay,work.work_id.to_string()],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                values.insert("tournament_frozen_judge".into(),raw);
             }
             if let Some(debate) = work.debate_id {
                 let state = crate::contests::debate(db, debate).map_err(map_error)?;

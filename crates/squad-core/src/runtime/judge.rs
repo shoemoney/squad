@@ -63,6 +63,11 @@ impl JudgeAttemptRunner for Runner {
                         return failed(context, &grant, code).await;
                     }
                 };
+            if grant.work.kind == WorkKind::JudgeTournament {
+                return self
+                    .tournament_output(context, &grant, &output.content)
+                    .await;
+            }
             let validation = squad_agents::judge::validate_output(
                 &grant.work,
                 &output.content,
@@ -180,6 +185,94 @@ impl Runner {
             .work
             .prompt_values_for_work(grant.work.work_id)
             .await?;
+        if grant.work.kind == WorkKind::JudgeTournament {
+            let frozen: serde_json::Value = serde_json::from_str(
+                values
+                    .get("tournament_frozen_judge")
+                    .ok_or(ReaderError::NotRunnable)?,
+            )
+            .map_err(|_| ReaderError::NotRunnable)?;
+            let rendered: crate::prompts::RenderedComposition =
+                serde_json::from_value(frozen["prompt"].clone())
+                    .map_err(|_| ReaderError::NotRunnable)?;
+            let mut user = rendered.user;
+            if let Some(repair) = context
+                .work
+                .repair_for_attempt(grant.work.work_id, grant.work.attempt)
+                .await?
+            {
+                let suffix = frozen["repair"]
+                    .as_str()
+                    .ok_or(ReaderError::NotRunnable)?
+                    .replace(
+                        "{{invalid_output_json}}",
+                        &serde_json::to_string(&repair.rejected_output)
+                            .map_err(|_| ReaderError::NotRunnable)?,
+                    )
+                    .replace(
+                        "{{validation_errors_json}}",
+                        &serde_json::to_string(&repair.validation_errors)
+                            .map_err(|_| ReaderError::NotRunnable)?,
+                    );
+                user.push_str("\n\n");
+                user.push_str(&suffix);
+            }
+            let request = squad_agents::openrouter::ChatRequest {
+                model: grant.binding.model.to_string(),
+                messages: vec![
+                    squad_agents::openrouter::ChatMessage {
+                        role: "system".into(),
+                        name: None,
+                        content: rendered.system,
+                    },
+                    squad_agents::openrouter::ChatMessage {
+                        role: "user".into(),
+                        name: Some("squad".into()),
+                        content: user,
+                    },
+                ],
+                visible_ceiling: constants::FINAL_JUDGE_VISIBLE_TOKENS,
+                published_output_limit: model.output_limit,
+                supports_reasoning: model.supports_reasoning(),
+                reasoning_effort: ReasoningEffort::High,
+                reasoning_explicit: false,
+                response_format: None,
+                policy: squad_agents::openrouter::ExecutionPolicy::SingleAttempt(
+                    squad_agents::openrouter::DeadlineClass::TournamentJudge,
+                ),
+            };
+            let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
+                .as_u64()
+                .ok_or(ReaderError::NotRunnable)?;
+            if squad_agents::context::estimate(&request.messages)
+                > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
+            {
+                return Err(ReaderError::NotRunnable);
+            }
+            let state: serde_json::Value = serde_json::from_str(
+                values
+                    .get("case_state_json")
+                    .ok_or(ReaderError::NotRunnable)?,
+            )
+            .map_err(|_| ReaderError::NotRunnable)?;
+            let invocation = serde_json::from_value(state["judgeInvocationId"].clone())
+                .map_err(|_| ReaderError::NotRunnable)?;
+            let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
+                .as_u64()
+                .ok_or(ReaderError::NotRunnable)?;
+            if squad_agents::context::estimate(&request.messages)
+                > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
+            {
+                return Err(ReaderError::NotRunnable);
+            }
+            return Ok((
+                request,
+                None,
+                BTreeMap::new(),
+                invocation,
+                Text::new("v1").unwrap(),
+            ));
+        }
         let material: CaseMaterial = serde_json::from_str(
             values
                 .get("case_material_json")
@@ -230,6 +323,11 @@ impl Runner {
             )
         } else {
             match &material {
+                CaseMaterial::Tournament { material } => self
+                    .pack
+                    .tournament_judge_inputs(material)
+                    .map(|inputs| ("judge.tournament", inputs)),
+
                 CaseMaterial::Standalone { messages, question } => self.pack.judge_inputs(
                     &self.config,
                     &grant.work,
@@ -314,5 +412,77 @@ impl Runner {
             return Err(ReaderError::NotRunnable);
         }
         Ok((request, debaters, tally, invocation, rubric))
+    }
+}
+
+impl Runner {
+    async fn tournament_output(
+        &self,
+        context: &AgentContext,
+        grant: &ExecutionGrant,
+        raw: &str,
+    ) -> Result<(), ReaderError> {
+        let values = context
+            .work
+            .prompt_values_for_work(grant.work.work_id)
+            .await?;
+        let material: CaseMaterial = serde_json::from_str(
+            values
+                .get("case_material_json")
+                .ok_or(ReaderError::NotRunnable)?,
+        )
+        .map_err(|_| ReaderError::NotRunnable)?;
+        let CaseMaterial::Tournament { material } = material else {
+            return Err(ReaderError::Forbidden);
+        };
+        let labels = material
+            .entries
+            .iter()
+            .map(|e| e.label.clone())
+            .collect::<Vec<_>>();
+        match TournamentJudgeResponse::from_json(raw, &labels) {
+            Ok(response) => acknowledged(
+                context
+                    .submit
+                    .submit(ExecutorRequest::Result {
+                        work_id: grant.work.work_id,
+                        attempt: grant.work.attempt,
+                        fence: grant.fence,
+                        epoch: grant.epoch,
+                        output: EnvelopePayload::TournamentJudgment(TournamentJudgment {
+                            generation: identity(grant),
+                            contest_id: grant.work.contest_id.ok_or(ReaderError::NotRunnable)?,
+                            case_id: grant.work.case_id.ok_or(ReaderError::NotRunnable)?,
+                            round: grant.work.round.ok_or(ReaderError::NotRunnable)?,
+                            replay: grant.work.replay.ok_or(ReaderError::NotRunnable)?,
+                            response,
+                        }),
+                    })
+                    .await,
+            ),
+            Err(_) => {
+                let mut error = crate::router::error(
+                    ErrorCode::JUDGE_INVALID_VERDICT,
+                    "Tournament ranking failed validation",
+                );
+                error.work_id = Some(grant.work.work_id);
+                error.case_id = grant.work.case_id;
+                error.contest_id = grant.work.contest_id;
+                let repair=(grant.work.attempt<3).then(||JudgeRepairData{attempt:grant.work.attempt+1,rejected_output:raw.into(),validation_errors:vec!["Return a strict permutation with integer scores 1 through 10 and one-line critiques".into()]});
+                acknowledged(
+                    context
+                        .submit
+                        .submit(ExecutorRequest::Failed {
+                            work_id: grant.work.work_id,
+                            attempt: grant.work.attempt,
+                            fence: grant.fence,
+                            epoch: grant.epoch,
+                            error,
+                            repair,
+                        })
+                        .await,
+                )
+            }
+        }
     }
 }

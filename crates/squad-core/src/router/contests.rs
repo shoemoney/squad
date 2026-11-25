@@ -552,7 +552,7 @@ impl Router {
     }
 }
 
-fn queued(tx: &Transaction<'_>, group: &mut CommitGroup, work: &Work) -> Result<()> {
+pub(crate) fn queued(tx: &Transaction<'_>, group: &mut CommitGroup, work: &Work) -> Result<()> {
     group.push(
         tx,
         super::envelope(

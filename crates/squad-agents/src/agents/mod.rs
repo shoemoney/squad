@@ -46,6 +46,7 @@ pub async fn stream_attempt(
         WorkKind::Reply => DeadlineClass::Ordinary,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,
+        WorkKind::JudgeTournament => DeadlineClass::TournamentJudge,
         WorkKind::JudgeRound => DeadlineClass::RoundJudge,
     });
     request.model = grant.binding.model.to_string();
@@ -220,3 +221,5 @@ pub async fn failed(
             .await,
     )
 }
+
+pub mod tournament;

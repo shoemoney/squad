@@ -248,3 +248,29 @@ impl ChampionReveal {
         );
     }
 }
+
+impl RankingReveal {
+    /// Reveal emphasis on the widget's prepared rows without replacing text or
+    /// shifting wrapped critiques. The lowest accepted rank enters first.
+    pub fn render_prepared(&self, buf: &mut Buffer, rows: &[Rect], t: Duration) {
+        for (i, rect) in rows.iter().enumerate() {
+            let delay = if self.level == Level::Full {
+                (rows.len() - 1 - i) as u64 * 250
+            } else {
+                0
+            };
+            let active = self.is_done(t, rows.len()) || t.as_millis() as u64 >= delay;
+            for y in rect.y..rect.bottom() {
+                for x in rect.x..rect.right() {
+                    if let Some(c) = buf.cell_mut((x, y)) {
+                        c.set_style(c.style().add_modifier(if active {
+                            Modifier::BOLD
+                        } else {
+                            Modifier::DIM
+                        }));
+                    }
+                }
+            }
+        }
+    }
+}

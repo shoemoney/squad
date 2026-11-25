@@ -167,10 +167,14 @@ pub fn render(
         for (i, rank) in round.ranking.iter().enumerate() {
             let r = p.text(
                 &format!(
-                    "{}. @{} · score {}{}",
+                    "{}. @{} · {}{}",
                     i + 1,
                     rank.nick,
-                    rank.score,
+                    if rank.score == 0 {
+                        "forfeit".into()
+                    } else {
+                        format!("score {}", rank.score)
+                    },
                     if rank.eliminated {
                         " · ELIMINATED"
                     } else {

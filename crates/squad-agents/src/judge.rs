@@ -55,7 +55,10 @@ pub async fn prepare_attempt(
     if context.executor != grant.owner
         || !grant.owner.owns(work)
         || work.validate().is_err()
-        || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound)
+        || !matches!(
+            work.kind,
+            WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament
+        )
         || work.attempt > attempt_limit(work)
         || values.contains_key("invalid_output_json")
         || values.contains_key("validation_errors_json")
@@ -82,7 +85,9 @@ pub async fn prepare_attempt(
     let prompt = work.prompt_ref.as_ref().ok_or(ReaderError::NotRunnable)?;
     let rendered: RenderedPrompt = serde_json::from_str(&context.render.render(prompt, &values)?)
         .map_err(|_| ReaderError::NotRunnable)?;
-    let expected = if work.kind == WorkKind::JudgeRound {
+    let expected = if work.kind == WorkKind::JudgeTournament {
+        "judge.tournament"
+    } else if work.kind == WorkKind::JudgeRound {
         "judge.round"
     } else if rendered.step == "judge.followup" {
         "judge.followup"
@@ -123,7 +128,9 @@ pub async fn prepare_attempt(
         },
         reasoning_explicit: false,
         response_format: None,
-        policy: ExecutionPolicy::SingleAttempt(if round {
+        policy: ExecutionPolicy::SingleAttempt(if work.kind == WorkKind::JudgeTournament {
+            DeadlineClass::TournamentJudge
+        } else if round {
             DeadlineClass::RoundJudge
         } else {
             DeadlineClass::FinalJudge
@@ -149,7 +156,10 @@ pub fn validate_output(
     tally: &BTreeMap<MemberNick, u32>,
 ) -> Result<JudgeValidation, ReaderError> {
     if work.validate().is_err()
-        || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound)
+        || !matches!(
+            work.kind,
+            WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament
+        )
         || work.attempt > attempt_limit(work)
     {
         return forbidden();
@@ -222,7 +232,10 @@ impl JudgeExecutor {
             }
             if context.executor != grant.owner
                 || !grant.owner.owns(&grant.work)
-                || !matches!(grant.work.kind, WorkKind::Judge | WorkKind::JudgeRound)
+                || !matches!(
+                    grant.work.kind,
+                    WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament
+                )
             {
                 return forbidden();
             }

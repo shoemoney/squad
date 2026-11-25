@@ -134,6 +134,7 @@ impl RoomApi for RoomHandle {
             .map(|e| e.commit.seq)
             .min();
         let mut work = BTreeMap::new();
+        let mut tournaments = std::collections::BTreeMap::new();
         let mut debates = BTreeMap::new();
         let mut addressed = BTreeSet::new();
         let mut terminal = BTreeSet::new();
@@ -213,13 +214,21 @@ impl RoomApi for RoomHandle {
                         }
                     }
                 }
+                EnvelopePayload::TournamentState(t) => {
+                    failed |= matches!(
+                        t.state,
+                        TournamentStatus::Failed | TournamentStatus::Stopped
+                    );
+                    tournaments.insert(t.contest_id, t.state.clone());
+                }
                 EnvelopePayload::DebateState(d) => {
                     debates.insert(d.debate_id, d.state.clone());
                 }
                 _ => (),
             }
         }
-        if !addressed.is_subset(&terminal)
+        if tournaments.values().any(|s| !s.is_terminal())
+            || !addressed.is_subset(&terminal)
             || work
                 .values()
                 .any(|s| matches!(s, WorkStatus::Queued | WorkStatus::Running))

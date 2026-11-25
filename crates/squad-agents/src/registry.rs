@@ -71,6 +71,9 @@ impl<'a> Registry<'a> {
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),
+            WorkKind::JudgeTournament => {
+                (TaskKind::TournamentJudge, DeadlineClass::TournamentJudge)
+            }
             WorkKind::JudgeRound => (TaskKind::RoundJudge, DeadlineClass::RoundJudge),
         };
         let mut request = self.request(member, model, kind)?;

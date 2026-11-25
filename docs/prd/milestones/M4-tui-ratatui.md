@@ -150,11 +150,11 @@
 
 - **M4.P3.L5 — Render tournaments**
   - [x] M4.P3.L5.T1 — Implement inline collapsible tournament blocks, authoritative states, stable parallel entry cards, retry and forfeit labels, and inspectable previous rounds in `crates/squad-tui/src/widgets/tournament.rs`.
-  - [ ] M4.P3.L5.T2 — Consume tournament setup, state, entry, ranking, result, and champion events by canonical identity in `crates/squad-tui/src/session.rs`, rendering accepted ranks, scores, critiques, final placements, replay, and failure without local ranking decisions.
-  - [ ] M4.P3.L5.T3 — Render eliminated participants and authoritative trophy counts in `crates/squad-tui/src/widgets/participants.rs`, deduplicating updates and retaining elimination marks for the rest of the tournament.
+  - [x] M4.P3.L5.T2 — Consume tournament setup, state, entry, ranking, result, and champion events by canonical identity in `crates/squad-tui/src/session.rs`, rendering accepted ranks, scores, critiques, final placements, replay, and failure without local ranking decisions.
+  - [x] M4.P3.L5.T3 — Render eliminated participants and authoritative trophy counts in `crates/squad-tui/src/widgets/participants.rs`, deduplicating updates and retaining elimination marks for the rest of the tournament.
   - [ ] M4.P3.L5.T4 — Present the core's k + (k−1) + ... + 2 answer calls, k−1 judge calls, total estimate, remaining daily amount, and confirmation controls in `crates/squad-tui/src/widgets/preflight.rs`.
-  - [ ] M4.P3.L5.T5 — Add `TOURNAMENT`, `ROUND r · N REMAIN`, `FINAL`, and `CHAMPION` boundaries and bottom-up ranking and champion effect hooks in `crates/squad-tui/src/widgets/tournament.rs` and `crates/squad-tui/src/widgets/banner.rs`, retaining complete static views with effects off.
-  - [ ] M4.P3.L5.T6 — Connect `/export tournament [id]` to shared core export and destination writes in `crates/squad-tui/src/actions.rs`.
+  - [x] M4.P3.L5.T5 — Add `TOURNAMENT`, `ROUND r · N REMAIN`, `FINAL`, and `CHAMPION` boundaries and bottom-up ranking and champion effect hooks in `crates/squad-tui/src/widgets/tournament.rs` and `crates/squad-tui/src/widgets/banner.rs`, retaining complete static views with effects off.
+  - [x] M4.P3.L5.T6 — Connect `/export tournament [id]` to shared core export and destination writes in `crates/squad-tui/src/actions.rs`.
 
 - **M4.P3.L6 — Render grills**
   - [ ] M4.P3.L6.T1 — Implement eligible leader-plan preview and explicit source selection using the shared selected-or-quoted-message contract in `crates/squad-tui/src/selection.rs`.
@@ -235,8 +235,8 @@
   - [ ] M4.P4.L3.T4 — Record passing workspace checks and M5 integration results before closing M4 in `crates/squad-tui/README.md`.
 
 - **M4.P4.L4 — Verify tournament, grill, and pick presentation**
-  - [ ] M4.P4.L4.T1 — Snapshot tournament parallel entries, strict accepted rankings, scores, critiques, eliminated rows, trophies, champion, round replay, stopped state, and failed judging at both viewports in `crates/squad-tui/tests/tournament.rs`.
-  - [ ] M4.P4.L4.T2 — Verify tournament preflight call counts, k−1 round presentation, forfeit labels, unchanged blind judge identity, deduplicated trophies, and complete static ranking without effects in `crates/squad-tui/tests/tournament.rs`.
+  - [x] M4.P4.L4.T1 — Snapshot tournament parallel entries, strict accepted rankings, scores, critiques, eliminated rows, trophies, champion, round replay, stopped state, and failed judging at both viewports in `crates/squad-tui/tests/tournament.rs`.
+  - [x] M4.P4.L4.T2 — Verify tournament preflight call counts, k−1 round presentation, forfeit labels, unchanged blind judge identity, deduplicated trophies, and complete static ranking without effects in `crates/squad-tui/tests/tournament.rs`.
   - [ ] M4.P4.L4.T3 — Snapshot grill participant scope, rotated sequential turns, headings, primary angles, questions, answers, plan changes, passes, counters, skipped turns, plan versions, appendix, survived completion, and leader failure in `crates/squad-tui/tests/grill.rs`.
   - [ ] M4.P4.L4.T4 — Verify grill call-count presentation, explicit plan sources, newest-plan expansion, last-good-plan retention, and absence of judge or scoreboard changes in `crates/squad-tui/tests/grill.rs`.
   - [ ] M4.P4.L4.T5 — Verify question-first debate and grill collection, eligible candidates, exact banners and hints, placeholders, `pick pending`, valid picks, wrong-pick strings, and insufficient-answer failure in `crates/squad-tui/tests/pick.rs`.

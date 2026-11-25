@@ -212,6 +212,14 @@ async fn full_capacity_one_mailbox_never_blocks_bounded_ingress_or_loses_durable
     let f = Fixture::new(2, 20_000_000).await;
     let mut mailbox = f.bus.register(ExecutorKey::Member(nick("member0")));
     f.send("@member0 missed wake").await;
+    // The durable acknowledgement may precede its best-effort wake delivery.
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while mailbox.is_empty() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
     assert_eq!(mailbox.len(), 1);
     let mut pending = Vec::new();
     for _ in 0..constants::INGRESS_CAPACITY + 10 {

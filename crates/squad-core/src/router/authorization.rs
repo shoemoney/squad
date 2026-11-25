@@ -35,8 +35,32 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
         return Err(forbidden());
     }
     let generation = match payload {
+        EnvelopePayload::TournamentEntry(e)
+            if work.kind == WorkKind::Reply && work.round.is_some() =>
+        {
+            if work.contest_id != Some(e.contest_id)
+                || work.round != Some(e.round)
+                || work.replay != Some(e.replay)
+                || work.target != Target::Member(e.entrant.clone())
+                || !matches!(e.outcome, DebateTurnOutcome::Completed { .. })
+            {
+                return Err(forbidden());
+            }
+            &e.generation
+        }
+        EnvelopePayload::TournamentJudgment(j) if work.kind == WorkKind::JudgeTournament => {
+            if work.contest_id != Some(j.contest_id)
+                || work.round != Some(j.round)
+                || work.replay != Some(j.replay)
+                || work.case_id != Some(j.case_id)
+            {
+                return Err(forbidden());
+            }
+            &j.generation
+        }
+
         EnvelopePayload::AgentReply(reply) | EnvelopePayload::MessageFinal(reply)
-            if work.kind == WorkKind::Reply =>
+            if work.kind == WorkKind::Reply && work.round.is_none() =>
         {
             if Some(reply.in_reply_to_message_id) != work.in_reply_to_message_id {
                 return Err(forbidden());

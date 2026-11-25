@@ -245,6 +245,85 @@ pub fn attach(
                     )
                 }
             }
+            FxCue::TournamentRankingReady { contest_id, round } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.tournament.as_ref())
+                else {
+                    continue;
+                };
+                let rows = shapes
+                    .rankings
+                    .iter()
+                    .filter(|(r, _, _)| r == round)
+                    .map(|(_, _, r)| app.composed.graphic_rect(id, *r, top, transcript))
+                    .collect::<Vec<_>>();
+                let effect = fx::tournament::RankingReveal::new(level, no_color, true);
+                let duration = effect.duration(rows.len());
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    duration,
+                    move |elapsed, buf, _| effect.render_prepared(buf, &rows, elapsed),
+                )
+            }
+            FxCue::TournamentEliminated { contest_id, member } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let marker = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.tournament.as_ref())
+                    .and_then(|s| s.eliminations.iter().find(|(n, _)| n == member.as_str()))
+                    .map(|(_, r)| app.composed.graphic_rect(id, *r, top, transcript))
+                    .unwrap_or_default();
+                let mut fx = fx::tournament::TournamentFx::default();
+                let Some(effect) =
+                    fx.elimination(&cue.event_id.to_string(), true, true, level, no_color)
+                else {
+                    continue;
+                };
+                Pass::catalogue(
+                    key,
+                    marker,
+                    PassAccess::Unprotected,
+                    effect.duration(),
+                    move |elapsed, buf, _| effect.render(buf, marker, elapsed),
+                )
+            }
+            FxCue::TournamentChampion { contest_id, member } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let marker = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.tournament.as_ref())
+                    .map(|s| app.composed.graphic_rect(id, s.champion, top, transcript))
+                    .unwrap_or_default();
+                let effect = fx::tournament::ChampionReveal::new(
+                    level,
+                    no_color,
+                    true,
+                    u64::from(cue.rng_seed()),
+                );
+                let winner = fx::verdict::Contender {
+                    nick: member.to_string(),
+                    hue: palette.member(member.as_str(), 0),
+                    art: vec![],
+                    compact_art: vec![],
+                };
+                Pass::catalogue(
+                    key,
+                    marker,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(6500),
+                    move |elapsed, buf, _| effect.render(buf, marker, &[], elapsed, &winner),
+                )
+            }
             FxCue::VerdictReady { contest_id } => {
                 let contest: squad_protocol::ContestId =
                     contest_id.to_string().parse().expect("UUID");

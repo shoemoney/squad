@@ -13,3 +13,5 @@ pub mod preflight;
 pub mod tournament;
 pub mod transcript;
 pub mod verdict;
+
+mod tournament_events;

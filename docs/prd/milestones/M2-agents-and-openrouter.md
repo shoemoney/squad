@@ -125,9 +125,9 @@
   - [x] M2.P2.L6.T5 — Test all four modes’ template registration, partial overrides, strict placeholder validation, and schema-preserving payload serialization in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
 
 - **M2.P2.L7 — Execute tournament and grill work**
-  - [ ] M2.P2.L7.T1 — Execute reply-like tournament entry Work with contest identity, ordinary output limits, and own-result inputs through the injected Prompt pack renderer in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L7.T2 — Execute `judge.tournament` with blind case material, the owning ranking and repair templates, a 120-second deadline, and one provider call per authorized attempt in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L7.T3 — Test that entrant requests contain only their own tournament answers and results and that judge requests contain no entrant nicks, model names, personas, roster, or label map in crate `squad-agents`, file `crates/squad-agents/tests/agents_tournament.rs`.
+  - [x] M2.P2.L7.T1 — Execute reply-like tournament entry Work with contest identity, ordinary output limits, and own-result inputs through the injected Prompt pack renderer in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L7.T2 — Execute `judge.tournament` with blind case material, the owning ranking and repair templates, a 120-second deadline, and one provider call per authorized attempt in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L7.T3 — Test that entrant requests contain only their own tournament answers and results and that judge requests contain no entrant nicks, model names, personas, roster, or label map in crate `squad-agents`, file `crates/squad-agents/tests/agents_tournament.rs`.
   - [ ] M2.P2.L7.T4 — Execute `grill.question`, `grill.answer`, and `grill.rebuild` through their owning templates, word limits, output reservations, and result paths in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P2.L7.T5 — Assemble the latest plan, current-round shared floor, assigned angle, and earlier-question list without earlier full answers in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
   - [ ] M2.P2.L7.T6 — Test grill attribution, exact `PASS`, answer and rebuild limits, frozen retry inputs, and absence of executor-owned judging or scheduling in crate `squad-agents`, file `crates/squad-agents/tests/agents_grill.rs`.

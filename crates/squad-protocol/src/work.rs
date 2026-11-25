@@ -14,6 +14,8 @@ pub enum WorkKind {
     Judge,
     #[serde(rename = "judge.round")]
     JudgeRound,
+    #[serde(rename = "judge.tournament")]
+    JudgeTournament,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -109,7 +111,7 @@ impl Work {
                     "turn cannot carry case or step",
                 )?;
             }
-            WorkKind::Judge | WorkKind::JudgeRound => {
+            WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament => {
                 ensure(
                     self.target == Target::Judge,
                     "judge work requires judge target",
@@ -142,8 +144,39 @@ impl Work {
                 }
             }
         }
+        if self.kind == WorkKind::JudgeTournament
+            || (self.kind == WorkKind::Reply && self.round.is_some())
+        {
+            ensure(
+                self.contest_id.is_some()
+                    && self.debate_id.is_none()
+                    && self.round.is_some_and(|r| r > 0)
+                    && self.replay.is_some(),
+                "tournament work requires contest, round and replay",
+            )?;
+            ensure(
+                self.prompt_ref.as_ref().is_some_and(|p| {
+                    if self.kind == WorkKind::Reply {
+                        p.template_id.as_str() == "tournament.entrant.md"
+                    } else {
+                        matches!(
+                            p.template_id.as_str(),
+                            "tournament.judge.md" | "judge.tournament"
+                        )
+                    }
+                }),
+                "invalid tournament template",
+            )?;
+        }
+        if self.kind == WorkKind::JudgeTournament {
+            ensure(
+                self.attempt <= 3
+                    && self.max_output_tokens == Some(constants::FINAL_JUDGE_VISIBLE_TOKENS),
+                "invalid tournament judge allowance",
+            )?;
+        }
         let ceiling = match self.kind {
-            WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
+            WorkKind::Judge | WorkKind::JudgeTournament => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
             WorkKind::DebateTurn => constants::DEBATE_TURN_VISIBLE_TOKENS,
