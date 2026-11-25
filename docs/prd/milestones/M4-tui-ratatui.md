@@ -79,10 +79,10 @@
   - [ ] M4.P2.L2.T6 — Include banner heights, font fallbacks, banner mode, and scorecard expansion in presentation caches and preserve anchors during late score arrival and banner reflow in `crates/squad-tui/src/widgets/transcript.rs` and `crates/squad-tui/src/transcript.rs`.
 
 - **M4.P2.L3 — Implement incremental Markdown**
-  - [ ] M4.P2.L3.T1 — Implement `pulldown-cmark` block parsing, finalized-block caching, and revisable live-tail boundaries in `crates/squad-tui/src/markdown.rs`.
-  - [ ] M4.P2.L3.T2 — Implement `syntect` fenced-code highlighting and plain-code fallback outside the drawing path in `crates/squad-tui/src/highlight.rs`.
-  - [ ] M4.P2.L3.T3 — Implement terminal-control sanitization for message bodies and metadata in `crates/squad-tui/src/sanitize.rs`.
-  - [ ] M4.P2.L3.T4 — Verify table and fence transitions, cache reuse, width invalidation, and attempt replacement in `crates/squad-tui/tests/markdown.rs`.
+  - [x] M4.P2.L3.T1 — Implement `pulldown-cmark` block parsing, finalized-block caching, and revisable live-tail boundaries in `crates/squad-tui/src/markdown.rs`.
+  - [x] M4.P2.L3.T2 — Implement `syntect` fenced-code highlighting and plain-code fallback outside the drawing path in `crates/squad-tui/src/highlight.rs`.
+  - [x] M4.P2.L3.T3 — Implement terminal-control sanitization for message bodies and metadata in `crates/squad-tui/src/sanitize.rs`.
+  - [x] M4.P2.L3.T4 — Verify table and fence transitions, cache reuse, width invalidation, and attempt replacement in `crates/squad-tui/tests/markdown.rs`.
 
 - **M4.P2.L4 — Implement search, selection, and copy**
   - [ ] M4.P2.L4.T1 — Implement transcript search, incremental history coverage, match navigation, and collapsed-content reveal in `crates/squad-tui/src/search.rs`.
