@@ -35,54 +35,54 @@
 - **M3.P1.L1 — Implement RoomHandle**
   - [ ] M3.P1.L1.T1 — Implement the public API signatures in `crates/squad-core/src/room.rs`.
   - [ ] M3.P1.L1.T2 — Wire lock acquisition, migration, recovery, model-resolution readiness, and shutdown in `crates/squad-core/src/room.rs`.
-  - [ ] M3.P1.L1.T3 — Test competing processes and the exact lock diagnostic in `crates/squad-core/tests/room_lifecycle.rs`.
-  - [ ] M3.P1.L1.T4 — Test startup failure cleanup and lock release in `crates/squad-core/tests/room_lifecycle.rs`.
+  - [x] M3.P1.L1.T3 — Test competing processes and the exact lock diagnostic in `crates/squad-core/tests/room_lifecycle.rs`.
+  - [x] M3.P1.L1.T4 — Test startup failure cleanup and lock release in `crates/squad-core/tests/room_lifecycle.rs`.
   - [ ] M3.P1.L1.T5 — Implement `OpenMode::Interactive` and `OpenMode::OneShot` scheduling in `crates/squad-core/src/room.rs`; verify one-shot recovery never re-wakes unrelated work in `crates/squad-core/tests/room_lifecycle.rs`.
   - [ ] M3.P1.L1.T6 — Implement commit-only submission scheduling for no-wait sends in `crates/squad-core/src/room.rs`; verify shutdown preserves accepted work without a provider attempt and the next interactive open resumes it in `crates/squad-core/tests/room_lifecycle.rs`.
   - [ ] M3.P1.L1.T7 — Extend lifecycle fixture coverage to census, crosscheck, survey, and probe in `crates/squad-core/tests/room_lifecycle.rs`, preserving shared recovery, one-shot isolation, and no-wait scheduling through the existing `RoomHandle` methods.
 
 - **M3.P1.L2 — Preserve shared request behavior**
-  - [ ] M3.P1.L2.T1 — Route typed requests and parser results through the shared router path in `crates/squad-core/src/room.rs`.
+  - [x] M3.P1.L2.T1 — Route typed requests and parser results through the shared router path in `crates/squad-core/src/room.rs`.
   - [ ] M3.P1.L2.T2 — Test quotes, solution selections, exclusions, sticky variables, and receipt identity in `crates/squad-core/tests/room_requests.rs`.
   - [ ] M3.P1.L2.T4 — Test stop-all, stop-one, permitted ordinary retry, and regeneration in `crates/squad-core/tests/room_actions.rs`.
   - [ ] M3.P1.L2.T5 — Test standalone judge questions, verdict follow-ups, and explicit debate judging with shared case fixtures in `crates/squad-core/tests/room_judge.rs`.
   - [ ] M3.P1.L2.T8 — Route contest picks and kind-specific confirmation and cancellation through shared request contracts in `crates/squad-core/src/room.rs`; test preserved request identities and errors with protocol fixtures in `crates/squad-core/tests/room_requests.rs`.
-  - [ ] M3.P1.L2.T9 — Verify `Accepted` results preserve `requestId`, `eventIds`, and optional `cursor` without invented `messageId` or `commandId` result variants in `crates/squad-core/tests/room_requests.rs`.
+  - [x] M3.P1.L2.T9 — Verify `Accepted` results preserve `requestId`, `eventIds`, and optional `cursor` without invented `messageId` or `commandId` result variants in `crates/squad-core/tests/room_requests.rs`.
   - [ ] M3.P1.L2.T10 — Route the four new mode commands, selected inputs, census plan updates, and explicit crosscheck risk acceptances through their shared request contracts in `crates/squad-core/src/room.rs`; verify validation, idempotency, and preserved receipts using fixtures in `crates/squad-core/tests/room_requests.rs`.
   - [ ] M3.P1.L2.T11 — Verify mode submissions preserve script-controlled delivery rather than automatically exposing quoted plans, source answers, finder metadata, or rival explanations in `crates/squad-core/tests/room_requests.rs`; use owning router and context-delivery fixtures.
 
 ## Phase M3.P2 — History, state, and feed
 
 - **M3.P2.L1 — Deliver durable history**
-  - [ ] M3.P2.L1.T1 — Implement backward page selection and ascending page results in `crates/squad-core/src/room.rs`.
-  - [ ] M3.P2.L1.T2 — Test empty history, page limits, exclusive boundaries, and initial history/feed overlap in `crates/squad-core/tests/room_history.rs`.
-  - [ ] M3.P2.L1.T3 — Test invalid and future cursors and the owning clear-boundary behavior in `crates/squad-core/tests/room_history.rs`.
-  - [ ] M3.P2.L1.T4 — Test startup recovery of durable events without fabricated token recovery in `crates/squad-core/tests/room_history.rs`.
+  - [x] M3.P2.L1.T1 — Implement backward page selection and ascending page results in `crates/squad-core/src/room.rs`.
+  - [x] M3.P2.L1.T2 — Test empty history, page limits, exclusive boundaries, and initial history/feed overlap in `crates/squad-core/tests/room_history.rs`.
+  - [x] M3.P2.L1.T3 — Test invalid and future cursors and the owning clear-boundary behavior in `crates/squad-core/tests/room_history.rs`.
+  - [x] M3.P2.L1.T4 — Test startup recovery of durable events without fabricated token recovery in `crates/squad-core/tests/room_history.rs`.
   - [ ] M3.P2.L1.T5 — Verify committed round scores, late round identities, unscored markers, and final tally fields survive paging and recovery in `crates/squad-core/tests/room_history.rs`; verify banners require no additional events.
   - [ ] M3.P2.L1.T6 — Verify tournament, grill, collected-answer, and pick events preserve committed order, attribution, and owning payloads through paging in `crates/squad-core/tests/room_history.rs`.
   - [ ] M3.P2.L1.T7 — Verify census, crosscheck, survey, and probe setup, state, artifact, and report events survive paging and recovery with their human-visible metadata, skipped members, and partial results in `crates/squad-core/tests/room_history.rs`.
 
 - **M3.P2.L2 — Project authoritative state**
-  - [ ] M3.P2.L2.T1 — Implement `RoomState` with shared `Presence`, `Score`, contest types, and camelCase projection fields in `crates/squad-core/src/state.rs`.
-  - [ ] M3.P2.L2.T2 — Test presence, queue depth, resolved versions, active contest, and pending preflight projections in `crates/squad-core/tests/room_state.rs`.
+  - [x] M3.P2.L2.T1 — Implement `RoomState` with shared `Presence`, `Score`, contest types, and camelCase projection fields in `crates/squad-core/src/state.rs`.
+  - [x] M3.P2.L2.T2 — Test presence, queue depth, resolved versions, active contest, and pending preflight projections in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T3 — Test authoritative scoreboard and daily-spend snapshots, including unknown charges and repeated verdict observation, in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T4 — Verify clear invalidates transcript, provisional text, preflights, pending picks, and stale submissions while preserving shared daily accounting in `crates/squad-core/tests/room_clear.rs`.
   - [ ] M3.P2.L2.T5 — Preserve the owning round-score and tally projections in `crates/squad-core/src/state.rs`; verify late and unscored rounds never increment wins or losses in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T6 — Project local-day actual spend, reservations, unknown-call counts, and effective daily max from typed store readers in `crates/squad-core/src/state.rs`; test billed failures, cancellations, unknown costs, and day changes using committed accounting fixtures in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T7 — Project tournament trophies and active debate, tournament, or grill state in `crates/squad-core/src/state.rs`; test repeated observation, clearing, and absence of duplicate trophy increments in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T8 — Preserve collecting and awaiting-pick state, eligible nicks, original question, and committed answer references in `crates/squad-core/src/state.rs`; test restart projections without expiring a pending pick in `crates/squad-core/tests/room_state.rs`.
-  - [ ] M3.P2.L2.T9 — Project persisted `GRILL_ROUNDS` independently of `ROUNDS` in `crates/squad-core/src/state.rs`; verify environment seeds apply only when room values are absent in `crates/squad-core/tests/room_state.rs`.
+  - [x] M3.P2.L2.T9 — Project persisted `GRILL_ROUNDS` independently of `ROUNDS` in `crates/squad-core/src/state.rs`; verify environment seeds apply only when room values are absent in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T10 — Add `RoomVars.census_passes` serialized as `CENSUS_PASSES` in `crates/squad-core/src/state.rs`; test persisted-value precedence, default seeding, restart, and independence from existing variables in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T11 — Preserve the four new modes’ shared active states, step progress, artifact references, skipped members, and terminal outcomes in `crates/squad-core/src/state.rs`; test census pass and estimate projections, crosscheck acceptance status, survey report references, and probe role and tree projections without recomputing results in `crates/squad-core/tests/room_state.rs`.
   - [ ] M3.P2.L2.T12 — Verify repeated observation and recovery of the four new modes never changes debate scores, tournament trophies, coverage acceptances, or committed report values in `crates/squad-core/tests/room_state.rs`.
 
 - **M3.P2.L3 — Preserve stream identities**
-  - [ ] M3.P2.L3.T1 — Expose shared feed items without changing chunk or attempt identities in `crates/squad-core/src/room.rs`.
-  - [ ] M3.P2.L3.T2 — Test stalled-consumer recovery through durable history in `crates/squad-core/tests/room_feed.rs`.
+  - [x] M3.P2.L3.T1 — Expose shared feed items without changing chunk or attempt identities in `crates/squad-core/src/room.rs`.
+  - [x] M3.P2.L3.T2 — Test stalled-consumer recovery through durable history in `crates/squad-core/tests/room_feed.rs`.
   - [ ] M3.P2.L3.T3 — Test higher-attempt replacement and final-event ordering in `crates/squad-core/tests/room_feed.rs`.
   - [ ] M3.P2.L3.T4 — Verify `debate.round_score` feed delivery preserves recipients, round identity, payload, and committed sequence order when scores arrive late in `crates/squad-core/tests/room_feed.rs`.
   - [ ] M3.P2.L3.T5 — Verify tournament, grill, and pick-event feed delivery preserves shared identities and payloads without exposing blind-judge mappings in `crates/squad-core/tests/room_feed.rs`.
-  - [ ] M3.P2.L3.T6 — Test recovery after feed broadcast lag by re-reading committed events after the last seen cursor in `crates/squad-core/tests/room_feed.rs`.
+  - [x] M3.P2.L3.T6 — Test recovery after feed broadcast lag by re-reading committed events after the last seen cursor in `crates/squad-core/tests/room_feed.rs`.
   - [ ] M3.P2.L3.T7 — Verify the four new modes’ feed delivery and lag recovery preserve shared step and artifact identities and committed order in `crates/squad-core/tests/room_feed.rs`; confirm human feed access does not become an agent-history capability.
 
 ## Phase M3.P3 — Commands and output

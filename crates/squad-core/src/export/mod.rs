@@ -624,3 +624,40 @@ fn render_artifact(out: &mut String, artifact: &PublicArtifact) {
         }
     }
 }
+
+/// Read-only SQLite source usable while an interactive process holds the room lock.
+#[derive(Debug, Clone)]
+pub struct StoreExportSource {
+    path: std::path::PathBuf,
+}
+impl StoreExportSource {
+    pub fn new(path: impl Into<std::path::PathBuf>) -> Self {
+        Self { path: path.into() }
+    }
+}
+impl ExportSource for StoreExportSource {
+    fn snapshot(&self) -> Result<ExportSnapshot, ExportError> {
+        let mut db = rusqlite::Connection::open_with_flags(
+            &self.path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .map_err(|_| ExportError::ReadFailed)?;
+        let events = squad_store::export::room(&mut db).map_err(|_| ExportError::ReadFailed)?;
+        Ok(ExportSnapshot {
+            events,
+            ..Default::default()
+        })
+    }
+}
+impl ExportSource for squad_store::Store {
+    fn snapshot(&self) -> Result<ExportSnapshot, ExportError> {
+        self.call(|db| {
+            let events = squad_store::export::room(db)?;
+            Ok(ExportSnapshot {
+                events,
+                ..Default::default()
+            })
+        })
+        .map_err(|_| ExportError::ReadFailed)
+    }
+}
