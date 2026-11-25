@@ -1,0 +1,22 @@
+---
+source: crates/squad-tui/tests/grill_runtime.rs
+expression: text
+---
+▾ GRILL · COMPLETE
+Leader @alpha · grillers beta
+
+Shared floor: leader and grillers receive committed plans, questions and answers. Non-participants receive nothing.
+GRILL_ROUNDS 1 · round 1 · turn beta · plan v2
+questions asked 1 · passed 0
+GRILL ROUND 1
+beta ▸ grills ▸ alpha · complete
+Angle: cost
+Q: How is overload handled?
+A: Use backpressure.
+Plan changes: Bound the queue.
+▸ PLAN v1
+▾ PLAN v2 · latest
+Use a bounded queue and backpressure.
+FINAL PLAN
+Use a bounded queue and backpressure.
+▸ QUESTION-AND-ANSWER APPENDIX

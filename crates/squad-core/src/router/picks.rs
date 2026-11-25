@@ -22,12 +22,11 @@ pub fn collect(
     else {
         return Err(super::debates::invalid());
     };
-    if mode != parser::QuestionFirstMode::Debate {
-        return Err(StoreError::Domain(
-            ErrorCode::COMMAND_NOT_IMPLEMENTED,
-            "Contest mode is not implemented",
-        ));
-    }
+    let kind = if mode == parser::QuestionFirstMode::Grill {
+        ContestKind::Grill
+    } else {
+        ContestKind::Debate
+    };
     if candidates
         .iter()
         .any(|nick| !bindings.contains_key(nick.as_str()))
@@ -40,13 +39,13 @@ pub fn collect(
     let contest = ContestId::new();
     let state = ContestSelectionState {
         contest_id: contest,
-        kind: ContestKind::Debate,
+        kind,
         state: ContestSelectionStatus::CollectingAnswers,
         state_version: 1,
         question_message_id: input.message_id,
         addressed: candidates.clone(),
         answers: vec![],
-        required_picks: 2,
+        required_picks: if kind == ContestKind::Grill { 1 } else { 2 },
     };
     let active: bool = tx.query_row(
         "SELECT EXISTS(SELECT 1 FROM contests WHERE active=1)",
@@ -59,7 +58,7 @@ pub fn collect(
             "A debate is already running. Stop it before starting another.",
         ));
     }
-    tx.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active,pending_request_json) VALUES (?,'debate',(SELECT epoch FROM room_meta),1,?,1,?)",params![contest.to_string(),serde_json::to_string(&state)?,serde_json::json!({"rounds":rounds}).to_string()])?;
+    tx.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active,pending_request_json) VALUES (?, ?,(SELECT epoch FROM room_meta),1,?,1,?)",params![contest.to_string(),kind.as_str(),serde_json::to_string(&state)?,serde_json::json!({"rounds":rounds}).to_string()])?;
     super::variables::apply(tx, group, id, &conversation.variable_updates)?;
     let quotes = super::references::quotes(tx, &conversation.quote)?;
     let mut event = super::envelope(
@@ -77,7 +76,7 @@ pub fn collect(
     );
     event.base.id = id;
     let seq = group.push(tx, event)?;
-    squad_store::contests::associate(tx, contest, ContestKind::Debate, seq)?;
+    squad_store::contests::associate(tx, contest, kind, seq)?;
     let source = squad_store::events::at(tx, seq.get())?;
     group.push(
         tx,
@@ -87,7 +86,7 @@ pub fn collect(
             vec![Recipient::Me],
             EnvelopePayload::ContestCollecting(ContestCollecting {
                 contest_id: contest,
-                kind: ContestKind::Debate,
+                kind,
                 question_message_id: input.message_id,
                 question: question.clone(),
                 addressed: candidates.clone(),
@@ -204,15 +203,26 @@ pub fn refresh(tx: &Transaction<'_>, group: &mut CommitGroup, id: EventId) -> Re
                 vec![Recipient::Me],
                 EnvelopePayload::ContestPickRequested(ContestPickRequested {
                     contest_id: state.contest_id,
-                    kind: ContestKind::Debate,
+                    kind: state.kind,
                     question_message_id: state.question_message_id,
                     eligible: eligible.clone(),
-                    required_picks: 2,
-                    banner: "CHOOSE YOUR DEBATE BROS".into(),
+                    required_picks: state.required_picks,
+                    banner: if state.kind == ContestKind::Grill {
+                        "CHOOSE WHO GETS GRILLED"
+                    } else {
+                        "CHOOSE YOUR DEBATE BROS"
+                    }
+                    .into(),
                 }),
             ),
         )?;
-        squad_store::contests::picks::request_pick(tx, state.contest_id, seq, &eligible, 2)?;
+        squad_store::contests::picks::request_pick(
+            tx,
+            state.contest_id,
+            seq,
+            &eligible,
+            state.required_picks,
+        )?;
     } else {
         group.push(
             tx,

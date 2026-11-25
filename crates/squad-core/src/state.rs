@@ -160,6 +160,10 @@ pub fn snapshot(
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Generic))
             } else if kind == "survey" {
                 serde_json::from_str(&json).map(ContestState::Survey)
+            } else if kind == "grill" {
+                serde_json::from_str(&json)
+                    .map(ContestState::Grill)
+                    .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
             } else if kind == "probe" {
                 serde_json::from_str(&json).map(ContestState::Probe)
             } else {
@@ -177,7 +181,7 @@ pub fn snapshot(
             active_contest = Some(state.clone());
         }
         if let Some(plan) = plan.filter(|_| {
-            (kind != "probe" || probe_pending) && active && (kind != "census"
+            (kind != "probe" || probe_pending) && (kind != "grill" || !matches!(&state,ContestState::Grill(s) if s.state!=GrillStatus::Preflight)) && active && (kind != "census"
                 || matches!(&state,ContestState::Census(s) if s.status==CensusStatus::Preflight)) && (kind != "survey" || matches!(&state,ContestState::Survey(s) if s.state==SurveyStatus::Preflight))
         }) {
             let unexpired = expires.as_ref().is_none_or(|at| {

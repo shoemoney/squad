@@ -50,6 +50,9 @@ impl ContestRouter for Router {
     ) -> Result<CommitOutcome> {
         Router::open_debate_case(self, e, b)
     }
+    fn grill_state(&self, id: ContestId) -> Result<GrillState> {
+        self.store.call(move |db| squad_store::grill::state(db, id))
+    }
     fn debate_state(&self, id: DebateId) -> Result<DebateState> {
         Router::debate_state(self, id)
     }
@@ -109,6 +112,7 @@ impl Router {
             Ok(q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?)
         })?;
         let mut outcomes = self.drive_tournaments()?;
+        outcomes.extend(self.drive_grills()?);
         outcomes.extend(self.drive_census()?);
         outcomes.extend(self.drive_surveys()?);
         outcomes.extend(self.drive_probe_contests()?);

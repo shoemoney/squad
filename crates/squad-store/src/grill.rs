@@ -180,3 +180,24 @@ pub fn projection(
     }
     Ok(result)
 }
+
+pub fn work_input(db: &Connection, state: &GrillState) -> Result<GrillWorkInput> {
+    let frozen = setup(db, state.contest_id)?;
+    let mut question = None;
+    let mut earlier_questions = vec![];
+    for e in events(db, state.contest_id)? {
+        if let EnvelopePayload::GrillQuestion(q) = e.content {
+            earlier_questions.extend(q.questions.clone());
+            if q.round == state.round && q.turn == state.turn {
+                question = Some((e.base.id, q));
+            }
+        }
+    }
+    Ok(GrillWorkInput {
+        state: state.clone(),
+        question,
+        earlier_questions,
+        answer_words: frozen.answer_words,
+        plan_words: frozen.plan_words,
+    })
+}

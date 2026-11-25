@@ -191,6 +191,9 @@ impl FakeRouter {
     }
 }
 impl ContestRouter for FakeRouter {
+    fn grill_state(&self, _: ContestId) -> Result<GrillState> {
+        Err(StoreError::Unavailable)
+    }
     fn open_debate_case(
         &mut self,
         event: ProducerEnvelope,

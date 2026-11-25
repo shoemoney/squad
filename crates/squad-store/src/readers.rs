@@ -146,6 +146,18 @@ impl WorkReader for ScopedReaders {
                 return crate::census::input(db,id).map_err(map_error);
             }
             let mut values = std::collections::BTreeMap::new();
+            if work.kind.grill_composition().is_some(){
+                let (fence,epoch):(i64,i64)=db.query_row("SELECT lease_fence,epoch FROM work WHERE work_id=?",[id.to_string()],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::StaleWork)?;
+                crate::work::check_fence(db,id,owner,work.attempt,fence as u64,epoch as u64,chrono::Utc::now()).map_err(|_|ReaderError::StaleWork)?;
+                let contest=work.contest_id.ok_or(ReaderError::Forbidden)?;
+                let state=crate::grill::state(db,contest).map_err(map_error)?;
+                if state.state.is_terminal(){return Err(ReaderError::StaleWork);}
+                let raw:String=db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key=?",rusqlite::params![contest.to_string(),format!("grill.work:{id}")],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                let material:serde_json::Value=serde_json::from_str(&raw).map_err(|_|ReaderError::NotRunnable)?;
+                values.insert("grill_rendered".into(),material["rendered"].to_string());
+                values.insert("grill_input".into(),material["input"].to_string());
+                return Ok(values);
+            }
             if matches!(work.kind, WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit | WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule) {
                 let state=crate::crosscheck::state(db,work.contest_id.ok_or(ReaderError::Forbidden)?).map_err(map_error)?;
                 let valid:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE work_id=? AND lease_owner=? AND lease_until>?)",rusqlite::params![id.to_string(),serde_json::to_string(owner).map_err(|_|ReaderError::Forbidden)?,chrono::Utc::now().to_rfc3339()],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;

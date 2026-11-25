@@ -1137,6 +1137,7 @@ fn validate_envelope(
             #[cfg(feature = "mode-survey")]
             ContestState::Survey(state) => state.validate()?,
             ContestState::Probe(state) => state.validate()?,
+            ContestState::Grill(state) => state.validate()?,
             ContestState::Debate(state) => state.validate()?,
             ContestState::Tournament(state) => state.validate()?,
             ContestState::Census(state) => state.validate()?,

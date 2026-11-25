@@ -42,6 +42,7 @@ pub trait ContestRouter {
         bundle: DebateAdjudicationBundle,
     ) -> squad_store::Result<squad_store::commit::CommitOutcome>;
     fn debate_state(&self, debate_id: DebateId) -> squad_store::Result<DebateState>;
+    fn grill_state(&self, contest_id: ContestId) -> squad_store::Result<GrillState>;
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

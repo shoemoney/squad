@@ -370,3 +370,23 @@ pub fn release_unstarted_work(db: &Connection, work: WorkId) -> Result<()> {
     )?;
     Ok(())
 }
+
+pub fn release_contest(db: &Connection, id: ContestId) -> Result<()> {
+    let mut q=db.prepare("SELECT day,SUM(amount_micros) FROM reservations WHERE contest_id=? AND attempt IS NULL AND unresolved=0 GROUP BY day")?;
+    let rows = q
+        .query_map([id.to_string()], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?))
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    for (day, amount) in rows {
+        db.execute(
+            "UPDATE spend_daily SET reserved_micros=reserved_micros-? WHERE day=?",
+            params![amount, day],
+        )?;
+    }
+    db.execute(
+        "DELETE FROM reservations WHERE contest_id=? AND attempt IS NULL AND unresolved=0",
+        [id.to_string()],
+    )?;
+    Ok(())
+}

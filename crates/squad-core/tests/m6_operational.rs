@@ -229,6 +229,12 @@ async fn credentials_and_provider_reasoning_never_reach_feed_export_debug_or_sql
         );
         assert!(!String::from_utf8_lossy(&request.body).contains(KEY));
     }
+    // Pin SQLite's sidecar lifetime while scanning every persisted file. The
+    // writer closes asynchronously, so directory enumeration alone races WAL cleanup.
+    let scan_guard = f.db();
+    scan_guard
+        .execute_batch("BEGIN; SELECT COUNT(*) FROM events;")
+        .unwrap();
     room.shutdown().await.unwrap();
     for entry in std::fs::read_dir(&f.config.data_dir).unwrap() {
         let path = entry.unwrap().path();

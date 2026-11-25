@@ -116,6 +116,7 @@ pub enum ContestState {
     #[cfg(feature = "mode-survey")]
     Survey(SurveyState),
     Probe(ProbeState),
+    Grill(GrillState),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -255,7 +256,12 @@ impl ContestKind {
     pub fn is_built(self) -> bool {
         matches!(
             self,
-            Self::Debate | Self::Tournament | Self::Census | Self::Crosscheck | Self::Probe
+            Self::Debate
+                | Self::Grill
+                | Self::Tournament
+                | Self::Census
+                | Self::Crosscheck
+                | Self::Probe
         ) || (cfg!(feature = "mode-survey") && self == Self::Survey)
     }
 }

@@ -9,6 +9,7 @@ pub(crate) mod crosscheck;
 pub mod debates;
 pub mod ephemeral;
 pub mod executor;
+pub mod grill;
 pub mod picks;
 pub mod preflight;
 pub mod probe;
@@ -32,10 +33,11 @@ pub struct Router {
     pub engine_scope: Option<std::collections::BTreeSet<ContestId>>,
     roster: Vec<MemberNick>,
     bindings: BTreeMap<String, ExecutorBinding>,
-    daily_max: i64,
+    pub(crate) daily_max: i64,
     pub variable_defaults: squad_store::clear::Defaults,
     confirmation_threshold: f64,
     pub ephemeral: ephemeral::Ephemeral,
+    pub(crate) grill_active: bool,
 }
 pub fn envelope(
     correlation: EventId,
@@ -101,7 +103,15 @@ impl Router {
                 "Invalid router configuration",
             ));
         }
+        let grill_active = store.call(|db| {
+            Ok(db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM contests WHERE active=1 AND kind='grill')",
+                [],
+                |r| r.get(0),
+            )?)
+        })?;
         Ok(Self {
+            grill_active,
             store,
             engine_config: None,
             engine_scope: None,
@@ -128,6 +138,11 @@ impl Router {
         request: Request,
         owner: Option<ExecutorKey>,
     ) -> Result<CommitOutcome> {
+        let grill_tick = self.grill_active
+            && matches!(
+                &request,
+                Request::Internal(InternalRequest::Executor(ExecutorRequest::Presence(_)))
+            );
         let human = owner.is_none();
         let original_id = request_id(&request);
         let mut outcome = self.process_request(request, owner)?;
@@ -148,9 +163,17 @@ impl Router {
                 } else if let EnvelopePayload::SurveyState(s) = &event.content {
                     scope.insert(s.contest_id);
                 }
+                if let EnvelopePayload::GrillState(s) = &event.content {
+                    scope.insert(s.contest_id);
+                }
                 if let EnvelopePayload::ProbeState(s) = &event.content {
                     scope.insert(s.contest_id);
                 }
+            }
+        }
+        for event in &outcome.events {
+            if let EnvelopePayload::GrillState(s) = &event.content {
+                self.grill_active = !s.state.is_terminal();
             }
         }
         let initial = outcome.events.len();
@@ -166,7 +189,11 @@ impl Router {
             })
             .collect();
         match if outcome.events.is_empty() {
-            Ok(Vec::new())
+            if grill_tick {
+                self.drive_grills()
+            } else {
+                Ok(Vec::new())
+            }
         } else {
             self.drive_contests()
         } {
@@ -196,6 +223,11 @@ impl Router {
             event_ids.extend(outcome.events[initial..].iter().map(|e| e.base.id));
             if let Some(last) = outcome.events.last() {
                 *cursor = Some(last.commit.seq);
+            }
+        }
+        for event in &outcome.events {
+            if let EnvelopePayload::GrillState(s) = &event.content {
+                self.grill_active = !s.state.is_terminal();
             }
         }
         if human && !outcome.duplicate && self.engine_config.is_some() {
@@ -285,6 +317,16 @@ impl Router {
                         return tournaments::prepare(tx,group,id,input,conversation,entrants,prompt,&bindings,tournament_max,tournament_threshold,tournament_config.as_ref(),preconfirmed);
                     }
                     if matches!(parsed,ParsedInput::Crosscheck{..}) { return crosscheck::prepare(tx,group,id,input,parsed,&bindings,max,self_threshold,preconfirmed,engine_config.as_ref()); }
+                    if let ParsedInput::Grill {input:conversation,leader,grillers,rounds,focus,plan_selection}=&parsed {
+                        variables::apply(tx,group,id,&conversation.variable_updates)?;
+                        let source=if let Some(source)=plan_selection{squad_store::events::by_id(tx,*source)?}else{
+                            let seq:Option<i64>=tx.query_row("SELECT seq FROM events WHERE kind='message.final' AND sender=? AND NOT EXISTS(SELECT 1 FROM superseded s WHERE s.superseded_event_id=events.id) ORDER BY seq DESC LIMIT 1",[leader.as_str()],|r|r.get(0)).optional()?;
+                            seq.map(|s|squad_store::events::at(tx,s)).transpose()?
+                        }.ok_or(StoreError::Domain(ErrorCode::INVALID_REFERENCE,"No plan to grill"))?;
+                        let EnvelopePayload::MessageFinal(reply)=source.content else{return Err(authorization::forbidden());};
+                        let setup=GrillSetup{contest_id:ContestId::new(),leader:leader.clone(),grillers:grillers.clone(),source_message_id:reply.completed.generation.message_id,initial_plan:reply.content,focus:focus.clone(),total_rounds:u32::from(*rounds)};
+                        return grill::prepare(tx,group,id,input,setup,&bindings,max,threshold,preconfirmed,engine_config.as_ref().ok_or(StoreError::Unavailable)?,false);
+                    }
                     if let ParsedInput::Probe {input:conversation,participants,brief}=&parsed {
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
                         return probe::prepare(tx,group,id,input,participants.clone(),brief.clone(),&bindings,max,threshold,preconfirmed,engine_config.as_ref());
@@ -331,6 +373,7 @@ impl Router {
                         let held=if held.is_some(){held}else{tx.query_row("SELECT c.contest_id FROM contests c JOIN census_runs r ON r.contest_id=c.contest_id WHERE c.active=1 AND json_extract(c.state_json,'$.status') NOT IN ('PREFLIGHT','WAITING_FOR_PLAN') AND EXISTS(SELECT 1 FROM json_each(json_extract(r.setup_json,'$.participants')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?};
                         let held=if held.is_some(){held}else{tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND kind='survey' AND json_extract(state_json,'$.state')<>'PREFLIGHT' AND EXISTS(SELECT 1 FROM survey_sources s,json_each(s.setup_json,'$.participants') p WHERE s.contest_id=contests.contest_id AND p.value=?)",[nick.as_str()],|r|r.get(0)).optional()?};
                         let held=if held.is_some(){held}else{tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND kind='probe' AND json_extract(state_json,'$.state')<>'PREFLIGHT' AND EXISTS(SELECT 1 FROM probe_roles WHERE probe_roles.contest_id=contests.contest_id AND nick=? AND role<>'sitting_out')",[nick.as_str()],|r|r.get(0)).optional()?};
+                        let held=if held.is_some(){held}else{tx.query_row("SELECT c.contest_id FROM contests c JOIN contest_private_maps p ON p.contest_id=c.contest_id AND p.scope_key='grill.settings' WHERE c.active=1 AND c.kind='grill' AND json_extract(c.state_json,'$.state')<>'PREFLIGHT' AND (json_extract(p.map_json,'$.setup.leader')=? OR EXISTS(SELECT 1 FROM json_each(p.map_json,'$.setup.grillers') WHERE value=?))",params![nick.as_str(),nick.as_str()],|r|r.get(0)).optional()?};
                         let held=held.map(|id|id.parse().map_err(|_|StoreError::Unavailable)).transpose()?;
                         let projection=squad_store::history::attributed(&event,ContextId(nick.to_string()),"ordinary.input",HistoryRole::User,None,content.clone());
                         if let Some(contest)=held {squad_store::history::defer(tx,contest,&projection)?;}else{squad_store::history::project(tx,&projection)?;}
@@ -338,6 +381,8 @@ impl Router {
                         squad_store::work::insert(tx,&work,&bindings[nick.as_str()],held)?;
                     }
                 }
+                Request::ContestConfirm {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Grill)? => return grill::resolve(tx,group,id,contest_id,plan_id,false,max),
+                Request::ContestCancel {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Grill)? => return grill::resolve(tx,group,id,contest_id,plan_id,true,max),
                 Request::ContestConfirm {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,false,max),
                 Request::ContestCancel {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,true,max),
                 Request::CrosscheckAccept {contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason,..}=>crosscheck::accept(tx,group,id,contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason)?,
@@ -356,6 +401,7 @@ impl Router {
                     if ctx.pending_pick.as_ref().is_none_or(|p|p.contest_id!=contest_id) {return Err(StoreError::Domain(ErrorCode::CONTEST_NOT_FOUND,"Contest not found"));}
                     let raw=nicks.iter().map(|n|format!("@{n}")).collect::<Vec<_>>().join(" ");
                     if let Err(e)=parse(&raw,&parser::SubmissionMeta::default(),&ctx) {return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)});}
+                    if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Grill)? {return grill::pick(tx,group,id,contest_id,nicks,&bindings,max,threshold,engine_config.as_ref().ok_or(StoreError::Unavailable)?);}
                     picks::pick(tx,group,id,contest_id,nicks,bindings.get("judge").map(|b|b.model.to_string()).unwrap_or_default())?;
                 },
                 Request::Judge {debate_id,..}=>{
@@ -514,6 +560,7 @@ impl Router {
                     }
                     if matches!(work.kind,WorkKind::SurveyExtract|WorkKind::SurveyVote|WorkKind::SurveyRevote|WorkKind::SurveyReport) {survey::validate_output(tx,&work,&output)?;}
                     if work.kind.is_probe() {squad_store::probe::validate_output(tx,&work,&output)?;}
+                    if work.kind.grill_composition().is_some(){output=grill::canonical(tx,&work,&output)?;}
                     if let EnvelopePayload::AgentReply(reply) = output {
                         output = EnvelopePayload::MessageFinal(reply);
                     }
@@ -534,9 +581,15 @@ impl Router {
                         output.clone(),
                     );
                     event.base.id = id;
+                    if work.kind.grill_composition().is_some(){event.base.recipients=grill::recipients(&squad_store::grill::setup(tx,work.contest_id.ok_or(StoreError::Unavailable)?)?.setup);}
                     let seq = group.push(tx, event)?;
                     let event = squad_store::events::at(tx, seq.get())?;
                     match &output {
+                        EnvelopePayload::GrillQuestion(_)|EnvelopePayload::GrillAnswer(_)|EnvelopePayload::GrillPass(_)|EnvelopePayload::GrillPlan(_) => {
+                            squad_store::grill::retain(tx,&event)?;
+                            squad_store::work::finish(tx,work_id,WorkStatus::Completed,seq)?;
+                            squad_store::contest_steps::settle(tx,work.step_id.ok_or(StoreError::Unavailable)?,&work.target,None)?;
+                        }
                         EnvelopePayload::TournamentEntry(entry) => {
                             squad_store::contests::associate(tx,entry.contest_id,ContestKind::Tournament,seq)?;
                             let DebateTurnOutcome::Completed{content,..}=&entry.outcome else{return Err(authorization::forbidden());};
@@ -957,11 +1010,17 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             if state.state == ContestSelectionStatus::AwaitingPick {
                 ctx.pending_pick = Some(parser::PendingPick {
                     contest_id: state.contest_id,
-                    mode: parser::QuestionFirstMode::Debate,
+                    mode: if state.kind == ContestKind::Grill {
+                        parser::QuestionFirstMode::Grill
+                    } else {
+                        parser::QuestionFirstMode::Debate
+                    },
                     eligible: state.answers.iter().map(|a| a.nick.clone()).collect(),
                 });
             }
             ctx.active_contest = Some(ContestState::Selection(state));
+        } else if let Ok(state) = serde_json::from_str::<GrillState>(&raw) {
+            ctx.active_contest = Some(ContestState::Grill(state));
         } else if let Ok(state) = serde_json::from_str::<TournamentState>(&raw) {
             ctx.active_contest = Some(ContestState::Tournament(state));
         } else if let Ok(state) = serde_json::from_str::<CensusState>(&raw) {

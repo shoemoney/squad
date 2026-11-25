@@ -142,6 +142,17 @@ impl squad_agents::worker::WorkExecutor for Executor {
             let request = registry
                 .work_request(Some(&self.member), model, &grant)
                 .map_err(|_| ReaderError::NotRunnable)?;
+            if grant.work.kind.grill_composition().is_some() {
+                let executor = squad_agents::agents::grill::GrillExecutor {
+                    client: self.client.clone(),
+                    request,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
             if grant.work.kind.census_composition().is_some() {
                 let executor = squad_agents::agents::census::CensusExecutor {
                     client: self.client.clone(),
