@@ -1,5 +1,6 @@
 | Environment variable | Default | Meaning and validation |
 |---|---|---|
+| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1/` | Provider API base URL, including trailing slash; loopback fixtures in tests |
 | `OPENROUTER_API_KEY` | None | Required nonempty credential for generation and online model checks |
 | `SQUAD_ROUNDS` | `10` | Integer from 1 through 20; seeds `ROUNDS` only when no room value is stored |
 | `SQUAD_MODEL_<NICK>` | Six defaults below when none are set | One member per variable; valid unique nick and nonempty OpenRouter slug |

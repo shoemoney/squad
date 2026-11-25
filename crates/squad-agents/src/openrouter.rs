@@ -233,7 +233,7 @@ impl OpenRouterClient {
             .openrouter_api_key
             .authorization_header()
             .map_err(|_| TransportError::InvalidConfiguration)?;
-        let mut client = Self::new("https://openrouter.ai/api/v1/", "unused")?;
+        let mut client = Self::new(&config.openrouter_base_url, "unused")?;
         client.authorization = authorization;
         Ok(client)
     }

@@ -9,6 +9,7 @@ use crate::constants::*;
 pub struct SquadConfig {
     pub room: String,
     pub openrouter_api_key: OpenRouterApiKey,
+    pub openrouter_base_url: String,
     pub user: UserConfig,
     pub agents: Vec<AgentConfig>,
     pub judge: JudgeConfig,
@@ -650,6 +651,7 @@ impl EffectiveEnvironment {
         let config = SquadConfig {
             room: ROOM.to_owned(),
             openrouter_api_key: OpenRouterApiKey(api_key),
+            openrouter_base_url: get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/"),
             user: UserConfig { name },
             agents,
             judge: JudgeConfig {
@@ -916,6 +918,7 @@ pub fn snapshot_environment(
                     || matches!(
                         key.as_str(),
                         "OPENROUTER_API_KEY"
+                            | "OPENROUTER_BASE_URL"
                             | "HOME"
                             | "XDG_CONFIG_HOME"
                             | "XDG_DATA_HOME"

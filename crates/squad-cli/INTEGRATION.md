@@ -10,12 +10,13 @@ history supplies parser references, causal relevance, and addressed execution
 progress. Offline export delegates to `squad_core::room::export_offline`; models
 and doctor retain their credential-free, read-only inspection paths.
 
-`tests/real_room.rs` contains runnable injected-runtime boundary tests plus three
-production-launcher tests marked `#[ignore = "needs runtime binding"]` while the
-core default launcher returns NOT_READY: `send_history_live_and_offline_export`,
+`tests/real_room.rs` runs both injected-runtime boundary tests and the three
+production-launcher tests: `send_history_live_and_offline_export`,
 `no_wait_does_not_dispatch_and_interactive_restart_resumes`, and
-`real_room_feed_reduces_into_tui_session`. Remove those markers and run the tests
-after integrating the runtime worker. All provider calls use loopback fixtures.
+`real_room_feed_reduces_into_tui_session`. The real runtime is bound; these tests
+are no longer ignored. All provider calls use loopback fixtures. Executable
+command tests set `OPENROUTER_BASE_URL` to the shared wiremock fake's API URL;
+the default remains `https://openrouter.ai/api/v1/`.
 The TUI adapter also has a standalone snapshot/reducer test.
 
 The earlier handoff below describes the original implementation seams and

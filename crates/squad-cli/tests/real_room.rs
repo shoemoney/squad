@@ -1,4 +1,4 @@
-//! Loopback provider integration. Enable when the core default launcher is bound.
+//! Bound runtime integration against a loopback provider.
 #[path = "../../squad-agents/tests/support/fake_openrouter.rs"]
 mod fake_openrouter;
 use fake_openrouter::{FakeOpenRouter, MODEL};
@@ -57,7 +57,6 @@ fn send(no_wait: bool) -> squad_cli::args::Send {
     }
 }
 #[tokio::test]
-#[ignore = "needs runtime binding"]
 async fn send_history_live_and_offline_export() {
     let root = tempfile::tempdir().unwrap();
     let config = config(root.path());
@@ -87,7 +86,7 @@ async fn send_history_live_and_offline_export() {
             .contains("Fixture answer")
     );
     assert_eq!(server.captured_bodies().await.len(), 1);
-    let (room, _) = open(config.clone(), OpenMode::OneShot).await;
+    let (room, _server) = open(config.clone(), OpenMode::OneShot).await;
     let events = RoomApi::page_events(&room, None, 500).await.unwrap();
     assert!(
         events
@@ -108,7 +107,6 @@ async fn send_history_live_and_offline_export() {
     room.shutdown().await.unwrap();
 }
 #[tokio::test]
-#[ignore = "needs runtime binding"]
 async fn no_wait_does_not_dispatch_and_interactive_restart_resumes() {
     let root = tempfile::tempdir().unwrap();
     let config = config(root.path());
@@ -151,14 +149,13 @@ async fn no_wait_does_not_dispatch_and_interactive_restart_resumes() {
     room.shutdown().await.unwrap();
 }
 #[tokio::test]
-#[ignore = "needs runtime binding"]
 async fn real_room_feed_reduces_into_tui_session() {
     use squad_tui::{
         fx::FxQueue,
         session::{RoomPort, Session},
     };
     let root = tempfile::tempdir().unwrap();
-    let (room, _) = open(config(root.path()), OpenMode::OneShot).await;
+    let (room, _server) = open(config(root.path()), OpenMode::OneShot).await;
     let mut feed = RoomPort::subscribe(&room, None).unwrap();
     let mut session = Session::default();
     session.restore(RoomPort::state(&room).await);
@@ -190,7 +187,7 @@ async fn real_room_feed_reduces_into_tui_session() {
 }
 
 // This injected runtime records wakeups without starting provider work. These
-// boundary checks run even while the production launcher is not yet bound.
+// boundary checks isolate commit-only behavior from provider execution.
 #[path = "../../squad-core/tests/room_support.rs"]
 mod room_support;
 
