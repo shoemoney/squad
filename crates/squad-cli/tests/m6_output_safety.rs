@@ -33,3 +33,23 @@ fn json_final_remains_roundtrippable_without_raw_escape_bytes() {
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(value["event"], serde_json::to_value(event).unwrap());
 }
+
+#[test]
+fn export_display_strips_osc_but_saved_artifact_preserves_source() {
+    let dir = tempfile::tempdir().unwrap();
+    let attack = "before\x1b]52;c;YXR0YWNr\x07after";
+    let _db = support::database(dir.path(), vec![support::reply(1, attack)]);
+    let mut bytes = Vec::new();
+    let mut args = squad_cli::args::Export {
+        scope: squad_protocol::ExportScope::Room,
+        id: None,
+        output: None,
+    };
+    squad_cli::export::run(dir.path(), &args, &mut bytes).unwrap();
+    assert!(!bytes.contains(&0x1b));
+    assert!(String::from_utf8(bytes).unwrap().contains("beforeafter"));
+    let artifact = dir.path().join("transcript.md");
+    args.output = Some(artifact.clone());
+    squad_cli::export::run(dir.path(), &args, &mut Vec::new()).unwrap();
+    assert!(std::fs::read_to_string(artifact).unwrap().contains(attack));
+}
