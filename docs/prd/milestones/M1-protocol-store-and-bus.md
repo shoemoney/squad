@@ -201,39 +201,39 @@
 ## Phase M1.P4 — Recovery, replay and storage
 
 - **M1.P4.L1 — Recover requests and agent work**
-  - [ ] M1.P4.L1.T1 — Restore receipts and unfinished work through an `OpenMode` runtime harness, leaving unrelated work dormant in OneShot; do not depend on M3 `RoomHandle::open`, in `crates/squad-core/src/router/recovery.rs`.
-  - [ ] M1.P4.L1.T2 — Implement private work claims, lease fencing and terminal tombstones in crate `squad-store`, file `crates/squad-store/src/work.rs`.
-  - [ ] M1.P4.L1.T3 — Test stopped workers and crashes between commit, notification and result delivery in crate `squad-core`, file `crates/squad-core/tests/recovery.rs`.
-  - [ ] M1.P4.L1.T4 — Verify that recovery cannot bypass provider-attempt accounting in crate `squad-store`, file `crates/squad-store/tests/attempt_recovery.rs`.
+  - [x] M1.P4.L1.T1 — Restore receipts and unfinished work through an `OpenMode` runtime harness, leaving unrelated work dormant in OneShot; do not depend on M3 `RoomHandle::open`, in `crates/squad-core/src/router/recovery.rs`.
+  - [x] M1.P4.L1.T2 — Implement private work claims, lease fencing and terminal tombstones in crate `squad-store`, file `crates/squad-store/src/work.rs`.
+  - [x] M1.P4.L1.T3 — Test stopped workers and crashes between commit, notification and result delivery in crate `squad-core`, file `crates/squad-core/tests/recovery.rs`.
+  - [x] M1.P4.L1.T4 — Verify that recovery cannot bypass provider-attempt accounting in crate `squad-store`, file `crates/squad-store/tests/attempt_recovery.rs`.
   - [ ] M1.P4.L1.T5 — Test stale result rejection after cancellation, supersession and room clear in crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`.
-  - [ ] M1.P4.L1.T6 — Implement the advisory room lock and exact conflict message in crate `squad-store`, file `crates/squad-store/src/room_lock.rs`.
+  - [x] M1.P4.L1.T6 — Implement the advisory room lock and exact conflict message in crate `squad-store`, file `crates/squad-store/src/room_lock.rs`.
   - [ ] M1.P4.L1.T7 — Recover pending barrier allocations, unfinished `judge.round` work and scored or unscored outcomes without duplicate work or tally contributions in crate `squad-core`, file `crates/squad-core/src/router/recovery.rs` and file `crates/squad-core/tests/recovery.rs`.
   - [ ] M1.P4.L1.T8 — Test round-score result fencing after stop and clear, preservation of the two-attempt limit, and final-judge admission only after round work settles in crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs` and file `crates/squad-core/tests/router_work.rs`.
-  - [ ] M1.P4.L1.T9 — Create and reopen the database, lock, WAL, shared-memory and auxiliary files with the required permissions in crate `squad-store`, file `crates/squad-store/src/open.rs` and file `crates/squad-store/tests/permissions.rs`.
-  - [ ] M1.P4.L1.T10 — Define the case-executor spawn/retire hook and test recovery and follow-up summons with a double in `crates/squad-core/src/runtime/contexts.rs`; M2 supplies the actual executor.
-  - [ ] M1.P4.L1.T11 — Use the M1 runtime harness to test OneShot isolation, dormant committed no-wait work until Interactive recovery, and repair recovery without resetting attempt budgets in `crates/squad-core/tests/recovery.rs`.
-  - [ ] M1.P4.L1.T12 — Initialise JSON file logging and propagate correlation, causation, request and work trace identities through room startup and router operations in crate `squad-cli`, file `crates/squad-cli/src/main.rs`, and crate `squad-core`, file `crates/squad-core/src/router/mod.rs`.
+  - [x] M1.P4.L1.T9 — Create and reopen the database, lock, WAL, shared-memory and auxiliary files with the required permissions in crate `squad-store`, file `crates/squad-store/src/open.rs` and file `crates/squad-store/tests/permissions.rs`.
+  - [x] M1.P4.L1.T10 — Define the case-executor spawn/retire hook and test recovery and follow-up summons with a double in `crates/squad-core/src/runtime/contexts.rs`; M2 supplies the actual executor.
+  - [x] M1.P4.L1.T11 — Use the M1 runtime harness to test OneShot isolation, dormant committed no-wait work until Interactive recovery, and repair recovery without resetting attempt budgets in `crates/squad-core/tests/recovery.rs`.
+  - [x] M1.P4.L1.T12 — Initialise JSON file logging and propagate correlation, causation, request and work trace identities through room startup and router operations in crate `squad-cli`, file `crates/squad-cli/src/main.rs`, and crate `squad-core`, file `crates/squad-core/src/router/mod.rs`.
 
 - **M1.P4.L2 — Expose replay primitives**
-  - [ ] M1.P4.L2.T1 — Implement bounded ordered event reads, complete groups, replay floors and high-water marks for M3 in crate `squad-store`, file `crates/squad-store/src/events.rs`.
-  - [ ] M1.P4.L2.T2 — Verify that broadcast lag is repaired from durable events without replaying ephemeral traffic in crate `squad-core`, file `crates/squad-core/tests/feed_recovery.rs`.
-  - [ ] M1.P4.L2.T3 — Test malformed, future and cleared-room cursors with their specified errors in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`.
-  - [ ] M1.P4.L2.T4 — Verify durable replay of late round-score events and state transitions sufficient to reconstruct banners without persisted banner events in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`.
-  - [ ] M1.P4.L2.T5 — Verify replay of generic collection/pick/step/artifact/report and daily spending events without private-map leaks in `crates/squad-store/tests/event_pages.rs`; typed mode replay tests land in M5.
+  - [x] M1.P4.L2.T1 — Implement bounded ordered event reads, complete groups, replay floors and high-water marks for M3 in crate `squad-store`, file `crates/squad-store/src/events.rs`.
+  - [x] M1.P4.L2.T2 — Verify that broadcast lag is repaired from durable events without replaying ephemeral traffic in crate `squad-core`, file `crates/squad-core/tests/feed_recovery.rs`.
+  - [x] M1.P4.L2.T3 — Test malformed, future and cleared-room cursors with their specified errors in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`.
+  - [x] M1.P4.L2.T4 — Verify durable replay of late round-score events and state transitions sufficient to reconstruct banners without persisted banner events in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`.
+  - [x] M1.P4.L2.T5 — Verify replay of generic collection/pick/step/artifact/report and daily spending events without private-map leaks in `crates/squad-store/tests/event_pages.rs`; typed mode replay tests land in M5.
 
 - **M1.P4.L3 — Enforce the storage lifecycle**
-  - [ ] M1.P4.L3.T1 — Verify that accepted events, histories, receipts and terminal work records remain until clear in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs`.
-  - [ ] M1.P4.L3.T2 — Test that ordinary operation preserves referenced case material and active contest anchors in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs`.
-  - [ ] M1.P4.L3.T3 — Verify WAL settings and rollback or recovery across interrupted transactions in crate `squad-store`, file `crates/squad-store/tests/crash_recovery.rs`.
+  - [x] M1.P4.L3.T1 — Verify that accepted events, histories, receipts and terminal work records remain until clear in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs`.
+  - [x] M1.P4.L3.T2 — Test that ordinary operation preserves referenced case material and active contest anchors in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs`.
+  - [x] M1.P4.L3.T3 — Verify WAL settings and rollback or recovery across interrupted transactions in crate `squad-store`, file `crates/squad-store/tests/crash_recovery.rs`.
   - [ ] M1.P4.L3.T4 — Enforce storage admission limits while preserving completion, cleanup, reconciliation and export reads in crate `squad-store`, file `crates/squad-store/src/admission.rs`.
-  - [ ] M1.P4.L3.T5 — Verify that case histories and room-lifetime receipts survive restart and follow the clear lifecycle in crate `squad-store`, file `crates/squad-store/tests/clear.rs`.
-  - [ ] M1.P4.L3.T6 — Verify monotonic counters, the new replay floor, retained unresolved accounting and post-commit `VACUUM` in crate `squad-store`, file `crates/squad-store/tests/clear.rs`.
-  - [ ] M1.P4.L3.T7 — Verify round-score retention across restart and foreign-key-safe deletion of round scores, case projections and round work during clear while preserving required accounting in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs` and file `crates/squad-store/tests/clear.rs`.
-  - [ ] M1.P4.L3.T8 — Verify clear deletes generic contest/step/map/pick records and judge repair content while retaining daily spending and unknown-cost reconciliation in `crates/squad-store/tests/clear.rs`; mode-table deletion tests land in M5.
+  - [x] M1.P4.L3.T5 — Verify that case histories and room-lifetime receipts survive restart and follow the clear lifecycle in crate `squad-store`, file `crates/squad-store/tests/clear.rs`.
+  - [x] M1.P4.L3.T6 — Verify monotonic counters, the new replay floor, retained unresolved accounting and post-commit `VACUUM` in crate `squad-store`, file `crates/squad-store/tests/clear.rs`.
+  - [x] M1.P4.L3.T7 — Verify round-score retention across restart and foreign-key-safe deletion of round scores, case projections and round work during clear while preserving required accounting in crate `squad-store`, file `crates/squad-store/tests/storage_lifecycle.rs` and file `crates/squad-store/tests/clear.rs`.
+  - [x] M1.P4.L3.T8 — Verify clear deletes generic contest/step/map/pick records and judge repair content while retaining daily spending and unknown-cost reconciliation in `crates/squad-store/tests/clear.rs`; mode-table deletion tests land in M5.
 
 - **M1.P4.L4 — Verify contest and daily accounting boundaries**
   - [ ] M1.P4.L4.T1 — Test competing contest claims, persistent pending picks, rejected picks preserving state, ordinary routing while pending and `pick_cancelled` retention in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`.
-  - [ ] M1.P4.L4.T5 — Test reported costs, billed failures and cancellations, unknown costs, duplicate reconciliation, transaction rollback, local midnight and clear preserving daily totals in crate `squad-store`, file `crates/squad-store/tests/daily_spend.rs`.
+  - [x] M1.P4.L4.T5 — Test reported costs, billed failures and cancellations, unknown costs, duplicate reconciliation, transaction rollback, local midnight and clear preserving daily totals in crate `squad-store`, file `crates/squad-store/tests/daily_spend.rs`.
   - [ ] M1.P4.L4.T6 — Test daily-max refusal before new provider calls and contest admission, in-flight completion after the cap, and admission after a new day or raised configured max in crate `squad-core`, file `crates/squad-core/tests/daily_admission.rs`.
 
 
