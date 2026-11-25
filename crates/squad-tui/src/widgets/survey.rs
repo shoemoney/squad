@@ -58,6 +58,9 @@ impl SurveyView {
         if !text.is_empty() {
             text.push_str("\n\n");
         }
+        if let Some(summary) = self.report().and_then(SurveyReport::participation_summary) {
+            text.insert_str(0, &format!("{summary}\n\n"));
+        }
         text.push_str(
             &self
                 .artifacts

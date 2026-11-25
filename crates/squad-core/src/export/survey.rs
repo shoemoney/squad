@@ -28,7 +28,9 @@ pub fn render(payload: &EnvelopePayload) -> Option<String> {
         }
         EnvelopePayload::SurveyState(s) => {
             writeln!(out, "Survey state: {:?}\n", s.state).ok()?;
-            if let Some(reason) = &s.terminal_reason {
+            if let Some(c) = &s.completeness {
+                writeln!(out, "{}\n", c.summary()).ok()?;
+            } else if let Some(reason) = &s.terminal_reason {
                 writeln!(out, "{reason}\n").ok()?;
             }
         }
@@ -89,6 +91,9 @@ pub fn render(payload: &EnvelopePayload) -> Option<String> {
         }
         EnvelopePayload::SurveyReport(s) => {
             out.push_str("## Survey claim map\n\n");
+            if let Some(summary) = s.participation_summary() {
+                writeln!(out, "{summary}\n").ok()?;
+            }
             for (label, entries) in [
                 ("Consensus", &s.report.consensus),
                 ("Contested", &s.report.contested),

@@ -76,6 +76,7 @@ fn survey_state_and_anonymous_projection_reject_missing_nullable_and_private_fie
         step_id: None,
         artifact_event_ids: vec![event],
         terminal_reason: None,
+        completeness: None,
     };
     state.validate().unwrap();
     state.artifact_event_ids.push(event);
@@ -93,4 +94,21 @@ fn survey_state_and_anonymous_projection_reject_missing_nullable_and_private_fie
     }
     assert!(validation::decode::<SurveyVote>(&serde_json::json!({"contestId":id,"stepId":StepId::new(),"voter":"alpha","ballot":{"votes":[]}})).is_err());
     assert!(validation::decode::<SurveyReportText>(&serde_json::json!({"consensus":[],"contested":[],"loneInsights":[],"loneDissents":[],"rejectedOutliers":[],"limitations":"Caveat","tallies":[],"riskAcceptance":true})).is_err());
+}
+
+#[test]
+fn participation_flag_cannot_hide_missing_stages() {
+    let mut c = SurveyCompleteness {
+        complete: true,
+        missing_answers: vec![],
+        missing_votes: vec![],
+        missing_revotes: vec!["alpha".parse().unwrap()],
+    };
+    assert!(c.validate().is_err());
+    c.complete = false;
+    c.validate().unwrap();
+    assert!(c.summary().contains("DEGRADED"));
+    assert!(c.summary().contains("alpha"));
+    c.missing_revotes.push(c.missing_revotes[0].clone());
+    assert!(c.validate().is_err());
 }

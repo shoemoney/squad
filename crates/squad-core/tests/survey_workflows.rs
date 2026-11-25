@@ -494,6 +494,10 @@ async fn failed_member_remains_missing_and_never_becomes_unsure_or_a_switch() {
     assert!(r.map[0].switches.is_empty());
     assert_eq!(r.map[0].not_revoted, vec![nick("member5")]);
     assert!(r.report.consensus.is_empty());
+    let c = r.completeness.as_ref().unwrap();
+    assert!(!c.complete);
+    assert_eq!(c.missing_votes, vec![nick("member5")]);
+    assert_eq!(c.missing_revotes, vec![nick("member5")]);
     f.assert_ledger();
     room.shutdown().await.unwrap();
 }
@@ -598,6 +602,10 @@ impl Respond for SlowBallots {
 #[tokio::test]
 async fn real_step_readers_reject_guessed_foreign_and_prior_context_access() {
     let f = Fixture::new().await;
+    // Initialize the independent reader store before starting the live writer;
+    // opening/migrating another store during a ballot can contend on SQLite DDL.
+    std::fs::create_dir_all(&f.config.data_dir).unwrap();
+    let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
     Mock::given(method("POST"))
         .and(path("/api/v1/chat/completions"))
         .respond_with(SlowBallots)
@@ -618,7 +626,6 @@ async fn real_step_readers_reject_guessed_foreign_and_prior_context_access() {
             == 6
     })
     .await;
-    let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
     let reader =
         squad_store::readers::ScopedReaders::new(store, ExecutorKey::Member(nick("member0")), 1);
     let wid = |kind: &str, target: &str| -> WorkId {
@@ -1087,5 +1094,207 @@ async fn recovery_at_artifact_barrier_assignment_and_report_commit_boundaries() 
         assert_eq!(f.count("survey.selection"), 1);
         f.assert_ledger();
         room.shutdown().await.unwrap();
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum RevoteShape {
+    SloppyValid,
+    MissingEvidence,
+    WordBudget,
+    Duplicate,
+    ForeignClaim,
+    LowercaseVote,
+    ExtraField,
+}
+impl Respond for RevoteShape {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        use serde_json::json;
+        let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+        if body["messages"]
+            .to_string()
+            .contains("extract atomic claims")
+        {
+            let data = task_data(&body);
+            return structured_judge(json!({"claims":[
+                {"id":"c1","claim":"Testing catches regressions.","sourceAnswerIds":[data["answers"][0]["messageId"]]},
+                {"id":"c2","claim":"Independent checks improve reliability.","sourceAnswerIds":[data["answers"][0]["messageId"]]}
+            ]}));
+        }
+        if !body["messages"]
+            .to_string()
+            .contains("reconsider selected claims")
+        {
+            return Answers.respond(r);
+        }
+        let data = task_data(&body);
+        let mut value = json!({"votes":data["claims"].as_array().unwrap().iter().map(|c|json!({
+            "confidence":4, "changeEvidence":" A controlled counterexample ",
+            "reason":" Tests detect regressions. ", "vote":"AGREE", "claimId":c["claimId"]
+        })).collect::<Vec<_>>()});
+        match self {
+            Self::SloppyValid => {}
+            Self::MissingEvidence => {
+                value["votes"][0]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("changeEvidence");
+            }
+            Self::WordBudget => {
+                for vote in value["votes"].as_array_mut().unwrap() {
+                    vote["reason"] = json!("Tests detect regressions with meaningful fixtures.");
+                    vote["changeEvidence"] =
+                        json!("A controlled counterexample would change this assessment.");
+                }
+            }
+            Self::Duplicate => {
+                let duplicate = value["votes"][0].clone();
+                value["votes"].as_array_mut().unwrap().push(duplicate);
+            }
+            Self::ForeignClaim => {
+                value["votes"][0]["claimId"] = json!("foreign-claim");
+            }
+            Self::LowercaseVote => {
+                value["votes"][0]["vote"] = json!("agree");
+            }
+            Self::ExtraField => {
+                value["votes"][0]["count"] = json!(6);
+            }
+        }
+        // Ordinary formatting and field ordering are harmless. This still travels
+        // through the real SSE client, schema decoder, router and SQLite writer.
+        streaming(
+            &format!(" \n{}\n ", serde_json::to_string_pretty(&value).unwrap()),
+            "stop",
+        )
+    }
+}
+#[tokio::test]
+async fn revote_wire_shapes_preserve_valid_whitespace_and_flag_invalid_cycles() {
+    for shape in [
+        RevoteShape::SloppyValid,
+        RevoteShape::MissingEvidence,
+        RevoteShape::WordBudget,
+        RevoteShape::Duplicate,
+        RevoteShape::ForeignClaim,
+        RevoteShape::LowercaseVote,
+        RevoteShape::ExtraField,
+    ] {
+        let mut f = Fixture::new().await;
+        f.config.prompts.limits.room_words = 20;
+        Mock::given(method("POST"))
+            .and(path("/api/v1/chat/completions"))
+            .respond_with(shape)
+            .with_priority(1)
+            .mount(&f.fake.server)
+            .await;
+        let room = f.open(OpenMode::Interactive).await;
+        room.submit(request(&f.config, "@all $survey Which checks help?"))
+            .await;
+        f.wait(|| {
+            f.db()
+                .query_row("SELECT COUNT(*) FROM contests WHERE active=0", [], |r| {
+                    r.get::<_, i64>(0)
+                })
+                .unwrap()
+                == 1
+        })
+        .await;
+        let events = room.events_after(None, 500).await.unwrap();
+        let report = events
+            .iter()
+            .find_map(|e| match &e.content {
+                EnvelopePayload::SurveyReport(r) => Some(r),
+                _ => None,
+            })
+            .unwrap();
+        let state = events
+            .iter()
+            .rev()
+            .find_map(|e| match &e.content {
+                EnvelopePayload::SurveyState(s) => Some(s),
+                _ => None,
+            })
+            .unwrap();
+        let valid = matches!(shape, RevoteShape::SloppyValid);
+        let participation = report.completeness.as_ref().unwrap();
+        assert_eq!(participation.complete, valid, "{shape:?}");
+        assert_eq!(participation.is_complete(), valid);
+        assert_eq!(state.state, SurveyStatus::Complete);
+        assert_eq!(state.completeness.as_ref(), Some(participation));
+        assert!(participation.missing_answers.is_empty());
+        assert!(participation.missing_votes.is_empty());
+        assert_eq!(report.map[0].final_tally.agree, 6);
+        assert!(report.map[0].switches.is_empty());
+        assert_eq!(f.count("survey.revote"), if valid { 6 } else { 0 });
+        assert_eq!(
+            f.fake.captured_bodies().await.len(),
+            if valid { 20 } else { 26 }
+        );
+        if valid {
+            assert!(report.map[0].not_revoted.is_empty());
+            assert!(state.terminal_reason.is_none());
+        } else {
+            assert_eq!(participation.missing_revotes.len(), 6);
+            assert_eq!(
+                report.map[0].not_revoted,
+                f.config
+                    .agents
+                    .iter()
+                    .map(|a| a.nick.clone())
+                    .collect::<Vec<_>>()
+            );
+            let reason = state.terminal_reason.as_ref().unwrap().as_str();
+            assert!(reason.contains("DEGRADED"));
+            // CLI text uses this exact core renderer; JSON carries completeness.
+            for p in [
+                EnvelopePayload::SurveyReport(report.clone()),
+                EnvelopePayload::SurveyState(state.clone()),
+            ] {
+                let text = squad_core::export::survey::render(&p).unwrap();
+                assert!(text.contains("DEGRADED") && text.contains("member5"));
+                assert_eq!(
+                    serde_json::to_value(p).unwrap()["payload"]["completeness"]["complete"],
+                    false
+                );
+            }
+            let expected_rule = match shape {
+                RevoteShape::MissingEvidence => "invalid survey change evidence",
+                RevoteShape::WordBudget => "prose word budget exceeded: 26 > 20",
+                RevoteShape::Duplicate | RevoteShape::ForeignClaim => {
+                    "survey ballot coverage mismatch"
+                }
+                RevoteShape::LowercaseVote => "/votes/*/vote: enum",
+                RevoteShape::ExtraField => "/votes/*: additionalProperties",
+                RevoteShape::SloppyValid => unreachable!(),
+            };
+            let errors = events
+                .iter()
+                .filter_map(|e| match &e.content {
+                    EnvelopePayload::WorkState(w) if w.status == WorkStatus::Failed => {
+                        w.error.as_ref()
+                    }
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            assert!(!errors.is_empty());
+            assert!(
+                errors
+                    .iter()
+                    .all(|e| e.text.as_str().contains(expected_rule)),
+                "{shape:?}: {errors:?}"
+            );
+        }
+        let stored = squad_store::survey::state(&f.db(), state.contest_id).unwrap();
+        assert_eq!(stored.completeness, state.completeness);
+        f.assert_ledger();
+        room.shutdown().await.unwrap();
+        let reopened = f.open(OpenMode::OneShot).await;
+        assert_eq!(
+            squad_store::survey::state(&f.db(), state.contest_id).unwrap(),
+            stored
+        );
+        assert_eq!(f.count("survey.report"), 1);
+        reopened.shutdown().await.unwrap();
     }
 }

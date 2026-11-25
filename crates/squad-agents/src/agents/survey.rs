@@ -129,22 +129,22 @@ impl WorkExecutor for SurveyExecutor {
                         })
                         .await,
                 ),
-                Err(InvalidSurveyOutput) => {
+                Err(validation_error) => {
                     let repair = if judge && grant.work.attempt < 3 {
                         Some(JudgeRepairData {
                             attempt: grant.work.attempt + 1,
                             rejected_output: output.content,
-                            validation_errors: vec![
-                                "Survey output violates the assigned schema or claim coverage"
-                                    .into(),
-                            ],
+                            validation_errors: vec![validation_error.to_string()],
                         })
                     } else {
                         None
                     };
                     let error = ErrorPayload {
                         code: ErrorCode::JUDGE_INVALID_VERDICT,
-                        text: Text::new("Survey output failed validation").expect("literal"),
+                        text: Text::new(format!(
+                            "Survey output failed validation: {validation_error}"
+                        ))
+                        .expect("safe diagnostic"),
                         retryable: false,
                         related_event_id: None,
                         work_id: Some(grant.work.work_id),
@@ -172,11 +172,11 @@ impl WorkExecutor for SurveyExecutor {
         })
     }
 }
-#[derive(Debug, Clone, Copy)]
-pub struct InvalidSurveyOutput;
+#[derive(Debug, Clone)]
+pub struct InvalidSurveyOutput(String);
 impl std::fmt::Display for InvalidSurveyOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Survey output violates its assigned schema")
+        f.write_str(&self.0)
     }
 }
 impl std::error::Error for InvalidSurveyOutput {}
@@ -187,7 +187,8 @@ pub fn validate(
     completed: CompletedGeneration,
     word_limit: usize,
 ) -> Result<EnvelopePayload, InvalidSurveyOutput> {
-    let value: Value = serde_json::from_str(raw).map_err(|_| InvalidSurveyOutput)?;
+    let value: Value =
+        serde_json::from_str(raw).map_err(|_| InvalidSurveyOutput("invalid JSON object".into()))?;
     fn words(v: &Value) -> usize {
         match v {
             Value::Array(a) => a.iter().map(words).sum(),
@@ -213,19 +214,26 @@ pub fn validate(
         }
     }
     if words(&value) > word_limit {
-        return Err(InvalidSurveyOutput);
+        return Err(InvalidSurveyOutput(format!(
+            "prose word budget exceeded: {} > {word_limit}",
+            words(&value)
+        )));
     }
-    let contest_id = work.contest_id.ok_or(InvalidSurveyOutput)?;
-    let step_id = work.step_id.ok_or(InvalidSurveyOutput)?;
+    let contest_id = work
+        .contest_id
+        .ok_or(InvalidSurveyOutput("invalid survey work inputs".into()))?;
+    let step_id = work
+        .step_id
+        .ok_or(InvalidSurveyOutput("invalid survey work inputs".into()))?;
     match work.kind {
         WorkKind::SurveyExtract => {
             let extraction: SurveyExtraction =
-                validation::decode(&value).map_err(|_| InvalidSurveyOutput)?;
-            let answers: Vec<ContestAnswer> =
-                serde_json::from_value(data["answers"].clone()).map_err(|_| InvalidSurveyOutput)?;
+                validation::decode(&value).map_err(|e| InvalidSurveyOutput(e.to_string()))?;
+            let answers: Vec<ContestAnswer> = serde_json::from_value(data["answers"].clone())
+                .map_err(|_| InvalidSurveyOutput("invalid frozen answers".into()))?;
             extraction
                 .validate(&answers)
-                .map_err(|_| InvalidSurveyOutput)?;
+                .map_err(|e| InvalidSurveyOutput(e.to_string()))?;
             Ok(EnvelopePayload::SurveyClaims(SurveyClaims {
                 contest_id,
                 step_id,
@@ -235,23 +243,23 @@ pub fn validate(
         }
         WorkKind::SurveyVote | WorkKind::SurveyRevote => {
             let ballot: SurveyBallot =
-                validation::decode(&value).map_err(|_| InvalidSurveyOutput)?;
+                validation::decode(&value).map_err(|e| InvalidSurveyOutput(e.to_string()))?;
             let ids = data["claims"]
                 .as_array()
-                .ok_or(InvalidSurveyOutput)?
+                .ok_or(InvalidSurveyOutput("invalid survey work inputs".into()))?
                 .iter()
                 .map(|v| {
                     v["claimId"]
                         .as_str()
                         .map(String::from)
-                        .ok_or(InvalidSurveyOutput)
+                        .ok_or(InvalidSurveyOutput("missing claimId".into()))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             ballot
                 .validate(&ids, work.kind == WorkKind::SurveyRevote)
-                .map_err(|_| InvalidSurveyOutput)?;
+                .map_err(|e| InvalidSurveyOutput(e.to_string()))?;
             let Target::Member(voter) = &work.target else {
-                return Err(InvalidSurveyOutput);
+                return Err(InvalidSurveyOutput("invalid survey work inputs".into()));
             };
             let vote = SurveyVote {
                 contest_id,
@@ -268,18 +276,29 @@ pub fn validate(
         }
         WorkKind::SurveyReport => {
             let report: SurveyReportText =
-                validation::decode(&value).map_err(|_| InvalidSurveyOutput)?;
-            let map: Vec<SurveyClaimMap> =
-                serde_json::from_value(data["map"].clone()).map_err(|_| InvalidSurveyOutput)?;
-            report.validate(&map).map_err(|_| InvalidSurveyOutput)?;
+                validation::decode(&value).map_err(|e| InvalidSurveyOutput(e.to_string()))?;
+            let map: Vec<SurveyClaimMap> = serde_json::from_value(data["map"].clone())
+                .map_err(|_| InvalidSurveyOutput("invalid authoritative map".into()))?;
+            report
+                .validate(&map)
+                .map_err(|e| InvalidSurveyOutput(e.to_string()))?;
+            let setup: SurveySetup = serde_json::from_value(data["setup"].clone())
+                .map_err(|_| InvalidSurveyOutput("invalid frozen setup".into()))?;
+            let claims: SurveyExtraction = serde_json::from_value(data["claims"].clone())
+                .map_err(|_| InvalidSurveyOutput("invalid frozen claims".into()))?;
+            let first: Vec<SurveyVote> = serde_json::from_value(data["first"].clone())
+                .map_err(|_| InvalidSurveyOutput("invalid frozen first ballots".into()))?;
+            let completeness =
+                SurveyCompleteness::from_report_inputs(&setup, &claims, &first, &map);
             Ok(EnvelopePayload::SurveyReport(SurveyReport {
                 contest_id,
                 step_id,
                 completed,
                 map,
                 report,
+                completeness: Some(completeness),
             }))
         }
-        _ => Err(InvalidSurveyOutput),
+        _ => Err(InvalidSurveyOutput("invalid survey work inputs".into())),
     }
 }

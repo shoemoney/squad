@@ -166,6 +166,7 @@ pub fn admit(
         step_id: None,
         artifact_event_ids: vec![],
         terminal_reason: None,
+        completeness: None,
     };
     tx.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active,plan_id,plan_json,expires_at) VALUES (?,'survey',(SELECT epoch FROM room_meta),1,?,1,?,?,?)",params![contest.to_string(),serde_json::to_string(&state)?,plan.plan_id.to_string(),serde_json::to_string(&plan)?,plan.expires_at.to_rfc3339()])?;
     tx.execute(
@@ -341,7 +342,14 @@ pub fn validate_output(db: &Connection, work: &Work, output: &EnvelopePayload) -
             &squad_store::survey::ballots(db, r.contest_id, false)?,
             &squad_store::survey::ballots(db, r.contest_id, true)?,
         );
-        if r.map != map {
+        let completeness = script::completeness(
+            &setup,
+            &claims,
+            &selected,
+            &squad_store::survey::ballots(db, r.contest_id, false)?,
+            &squad_store::survey::ballots(db, r.contest_id, true)?,
+        );
+        if r.map != map || r.completeness.as_ref() != Some(&completeness) {
             return Err(invalid());
         }
         r.report.validate(&map).map_err(|_| invalid())?;
@@ -572,6 +580,24 @@ pub fn barrier(
             })
             .expect("literal"),
         );
+    }
+    if state.state == SurveyStatus::Complete {
+        let selected = squad_store::survey::selected(tx, state.contest_id)?
+            .claims
+            .into_iter()
+            .map(|c| c.claim_id)
+            .collect::<Vec<_>>();
+        let completeness = script::completeness(
+            &setup,
+            &squad_store::survey::claims(tx, state.contest_id)?,
+            &selected,
+            &squad_store::survey::ballots(tx, state.contest_id, false)?,
+            &squad_store::survey::ballots(tx, state.contest_id, true)?,
+        );
+        if !completeness.is_complete() {
+            state.terminal_reason = Some(Text::new(completeness.summary()).map_err(|_| invalid())?);
+        }
+        state.completeness = Some(completeness);
     }
     let version = state.state_version;
     state.state_version += 1;

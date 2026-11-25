@@ -1080,6 +1080,9 @@ fn validate_envelope(
                 "invalid survey report sender",
             )?;
             value.report.validate(&value.map)?;
+            if let Some(c) = &value.completeness {
+                c.validate()?;
+            }
         }
         EnvelopePayload::ContestSetup(setup) => {
             ensure(

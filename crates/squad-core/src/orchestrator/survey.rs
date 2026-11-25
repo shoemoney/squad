@@ -52,6 +52,22 @@ fn tally<'a>(items: impl Iterator<Item = Option<&'a SurveyBallotItem>>) -> Surve
     }
     t
 }
+/// Derive participation from frozen sources and accepted ballots, including
+/// first votes later replaced by a second vote. Empty maps need no ballot calls.
+pub fn completeness(
+    setup: &SurveySetup,
+    claims: &SurveyExtraction,
+    selected: &[String],
+    first: &[SurveyVote],
+    second: &[SurveyVote],
+) -> SurveyCompleteness {
+    SurveyCompleteness::from_report_inputs(
+        setup,
+        claims,
+        first,
+        &map(setup, claims, selected, first, second),
+    )
+}
 /// Rational comparisons avoid float ordering and preserve stable claim identities.
 pub fn select(
     claims: &SurveyExtraction,
