@@ -1,0 +1,33 @@
+---
+source: crates/squad-tui/tests/fx_bubble.rs
+expression: snapshot(&buf)
+---
+Buffer {
+    area: Rect { x: 0, y: 0, width: 28, height: 7 },
+    content: [
+        " ▌ claude            ×      ",
+        " ▌ Readable 界 é            ", // hidden by multi-width symbols: [(13, " ")]
+        " ▌ streaming text           ",
+        " ▌                          ",
+        " ▌                          ",
+        " ▌ 412 tok · $0.0031 · 3.2s ",
+        "                            ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 0, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 21, y: 0, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+        x: 22, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 1, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 2, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 3, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 4, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 5, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}

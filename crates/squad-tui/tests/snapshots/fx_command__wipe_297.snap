@@ -1,0 +1,20 @@
+---
+source: crates/squad-tui/tests/fx_command.rs
+expression: "format!(\"{buf:#?}\")"
+---
+Buffer {
+    area: Rect { x: 0, y: 0, width: 32, height: 8 },
+    content: [
+        "                                ",
+        "                                ",
+        "                                ",
+        "                                ",
+        "                                ",
+        "                                ",
+        "                                ",
+        " input stays                    ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
