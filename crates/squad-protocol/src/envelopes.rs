@@ -1059,19 +1059,12 @@ fn validate_envelope(
                 "invalid selection state",
             )?,
         },
-        EnvelopePayload::ContestTransition(submission) => ensure(
-            matches!(
-                (&submission.kind, &submission.transition),
-                (ContestKind::Debate, ContestTransition::Debate(_))
-                    | (ContestKind::Tournament, ContestTransition::Tournament(_))
-                    | (ContestKind::Census, ContestTransition::Census(_))
-                    | (ContestKind::Crosscheck, ContestTransition::Crosscheck(_))
-            ),
-            "transition kind mismatch",
-        )?,
         EnvelopePayload::ContestTransition(submission) => {
             let kind = match &submission.transition {
                 ContestTransition::Debate(_) => ContestKind::Debate,
+                ContestTransition::Tournament(_) => ContestKind::Tournament,
+                ContestTransition::Census(_) => ContestKind::Census,
+                ContestTransition::Crosscheck(_) => ContestKind::Crosscheck,
                 #[cfg(feature = "mode-survey")]
                 ContestTransition::Survey(_) => ContestKind::Survey,
             };
