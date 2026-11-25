@@ -257,6 +257,11 @@ pub struct LoadOptions {
 }
 
 impl LoadOptions {
+    /// Selected file for diagnostic provenance, using the same precedence as the loader.
+    pub fn selected_env_file(&self) -> Result<Option<PathBuf>, ConfigError> {
+        select_file(self)
+    }
+
     /// Determine OS paths from the injected environment, never a hidden process read.
     pub fn from_environment(working_dir: PathBuf, env: &BTreeMap<String, String>) -> Self {
         let home = env

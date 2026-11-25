@@ -50,7 +50,7 @@ fn deferred_commands_fail_explicitly_without_fake_output() {
         ),
         (vec!["models"], "models: not implemented yet (milestone M3)"),
     ] {
-        let output = invoke(temp.path(), &args, None);
+        let output = invoke(temp.path(), &args, Some("sk-test-not-a-real-key"));
         assert_eq!(output.status.code(), Some(1));
         assert!(output.stdout.is_empty());
         assert_eq!(String::from_utf8(output.stderr).unwrap().trim(), expected);

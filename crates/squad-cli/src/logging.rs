@@ -126,15 +126,15 @@ where
     }
 }
 
-pub fn level(value: Option<&str>) -> Result<LevelFilter, String> {
-    match value.unwrap_or("info") {
-        "trace" => Ok(LevelFilter::TRACE),
-        "debug" => Ok(LevelFilter::DEBUG),
-        "info" => Ok(LevelFilter::INFO),
-        "warn" => Ok(LevelFilter::WARN),
-        "error" => Ok(LevelFilter::ERROR),
-        "off" => Ok(LevelFilter::OFF),
-        _ => Err("SQUAD_LOG_LEVEL must be trace, debug, info, warn, error, or off.".into()),
+pub fn level(value: squad_protocol::config::LogLevel) -> LevelFilter {
+    use squad_protocol::config::LogLevel;
+    match value {
+        LogLevel::Trace => LevelFilter::TRACE,
+        LogLevel::Debug => LevelFilter::DEBUG,
+        LogLevel::Info => LevelFilter::INFO,
+        LogLevel::Warn => LevelFilter::WARN,
+        LogLevel::Error => LevelFilter::ERROR,
+        LogLevel::Off => LevelFilter::OFF,
     }
 }
 
@@ -229,15 +229,5 @@ mod tests {
             assert_eq!(fields[key], value);
         }
         assert_eq!(fields["attempt"], 3);
-    }
-    #[test]
-    fn levels_are_strict() {
-        assert_eq!(level(None).unwrap(), LevelFilter::INFO);
-        for valid in ["trace", "debug", "info", "warn", "error", "off"] {
-            assert!(level(Some(valid)).is_ok());
-        }
-        for invalid in ["", "INFO", "info,other=trace"] {
-            assert!(level(Some(invalid)).is_err());
-        }
     }
 }

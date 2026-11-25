@@ -1,4 +1,6 @@
-use std::{ffi::OsString, fmt::Write, path::Path};
+use std::{ffi::OsString, fmt::Write};
+
+use squad_protocol::config::{ConfigError, LoadOptions, SquadConfig};
 
 #[derive(Debug, PartialEq)]
 pub enum Colour {
@@ -36,11 +38,10 @@ pub struct Report {
     pub code: u8,
 }
 
-// TODO(M0 merge): use SquadConfig for merged values, validation and provenance.
 // TODO(M3.P3): replace skipped checks with typed readers and integration checks.
 pub fn run(
-    data_dir: Result<&Path, &str>,
-    config_error: Option<&str>,
+    config: &Result<SquadConfig, ConfigError>,
+    options: &LoadOptions,
     env: &impl Fn(&str) -> Option<OsString>,
     terminal: bool,
     size: Option<(u16, u16)>,
@@ -48,46 +49,82 @@ pub fn run(
 ) -> Report {
     let mut text = String::new();
     let mut failed = false;
-    if let Some(error) = config_error {
-        let _ = writeln!(text, "Configuration: FAIL - {error}");
-        failed = true;
-    } else {
-        text.push_str(
-            "Configuration: skipped until M0 merge (SquadConfig and environment-file loading)\n",
-        );
+    match config {
+        Ok(config) => {
+            let source = options
+                .selected_env_file()
+                .ok()
+                .flatten()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "built-in defaults and process environment".into());
+            let _ = writeln!(
+                text,
+                "Configuration: PASS - {source}; process environment overrides file values; parsing and references validated"
+            );
+            for agent in &config.agents {
+                let _ = writeln!(text, "  {}: {}", agent.nick, agent.model);
+            }
+            let _ = writeln!(
+                text,
+                "  rounds: {}; grill rounds: {}; daily max USD: {}; judge model: {}",
+                config.defaults.rounds,
+                config.defaults.grill_rounds,
+                config.budget.daily_max_usd,
+                config.judge.model
+            );
+            text.push_str("Credential presence: present\n");
+        }
+        Err(error) => {
+            let _ = writeln!(text, "Configuration: FAIL - {error}");
+            failed = true;
+            if matches!(error, ConfigError::MissingApiKey) {
+                let _ = writeln!(text, "Credential presence: missing - {error}");
+            } else {
+                text.push_str(
+                    "Credential presence: unavailable - configuration could not be loaded\n",
+                );
+            }
+        }
     }
-    let present = env("OPENROUTER_API_KEY").is_some_and(|v| !v.is_empty());
-    if present {
-        text.push_str("Credential presence: present\n");
-    } else {
-        text.push_str("Credential presence: missing - OPENROUTER_API_KEY is required. Add it to .env or the process environment.\n");
-        failed = true;
+    // A failed configuration still permits an independent filesystem probe of
+    // the CLI override or OS default; never reinterpret file settings here.
+    let fallback = options
+        .data_dir
+        .as_ref()
+        .map(|path| options.working_dir.join(path))
+        .unwrap_or_else(|| options.default_data_dir.clone());
+    let data_dir = config
+        .as_ref()
+        .map(|config| config.data_dir.as_path())
+        .unwrap_or(&fallback);
+    if config.is_err() {
+        text.push_str(
+            "Data directory source: CLI override or OS default (configuration unavailable)\n",
+        );
     }
     text.push_str(
         "OpenRouter reachability: skipped until M2\nModel resolution: skipped until M2\n",
     );
-    let writable = match data_dir {
-        Ok(path) => match crate::paths::check_writable(path) {
-            Ok(()) => {
-                let _ = writeln!(text, "Data directory: writable - {}", path.display());
-                true
-            }
-            Err(_) => {
-                let _ = writeln!(
-                    text,
-                    "Data directory: FAIL - Data directory is not writable: {}.",
-                    path.display()
-                );
-                false
-            }
-        },
-        Err(error) => {
-            let _ = writeln!(text, "Data directory: FAIL - {error}");
+    let writable = match crate::paths::check_writable(data_dir) {
+        Ok(()) => {
+            let _ = writeln!(text, "Data directory: writable - {}", data_dir.display());
+            true
+        }
+        Err(_) => {
+            let _ = writeln!(
+                text,
+                "Data directory: FAIL - Data directory is not writable: {}.",
+                data_dir.display()
+            );
             false
         }
     };
     failed |= !writable;
-    let colour = match colour(env) {
+    let colour = match if config.as_ref().is_ok_and(|config| config.no_color) {
+        Colour::None
+    } else {
+        colour(env)
+    } {
         Colour::None => "none",
         Colour::Ansi16 => "16 colours",
         Colour::Ansi256 => "256 colours",
@@ -109,22 +146,19 @@ pub fn run(
         "Terminal capabilities: {status}; colour: {colour}; size: {dimensions}"
     );
     text.push_str("Daily accounting: skipped until M3\nModel identity: skipped until M3\n");
-    if writable {
-        let level_value = env("SQUAD_LOG_LEVEL");
-        let level = level_value
-            .as_ref()
-            .map(|v| v.to_str().unwrap_or("invalid"));
-        let result = crate::logging::level(level)
-            .and_then(|level| crate::logging::init(data_dir.unwrap(), level));
-        if let Err(error) = result {
+    if writable && let Ok(config) = config {
+        if let Err(error) = crate::logging::init(data_dir, crate::logging::level(config.log_level))
+        {
             let _ = writeln!(text, "Logging: FAIL - {error}");
             failed = true;
+        } else {
+            tracing::info!("Doctor initialized");
         }
     }
     if show_env {
         text.push_str("\nSupported environment variables and defaults:\n");
         text.push_str(include_str!("env-help.md"));
-        text.push_str("\nProcess environment overrides file values, including empty values. Load exactly one environment file.\nPersisted ROUNDS and GRILL_ROUNDS override their environment seeds.\nEffective values and sources: skipped until M0 merge (SquadConfig); credential presence is reported above.\n");
+        text.push_str("\nProcess environment overrides file values, including empty values. Load exactly one environment file.\nPersisted ROUNDS and GRILL_ROUNDS override their environment seeds.\nLoaded roster and numeric values are reported above; credential values are never displayed.\n");
     }
     let _ = writeln!(
         text,
@@ -166,36 +200,30 @@ mod tests {
         }
     }
     #[test]
-    fn failure_snapshot_and_independent_checks() {
+    fn failure_continues_independent_checks() {
+        let temp = tempfile::tempdir().unwrap();
+        let blocker = temp.path().join("file");
+        std::fs::write(&blocker, "fixture").unwrap();
+        let mut options =
+            LoadOptions::from_environment(temp.path().to_owned(), &Default::default());
+        options.data_dir = Some(blocker);
         let report = run(
-            Err("injected path failure"),
-            None,
+            &Err(ConfigError::MissingApiKey),
+            &options,
             &|_| None,
             false,
             Some((80, 24)),
-            false,
-        );
-        assert_eq!(report.code, 1);
-        assert_eq!(
-            report.text,
-            include_str!("../tests/fixtures/doctor-missing.txt")
-        );
-    }
-    #[test]
-    fn presence_never_prints_value() {
-        let env =
-            |name: &str| (name == "OPENROUTER_API_KEY").then(|| OsString::from("fixture-secret"));
-        let report = run(
-            Err("injected path failure"),
-            Some("injected config failure"),
-            &env,
-            false,
-            None,
             true,
         );
-        assert!(report.text.contains("Credential presence: present"));
-        assert!(!report.text.contains("fixture-secret"));
-        assert!(report.text.contains("Model identity: skipped until M3"));
+        assert_eq!(report.code, 1);
+        assert!(
+            report
+                .text
+                .contains(&ConfigError::MissingApiKey.to_string())
+        );
+        assert!(report.text.contains("Credential presence: missing"));
+        assert!(report.text.contains("Data directory: FAIL"));
+        assert!(report.text.contains("Terminal capabilities:"));
         assert!(report.text.contains("SQUAD_REASONING_EFFORT_<NICK>"));
     }
 }
