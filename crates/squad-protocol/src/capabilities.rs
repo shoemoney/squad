@@ -1,4 +1,5 @@
 //! Shared protocol contract. Wire shapes follow PRD section 02.
+use crate::config::ReasoningEffort;
 use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -45,7 +46,7 @@ pub enum HistoryRole {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum HistoryMetadata {
     Attributed {
@@ -55,7 +56,7 @@ pub enum HistoryMetadata {
         projection_key: Text,
     },
     Anonymous {
-        anonymous: bool,
+        anonymous: True,
     }, // always true; no additional fields
 }
 
@@ -74,6 +75,9 @@ pub struct HistoryEntry {
 #[serde(rename_all = "camelCase")]
 pub struct WorkRecord {
     pub work_id: WorkId,
+    pub message_id: MessageId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub in_reply_to_message_id: Option<MessageId>,
     pub kind: WorkKind,
     pub target: Target,
     pub context_id: ContextId,
@@ -102,7 +106,15 @@ pub enum ReaderError {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct ExecutorBinding {
+    pub model: Text,
+    pub effort: ReasoningEffort,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecutionGrant {
+    pub binding: ExecutorBinding,
     pub work: Work,
     pub owner: ExecutorKey,
     pub fence: u64,
@@ -170,8 +182,10 @@ pub trait PromptRenderer: Send + Sync {
         values: &std::collections::BTreeMap<String, String>,
     ) -> Result<String, ReaderError>;
 }
+#[derive(Debug, Clone, Copy)]
 pub struct Wakeup;
 pub struct AgentContext {
+    pub executor: ExecutorKey,
     pub mailbox: tokio::sync::mpsc::Receiver<Wakeup>,
     pub history: std::sync::Arc<dyn HistoryReader>,
     pub work: std::sync::Arc<dyn WorkReader>,
@@ -206,5 +220,26 @@ impl ExecutorKey {
             }
             _ => false,
         }
+    }
+}
+
+/// Declaration-level anonymity marker: only the literal `true` is accepted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(try_from = "bool", into = "bool")]
+#[schemars(with = "bool", extend("const" = true))]
+pub struct True;
+impl TryFrom<bool> for True {
+    type Error = &'static str;
+    fn try_from(value: bool) -> Result<Self, Self::Error> {
+        if value {
+            Ok(Self)
+        } else {
+            Err("anonymous must be true")
+        }
+    }
+}
+impl From<True> for bool {
+    fn from(_: True) -> bool {
+        true
     }
 }

@@ -177,3 +177,109 @@ fn local_day_keys_are_canonical() {
     }
     assert!(squad_protocol::valid_day("2026-11-24"));
 }
+
+#[test]
+fn roster_reorder_and_removal_are_atomic() {
+    use squad_protocol::*;
+    let mut db = Connection::open_in_memory().unwrap();
+    migrate(&mut db).unwrap();
+    let model = |nick: &str, order| Model {
+        nick: Actor::Member(Nick::new(nick).unwrap()),
+        requested_slug: Text::new("v/m").unwrap(),
+        resolved_slug: Text::new("v/m").unwrap(),
+        roster_order: Some(order),
+        context_length: 100,
+        pricing: serde_json::json!({}),
+        resolved_at: "2026-11-24T12:00:00Z".parse().unwrap(),
+    };
+    let tx = db.transaction().unwrap();
+    squad_store::models::save_roster(&tx, &[model("a", 0), model("b", 1)]).unwrap();
+    tx.commit().unwrap();
+    assert!(squad_store::models::save_model(&db, &model("b", 0)).is_err());
+    let tx = db.transaction().unwrap();
+    squad_store::models::save_roster(&tx, &[model("b", 0), model("a", 1)]).unwrap();
+    tx.commit().unwrap();
+    assert_eq!(
+        db.query_row("SELECT roster_order FROM models WHERE nick='b'", [], |r| {
+            r.get::<_, u32>(0)
+        })
+        .unwrap(),
+        0
+    );
+    let tx = db.transaction().unwrap();
+    squad_store::models::save_roster(&tx, &[model("b", 0)]).unwrap();
+    tx.commit().unwrap();
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM models", [], |r| r.get::<_, u32>(0))
+            .unwrap(),
+        1
+    );
+}
+
+#[test]
+fn every_opened_connection_enforces_durability_and_foreign_keys() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("squad.db");
+    let mut writer = squad_store::open(&path).unwrap();
+    migrate(&mut writer).unwrap();
+    let reader = squad_store::open(&path).unwrap();
+    for connection in [&writer, &reader] {
+        assert_eq!(
+            connection
+                .query_row("PRAGMA foreign_keys", [], |r| r.get::<_, u32>(0))
+                .unwrap(),
+            1
+        );
+        assert_eq!(
+            connection
+                .query_row("PRAGMA synchronous", [], |r| r.get::<_, u32>(0))
+                .unwrap(),
+            2
+        );
+        assert_eq!(
+            connection
+                .query_row("PRAGMA journal_mode", [], |r| r.get::<_, String>(0))
+                .unwrap(),
+            "wal"
+        );
+    }
+}
+
+#[test]
+fn failed_roster_write_restores_previous_members_and_judge() {
+    use squad_protocol::*;
+    let mut db = Connection::open_in_memory().unwrap();
+    migrate(&mut db).unwrap();
+    let mut model = Model {
+        nick: Actor::Judge,
+        roster_order: None,
+        requested_slug: Text::new("v/m").unwrap(),
+        resolved_slug: Text::new("v/m").unwrap(),
+        context_length: 100,
+        pricing: serde_json::json!({}),
+        resolved_at: "2026-11-24T12:00:00Z".parse().unwrap(),
+    };
+    squad_store::models::save_model(&db, &model).unwrap();
+    model.nick = Actor::Member(Nick::new("a").unwrap());
+    model.roster_order = Some(0);
+    squad_store::models::save_model(&db, &model).unwrap();
+    db.execute_batch("CREATE TRIGGER fail_roster BEFORE INSERT ON models WHEN NEW.nick='b' BEGIN SELECT RAISE(ABORT, 'fixture failure'); END;").unwrap();
+    model.nick = Actor::Member(Nick::new("b").unwrap());
+    let tx = db.transaction().unwrap();
+    assert!(squad_store::models::save_roster(&tx, &[model.clone()]).is_err());
+    tx.commit().unwrap();
+    assert_eq!(
+        db.query_row(
+            "SELECT count(*) FROM models WHERE nick IN ('a','judge')",
+            [],
+            |r| r.get::<_, u32>(0)
+        )
+        .unwrap(),
+        2
+    );
+    model.context_length = 0;
+    assert!(matches!(
+        squad_store::models::save_model(&db, &model),
+        Err(squad_store::models::ModelError::InvalidModel)
+    ));
+}

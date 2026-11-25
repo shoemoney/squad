@@ -275,7 +275,7 @@ The corresponding transition discriminants are defined in `squad-protocol`; each
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", rename_all = "snake_case", rename_all_fields = "camelCase")]
 pub enum DebateTransition {
     Prepare,
     PlanReady,
@@ -375,7 +375,7 @@ Held messages and their quotes are committed to the human log but are not writte
 #[serde(rename_all = "camelCase")]
 pub struct DebateSolution {
     pub nick: MemberNick,
-    pub message_id: EventId,
+    pub message_id: MessageId,
     pub text: String,
 }
 
@@ -383,7 +383,7 @@ pub struct DebateSolution {
 #[serde(rename_all = "camelCase")]
 pub struct DebateSetup {
     pub debate_id: DebateId,
-    pub topic_message_id: EventId,
+    pub topic_message_id: MessageId,
     pub topic_text: String,
     pub solutions: [DebateSolution; 2],
     pub instruction: String,
@@ -534,7 +534,7 @@ The debate adjudication bundle is:
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdjudicationTopic {
-    pub message_id: EventId,
+    pub message_id: MessageId,
     pub text: String,
 }
 

@@ -143,7 +143,10 @@ pub struct PromptLimits {
     pub final_turn_words: u32,
     pub plan_words: u32,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+)]
+#[serde(rename_all = "lowercase")]
 pub enum ReasoningEffort {
     Low,
     Medium,
@@ -814,6 +817,13 @@ fn bounded(value: &str, min: u8, max: u8) -> Option<u8> {
     value.parse::<u8>().ok().filter(|n| (min..=max).contains(n))
 }
 fn money(value: &str, zero_allowed: bool) -> Option<f64> {
+    let mut parts = value.split('.');
+    let whole = parts.next()?;
+    let fraction = parts.next();
+    let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+    if !digits(whole) || fraction.is_some_and(|s| !digits(s)) || parts.next().is_some() {
+        return None;
+    }
     value.parse::<f64>().ok().filter(|n| {
         !n.is_sign_negative() && n.is_finite() && (*n > 0.0 || (zero_allowed && *n == 0.0))
     })

@@ -205,6 +205,7 @@ CREATE TABLE work (
     trigger_event_seq INTEGER NOT NULL REFERENCES events(seq),
     trigger_event_id TEXT NOT NULL REFERENCES events(id),
     message_id TEXT NOT NULL UNIQUE,
+    in_reply_to_message_id TEXT,
     history_through INTEGER CHECK (history_through >= 1),
     attempt INTEGER NOT NULL DEFAULT 0 CHECK (attempt >= 0),
     status TEXT NOT NULL CHECK (status IN (
@@ -235,6 +236,7 @@ CREATE TABLE work (
     ),
     completed_event_seq INTEGER REFERENCES events(seq),
     step_id TEXT REFERENCES contest_steps(step_id),
+    CHECK (kind <> 'reply' OR in_reply_to_message_id IS NOT NULL),
     CHECK (
         kind <> 'debate.turn'
         OR (debate_id IS NOT NULL AND round IS NOT NULL)

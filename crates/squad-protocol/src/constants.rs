@@ -145,10 +145,7 @@ pub const PREFLIGHT_EXPIRY_MS: u64 = 600_000;
 pub const WORK_LEASE_MS: u64 = 60_000;
 
 /// Work lease renewal interval in milliseconds.
-pub const WORK_LEASE_RENEW_MS: u64 = 20_000;
-
-/// Compatibility name for the work lease renewal interval.
-pub use WORK_LEASE_RENEW_MS as WORK_LEASE_RENEWAL_MS;
+pub const WORK_LEASE_RENEWAL_MS: u64 = 20_000;
 
 /// Ingress channel capacity.
 pub const INGRESS_CAPACITY: usize = 256;
