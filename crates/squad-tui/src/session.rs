@@ -551,6 +551,11 @@ impl Session {
                     .or_default()
                     .apply_payload(content, &base.sender);
                 self.restore_contest(ContestState::Probe(s.clone()));
+                if s.state.is_terminal() {
+                    self.snapshot.preflights.retain(
+                        |p| !matches!(p,PendingPreflight::Contest(p) if p.contest_id==s.contest_id),
+                    );
+                }
                 self.snapshot.context.active_contest = if s.state.is_terminal() {
                     None
                 } else {
@@ -583,13 +588,6 @@ impl Session {
                 cue = Some(FxCue::ProbeTreeReady {
                     contest_id: s.contest_id.to_string().parse().expect("UUID"),
                 });
-            }
-            EnvelopePayload::ProbePreflight(p) => {
-                if p.base.confirmation_required {
-                    self.snapshot
-                        .preflights
-                        .push(PendingPreflight::Contest(p.base.clone()));
-                }
             }
             EnvelopePayload::DebateSetup(s) => {
                 if let Some(view) = self.debates.get_mut(&s.debate_id) {

@@ -983,3 +983,105 @@ async fn ordinary_private_history_never_enters_any_probe_stage() {
     assert_eq!(calls, 10);
     room.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn preflight_confirmation_cancel_and_expiry_never_dispatch_early() {
+    for action in ["confirm", "cancel", "expire"] {
+        let mut f = Fixture::new().await;
+        f.config.budget.debate_confirm_usd = 0.000001;
+        let room = f.open(OpenMode::Interactive).await;
+        let result = room.submit(request(&f.config, BRIEF)).await;
+        let RequestResult::PendingConfirmation {
+            preflight: PendingPreflight::Contest(plan),
+            ..
+        } = result
+        else {
+            panic!("expected confirmation: {result:?}")
+        };
+        assert_eq!(plan.estimate.model_calls, 10);
+        assert_eq!(
+            f.db()
+                .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert_eq!(room.state().await.pending_preflights.len(), 1);
+        if action == "expire" {
+            f.db()
+                .execute(
+                    "UPDATE contests SET expires_at='2000-01-01T00:00:00+00:00'",
+                    [],
+                )
+                .unwrap();
+            room.submit(Request::SetVars {
+                request_id: EventId::new(),
+                updates: vec![VariableUpdate {
+                    name: VariableName::Rounds,
+                    value: 3,
+                }],
+            })
+            .await;
+        } else {
+            let request = if action == "confirm" {
+                Request::ContestConfirm {
+                    request_id: EventId::new(),
+                    contest_id: plan.contest_id,
+                    plan_id: plan.plan_id,
+                }
+            } else {
+                Request::ContestCancel {
+                    request_id: EventId::new(),
+                    contest_id: plan.contest_id,
+                    plan_id: plan.plan_id,
+                }
+            };
+            assert!(matches!(
+                room.submit(request).await,
+                RequestResult::Accepted { .. }
+            ));
+        }
+        f.wait(|| terminal(&f)).await;
+        assert_eq!(
+            status(&f),
+            if action == "confirm" {
+                "COMPLETE"
+            } else if action == "cancel" {
+                "STOPPED"
+            } else {
+                "FAILED"
+            }
+        );
+        assert!(room.state().await.pending_preflights.is_empty());
+        if action != "confirm" {
+            assert_eq!(
+                f.db()
+                    .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get::<_, i64>(0))
+                    .unwrap(),
+                0
+            );
+        }
+        assert_eq!(f.count("contest.preflight.result"), 1);
+        f.assert_ledger();
+        room.shutdown().await.unwrap();
+    }
+}
+
+#[test]
+fn blind_tokens_cover_short_model_families_and_complete_providers() {
+    let tokens = squad_core::router::probe::blind_tokens(vec![
+        "~x-ai/o3".into(),
+        "openai/gpt-6.1".into(),
+        "a curious analyst".into(),
+        "alpha".into(),
+    ]);
+    for token in ["x-ai", "o3", "gpt", "openai", "a curious analyst", "alpha"] {
+        assert!(tokens.iter().any(|t| t == token));
+    }
+    for unrelated in ["x", "ai", "6", "1"] {
+        assert!(!tokens.iter().any(|t| t == unrelated));
+    }
+    assert_eq!(
+        squad_core::router::probe::redact("O3, X-AI, GPT; a curious analyst.", &tokens),
+        "[redacted], [redacted], [redacted]; [redacted]."
+    );
+}

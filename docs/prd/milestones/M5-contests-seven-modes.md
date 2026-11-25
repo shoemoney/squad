@@ -494,32 +494,32 @@
 ## Phase M5.P10 — Probe
 
 - **M5.P10.L1 — Admit the brief and lock roles**
-  - [ ] M5.P10.L1.T1 — Freeze observation, ruled-out material and inspectable resources, enforce an even participating count of at least four and announce an odd-roster sit-out in `crates/squad-core/src/orchestrator/probe.rs`.
-  - [ ] M5.P10.L1.T2 — Persist a random equal explainer/checker split and derive `m + m/2 + 1` calls and `3m + 3` reserved attempts.
-  - [ ] M5.P10.L1.T3 — Run blind proposal fanouts with `probe.explain.md` and `probe.check.md`, validating one explanation or cheap non-destructive check per accepted member.
+  - [x] M5.P10.L1.T1 — Freeze observation, ruled-out material and inspectable resources, enforce an even participating count of at least four and announce an odd-roster sit-out in `crates/squad-core/src/orchestrator/probe.rs`.
+  - [x] M5.P10.L1.T2 — Persist a random equal explainer/checker split and derive `m + m/2 + 1` calls and `3m + 3` reserved attempts.
+  - [x] M5.P10.L1.T3 — Run blind proposal fanouts with `probe.explain.md` and `probe.check.md`, validating one explanation or cheap non-destructive check per accepted member.
 
 - **M5.P10.L2 — Lock predictions and assemble the tree**
-  - [ ] M5.P10.L2.T1 — Deliver only each explainer’s own explanation and all accepted anonymous checks through `probe.predict.md`.
-  - [ ] M5.P10.L2.T2 — Validate one prediction or explicit inability per check and retain missing rows without treating them as evidence.
-  - [ ] M5.P10.L2.T3 — Integrate `probe.report.md`, validate tree references, record discarded checks and inseparable groups, and require an unexpected-result branch at every check node.
+  - [x] M5.P10.L2.T1 — Deliver only each explainer’s own explanation and all accepted anonymous checks through `probe.predict.md`.
+  - [x] M5.P10.L2.T2 — Validate one prediction or explicit inability per check and retain missing rows without treating them as evidence.
+  - [x] M5.P10.L2.T3 — Integrate `probe.report.md`, validate tree references, record discarded checks and inseparable groups, and require an unexpected-result branch at every check node.
 
 - **M5.P10.L3 — Report and recover probe**
-  - [ ] M5.P10.L3.T1 — Assemble the runnable decision tree, prediction matrix, role and sit-out notices and export evidence.
-  - [ ] M5.P10.L3.T2 — Recover the same random split, proposals, locked predictions and report without redrawing roles or repeating accepted steps.
-  - [ ] M5.P10.L3.T3 — Verify the six-member 10-call path, odd-roster behavior, failed members, insufficient usable evidence, no truth declaration, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/probe.rs`.
+  - [x] M5.P10.L3.T1 — Assemble the runnable decision tree, prediction matrix, role and sit-out notices and export evidence.
+  - [x] M5.P10.L3.T2 — Recover the same random split, proposals, locked predictions and report without redrawing roles or repeating accepted steps.
+  - [x] M5.P10.L3.T3 — Verify the six-member 10-call path, odd-roster behavior, failed members, insufficient usable evidence, no truth declaration, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/probe.rs`.
 
 
 - **M5.P10.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P10.L4.T1 — Declare probe statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/probe.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P10.L4.T2 — Add the probe tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P10.L4.T3 — Implement the probe setup, state, explanation, check, prediction, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/probe.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T5.)
-  - [ ] M5.P10.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P10.L4.T5 — Commit probe role splits, sitting-out notices, blind initial artifacts, locked predictions and report references in crate `squad-store`, file `crates/squad-store/src/probe.rs`. (Deferred from M1.P3.L7.T7.)
-  - [ ] M5.P10.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P10.L4.T7 — Prove probe initial roles remain mutually blind, explainers receive only their own explanation and frozen checks for prediction, and committed predictions cannot change before reporting in crate `squad-store`, file `crates/squad-store/tests/probe.rs`. (Deferred from M1.P4.L5.T5.)
-  - [ ] M5.P10.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P10.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
-  - [ ] M5.P10.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P10.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P10.L4.T12 — Add the exact probe per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P10.L4.T13 — Mint anonymous proposal/check IDs at the proposal barrier and deliver one anonymous check bundle per prediction context, with no contributor event IDs or time order.
+  - [x] M5.P10.L4.T1 — Declare probe statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/probe.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P10.L4.T2 — Add the probe tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P10.L4.T3 — Implement the probe setup, state, explanation, check, prediction, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/probe.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T5.)
+  - [x] M5.P10.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P10.L4.T5 — Commit probe role splits, sitting-out notices, blind initial artifacts, locked predictions and report references in crate `squad-store`, file `crates/squad-store/src/probe.rs`. (Deferred from M1.P3.L7.T7.)
+  - [x] M5.P10.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P10.L4.T7 — Prove probe initial roles remain mutually blind, explainers receive only their own explanation and frozen checks for prediction, and committed predictions cannot change before reporting in crate `squad-store`, file `crates/squad-store/tests/probe.rs`. (Deferred from M1.P4.L5.T5.)
+  - [x] M5.P10.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P10.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P10.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
+  - [x] M5.P10.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P10.L4.T12 — Add the exact probe per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P10.L4.T13 — Mint anonymous proposal/check IDs at the proposal barrier and deliver one anonymous check bundle per prediction context, with no contributor event IDs or time order.

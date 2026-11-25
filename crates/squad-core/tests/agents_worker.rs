@@ -212,6 +212,8 @@ async fn full_capacity_one_mailbox_never_blocks_bounded_ingress_or_loses_durable
     let f = Fixture::new(2, 20_000_000).await;
     let mut mailbox = f.bus.register(ExecutorKey::Member(nick("member0")));
     f.send("@member0 missed wake").await;
+    // Commit acknowledgements precede mailbox publication on the router task.
+    f.until(|| mailbox.len() == 1).await;
     assert_eq!(mailbox.len(), 1);
     let mut pending = Vec::new();
     for _ in 0..constants::INGRESS_CAPACITY + 10 {

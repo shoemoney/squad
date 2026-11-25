@@ -16,9 +16,46 @@ pub fn save(
     id: EventId,
     state: &ProbeState,
 ) -> Result<()> {
+    let pending: bool = tx.query_row(
+        "SELECT json_extract(state_json,'$.state')='PREFLIGHT' FROM contests WHERE contest_id=?",
+        [state.contest_id.to_string()],
+        |r| r.get(0),
+    )?;
     let seq = group.push(tx, carrier(id, EnvelopePayload::ProbeState(state.clone())))?;
     squad_store::probe::save(tx, state, state.state_version - 1, seq)?;
-    squad_store::contests::associate(tx, state.contest_id, ContestKind::Probe, seq)
+    squad_store::contests::associate(tx, state.contest_id, ContestKind::Probe, seq)?;
+    if pending && state.state.is_terminal() {
+        let (plan, expires): (String, String) = tx.query_row(
+            "SELECT plan_id,expires_at FROM contests WHERE contest_id=?",
+            [state.contest_id.to_string()],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )?;
+        let status = if state.state == ProbeStatus::Stopped {
+            PreflightStatus::Cancelled
+        } else if expires <= group.accepted_at.to_rfc3339() {
+            PreflightStatus::Expired
+        } else {
+            PreflightStatus::Rejected
+        };
+        let result = ContestPreflightResult {
+            contest_id: state.contest_id,
+            plan_id: plan.parse().map_err(|_| invalid())?,
+            error: (status == PreflightStatus::Rejected).then(|| {
+                error(
+                    ErrorCode::INVALID_STATE_TRANSITION,
+                    "Probe preflight rejected",
+                )
+            }),
+            status,
+            confirmation: None,
+        };
+        let seq = group.push(
+            tx,
+            carrier(id, EnvelopePayload::ContestPreflightResult(result)),
+        )?;
+        squad_store::contests::associate(tx, state.contest_id, ContestKind::Probe, seq)?;
+    }
+    Ok(())
 }
 /// Admission freezes the resolved roster and split before any call can be made.
 #[allow(clippy::too_many_arguments)]
@@ -222,22 +259,13 @@ pub fn prepare(
         .flat_map(|(n, b)| vec![n.clone(), b.model.to_string()])
         .collect::<Vec<_>>();
     if let Some(config) = config {
+        tokens.push(config.judge.model.clone());
         for member in &config.agents {
             tokens.push(member.persona.clone());
             tokens.push(member.model.clone());
         }
     }
-    let more = tokens
-        .iter()
-        .flat_map(|s| {
-            s.split(['/', '-', '_', '.', ':', '~'])
-                .filter(|s| s.chars().count() > 2)
-                .map(str::to_owned)
-        })
-        .collect::<Vec<_>>();
-    tokens.extend(more);
-    tokens.sort();
-    tokens.dedup();
+    let tokens = blind_tokens(tokens);
     squad_store::contest_steps::private_map(
         tx,
         contest_id,
@@ -343,6 +371,9 @@ pub fn resolve(
         ProbeStatus::WaitingForParticipants
     };
     save(tx, group, id, &state)?;
+    if state.state.is_terminal() {
+        return Ok(group.accepted(id));
+    }
     let status = if cancel {
         PreflightStatus::Cancelled
     } else if state.state == ProbeStatus::Failed {
@@ -801,4 +832,26 @@ pub fn transition(
     save(tx, group, id, &state)?;
     tx.execute("UPDATE work SET status='cancelled',runnable=0,lease_fence=lease_fence+1 WHERE contest_id=? AND status IN ('queued','running')",[state.contest_id.to_string()])?;
     Ok(())
+}
+
+/// Include complete provider names and short families such as o3, without
+/// splitting a provider like x-ai into unrelated one-letter prose tokens.
+pub fn blind_tokens(mut tokens: Vec<String>) -> Vec<String> {
+    let mut derived = Vec::new();
+    for token in &tokens {
+        if let Some((provider, model)) = token.trim_start_matches('~').split_once('/') {
+            derived.push(provider.to_owned());
+            derived.extend(
+                model
+                    .split(['-', '_', '.', ':'])
+                    .filter(|part| part.chars().any(char::is_alphabetic))
+                    .map(str::to_owned),
+            );
+        }
+    }
+    tokens.extend(derived);
+    tokens.retain(|t| !t.is_empty());
+    tokens.sort();
+    tokens.dedup();
+    tokens
 }
