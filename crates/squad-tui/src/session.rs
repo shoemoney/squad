@@ -754,12 +754,12 @@ impl FakeRoom {
             .map(|s| Nick::new(s).expect("demo nick"))
             .collect();
         let slugs = [
-            "anthropic/claude-sonnet-4.5",
-            "anthropic/claude-opus-4.1",
-            "openai/gpt-5.1",
-            "google/gemini-3-pro",
-            "x-ai/grok-4",
-            "mistralai/mistral-large-3",
+            "~anthropic/claude-opus-latest",
+            "~anthropic/claude-fable-latest",
+            "~openai/gpt-sol-latest",
+            "google/gemini-4-neon",
+            "~x-ai/grok-latest",
+            "meta/muse-wonder",
         ];
         session.snapshot.models = session
             .snapshot

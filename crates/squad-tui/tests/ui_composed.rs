@@ -229,11 +229,11 @@ async fn startup_identities_and_focused_details_are_available_before_replies() {
         Event::Key(KeyEvent::new(KeyCode::F(8), KeyModifiers::NONE)),
         Duration::ZERO,
     );
-    assert!(screen(&mut app, 80, 24).contains("anthropic/claude-sonnet-4.5"));
+    assert!(screen(&mut app, 80, 24).contains("~anthropic/claude-opus-latest"));
     app.handle(
         Event::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
         Duration::ZERO,
     );
     assert_eq!(app.composed.participants.focused, 1);
-    assert!(screen(&mut app, 80, 24).contains("anthropic/claude-opus-4.1"));
+    assert!(screen(&mut app, 80, 24).contains("~anthropic/claude-fable-latest"));
 }
