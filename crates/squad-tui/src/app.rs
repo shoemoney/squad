@@ -219,7 +219,7 @@ impl App {
                     .max(usize::from(self.msg_focus.is_some()))
             ),
             (false, Some(r)) => format!(
-                "{} {} · {} · ↑/↓ Move · Space Select · Enter Actions",
+                "{} {} · {} · ↑/↓ Move · Space Select · Enter Actions{}",
                 if self.msg_selected.contains(&r.event_id) {
                     "[x]"
                 } else {
@@ -229,7 +229,12 @@ impl App {
                 crate::markdown::sanitize(&r.content)
                     .chars()
                     .take(60)
-                    .collect::<String>()
+                    .collect::<String>(),
+                if matches!(r.author, Actor::Member(_)) {
+                    " · r Regen · t Retry · x Stop"
+                } else {
+                    ""
+                }
             ),
             (false, None) => "No quotable message".into(),
         });
@@ -250,6 +255,53 @@ impl App {
             Some(ids[next])
         };
         self.message_notice();
+    }
+    /// The focused member reply, as (message id, member nick, retryable work id).
+    fn focused_reply(&self) -> Option<(MessageId, MemberNick, Option<WorkId>)> {
+        let record = self.session.snapshot.context.record(self.msg_focus?)?;
+        let Actor::Member(nick) = &record.author else {
+            return None;
+        };
+        let message_id = record.message_id?;
+        let work_id = self
+            .session
+            .transcript
+            .cards
+            .get(&message_id)
+            .filter(|c| matches!(c.terminal, Some(WorkStatus::Failed | WorkStatus::Cancelled)))
+            .and_then(|c| c.work_id);
+        Some((message_id, nick.clone(), work_id))
+    }
+    /// `r`: regenerate the focused reply, or the latest reply when nothing is focused.
+    pub fn regenerate_focused(&mut self) {
+        if self.msg_focus.is_none() {
+            self.queue(actions::regenerate(None));
+        } else if let Some((id, _, _)) = self.focused_reply() {
+            self.queue(actions::regenerate(Some(id)));
+        } else {
+            self.notice = Some("Focus a member reply to regenerate it".into());
+        }
+        self.dirty = true;
+    }
+    /// `t`: retry the focused reply's failed or cancelled work item only.
+    pub fn retry_focused(&mut self) {
+        match self.focused_reply() {
+            Some((_, _, Some(work_id))) => self.queue(actions::retry(work_id)),
+            Some(_) => self.notice = Some("Only a failed or cancelled reply can be retried".into()),
+            None => self.notice = Some("Focus a member reply to retry it".into()),
+        }
+        self.dirty = true;
+    }
+    /// `x`: stop only the focused reply's member.
+    pub fn stop_focused(&mut self) {
+        match self.focused_reply() {
+            Some((_, nick, _)) => {
+                self.notice = Some(format!("Stopping @{nick}…"));
+                self.queue(actions::stop_target(Some(nick)));
+            }
+            None => self.notice = Some("Focus a member reply to stop it".into()),
+        }
+        self.dirty = true;
     }
     fn toggle_message_selection(&mut self) {
         if let Some(id) = self.msg_focus {
@@ -555,6 +607,30 @@ impl App {
                     }
                     KeyCode::Enter if !self.focus_input && !self.participant_details => {
                         self.activate_message_action();
+                        return;
+                    }
+                    KeyCode::Char('r')
+                        if !self.focus_input
+                            && !self.participant_details
+                            && !key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        self.regenerate_focused();
+                        return;
+                    }
+                    KeyCode::Char('t')
+                        if !self.focus_input
+                            && !self.participant_details
+                            && !key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        self.retry_focused();
+                        return;
+                    }
+                    KeyCode::Char('x')
+                        if !self.focus_input
+                            && !self.participant_details
+                            && !key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        self.stop_focused();
                         return;
                     }
                     KeyCode::F(5) => {

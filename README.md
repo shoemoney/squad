@@ -304,6 +304,9 @@ The bottom bar shows the most useful keys for your terminal width.
 | `End` | Jumps back to live. |
 | `Enter` (room focused) | Opens the message action menu. `Enter` again quotes the selected messages (or the focused one). |
 | `y` / `n` | Confirms or cancels a pending cost preview. |
+| `r` (room focused) | Regenerates the focused member reply, or the latest reply when none is focused. |
+| `t` (room focused) | Retries the focused reply's failed or cancelled work item. Siblings are not restarted. |
+| `x` (room focused) | Stops only the focused reply's member. |
 | `Esc` | Closes the topmost open panel first. Then it cancels a pending cost preview, or clears attached quotes. After that it stops work. During a contest, press `Esc` twice within 2 seconds. |
 | `q` | Quits, when focus is not in the input. |
 | `Ctrl+C` | Quits. |
