@@ -11,6 +11,18 @@ pub fn quotes(db: &Connection, ids: &[EventId]) -> Result<Vec<ResolvedQuote>> {
             let text = match &event.content {
                 EnvelopePayload::UserMessage(message) => message.body.clone(),
                 EnvelopePayload::MessageFinal(message) => message.content.clone(),
+                EnvelopePayload::Verdict(verdict) => serde_json::to_string(verdict)?,
+                EnvelopePayload::CaseRuling(ruling) => ruling.content.to_string(),
+                EnvelopePayload::DebateRoundScore(score) => {
+                    let state = squad_store::contests::debate(db, score.debate_id)?;
+                    if state.state != DebateStatus::Completed {
+                        return Err(StoreError::Domain(
+                            ErrorCode::INVALID_REFERENCE,
+                            "Round scores are private until the verdict",
+                        ));
+                    }
+                    serde_json::to_string(score)?
+                }
                 // Round scores and unrestricted operational payloads never enter member prompts through quotes.
                 EnvelopePayload::DebateTurn(turn) => match &turn.outcome {
                     DebateTurnOutcome::Completed { content, .. } => content.clone(),
