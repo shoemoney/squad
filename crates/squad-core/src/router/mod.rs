@@ -71,6 +71,8 @@ pub fn error(code: ErrorCode, text: impl Into<String>) -> ErrorPayload {
         earliest_cursor: None,
         retry_action: None,
         contest_id: None,
+        provider_status: None,
+        provider_message: None,
     }
 }
 pub fn rejected(id: EventId, err: StoreError) -> RequestResult {

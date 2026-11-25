@@ -390,6 +390,12 @@ pub struct ErrorPayload {
     pub retry_action: Option<RetryAction>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub contest_id: Option<ContestId>,
+    /// Sanitized upstream HTTP status for provider failures; never headers or credentials.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_status: Option<u16>,
+    /// Sanitized, bounded upstream error message for provider failures.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_message: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

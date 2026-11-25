@@ -182,7 +182,7 @@ impl WorkExecutor for MemberExecutor {
                             tokio::select! { biased; _ = cancel.cancelled() => return Err(ReaderError::StaleWork), _ = tokio::time::sleep(delay) => {} }
                             grant = start_attempt(context, &grant, grant.work.attempt + 1).await?;
                         } else {
-                            let code = match error {
+                            let code = match &error {
                                 TransportError::Cancelled => ErrorCode::WORK_CANCELLED,
                                 TransportError::Deadline
                                 | TransportError::IdleTimeout
@@ -190,7 +190,7 @@ impl WorkExecutor for MemberExecutor {
                                 TransportError::Network => ErrorCode::PROVIDER_NETWORK_ERROR,
                                 _ => ErrorCode::PROVIDER_ERROR,
                             };
-                            failed(context, &grant, code).await?;
+                            failed_with(context, &grant, code, Some(&error)).await?;
                             return Err(ReaderError::NotRunnable);
                         }
                     }

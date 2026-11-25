@@ -76,16 +76,17 @@ impl WorkExecutor for GrillExecutor {
                     Ok(v) => v,
                     Err(ExecutionError::Reader(e)) => return Err(e),
                     Err(ExecutionError::Transport(e) | ExecutionError::RetryAfter(e, _)) => {
-                        return failed(
+                        return failed_with(
                             context,
                             &grant,
-                            match e {
+                            match &e {
                                 TransportError::FirstTokenTimeout
                                 | TransportError::IdleTimeout
                                 | TransportError::Deadline => ErrorCode::PROVIDER_TIMEOUT,
                                 TransportError::Cancelled => ErrorCode::WORK_CANCELLED,
                                 _ => ErrorCode::PROVIDER_ERROR,
                             },
+                            Some(&e),
                         )
                         .await;
                     }

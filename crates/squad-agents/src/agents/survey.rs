@@ -153,6 +153,8 @@ impl WorkExecutor for SurveyExecutor {
                         earliest_cursor: None,
                         retry_action: None,
                         contest_id: grant.work.contest_id,
+                        provider_status: None,
+                        provider_message: None,
                     };
                     acknowledged(
                         context

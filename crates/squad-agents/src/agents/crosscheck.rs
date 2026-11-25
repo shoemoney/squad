@@ -51,6 +51,8 @@ impl WorkExecutor for CrosscheckExecutor {
                     earliest_cursor: None,
                     retry_action: None,
                     contest_id: grant.work.contest_id,
+                    provider_status: None,
+                    provider_message: None,
                 };
                 let repair = (grant.work.kind.is_crosscheck_judge() && grant.work.attempt == 1)
                     .then(|| JudgeRepairData {

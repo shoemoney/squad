@@ -220,6 +220,30 @@ pub async fn failed(
     grant: &ExecutionGrant,
     code: ErrorCode,
 ) -> Result<(), ReaderError> {
+    failed_with(context, grant, code, None).await
+}
+
+/// Like [`failed`], carrying the transport's sanitized HTTP status and message
+/// (never headers or credentials) so the CLI can show why the provider refused.
+pub async fn failed_with(
+    context: &AgentContext,
+    grant: &ExecutionGrant,
+    code: ErrorCode,
+    transport: Option<&TransportError>,
+) -> Result<(), ReaderError> {
+    let (provider_status, provider_message) = match transport {
+        Some(TransportError::HttpMessage { status, message }) => {
+            (Some(*status), Some(message.clone()))
+        }
+        Some(TransportError::Http(status)) => (Some(*status), None),
+        Some(TransportError::Provider(Some(status))) => (Some(*status), None),
+        _ => (None, None),
+    };
+    let text = match (provider_status, &provider_message) {
+        (Some(status), Some(message)) => format!("{code:?} (HTTP {status}): {message}"),
+        (Some(status), None) => format!("{code:?} (HTTP {status})"),
+        _ => format!("{code:?}"),
+    };
     acknowledged(
         context
             .submit
@@ -231,7 +255,7 @@ pub async fn failed(
                 repair: None,
                 error: ErrorPayload {
                     code,
-                    text: Text::new(format!("{code:?}")).expect("error code"),
+                    text: Text::new(text).expect("error code"),
                     retryable: grant.work.kind == WorkKind::Reply,
                     related_event_id: Some(grant.work.trigger_event_id),
                     work_id: Some(grant.work.work_id),
@@ -243,6 +267,8 @@ pub async fn failed(
                         work_id: grant.work.work_id,
                     }),
                     contest_id: grant.work.contest_id,
+                    provider_status,
+                    provider_message,
                 },
             })
             .await,

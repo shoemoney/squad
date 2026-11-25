@@ -221,10 +221,8 @@ pub fn normalize_catalog(value: Value) -> Result<Catalog, ResolutionError> {
     Ok(models)
 }
 fn transient(error: &TransportError) -> bool {
-    matches!(
-        error,
-        TransportError::Network | TransportError::Deadline | TransportError::Http(429 | 500..=599)
-    )
+    matches!(error, TransportError::Network | TransportError::Deadline)
+        || matches!(error.http_status(), Some(429 | 500..=599))
 }
 pub async fn acquire_catalog(
     client: &OpenRouterClient,
@@ -304,7 +302,7 @@ async fn pin<S: ResolutionStore>(
     store
         .after_probe(nick, configured, 1, &probes[0])
         .map_err(|_| ResolutionError::Persistence)?;
-    if matches!(response, Err(TransportError::Http(400)))
+    if matches!(&response, Err(e) if e.http_status() == Some(400))
         && store.before_probe(nick, configured, 2, 2048).is_ok()
     {
         response = client

@@ -671,6 +671,50 @@ async fn permanent_member_failure_is_reported_without_engine_transition_or_retry
             .any(|r| matches!(r, ExecutorRequest::Result { .. }))
     );
 }
+#[tokio::test]
+async fn provider_http_error_status_and_message_reach_failure_record_without_secrets() {
+    let server = fake::FakeOpenRouter::start().await;
+    server
+        .completions(vec![
+            wiremock::ResponseTemplate::new(400)
+                .insert_header("x-private", "header-secret")
+                .set_body_json(serde_json::json!({"error": {"message": "Only one of \"reasoning.effort\" and \"reasoning.max_tokens\" can be specified"}})),
+        ])
+        .await;
+    let f = Fixture::new("alice", "current");
+    let (ctx, _tx) = f.context();
+    let cancel = ctx.cancel.clone();
+    let task = worker::spawn(ctx, executor(&server));
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            if *f.status.lock().unwrap() == WorkStatus::Failed {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    cancel.cancel();
+    task.await.unwrap().unwrap();
+    let requests = f.requests.lock().unwrap().clone();
+    let error = requests
+        .iter()
+        .find_map(|r| match r {
+            ExecutorRequest::Failed { error, .. } => Some(error.clone()),
+            _ => None,
+        })
+        .expect("failure submitted");
+    assert_eq!(error.code, ErrorCode::PROVIDER_ERROR);
+    assert_eq!(error.provider_status, Some(400));
+    assert_eq!(
+        error.text.as_str(),
+        "PROVIDER_ERROR (HTTP 400): Only one of \"reasoning.effort\" and \"reasoning.max_tokens\" can be specified"
+    );
+    let json = serde_json::to_string(&error).unwrap();
+    assert!(json.contains("providerStatus") && json.contains("providerMessage"));
+    assert!(!json.contains("header-secret") && !json.contains("Bearer"));
+}
 #[test]
 fn round_score_accounting_retains_case_round_work_and_attempt_identity() {
     let f = Fixture::new("alice", "current");

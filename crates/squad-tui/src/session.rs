@@ -1904,6 +1904,8 @@ impl RoomPort for FakeRoom {
                             earliest_cursor: None,
                             retry_action: None,
                             contest_id: None,
+                            provider_status: None,
+                            provider_message: None,
                         },
                     };
                 }

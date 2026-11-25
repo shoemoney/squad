@@ -89,6 +89,8 @@ pub async fn export_file(room: &dyn crate::session::RoomPort, job: ExportJob) ->
                 earliest_cursor: None,
                 retry_action: None,
                 contest_id: None,
+                provider_status: None,
+                provider_message: None,
             },
         },
     }

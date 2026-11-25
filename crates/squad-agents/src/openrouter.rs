@@ -205,6 +205,13 @@ impl fmt::Display for TransportError {
 }
 impl std::error::Error for TransportError {}
 impl TransportError {
+    pub fn http_status(&self) -> Option<u16> {
+        match self {
+            Self::Http(status) | Self::HttpMessage { status, .. } => Some(*status),
+            _ => None,
+        }
+    }
+
     pub fn retryable(&self) -> bool {
         matches!(
             self,

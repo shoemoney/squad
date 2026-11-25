@@ -53,6 +53,8 @@ pub async fn execute(
                 earliest_cursor: None,
                 retry_action: None,
                 contest_id: grant.work.contest_id,
+                provider_status: None,
+                provider_message: None,
             };
             error.retryable = false;
             return acknowledged(context.submit.submit(ExecutorRequest::Failed{work_id:grant.work.work_id,attempt:grant.work.attempt,fence:grant.fence,epoch:grant.epoch,error,repair:Some(JudgeRepairData{attempt:grant.work.attempt+1,rejected_output:output.content,validation_errors:vec!["Invalid schema, references, locked predictions or unexpected-result branches".into()]})}).await);

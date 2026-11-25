@@ -137,6 +137,8 @@ async fn failure_stop_and_restart_release_only_unused_calls() {
                     earliest_cursor: None,
                     retry_action: None,
                     retryable: false,
+                    provider_status: None,
+                    provider_message: None,
                 };
                 assert!(matches!(
                     submit
