@@ -26,9 +26,126 @@ pub fn preflight(plan: &PendingPreflight, confirm: bool) -> Request {
     }
 }
 pub fn stop() -> Request {
+    stop_target(None)
+}
+/// Global stop when `target` is `None`; otherwise only that member's work.
+pub fn stop_target(target: Option<MemberNick>) -> Request {
     Request::Stop {
         request_id: EventId::new(),
-        target: None,
+        target,
+    }
+}
+/// Replay one failed work item. Successful siblings are never restarted: the
+/// core owns the work identity and the request names exactly one.
+pub fn retry(work_id: WorkId) -> Request {
+    Request::Retry {
+        request_id: EventId::new(),
+        work_id,
+    }
+}
+/// The retry control a rejected request or work failure offers, if any.
+pub fn retry_for(error: &ErrorPayload) -> Option<Request> {
+    if !error.retryable {
+        return None;
+    }
+    error
+        .retry_action
+        .as_ref()
+        .map(|a| retry(a.work_id))
+        .or_else(|| error.work_id.map(retry))
+}
+/// Regenerate one reply (`Some`) or the latest reply (`None`).
+pub fn regenerate(message_id: Option<MessageId>) -> Request {
+    Request::Regen {
+        request_id: EventId::new(),
+        message_id,
+    }
+}
+pub fn retry_via<'a>(
+    room: &'a dyn crate::session::RoomPort,
+    work_id: WorkId,
+) -> crate::session::RoomFuture<'a, RequestResult> {
+    room.submit(retry(work_id))
+}
+pub fn regenerate_via<'a>(
+    room: &'a dyn crate::session::RoomPort,
+    message_id: Option<MessageId>,
+) -> crate::session::RoomFuture<'a, RequestResult> {
+    room.submit(regenerate(message_id))
+}
+pub fn help() -> Request {
+    Request::Help
+}
+pub fn who() -> Request {
+    Request::Who
+}
+/// Help is the parser-owned example list; the TUI adds no grammar of its own.
+pub fn help_lines() -> Vec<String> {
+    squad_protocol::parser::HELP_EXAMPLES
+        .iter()
+        .map(|s| (*s).to_owned())
+        .collect()
+}
+/// Every export scope the Foundations contract defines, in presentation order.
+pub const EXPORT_SCOPES: [ExportScope; 8] = [
+    ExportScope::Room,
+    ExportScope::Debate,
+    ExportScope::Grill,
+    ExportScope::Tournament,
+    ExportScope::Census,
+    ExportScope::Crosscheck,
+    ExportScope::Survey,
+    ExportScope::Probe,
+];
+pub fn scope_name(scope: &ExportScope) -> &'static str {
+    match scope {
+        ExportScope::Room => "room",
+        ExportScope::Debate => "debate",
+        ExportScope::Grill => "grill",
+        ExportScope::Tournament => "tournament",
+        ExportScope::Census => "census",
+        ExportScope::Crosscheck => "crosscheck",
+        ExportScope::Survey => "survey",
+        ExportScope::Probe => "probe",
+    }
+}
+/// The four report scopes added after the original room/debate/grill/tournament set.
+pub fn is_new_report_scope(scope: &ExportScope) -> bool {
+    matches!(
+        scope,
+        ExportScope::Census | ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
+    )
+}
+/// Report scope for a contest kind; the core renders the Markdown.
+pub fn scope_for(kind: ContestKind) -> ExportScope {
+    match kind {
+        ContestKind::Debate => ExportScope::Debate,
+        ContestKind::Grill => ExportScope::Grill,
+        ContestKind::Tournament => ExportScope::Tournament,
+        ContestKind::Census => ExportScope::Census,
+        ContestKind::Crosscheck => ExportScope::Crosscheck,
+        ContestKind::Survey => ExportScope::Survey,
+        ContestKind::Probe => ExportScope::Probe,
+    }
+}
+/// Export a contest report to a destination chosen by the caller. Success is
+/// reported only after the whole report was written and flushed.
+pub async fn export_report(
+    room: &dyn crate::session::RoomPort,
+    kind: ContestKind,
+    id: ContestId,
+    destination: &mut impl std::io::Write,
+) -> Result<(), Box<dyn std::error::Error>> {
+    export_to(room, scope_for(kind), Some(id), destination).await
+}
+pub fn export_request(scope: ExportScope, id: Option<ContestId>) -> Request {
+    Request::Export { scope, id }
+}
+/// Default file name for an export destination (never overwrites; see `export_file`).
+pub fn export_file_name(scope: &ExportScope, id: Option<ContestId>) -> String {
+    match id {
+        Some(id) => format!("squad-{}-{id}.md", scope_name(scope)),
+        None => format!("squad-{}.md", scope_name(scope)),
     }
 }
 /// Export is successful only after the destination accepted all bytes.

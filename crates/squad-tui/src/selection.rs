@@ -86,3 +86,164 @@ impl SelectionState {
         *self = Self::default();
     }
 }
+
+/// Display facts for a selectable message, supplied by the transcript owner.
+#[derive(Clone, Debug)]
+pub struct MessagePreview {
+    pub id: MessageId,
+    pub author: String,
+    pub text: String,
+}
+fn event_id(id: MessageId) -> squad_protocol::EventId {
+    id.to_string().parse().expect("message ids are UUIDv7")
+}
+fn clip(text: &str, max: usize) -> String {
+    let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.chars().count() <= max {
+        flat
+    } else {
+        format!("{}…", flat.chars().take(max - 1).collect::<String>())
+    }
+}
+/// Why a debate-solution selection cannot be submitted yet. The parser stays the
+/// authority on wording; these only gate the preview's "ready" state.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SolutionGap {
+    NeedTwo { selected: usize },
+    SameAuthor,
+    Unknown(MessageId),
+}
+#[derive(Clone, Debug)]
+pub struct SolutionPreview {
+    pub author: String,
+    pub text: String,
+    pub id: MessageId,
+}
+/// Two explicit solutions from different members plus the topic, previewed
+/// before submission. The client never substitutes another source.
+#[derive(Clone, Debug)]
+pub struct DebateSolutionSelection {
+    pub topic: String,
+    pub solutions: Vec<SolutionPreview>,
+    pub gap: Option<SolutionGap>,
+}
+impl DebateSolutionSelection {
+    pub fn resolve(
+        state: &SelectionState,
+        messages: &[SelectableMessage],
+        previews: &[MessagePreview],
+        topic: &str,
+    ) -> Self {
+        let ids = state.eligible(messages, MessageAction::DebateSolution);
+        let mut solutions = Vec::new();
+        let mut gap = None;
+        for id in &ids {
+            match previews.iter().find(|p| p.id == *id) {
+                Some(p) => solutions.push(SolutionPreview {
+                    author: p.author.clone(),
+                    text: clip(&p.text, 160),
+                    id: *id,
+                }),
+                None => gap = gap.or(Some(SolutionGap::Unknown(*id))),
+            }
+        }
+        if gap.is_none() {
+            if solutions.len() != 2 {
+                gap = Some(SolutionGap::NeedTwo {
+                    selected: solutions.len(),
+                });
+            } else if solutions[0].author == solutions[1].author {
+                gap = Some(SolutionGap::SameAuthor);
+            }
+        }
+        Self {
+            topic: clip(topic, 160),
+            solutions,
+            gap,
+        }
+    }
+    pub fn ready(&self) -> bool {
+        self.gap.is_none()
+    }
+    /// `replyTo` carries only debate solution references.
+    pub fn meta(&self) -> Option<squad_protocol::parser::SubmissionMeta> {
+        self.ready()
+            .then(|| squad_protocol::parser::SubmissionMeta {
+                quote: vec![],
+                reply_to: self.solutions.iter().map(|s| event_id(s.id)).collect(),
+            })
+    }
+    pub fn preview_lines(&self) -> Vec<String> {
+        let mut lines = vec![format!("Topic: {}", self.topic)];
+        lines.extend(
+            self.solutions
+                .iter()
+                .map(|s| format!("{} — {}", s.author, s.text)),
+        );
+        lines
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PlanSourceGap {
+    Missing,
+    Ambiguous(usize),
+}
+/// Leader-plan source for `$grill`: exactly one eligible message among the
+/// selected and quoted ones, shown with its preview before submission.
+#[derive(Clone, Debug)]
+pub struct GrillPlanSelection {
+    pub source: Option<SolutionPreview>,
+    pub gap: Option<PlanSourceGap>,
+}
+impl GrillPlanSelection {
+    pub fn resolve(
+        state: &SelectionState,
+        messages: &[SelectableMessage],
+        quoted: &[MessageId],
+        previews: &[MessagePreview],
+    ) -> Self {
+        let mut ids = state.eligible(messages, MessageAction::GrillPlan);
+        for q in quoted {
+            if !ids.contains(q)
+                && messages.iter().any(|m| {
+                    m.id == *q && m.durable && m.actions.contains(&MessageAction::GrillPlan)
+                })
+            {
+                ids.push(*q);
+            }
+        }
+        match ids.as_slice() {
+            [] => Self {
+                source: None,
+                gap: Some(PlanSourceGap::Missing),
+            },
+            [one] => Self {
+                source: previews
+                    .iter()
+                    .find(|p| p.id == *one)
+                    .map(|p| SolutionPreview {
+                        author: p.author.clone(),
+                        text: clip(&p.text, 160),
+                        id: *one,
+                    }),
+                gap: None,
+            },
+            many => Self {
+                source: None,
+                gap: Some(PlanSourceGap::Ambiguous(many.len())),
+            },
+        }
+    }
+    pub fn ready(&self) -> bool {
+        self.gap.is_none() && self.source.is_some()
+    }
+    /// The explicit source travels as the single quoted message.
+    pub fn meta(&self) -> Option<squad_protocol::parser::SubmissionMeta> {
+        self.source
+            .as_ref()
+            .map(|s| squad_protocol::parser::SubmissionMeta {
+                quote: vec![event_id(s.id)],
+                reply_to: vec![],
+            })
+    }
+}

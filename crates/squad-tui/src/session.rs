@@ -107,6 +107,20 @@ impl RoomFeed {
         })
     }
 }
+/// Request a standalone ruling, or judging for a stopped/completed debate.
+pub fn judge_request(debate_id: Option<DebateId>) -> Request {
+    Request::Judge {
+        request_id: EventId::new(),
+        debate_id,
+    }
+}
+/// The user-facing text of a rejection, verbatim from the core.
+pub fn rejection_text(result: &RequestResult) -> Option<&str> {
+    match result {
+        RequestResult::Rejected { error, .. } => Some(error.text.as_str()),
+        _ => None,
+    }
+}
 pub trait RoomPort: Send + Sync {
     fn submit(&self, request: Request) -> RoomFuture<'_, RequestResult>;
     fn subscribe(&self, after: Option<Cursor>) -> Result<RoomFeed, RoomError>;
@@ -134,6 +148,36 @@ pub struct ContestView {
     pub scores: BTreeMap<u32, DebateRoundScore>,
     pub verdict: Option<DebateVerdict>,
     pub survey: Option<crate::widgets::survey::SurveyView>,
+    /// Committed script steps by ordinal.
+    pub steps: BTreeMap<u32, ContestStep>,
+    /// Stable per-work cards in work-id order; a newer attempt replaces in place.
+    pub work: BTreeMap<WorkId, crate::widgets::contest_status::WorkCard>,
+}
+impl ContestView {
+    pub fn outcome(&self) -> Option<crate::widgets::contest_status::RunOutcome> {
+        self.state
+            .as_ref()
+            .map(crate::widgets::contest_status::outcome)
+    }
+    /// Skipped members named by committed reports, in report order.
+    pub fn skipped_members(&self) -> Vec<String> {
+        let mut out: Vec<String> = vec![];
+        for id in self.reports.values().flat_map(|r| &r.skipped_work_ids) {
+            if let Some(card) = self.work.get(id)
+                && !out.contains(&card.target)
+            {
+                out.push(card.target.clone());
+            }
+        }
+        out
+    }
+    pub fn report_header(&self) -> String {
+        crate::widgets::contest_status::report_header(
+            self.outcome()
+                .unwrap_or(crate::widgets::contest_status::RunOutcome::Running),
+            &self.skipped_members(),
+        )
+    }
 }
 #[derive(Debug, Clone)]
 pub struct PickView {
@@ -302,6 +346,17 @@ impl Session {
         }
         view.state = Some(state);
     }
+    /// Fold a request acknowledgement into session state. A rejection keeps the
+    /// core's wording and never touches a pending pick or collected answers.
+    pub fn note_result(&mut self, result: &RequestResult) {
+        match result {
+            RequestResult::Rejected { error, .. } => {
+                self.last_error = Some(error.text.to_string());
+            }
+            RequestResult::Accepted { .. } => self.last_error = None,
+            _ => {}
+        }
+    }
     pub fn active_contest(&self) -> bool {
         self.snapshot.context.active_contest.is_some()
     }
@@ -333,6 +388,25 @@ impl Session {
             && let Some(v) = &mut c.survey
         {
             v.apply(content);
+        }
+        if let EnvelopePayload::WorkState(w) = content
+            && let Some(id) = w.contest_id
+        {
+            let card = crate::widgets::contest_status::WorkCard::from_event(w);
+            let view = self.contests.entry(id).or_default();
+            match view.work.get(&w.work_id) {
+                Some(old) if !old.accepts(&card) => {}
+                _ => {
+                    view.work.insert(w.work_id, card);
+                }
+            }
+        }
+        if let EnvelopePayload::ContestStep(step) = content {
+            self.contests
+                .entry(step.contest_id)
+                .or_default()
+                .steps
+                .insert(step.ordinal, step.clone());
         }
         if committed.is_none()
             && matches!(
@@ -1245,6 +1319,7 @@ pub struct FakeRoom {
     inner: Arc<Mutex<Session>>,
     feed: broadcast::Sender<FeedItem>,
     stop: watch::Sender<bool>,
+    stopped_nicks: Arc<Mutex<BTreeSet<Nick>>>,
 }
 impl Default for FakeRoom {
     fn default() -> Self {
@@ -1290,7 +1365,34 @@ impl FakeRoom {
             inner: Arc::new(Mutex::new(session)),
             feed,
             stop,
+            stopped_nicks: Arc::default(),
         }
+    }
+    fn reject(message: &str) -> RequestResult {
+        RequestResult::Rejected {
+            request_id: EventId::new(),
+            error: ErrorPayload {
+                code: ErrorCode::INVALID_COMMAND,
+                text: Text::new(message).expect("nonempty"),
+                retryable: false,
+                related_event_id: None,
+                work_id: None,
+                debate_id: None,
+                case_id: None,
+                earliest_cursor: None,
+                retry_action: None,
+                contest_id: None,
+                provider_status: None,
+                provider_message: None,
+            },
+        }
+    }
+    fn respawn_reply(&self, nick: Nick, question: MessageId) {
+        let room = self.clone();
+        tokio::spawn(async move {
+            room.stream(nick, question, "Regenerated local demo reply.", None)
+                .await;
+        });
     }
     pub fn emit(&self, item: FeedItem) {
         let mut state = self.inner.lock().expect("fake room mutex");
@@ -1659,8 +1761,11 @@ impl FakeRoom {
             _ => 125,
         };
         let cancelled = self.stop.subscribe();
+        self.stopped_nicks.lock().unwrap().remove(&nick);
         for (chunk, word) in text.split_inclusive(' ').enumerate() {
-            if cancelled.has_changed().unwrap_or(true) {
+            if cancelled.has_changed().unwrap_or(true)
+                || self.stopped_nicks.lock().unwrap().contains(&nick)
+            {
                 return;
             }
             self.emit(FeedItem::Delta(ProducerEnvelope {
@@ -1827,8 +1932,15 @@ impl RoomPort for FakeRoom {
                     ));
                     request_id
                 }
-                Request::Stop { request_id, .. } => {
-                    self.stop.send_replace(true);
+                Request::Stop { request_id, target } => {
+                    match &target {
+                        None => {
+                            self.stop.send_replace(true);
+                        }
+                        Some(nick) => {
+                            self.stopped_nicks.lock().unwrap().insert(nick.clone());
+                        }
+                    }
                     let (cards, contest) = {
                         let state = self.inner.lock().unwrap();
                         (
@@ -1837,6 +1949,11 @@ impl RoomPort for FakeRoom {
                                 .cards
                                 .values()
                                 .filter(|c| !c.complete)
+                                .filter(|c| {
+                                    target
+                                        .as_ref()
+                                        .is_none_or(|t| c.author == Actor::Member(t.clone()))
+                                })
                                 .cloned()
                                 .collect::<Vec<_>>(),
                             state.snapshot.context.active_contest.clone(),
@@ -1861,13 +1978,69 @@ impl RoomPort for FakeRoom {
                             ));
                         }
                     }
-                    if let Some(ContestState::Debate(mut state)) = contest {
+                    if target.is_none()
+                        && let Some(ContestState::Debate(mut state)) = contest
+                    {
                         state.state = DebateStatus::Stopped;
                         state.state_version += 1;
                         accepted_events
                             .push(self.commit(Actor::System, EnvelopePayload::DebateState(state)));
                     }
                     request_id
+                }
+                Request::Retry {
+                    request_id,
+                    work_id,
+                } => {
+                    let card = self
+                        .inner
+                        .lock()
+                        .unwrap()
+                        .transcript
+                        .cards
+                        .values()
+                        .find(|c| c.work_id == Some(work_id))
+                        .cloned();
+                    match card {
+                        Some(crate::transcript::ReplyCard {
+                            author: Actor::Member(nick),
+                            id,
+                            ..
+                        }) => {
+                            self.respawn_reply(nick, id);
+                            request_id
+                        }
+                        _ => return Self::reject("Unknown or non-retryable work."),
+                    }
+                }
+                Request::Regen {
+                    request_id,
+                    message_id,
+                } => {
+                    let card = {
+                        let state = self.inner.lock().unwrap();
+                        state
+                            .transcript
+                            .cards
+                            .values()
+                            .rev()
+                            .find(|c| {
+                                matches!(c.author, Actor::Member(_))
+                                    && message_id.is_none_or(|id| c.id == id)
+                            })
+                            .cloned()
+                    };
+                    match card {
+                        Some(crate::transcript::ReplyCard {
+                            author: Actor::Member(nick),
+                            id,
+                            ..
+                        }) => {
+                            self.respawn_reply(nick, id);
+                            request_id
+                        }
+                        _ => return Self::reject("Nothing to regenerate."),
+                    }
                 }
                 Request::Help => {
                     return RequestResult::Internal(InternalResult::Text {

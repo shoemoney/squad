@@ -213,3 +213,30 @@ pub fn render(view: &PickView, area: Rect, buf: &mut Buffer, palette: &Palette) 
     }
     rects
 }
+
+impl PickView {
+    /// Nicks that may be picked now; empty unless the pick is pending.
+    pub fn eligible_nicks(&self) -> Vec<String> {
+        if self.status != PickStatus::Pending {
+            return vec![];
+        }
+        self.candidates
+            .iter()
+            .filter(|c| c.eligible)
+            .map(|c| c.nick.clone())
+            .collect()
+    }
+}
+impl PickRects {
+    /// Areas an effect layer may animate: the banner entrance and each eligible
+    /// candidate's marker cell. Text is already complete without them.
+    pub fn effect_hooks(&self) -> (Rect, Vec<(String, Rect)>) {
+        (
+            self.banner,
+            self.candidates
+                .iter()
+                .map(|(nick, marker, _)| (nick.clone(), *marker))
+                .collect(),
+        )
+    }
+}
