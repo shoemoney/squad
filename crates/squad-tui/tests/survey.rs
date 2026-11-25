@@ -106,6 +106,7 @@ fn fixture(collect: bool) -> SurveyView {
         step_id,
         completed,
         map,
+        completeness: None,
         report: SurveyReportText {
             consensus: vec![e.clone()],
             contested: vec![e.clone()],
@@ -149,6 +150,7 @@ fn committed_report_at_both_viewports_and_source_paths() {
     insta::assert_snapshot!("survey_reused_120", snapshot(120, false));
     let text = fixture(false).text();
     for required in [
+        "DEGRADED",
         "Consensus",
         "Contested",
         "Lone insights",
@@ -229,4 +231,24 @@ fn reducer_emits_only_live_committed_cues_and_replay_is_static() {
     assert_eq!(replay.contests.len(), 1);
     assert!(replay.snapshot.scoreboard.is_empty());
     assert!(replay.snapshot.trophies.is_empty());
+}
+
+#[test]
+fn collapsed_and_replayed_surveys_keep_degraded_warning_first() {
+    let mut view = fixture(false);
+    view.collapsed = true;
+    assert!(view.text().starts_with("DEGRADED"));
+    let report = view.report().unwrap().clone();
+    let mut replay = SurveyView::default();
+    replay.apply(&EnvelopePayload::SurveyReport(report));
+    replay.collapsed = true;
+    assert!(replay.text().starts_with("DEGRADED"));
+    let mut buffer = Buffer::empty(Rect::new(0, 0, 80, 24));
+    survey::render(&replay, buffer.area, &mut buffer);
+    let visible = buffer
+        .content
+        .iter()
+        .map(|c| c.symbol())
+        .collect::<String>();
+    assert!(visible.contains("DEGRADED"));
 }

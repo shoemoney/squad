@@ -7,6 +7,8 @@ expression: "snapshot(120, false)"
                                          \___ \| | | | |_) \ \ / /|  _|  \ V /
                                           ___) | |_| |  _ < \ V / | |___  | |
                                          |____/ \___/|_| \_\ \_/  |_____| |_|
+DEGRADED · missing ballots or revotes; see claim participation below
+
 ## SURVEY 01900000-0000-7000-8000-000000000001
 
 What would establish the claim?
@@ -24,6 +26,8 @@ Source: existing parallel answers
   Change evidence: A contrary measurement
 
 ## Survey claim map
+
+DEGRADED · missing ballots or revotes; see claim participation below
 
 ### Consensus
 

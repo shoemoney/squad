@@ -214,3 +214,35 @@ fn nested_blind_projections_redact_identity_prose_without_changing_claim_ids() {
     );
     assert_eq!(v["question"], "MEMBER0 asks");
 }
+
+#[test]
+fn completeness_tracks_each_stage_even_if_later_votes_fill_the_map() {
+    let mut s = setup();
+    let claims = SurveyExtraction {
+        claims: vec![SurveyClaim {
+            id: "c1".into(),
+            claim: "A claim".into(),
+            source_answer_ids: vec![s.answers[0].message_id],
+        }],
+    };
+    let all = (0..4)
+        .map(|i| vote(&s, i, &["c1"], SurveyChoice::Agree))
+        .collect::<Vec<_>>();
+    let complete = survey::completeness(&s, &claims, &["c1".into()], &all, &all);
+    assert!(complete.complete && complete.is_complete());
+    s.answers.pop();
+    let c = survey::completeness(&s, &claims, &["c1".into()], &all[..3], &all);
+    assert!(!c.complete);
+    assert_eq!(c.missing_answers, vec![s.participants[3].clone()]);
+    assert_eq!(c.missing_votes, vec![s.participants[3].clone()]);
+    assert!(c.missing_revotes.is_empty());
+    // No extracted claims means no required first or second ballot calls.
+    let c = survey::completeness(
+        &setup(),
+        &SurveyExtraction { claims: vec![] },
+        &[],
+        &[],
+        &[],
+    );
+    assert!(c.complete);
+}
