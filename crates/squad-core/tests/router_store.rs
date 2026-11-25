@@ -812,3 +812,55 @@ async fn runtime_constructs_only_the_requested_executor_capabilities() {
         );
     }
 }
+
+#[tokio::test]
+async fn admission_fifo_does_not_depend_on_uuid_random_tails() {
+    let (store, mut router) = fixture();
+    router
+        .process(message("@alice fifo", EventId::new()), None)
+        .unwrap();
+    let original = first_work(store.clone(), "alice").await;
+    let first: WorkId = "01900000-0000-7000-8000-0000000000ff".parse().unwrap();
+    let second: WorkId = "01900000-0000-7000-8000-000000000001".parse().unwrap();
+    store
+        .call(move |db| {
+            let tx = db.transaction()?;
+            let (mut work, binding) = squad_store::work::template(&tx, original.work_id)?.unwrap();
+            tx.execute(
+                "UPDATE work SET status='cancelled',runnable=0 WHERE work_id=?",
+                [original.work_id.to_string()],
+            )?;
+            for id in [first, second] {
+                work.work_id = id;
+                work.message_id = MessageId::new();
+                squad_store::work::insert(&tx, &work, &binding, None)?;
+            }
+            tx.commit()?;
+            Ok(())
+        })
+        .unwrap();
+    let owner = ExecutorKey::Member(nick("alice"));
+    let reader = squad_store::readers::ScopedReaders::new(store, owner.clone(), 1);
+    assert_eq!(
+        reader
+            .unfinished()
+            .await
+            .unwrap()
+            .iter()
+            .map(|r| r.work_id)
+            .collect::<Vec<_>>(),
+        vec![first, second]
+    );
+    let claim = router
+        .process(
+            Request::Internal(InternalRequest::Executor(ExecutorRequest::Claim {
+                work_id: second,
+            })),
+            Some(owner),
+        )
+        .unwrap();
+    assert!(matches!(
+        claim.result,
+        RequestResult::Internal(InternalResult::NoWork)
+    ));
+}

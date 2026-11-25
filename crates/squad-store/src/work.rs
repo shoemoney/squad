@@ -117,7 +117,7 @@ pub fn claim(
         return Ok(None);
     }
     let lease = now + chrono::Duration::milliseconds(constants::WORK_LEASE_MS as i64);
-    let changed=db.execute("UPDATE work SET status='running',attempt=attempt+1,history_through=COALESCE(history_through,?1),lease_owner=?2,lease_fence=lease_fence+1,lease_until=?3 WHERE work_id=?4 AND status='queued' AND runnable=1 AND held_by_contest_id IS NULL AND epoch=(SELECT epoch FROM room_meta) AND (kind<>'judge.round' OR attempt<2) AND NOT EXISTS(SELECT 1 FROM work prior WHERE prior.context_id=work.context_id AND prior.status IN ('queued','running') AND (prior.trigger_event_seq<work.trigger_event_seq OR (prior.trigger_event_seq=work.trigger_event_seq AND prior.work_id<work.work_id)))",params![boundary,encode(key)?,lease.to_rfc3339(),id.to_string()])?;
+    let changed=db.execute("UPDATE work SET status='running',attempt=attempt+1,history_through=COALESCE(history_through,?1),lease_owner=?2,lease_fence=lease_fence+1,lease_until=?3 WHERE work_id=?4 AND status='queued' AND runnable=1 AND held_by_contest_id IS NULL AND epoch=(SELECT epoch FROM room_meta) AND (kind<>'judge.round' OR attempt<2) AND NOT EXISTS(SELECT 1 FROM work prior WHERE prior.context_id=work.context_id AND prior.status IN ('queued','running') AND (prior.trigger_event_seq<work.trigger_event_seq OR (prior.trigger_event_seq=work.trigger_event_seq AND prior.rowid<work.rowid)))",params![boundary,encode(key)?,lease.to_rfc3339(),id.to_string()])?;
     if changed == 0 {
         return Ok(None);
     }

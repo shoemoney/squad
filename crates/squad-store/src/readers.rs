@@ -104,7 +104,7 @@ impl WorkReader for ScopedReaders {
     fn unfinished(&self) -> ReaderFuture<'_, Vec<WorkRecord>> {
         Box::pin(async move {
             self.read(|db,owner| {
-            let mut query=db.prepare("SELECT work_id FROM work WHERE status IN ('queued','running') AND epoch=(SELECT epoch FROM room_meta) ORDER BY trigger_event_seq,work_id").map_err(|_|ReaderError::StoreUnavailable {message:"Store unavailable".into()})?;
+            let mut query=db.prepare("SELECT work_id FROM work WHERE status IN ('queued','running') AND epoch=(SELECT epoch FROM room_meta) ORDER BY trigger_event_seq,rowid").map_err(|_|ReaderError::StoreUnavailable {message:"Store unavailable".into()})?;
             let ids=query.query_map([],|r|r.get::<_,String>(0)).map_err(|_|ReaderError::StaleWork)?.collect::<std::result::Result<Vec<_>,_>>().map_err(|_|ReaderError::StaleWork)?;
             let mut records=Vec::new();for id in ids {let id=id.parse().map_err(|_|ReaderError::StaleWork)?;match owned(db,owner,id) {Ok(record)=>records.push(record),Err(ReaderError::Forbidden)=>{},Err(e)=>return Err(e)}}Ok(records)
         })
