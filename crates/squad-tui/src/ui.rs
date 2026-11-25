@@ -61,7 +61,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     let buffer = frame.buffer_mut();
     Clear.render(area, buffer);
     Paragraph::new(" SQUAD   /   main   ·   six minds, one room")
-        .style(theme.chrome())
+        .style(theme.quiet_chrome())
         .render(geometry.status, buffer);
     let spend = &app.session.snapshot.daily_spend;
     let budget = crate::widgets::budget::DailySpendView {
@@ -103,7 +103,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 t.get(&view.state.debaters[1]).copied().unwrap_or(0)
             ))
         ))
-        .style(theme.chrome())
+        .style(theme.event_accent())
         .render(
             Rect::new(
                 transcript_area.x,
@@ -224,13 +224,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         .preview
         .as_ref()
         .map_or("squad".into(), |v| v.recipients.join(" "));
-    let chrome = Style::default()
-        .fg(theme.palette.chrome())
-        .add_modifier(if app.focus_input {
-            Modifier::BOLD
-        } else {
-            Modifier::DIM
-        });
+    let chrome = Style::default().add_modifier(if app.focus_input {
+        Modifier::BOLD
+    } else {
+        Modifier::DIM
+    });
     Paragraph::new(format!(
         "─ Input · To {recipients} · quotes {} {}",
         app.quotes.ids.len(),
@@ -247,7 +245,9 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     {
         frame.set_cursor_position((x, y));
     }
-    let footer = if app.awaiting_ack {
+    let footer = if !app.session.transcript.follow && app.stop_confirmation.is_none() {
+        "↓ back to live · End   |   PgUp/PgDn Scroll · F7 Scores · F6 Focus".into()
+    } else if app.awaiting_ack {
         format!(
             "Waiting for acknowledgement… {}",
             app.pending_updates
@@ -280,8 +280,17 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     } else {
         "F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit".into()
     };
+    let help_style = if !app.session.transcript.follow
+        || app.awaiting_ack
+        || app.stop_confirmation.is_some_and(|until| now < until)
+        || app.session.pick.is_some()
+    {
+        theme.event_accent()
+    } else {
+        theme.quiet_chrome()
+    };
     Paragraph::new(footer)
-        .style(Style::default().add_modifier(Modifier::DIM))
+        .style(help_style)
         .render(geometry.help, frame.buffer_mut());
     if app.participant_details
         && let Some(member) = members.get(app.composed.participants.focused)

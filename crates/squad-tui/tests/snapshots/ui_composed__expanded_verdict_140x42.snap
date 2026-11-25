@@ -1,0 +1,46 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+expression: expanded
+---
+ SQUAD   /   main   ·   six minds, one room
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · 4.5         │╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+idle W1 L0           ││VERDICT                                                                                                             │
+n/a tok · n/a        ││                                         ____ _        _   _   _ ____  _____                                        │
+fable · 4.1          ││                                        / ___| |      / \ | | | |  _ \| ____|                                       │
+idle W0 L0           ││                                       | |   | |     / _ \| | | | | | |  _|                                         │
+n/a tok · n/a        ││                                       | |___| |___ / ___ \ |_| | |_| | |___                                        │
+openai · 5.1         ││                                        \____|_____/_/   \_\___/|____/|_____|                                       │
+idle W0 L1           ││Winner: @claude                                                                                                     │
+n/a tok · n/a        ││Weighted score                                                                                                      │
+gemini · 3-pro       ││claude 8.00 : 7.00 openai                                                                                           │
+idle W0 L0           ││Round tally 24 : 21 · Judge demo/judge                                                                              │
+n/a tok · n/a        ││Decision                                                                                                            │
+grok · 4             ││Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a  │
+idle W0 L0           ││responsive room that survives restarts.                                                                             │
+n/a tok · n/a        ││Takeaway · What to steal from the loser                                                                             │
+muse · 3             ││• Bounded input-first scheduling                                                                                    │
+idle W0 L0           ││Criteria · scale 1–10                claude             openai                                                      │
+n/a tok · n/a        ││Fit                                    8/10               7/10                                                      │
+                     ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││Feasibility                            8/10               7/10                                                      │
+                     ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││Originality                            8/10               7/10                                                      │
+                     ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││Survived attacks                       8/10               7/10                                                      │
+                     ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+                     ││Round 1                                                                                                             │
+                     ││@claude: 8/10 · Clear durability contract                                                                           │
+                     ││@openai: 7/10 · Strong responsiveness argument                                                                      │
+                     ││Round 2                                                                                                             │
+                     ││@claude: 8/10 · Clear durability contract                                                                           │
+                     ││@openai: 7/10 · Strong responsiveness argument                                                                      │
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Ask the squad…
+
+
+↓ back to live · End   |   PgUp/PgDn Scroll · F7 Scores · F6 Focus

@@ -1,0 +1,24 @@
+ SQUAD   /   main   ·   six minds, one room
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · 4.5     │claude 24 [━━━━━━━━━━━━━━━━━━━━━━━━] 21 openai
+idle W1 L0
+fable · 4.1      │╭────────────────────────────────────────────────────────────╮
+idle W0 L0       ││VERDICT                                                     │
+openai · 5.1     ││Winner: @claude                                             │
+idle W0 L1       ││Weighted score                                              │
+gemini · 3-pro   ││claude 8.00 : 7.00 openai                                   │
+idle W0 L0       ││Round tally 24 : 21 · Judge demo/judge                      │
+grok · 4         ││Decision                                                    │
+idle W0 L0       ││Durability wins the foundation; take bounded, input-first   │
+muse · 3         ││scheduling from the other proposal. Together they make a    │
+idle W0 L0       ││responsive room that survives restarts.                     │
+                 ││Takeaway · What to steal from the loser                     │
+                 ││• Bounded input-first scheduling                            │
+                 ││F7 Expand scores & reasons · Follow up with @judge          │
+                 │╰────────────────────────────────────────────────────────────╯
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

@@ -4,27 +4,27 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
-claude · 4.5         │
-idle W1 L0           │▌  @openai · complete
-fable · 4.1          │▌  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
-idle W0 L0           │▌  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
-openai · 5.1         │▌  product before a real provider is connected.
-idle W0 L1           │
-gemini · 3-pro       │Round 3 · claude 8 : 7 openai · total 24 : 21
-idle W0 L0           │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
-grok · 4             │                                      __     _______ ____  ____ ___ ____ _____
-idle W0 L0           │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
-muse · 3             │                                       \ \ / /|  _| | |_) | | | | | |     | |
-idle W0 L0           │                                        \ V / | |___|  _ <| |_| | | |___  | |
-                     │                                         \_/  |_____|_| \_\____/___\____| |_|
-
-                     │╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-                     ││Winner: @claude                                                                                                     │
-                     ││claude 8.00 : 7.00 openai                                                                                           │
-                     ││Tally 24 : 21 · Judge demo/judge                                                                                    │
+claude · 4.5         │▌  product before a real provider is connected.
+idle W1 L0           │
+n/a tok · n/a        │Round 3 · claude 8 : 7 openai · tally 24 : 21
+fable · 4.1          │Round tally
+idle W0 L0           │claude 24 [━━━━━━━━━━━━━━━━━━━━━━━━] 21 openai
+n/a tok · n/a
+openai · 5.1         │╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+idle W0 L1           ││VERDICT                                                                                                             │
+n/a tok · n/a        ││                                         ____ _        _   _   _ ____  _____                                        │
+gemini · 3-pro       ││                                        / ___| |      / \ | | | |  _ \| ____|                                       │
+idle W0 L0           ││                                       | |   | |     / _ \| | | | | | |  _|                                         │
+n/a tok · n/a        ││                                       | |___| |___ / ___ \ |_| | |_| | |___                                        │
+grok · 4             ││                                        \____|_____/_/   \_\___/|____/|_____|                                       │
+idle W0 L0           ││Winner: @claude                                                                                                     │
+n/a tok · n/a        ││Weighted score                                                                                                      │
+muse · 3             ││claude 8.00 : 7.00 openai                                                                                           │
+idle W0 L0           ││Round tally 24 : 21 · Judge demo/judge                                                                              │
+n/a tok · n/a        ││Decision                                                                                                            │
                      ││Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a  │
                      ││responsive room that survives restarts.                                                                             │
-                     ││RESPECT · What to steal from the loser                                                                              │
+                     ││Takeaway · What to steal from the loser                                                                             │
                      ││• Bounded input-first scheduling                                                                                    │
                      ││F7 Expand scores & reasons · Follow up with @judge                                                                  │
                      │╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

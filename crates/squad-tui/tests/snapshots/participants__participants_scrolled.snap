@@ -2,15 +2,15 @@
 source: crates/squad-tui/tests/participants.rs
 expression: "screen(80, 12, 12)"
 ---
+persona_4_with_a_very_long_name · 4.7
+live W7 L2
+24.5 tok/s · q2
+persona_5_with_a_very_long_name · 4.7
+live W7 L2
+24.5 tok/s · q2
 persona_6_with_a_very_long_name · 4.7
 live W7 L2
-persona_7_with_a_very_long_name · 4.7
-live W7 L2
-persona_8_with_a_very_long_name · 4.7
-live W7 L2
-persona_9_with_a_very_long_name · 4.7
-live W7 L2
-persona_10_with_a_very_long_name · 4.7
-live W7 L2
+24.5 tok/s · q2
 
-+1 more · scroll
+
++5 more · scroll

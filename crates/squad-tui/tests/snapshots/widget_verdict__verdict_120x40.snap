@@ -3,11 +3,17 @@ source: crates/squad-tui/tests/widget_verdict.rs
 expression: screen(&buf)
 ---
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│VERDICT                                                                                                               │
 │Winner: @claude                                                                                                       │
+│Weighted score                                                                                                        │
 │claude 8.00 : 8.00 gemini                                                                                             │
-│Tally 12 : 16 · Judge judge/actual                                                                                    │
+│Round tally 12 : 16 · Judge judge/actual                                                                              │
 │Judge model changed to judge/actual because @claude is debating.                                                      │
 │Tally override: The final proposal resolves the earlier weaknesses.                                                   │
+│Decision                                                                                                              │
+│Equal weighted totals; the smaller deployment wins.                                                                   │
+│Takeaway · What to steal from the loser                                                                               │
+│• Keep the rollback checklist.                                                                                        │
 │Criteria · scale 1–10                claude             gemini                                                        │
 │Fit                                    8/10               8/10                                                        │
 │@claude: Concrete and testable.                                                                                       │
@@ -21,8 +27,5 @@ expression: screen(&buf)
 │Survived attacks                       8/10               8/10                                                        │
 │@claude: Concrete and testable.                                                                                       │
 │@gemini: Concrete and testable.                                                                                       │
-│Equal weighted totals; the smaller deployment wins.                                                                   │
-│RESPECT · What to steal from the loser                                                                                │
-│• Keep the rollback checklist.                                                                                        │
 │F7 Collapse details · Follow up with @judge                                                                           │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

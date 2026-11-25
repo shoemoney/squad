@@ -246,26 +246,31 @@ pub fn attach(
                 }
             }
             FxCue::VerdictReady { contest_id } => {
-                let id = contest_id.to_string().parse().expect("UUID");
-                let rect = app
-                    .composed
-                    .graphics
-                    .get(&id)
-                    .and_then(|s| {
-                        s.banners
-                            .iter()
-                            .find(|(k, _)| *k == squad_core::banner::Banner::Verdict)
-                    })
-                    .map(|(_, r)| app.composed.graphic_rect(id, *r, top, transcript))
-                    .unwrap_or_default();
+                let contest: squad_protocol::ContestId =
+                    contest_id.to_string().parse().expect("UUID");
+                let winner = app
+                    .session
+                    .contests
+                    .get(&contest)
+                    .and_then(|c| c.verdict.as_ref())
+                    .and_then(|v| {
+                        let id = v.completed.generation.message_id;
+                        app.composed.graphics.get(&id).map(|s| {
+                            (
+                                app.composed.graphic_rect(id, s.winner, top, transcript),
+                                palette.member(v.verdict.verdict.winner.as_str(), 0),
+                            )
+                        })
+                    });
+                let Some((rect, hue)) = winner else {
+                    continue;
+                };
                 Pass::catalogue(
                     key,
                     rect,
                     PassAccess::Unprotected,
                     Duration::from_millis(850),
-                    move |elapsed, buf, _| {
-                        tint_prepared(buf, rect, elapsed, palette.chrome(), level)
-                    },
+                    move |elapsed, buf, _| tint_prepared(buf, rect, elapsed, hue, level),
                 )
             }
             FxCue::Catalogue {

@@ -1,0 +1,42 @@
+ SQUAD   /   main   ·   six minds, one room
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · 4.5         claude vs openai · Opening
+idle W0 L0
+n/a tok · n/a        │fable · complete
+fable · 4.1          │  I picture a quiet control room: six coloured rails, one clear draft, and room to think. Let the models disagree
+idle W0 L0           │  without making the person fight the interface. Motion should explain a change, then get out of the way.
+n/a tok · n/a
+openai · 5.1         │openai · complete
+idle W0 L0           │  Make the contract executable. Typed requests enter one validated parser; a bounded scheduler prioritizes keyboard
+n/a tok · n/a        │  input. Keep provisional tokens separate from final outcomes.
+gemini · 3-pro       │  • Preserve rejected drafts
+idle W0 L0           │  • Deduplicate by message and attempt
+n/a tok · n/a        │  • Measure latency during twelve simultaneous streams
+grok · 4
+idle W0 L0           │gemini · complete
+n/a tok · n/a        │  The interesting failure is a restart between commit and acknowledgement. Give each operation an identity and
+muse · 3             │  return its original receipt on retry. Then test the same history at every interruption point. A reliable room
+idle W0 L0           │  makes recovery boring, even when its models are surprising.
+n/a tok · n/a
+                     │grok · complete
+                     │  Twelve models talking at once? Excellent way to discover your supposedly asynchronous UI is a slideshow. Set a
+                     │  frame budget, bound the queues, and inject a slow judge. If typing stutters, the benchmark fails. Pretty pixels do
+                     │  not get an exemption.
+
+                     │▾ Debate 1 · claude vs openai · Opening
+                     │How should we build a reliable agent room?
+                     │                                        ___  ____  _____ _   _ ___ _   _  ____
+                     │                                       / _ \|  _ \| ____| \ | |_ _| \ | |/ ___|
+                     │                                      | | | | |_) |  _| |  \| || ||  \| | |  _
+                     │                                      | |_| |  __/| |___| |\  || || |\  | |_| |
+                     │                                       \___/|_|   |_____|_| \_|___|_| \_|\____|
+                     │▌  @claude · waiting
+                     │
+                     │▌  @openai · waiting
+                     │
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit

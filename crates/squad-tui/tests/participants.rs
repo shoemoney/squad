@@ -38,7 +38,7 @@ fn screen(w: u16, h: u16, scroll: usize) -> String {
         area,
         &mut buf,
     );
-    assert_eq!(rects.total_rows, 24);
+    assert_eq!(rects.total_rows, if w >= 20 { 36 } else { 24 });
     assert_eq!(members[0].detail(), "provider/full-concrete-model-version");
     (0..h)
         .map(|y| {
@@ -165,4 +165,43 @@ fn six_members_fit_in_twelve_rows_with_identity_and_records() {
             .iter()
             .any(|l| l.to_string().contains("~24.5 tok/s"))
     );
+}
+
+#[test]
+fn wide_metrics_prefer_live_rate_then_usage_and_keep_compact_rail() {
+    let mut members = roster();
+    members.truncate(1);
+    let palette = Palette::new(ColorTier::NoColor);
+    for (width, expected) in [(16, 2), (20, 3)] {
+        let mut buf = Buffer::empty(Rect::new(0, 0, width, 6));
+        let geometry = render(
+            &ParticipantsView {
+                members: &members,
+                palette: &palette,
+                scroll: 0,
+            },
+            buf.area,
+            &mut buf,
+        );
+        assert_eq!(geometry.total_rows, expected);
+        if width == 20 {
+            let row: String = (0..width).map(|x| buf[(x, 2)].symbol()).collect();
+            assert!(row.contains("24.5 tok/s · q2"));
+        }
+    }
+    members[0].presence = PresenceStatus::Idle;
+    members[0].queue_depth = 0;
+    members[0].tokens = None;
+    let mut buf = Buffer::empty(Rect::new(0, 0, 20, 6));
+    render(
+        &ParticipantsView {
+            members: &members,
+            palette: &palette,
+            scroll: 0,
+        },
+        buf.area,
+        &mut buf,
+    );
+    let row: String = (0..20).map(|x| buf[(x, 2)].symbol()).collect();
+    assert!(row.contains("n/a tok · n/a"));
 }

@@ -69,6 +69,18 @@ fn rows(buffer: &Buffer, height: usize) -> Vec<Line<'static>> {
 impl Composed {
     pub fn toggle_verdict(&mut self) {
         self.verdict_expanded = !self.verdict_expanded;
+        if let Some((&id, _)) = self
+            .graphics
+            .iter()
+            .rev()
+            .find(|(_, g)| !g.verdict.is_empty())
+        {
+            self.anchor = Some(widgets::transcript::TranscriptAnchor {
+                id,
+                source_grapheme: 0,
+                row_in_header: Some(0),
+            });
+        }
         self.signature = None;
         self.artifact_signature = None;
     }
@@ -234,6 +246,7 @@ impl Composed {
                         widgets::verdict::VerdictView::from_debate(value, &view.state.debaters)
                 {
                     verdict.show_criterion_reasons = self.verdict_expanded;
+                    verdict.prepare_banner(body_width.saturating_sub(2), &mut self.banners);
                     verdict.round_scores = session.contests[id].scores.values().cloned().collect();
                     let rect = scratch.area;
                     let geometry = widgets::verdict::render(&verdict, rect, &mut scratch, palette);

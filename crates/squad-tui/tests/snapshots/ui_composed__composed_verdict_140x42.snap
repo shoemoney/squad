@@ -4,37 +4,37 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
-claude · 4.5         │▌  Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve
-idle W1 L0           │▌  replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery
-fable · 4.1          │▌  and responsive presentation should share one test harness.
-idle W0 L0           │
-openai · 5.1         │Round 2 · claude 8 : 7 openai · total 16 : 14
-idle W0 L1           │── Round 3 / 3 · Closing ──
-gemini · 3-pro       │▌  @claude · complete
-idle W0 L0           │▌  Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
-grok · 4             │▌  reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery
-idle W0 L0           │▌  contract: durability is the foundation, and latency is how people experience it.
-muse · 3             │
-idle W0 L0           │▌  @openai · complete
-                     │▌  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
-                     │▌  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
-                     │▌  product before a real provider is connected.
-                     │
-                     │Round 3 · claude 8 : 7 openai · total 24 : 21
-                     │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
-                     │                                      __     _______ ____  ____ ___ ____ _____
-                     │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
-                     │                                       \ \ / /|  _| | |_) | | | | | |     | |
-                     │                                        \ V / | |___|  _ <| |_| | | |___  | |
-                     │                                         \_/  |_____|_| \_\____/___\____| |_|
-
-                     │╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+claude · 4.5         │                           |  _|  | || |\  |/ ___ \| |___  |  _ <| |_| | |_| | |\  | |_| |
+idle W1 L0           │                           |_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
+n/a tok · n/a        │▌  @claude · complete
+fable · 4.1          │▌  Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
+idle W0 L0           │▌  reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery
+n/a tok · n/a        │▌  contract: durability is the foundation, and latency is how people experience it.
+openai · 5.1         │
+idle W0 L1           │▌  @openai · complete
+n/a tok · n/a        │▌  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
+gemini · 3-pro       │▌  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
+idle W0 L0           │▌  product before a real provider is connected.
+n/a tok · n/a        │
+grok · 4             │Round 3 · claude 8 : 7 openai · tally 24 : 21
+idle W0 L0           │Round tally
+n/a tok · n/a        │claude 24 [━━━━━━━━━━━━━━━━━━━━━━━━] 21 openai
+muse · 3
+idle W0 L0           │╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+n/a tok · n/a        ││VERDICT                                                                                                             │
+                     ││                                         ____ _        _   _   _ ____  _____                                        │
+                     ││                                        / ___| |      / \ | | | |  _ \| ____|                                       │
+                     ││                                       | |   | |     / _ \| | | | | | |  _|                                         │
+                     ││                                       | |___| |___ / ___ \ |_| | |_| | |___                                        │
+                     ││                                        \____|_____/_/   \_\___/|____/|_____|                                       │
                      ││Winner: @claude                                                                                                     │
+                     ││Weighted score                                                                                                      │
                      ││claude 8.00 : 7.00 openai                                                                                           │
-                     ││Tally 24 : 21 · Judge demo/judge                                                                                    │
+                     ││Round tally 24 : 21 · Judge demo/judge                                                                              │
+                     ││Decision                                                                                                            │
                      ││Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a  │
                      ││responsive room that survives restarts.                                                                             │
-                     ││RESPECT · What to steal from the loser                                                                              │
+                     ││Takeaway · What to steal from the loser                                                                             │
                      ││• Bounded input-first scheduling                                                                                    │
                      ││F7 Expand scores & reasons · Follow up with @judge                                                                  │
                      │╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

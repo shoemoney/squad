@@ -219,7 +219,7 @@ fn turns_are_ordered_and_clipped_and_retry_is_explicit() {
 }
 
 #[test]
-fn parallel_streams_and_permanent_verdict_banner() {
+fn parallel_streams_and_verdict_lives_in_result_card() {
     let mut state = state();
     let mut view = DebateView::from(&state);
     view.banner_mode = BannerMode::Off;
@@ -274,7 +274,7 @@ fn parallel_streams_and_permanent_verdict_banner() {
     let mut buf = Buffer::empty(area);
     let geometry = render(&view, area, &mut buf, &Palette::new(ColorTier::NoColor));
     assert!(
-        geometry
+        !geometry
             .banners
             .iter()
             .any(|(banner, _)| *banner == Banner::Verdict)
@@ -350,4 +350,26 @@ fn narrow_banners_are_single_rows_and_state_labels_are_readable() {
     assert!(!output.contains("Press Esc again"));
     assert!(output.contains("A topic supplied by committed opening"));
     assert_eq!(geometry.versus_card.height, 2);
+}
+
+#[test]
+fn wide_boundaries_use_prepared_art_and_middle_round_stays_compact() {
+    let mut state = state();
+    state.total_rounds = 3;
+    state.round = 3;
+    let mut view = DebateView::from(&state);
+    let mut cache = squad_tui::widgets::banner::BannerCache::default();
+    view.prepare_banners(118, &mut cache);
+    let mut buf = Buffer::empty(Rect::new(0, 0, 118, 100));
+    let geometry = render(
+        &view,
+        buf.area,
+        &mut buf,
+        &Palette::new(ColorTier::TrueColor),
+    );
+    assert_eq!(geometry.banners.len(), 3);
+    assert!(geometry.banners[0].1.height > 1);
+    assert_eq!(geometry.banners[1].1.height, 1);
+    assert!(geometry.banners[2].1.height > 1);
+    assert!(screen(&buf).contains("Judge scoring…"));
 }

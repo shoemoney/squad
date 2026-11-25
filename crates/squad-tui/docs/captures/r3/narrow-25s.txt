@@ -1,0 +1,24 @@
+ SQUAD   /   main   ·   six minds, one room
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · 4.5     claude vs openai · Round 1 of 3
+idle W0 L0       │▌  I defend responsiveness: bounded queues, cached
+fable · 4.1      │▌  presentation, and a keyboard that never waits for models.
+idle W0 L0       │── Round 1 / 3 ──
+openai · 5.1     │▌  @claude
+live W0 L0       │▌  Opening: make promises durable. A single writer commits
+gemini · 3-pro   │▌  the answer before the room acknowledges it. If the
+idle W0 L0       │▌  process dies between those steps, the client retries with
+grok · 4         │▌  the same identity and receives the original receipt. No
+idle W0 L0       │▌  answer is lost or charged twice.
+muse · 3         │▌  @openai · streaming
+idle W0 L0       │▌  Opening: protect the human loop. A durable answer is
+                 │▌  useful only if the person can still type while six models
+                 │▌  stream. Drain a bounded feed batch, paint the newest
+                 │▌  prepared rows, and service input
+                 │Judge scoring…
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

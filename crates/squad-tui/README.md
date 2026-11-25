@@ -9,7 +9,7 @@ verdict and case widgets. Question-first picks are inline. Generic tournament an
 grill states use their real widgets; typed exchanges/rankings remain an M5 input
 boundary rather than a private TUI JSON schema. The network-free script takes
 60–90 seconds (checked with Tokio's virtual clock), then leaves a grill pick open.
-Page Up/Down and the mouse wheel scroll history; End outside the editor resumes
+Page Up/Down and the mouse wheel scroll history; End resumes
 following the room. Mouse scrolling over the roster scrolls that panel separately.
 
 ### Decision presentation (2026-11-25)
@@ -19,16 +19,21 @@ scores, compact tally/judge metadata, reasoning and takeaway. Live totals count
 up before the winner accent lands; successful debate completion preserves this
 queued reveal. Effects off and history replay show the accepted final values.
 
-The roster uses two rows per member, so all six fit at 80×24. It shows the
-resolved model's short version from startup, activity and W–L record. F8 opens
+The roster uses two rows per member at 80×24 and adds a muted metric row at
+wide sizes: live throughput/queue first, otherwise usage with explicit n/a.
+It shows the resolved model's short version from startup, activity and W–L record. F8 opens
 the focused member's full model/accounting details; Up/Down changes the member.
 The demo supplies six representative model identities before any replies arrive.
 
 Debates have one combined heading and a compact topic summary. The opposing
-accent entrance runs once, rounds keep single-row dividers, and permanent FIGlet
-art appears only with the completed result. Each score uses a paired round/total
-row and the sticky matchup retains the latest committed tally. Turns use coloured
-rails, a shared body column and one blank row between speakers. Prose soft wraps
+accent entrance runs once. Wide opening/final boundaries use prepared banner art;
+intermediate rounds and narrow boundaries use single-row dividers. Winner FIGlet
+art belongs inside the verdict card, with a compact winner strip at narrow sizes.
+F7 anchors to that card through expansion and resize; End returns to live.
+Each score distinguishes per-round values from cumulative tally, with named tug
+bar endpoints. The sticky matchup retains the latest committed tally. Turns use
+coloured rails and a shared body column; narrow finished turns omit redundant
+completion labels and blank rows. Prose soft wraps
 consume delimiter whitespace; code and editor whitespace remain preserved.
 
 `benches/composed_streams.rs` exercises the actual `App`, feed reducer, Markdown,
