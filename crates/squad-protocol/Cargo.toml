@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+http = "1"
 serde.workspace = true
 uuid = { workspace = true, features = ["v7", "v4"] }
 serde_json.workspace = true

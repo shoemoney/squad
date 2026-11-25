@@ -3099,6 +3099,7 @@ name = "squad-protocol"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "http",
  "insta",
  "jsonschema",
  "proptest",

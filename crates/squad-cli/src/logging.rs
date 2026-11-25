@@ -184,7 +184,15 @@ pub fn init(
         .with(level)
         .with(layer(
             data_dir,
-            vec![key.expose_for_openrouter().to_owned()],
+            vec![
+                key.authorization_header()
+                    .map_err(|_| "Cannot initialize credential redaction.".to_owned())?
+                    .to_str()
+                    .map_err(|_| "Cannot initialize credential redaction.".to_owned())?
+                    .strip_prefix("Bearer ")
+                    .unwrap_or_default()
+                    .to_owned(),
+            ],
         )?)
         .try_init()
         .map_err(|_| "Cannot initialize file logging.".into())
