@@ -77,6 +77,7 @@ pub fn run(
                 config.budget.daily_max_usd,
                 config.judge.model
             );
+            text.push_str(&environment_lines(config, effective));
         }
         Err(errors) => {
             for error in errors {
@@ -341,4 +342,80 @@ mod tests {
         assert!(report.text.contains("Terminal capabilities:"));
         assert!(report.text.contains("SQUAD_REASONING_EFFORT_<NICK>"));
     }
+}
+
+/// Default, effective value and source for the display, budget and prompt variables.
+fn environment_lines(config: &SquadConfig, effective: &EffectiveEnvironment) -> String {
+    use squad_protocol::config::{BannerMode, EffectsMode, VariableSource};
+    let source = |name: &str| match effective.source(name) {
+        VariableSource::Default => "built-in default".to_owned(),
+        VariableSource::File(path) => format!("environment file {}", path.display()),
+        VariableSource::Process => "process environment".to_owned(),
+    };
+    let banners = match config.banners {
+        BannerMode::On => "on",
+        BannerMode::Compact => "compact",
+        BannerMode::Off => "off",
+    };
+    let fx = match config.fx {
+        EffectsMode::Full => "full",
+        EffectsMode::Lite => "lite",
+        EffectsMode::Off => "off",
+    };
+    let mut text = String::new();
+    for (name, effective_value, default, accepted) in [
+        (
+            "SQUAD_BANNERS",
+            banners.to_owned(),
+            "on",
+            "on, compact, off",
+        ),
+        ("SQUAD_FX", fx.to_owned(), "full", "full, lite, off"),
+        (
+            "SQUAD_DAILY_MAX_USD",
+            config.budget.daily_max_usd.to_string(),
+            "20",
+            "positive finite number",
+        ),
+        (
+            "SQUAD_GRILL_ROUNDS",
+            config.defaults.grill_rounds.to_string(),
+            "2",
+            "1..=10",
+        ),
+        (
+            "SQUAD_PLAN_WORDS",
+            config.prompts.limits.plan_words.to_string(),
+            "1200",
+            "positive integer",
+        ),
+        (
+            "SQUAD_FX_DEBUG",
+            if config.fx_debug { "1" } else { "unset" }.to_owned(),
+            "unset",
+            "1 shows the effects-grade tag",
+        ),
+    ] {
+        let _ = writeln!(
+            text,
+            "{name}: effective {effective_value}; source {}; default {default}; accepted {accepted}",
+            source(name)
+        );
+    }
+    for agent in &config.agents {
+        let variable = format!(
+            "SQUAD_REASONING_EFFORT_{}",
+            agent.nick.as_str().to_uppercase()
+        );
+        let value = agent.reasoning_effort.map_or_else(
+            || "unset".to_owned(),
+            |effort| format!("{effort:?}").to_lowercase(),
+        );
+        let _ = writeln!(
+            text,
+            "{variable}: effective {value}; source {}; default unset; accepted low, medium, high",
+            source(&variable)
+        );
+    }
+    text
 }
