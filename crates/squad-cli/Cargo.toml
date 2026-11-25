@@ -24,9 +24,15 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 squad-protocol = { workspace = true }
 squad-core = { workspace = true }
+squad-store = { workspace = true }
+serde = { workspace = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "signal", "time"] }
+rusqlite = { version = "0.38", features = ["bundled"] }
+chrono = "0.4"
 squad-tui = { workspace = true }
 
 [dev-dependencies]
+insta = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

@@ -4,19 +4,57 @@ mod logging;
 mod paths;
 
 use cli::{Cli, Command};
+use squad_protocol::ErrorCode;
 use std::{io::IsTerminal, process::ExitCode};
 
+struct CliFailure {
+    code: ErrorCode,
+    message: String,
+}
+impl From<String> for CliFailure {
+    fn from(message: String) -> Self {
+        Self {
+            code: ErrorCode::INTERNAL_ERROR,
+            message,
+        }
+    }
+}
+impl From<&str> for CliFailure {
+    fn from(message: &str) -> Self {
+        message.to_owned().into()
+    }
+}
+impl CliFailure {
+    fn config(message: String) -> Self {
+        Self {
+            code: ErrorCode::CONFIG_INVALID,
+            message,
+        }
+    }
+}
+
 fn main() -> ExitCode {
-    match run(Cli::validated()) {
+    let cli = Cli::validated();
+    let json = matches!(&cli.command, Some(Command::Send(args)) if args.json);
+    match run(cli) {
         Ok(code) => ExitCode::from(code),
         Err(error) => {
-            eprintln!("{error}");
+            if json {
+                let _ = squad_cli::output::Output {
+                    json: true,
+                    stdout: &mut std::io::stdout(),
+                    stderr: &mut std::io::stderr(),
+                }
+                .error(None, error.code, &error.message, false);
+            } else {
+                eprintln!("{}", error.message);
+            }
             ExitCode::FAILURE
         }
     }
 }
 
-fn run(cli: Cli) -> Result<u8, String> {
+fn run(cli: Cli) -> Result<u8, CliFailure> {
     let cwd =
         std::env::current_dir().map_err(|_| "Cannot resolve working directory.".to_owned())?;
     // One snapshot is passed to the sole configuration loader. Terminal detection
@@ -43,10 +81,33 @@ fn run(cli: Cli) -> Result<u8, String> {
         errors
     });
     if let Some(Command::Export(export)) = &cli.command {
-        let scope = serde_json::to_value(&export.scope).expect("scope serializes");
-        let scope = scope.as_str().expect("scope is a string");
-        let _ = (export.id, &export.output);
-        return Err(format!("export {scope}: not available yet"));
+        let data_dir = effective
+            .data_dir(&options)
+            .map_err(|error| error.to_string())?;
+        squad_cli::export::run(&data_dir, export, &mut std::io::stdout())?;
+        return Ok(0);
+    }
+    if let Some(Command::Models) = &cli.command {
+        if let Err(errors) = &config {
+            let errors: Vec<_> = errors
+                .iter()
+                .filter(|error| {
+                    !matches!(error, squad_protocol::config::ConfigError::MissingApiKey)
+                })
+                .map(ToString::to_string)
+                .collect();
+            if !errors.is_empty() {
+                return Err(CliFailure::config(errors.join("\n")));
+            }
+        }
+        let data_dir = effective
+            .data_dir(&options)
+            .map_err(|error| error.to_string())?;
+        print!(
+            "{}",
+            squad_cli::models::run(&data_dir, config.as_ref().ok())?
+        );
+        return Ok(0);
     }
     if let Some(Command::Doctor { env: show_env }) = cli.command {
         let report = doctor::run(
@@ -65,11 +126,13 @@ fn run(cli: Cli) -> Result<u8, String> {
         return Ok(report.code);
     }
     let config = config.map_err(|errors| {
-        errors
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join("\n")
+        CliFailure::config(
+            errors
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     })?;
     paths::create_private_dir(&config.data_dir).map_err(|_| {
         format!(
@@ -83,16 +146,20 @@ fn run(cli: Cli) -> Result<u8, String> {
         &config.openrouter_api_key,
     )?;
     tracing::info!("CLI initialized");
-    // TODO(M3.P3): wire RoomHandle, offline exports, registry and bus diagnostics.
+    // INTEGRATION STUB: the coordinator supplies RoomHandle and binds RoomApi.
+    // Open using OpenPolicy::send(send.no_wait), then call send::run.
+    // Interactive open uses OpenPolicy::interactive(); squad_tui::run(room).await
+    // is the expected M4 entry point. Always shutdown after it returns.
     // TODO(M4.P1): launch the TUI with OpenMode::Interactive.
     let (operation, milestone) = match cli.command {
         None => ("TUI", "M4"),
-        Some(Command::Send(_)) => ("send", "M3"),
+        Some(Command::Send(_)) => ("send (RoomApi binding required)", "M3"),
         Some(Command::Export(_)) => ("export", "M3"),
         Some(Command::Models) => ("models", "M3"),
         Some(Command::Doctor { .. }) => unreachable!(),
     };
-    Err(format!(
-        "{operation}: not implemented yet (milestone {milestone})"
-    ))
+    Err(CliFailure {
+        code: ErrorCode::COMMAND_NOT_IMPLEMENTED,
+        message: format!("{operation}: not implemented yet (milestone {milestone})"),
+    })
 }

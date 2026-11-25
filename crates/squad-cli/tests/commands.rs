@@ -41,11 +41,9 @@ fn deferred_commands_fail_explicitly_without_fake_output() {
     for (args, expected) in [
         (vec![], "TUI: not implemented yet (milestone M4)"),
         (
-            vec!["send", "hello", "--json"],
-            "send: not implemented yet (milestone M3)",
+            vec!["send", "hello"],
+            "send (RoomApi binding required): not implemented yet (milestone M3)",
         ),
-        (vec!["export", "room"], "export room: not available yet"),
-        (vec!["models"], "models: not implemented yet (milestone M3)"),
     ] {
         let output = invoke(temp.path(), &args, Some("sk-test-not-a-real-key"));
         assert_eq!(output.status.code(), Some(1));
@@ -127,7 +125,7 @@ fn doctor_continues_after_unwritable_directory() {
     assert!(text.contains("Data directory is not writable:"));
     assert!(text.contains("Credential presence: missing"));
     assert!(text.contains("Terminal capabilities:"));
-    assert!(text.contains("Model identity: skipped until M3"));
+    assert!(text.contains("Model identity: no recorded attempts"));
 }
 
 #[cfg(unix)]
@@ -210,7 +208,7 @@ fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
         assert_eq!(output.status.code(), Some(1));
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            "send: not implemented yet (milestone M3)"
+            "send (RoomApi binding required): not implemented yet (milestone M3)"
         );
         assert_eq!(
             std::fs::metadata(&data).unwrap().permissions().mode() & 0o777,
@@ -247,12 +245,12 @@ fn quoted_references_do_not_consume_the_message() {
     ] {
         let output = invoke(temp.path(), &args, Some("fixture"));
         assert_eq!(output.status.code(), Some(1));
-        assert!(String::from_utf8_lossy(&output.stderr).contains("send: not implemented"));
+        assert!(String::from_utf8_lossy(&output.stderr).contains("RoomApi binding required"));
     }
 }
 
 #[test]
-fn all_export_scopes_are_visible_typed_and_explicitly_unavailable() {
+fn all_export_scopes_are_visible_typed_and_preserve_renderer_errors() {
     let temp = tempfile::tempdir().unwrap();
     let help = invoke(temp.path(), &["export", "--help"], None);
     let help = String::from_utf8(help.stdout).unwrap();
@@ -282,7 +280,11 @@ fn all_export_scopes_are_visible_typed_and_explicitly_unavailable() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            format!("export {scope}: not available yet")
+            if matches!(scope, "census" | "crosscheck" | "survey" | "probe") {
+                "export scope is not implemented"
+            } else {
+                "could not read export snapshot"
+            }
         );
     }
     assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);
@@ -316,4 +318,65 @@ fn invalid_utf8_key_has_only_the_encoding_diagnostic_for_every_command() {
         assert!(!text.contains("is required"));
         assert!(!text.contains("secret-never-print"));
     }
+}
+
+#[test]
+fn models_missing_snapshot_is_read_only_and_requires_no_credential() {
+    let temp = tempfile::tempdir().unwrap();
+    let output = invoke(temp.path(), &["models"], None);
+    assert!(output.status.success());
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Open the room to resolve models"));
+    assert!(output.stderr.is_empty());
+    assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);
+}
+
+#[test]
+fn offline_export_ignores_invalid_generation_config_and_a_live_room_lock() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut db = squad_store::open(temp.path().join("squad.db")).unwrap();
+    squad_store::schema::migrate(&mut db).unwrap();
+    db.execute("INSERT INTO room_meta VALUES ('main',1,1,1,1,NULL)", [])
+        .unwrap();
+    let _lock = squad_store::room_lock::RoomLock::acquire(&temp.path().join("main.lock")).unwrap();
+    std::fs::write(
+        temp.path().join(".env"),
+        "SQUAD_ROUNDS=invalid\nOPENROUTER_API_KEY=\n",
+    )
+    .unwrap();
+    let output = invoke(
+        temp.path(),
+        &[
+            "export",
+            "room",
+            "--data-dir",
+            temp.path().to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(!output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn json_startup_failures_have_error_records_without_fabricated_request_ids() {
+    let temp = tempfile::tempdir().unwrap();
+    let output = invoke(temp.path(), &["send", "hello", "--json"], None);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["type"], "error");
+    assert_eq!(value["error"]["code"], "CONFIG_INVALID");
+    assert!(
+        value["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("OPENROUTER_API_KEY is required")
+    );
+    assert!(value.get("requestId").is_none());
+    assert!(value.get("cursor").is_none());
 }

@@ -1,0 +1,69 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: text
+---
+Round 1 score: {
+  "caseId": "01900000-0000-7000-8000-000000000001",
+  "debateId": "01900000-0000-7000-8000-000000000001",
+  "round": 1,
+  "scores": {
+    "alpha": {
+      "reason": "Clear",
+      "score": 9
+    },
+    "beta": {
+      "reason": "Slow",
+      "score": 7
+    }
+  },
+  "tally": {
+    "alpha": 1,
+    "beta": 0
+  }
+}
+Round 3 unscored: {
+  "caseId": "01900000-0000-7000-8000-000000000001",
+  "debateId": "01900000-0000-7000-8000-000000000001",
+  "reason": "unscored",
+  "round": 3,
+  "scores": null,
+  "tally": {
+    "alpha": 1,
+    "beta": 0
+  }
+}
+system [contest.pick_requested] {
+  "banner": "Choose two entrants",
+  "contestId": "01900000-0000-7000-8000-000000000001",
+  "eligible": [
+    "alpha",
+    "beta"
+  ],
+  "kind": "tournament",
+  "questionMessageId": "01900000-0000-7000-8000-000000000001",
+  "requiredPicks": 2
+}
+system [contest.report] {
+  "artifactEventIds": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "contestId": "01900000-0000-7000-8000-000000000001",
+  "data": {
+    "bands": [
+      "settled",
+      "leans",
+      "split",
+      "unknown",
+      "unasked"
+    ],
+    "completionReason": "partial",
+    "skippedMembers": [
+      "beta"
+    ],
+    "unexpectedResult": "Return to the root"
+  },
+  "skippedWorkIds": [
+    "01900000-0000-7000-8000-000000000001"
+  ],
+  "stepId": "01900000-0000-7000-8000-000000000001"
+}

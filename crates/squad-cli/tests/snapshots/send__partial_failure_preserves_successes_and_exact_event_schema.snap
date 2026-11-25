@@ -1,0 +1,7 @@
+---
+source: crates/squad-cli/tests/send.rs
+expression: normalize(&output)
+---
+{"cursor":"1","eventIds":["01900000-0000-7000-8000-000000000001"],"requestId":"01900000-0000-7000-8000-000000000001","type":"ack"}
+{"cursor":"2","event":{"acceptedAt":"2026-11-24T00:00:00Z","commitIndex":0,"commitSize":1,"correlationId":"01900000-0000-7000-8000-000000000001","createdAt":"2026-11-24T00:00:00Z","id":"01900000-0000-7000-8000-000000000002","kind":"message.final","payload":{"attempt":1,"content":"A useful answer.","finishReason":"stop","inReplyToMessageId":"01900000-0000-7000-8000-000000000001","messageId":"01900000-0000-7000-8000-000000000001","model":"public/model","triggerEventId":"01900000-0000-7000-8000-000000000001","usage":null,"workId":"01900000-0000-7000-8000-000000000001"},"recipients":["me"],"roomId":"main","sender":"alpha","seq":"2","version":1},"type":"event"}
+{"cursor":"3","event":{"acceptedAt":"2026-11-24T00:00:00Z","commitIndex":0,"commitSize":1,"correlationId":"01900000-0000-7000-8000-000000000001","createdAt":"2026-11-24T00:00:00Z","id":"01900000-0000-7000-8000-000000000003","kind":"error","payload":{"code":"PROVIDER_TIMEOUT","retryable":false,"text":"Timed out"},"recipients":["me"],"roomId":"main","sender":"system","seq":"3","version":1},"type":"event"}
