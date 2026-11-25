@@ -201,7 +201,7 @@ impl EliminatedStamp {
                         Style::default().add_modifier(Modifier::BOLD)
                     } else {
                         Style::default()
-                            .fg(Color::Rgb(255, 210, 63))
+                            .fg(super::palette::GOLD)
                             .add_modifier(Modifier::BOLD)
                     });
                 }
@@ -244,7 +244,7 @@ impl ChampionReveal {
             winner,
             "CHAMPION",
             1,
-            [winner.hue, Color::Rgb(255, 210, 63)],
+            [winner.hue, super::palette::GOLD],
         );
     }
 }

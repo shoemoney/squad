@@ -9,8 +9,63 @@ pub enum FeedOrigin {
     Live,
     Replay,
 }
+/// Catalogue families for local UI actions that have no protocol event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CatalogueEffect {
+    Chrome,
+    Status,
+    Meter,
+    Bubble,
+    Dispatch,
+    Command,
+    Particles,
+    Debate,
+    Filter,
+    Banner,
+    Pick,
+    Verdict,
+    Tournament,
+    Grill,
+    Census,
+    Crosscheck,
+    Survey,
+    Probe,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ReportMode {
+    Census,
+    Crosscheck,
+    Survey,
+    Probe,
+}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FxCue {
+    /// Local presentation action. Target is a stable widget/contest/member identity.
+    /// Periodic status remains controlled by FxContext's live state flags.
+    Catalogue {
+        effect: CatalogueEffect,
+        target: String,
+        duration: Duration,
+    },
+    ModeBannerReady {
+        contest_id: EventId,
+        mode: ReportMode,
+    },
+    CensusEstimateReady {
+        contest_id: EventId,
+        pass: u32,
+    },
+    CrosscheckCellsReady {
+        contest_id: EventId,
+        artifact_id: EventId,
+    },
+    SurveyTallyReady {
+        contest_id: EventId,
+        artifact_id: EventId,
+    },
+    ProbeTreeReady {
+        contest_id: EventId,
+    },
     BubbleOpened {
         id: MessageId,
         model: Nick,
@@ -123,6 +178,9 @@ impl FxQueue {
     }
     pub fn dropped(&self) -> u64 {
         self.dropped
+    }
+    pub fn retain(&mut self, mut keep: impl FnMut(&TimedCue) -> bool) {
+        self.cues.retain(|cue| keep(cue));
     }
     pub fn clear(&mut self) {
         self.cues.clear();

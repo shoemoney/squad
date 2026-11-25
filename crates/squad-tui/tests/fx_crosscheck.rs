@@ -47,7 +47,7 @@ fn frame(b: &Buffer) -> String {
     }
     s
 }
-use squad_tui::effects::crosscheck::{CellAccent, CrosscheckEffect, Level, Motion};
+use squad_tui::fx::crosscheck::{CellAccent, CrosscheckEffect, Level, Motion};
 fn cells(n: usize) -> Vec<CellAccent> {
     (0..n)
         .rev()

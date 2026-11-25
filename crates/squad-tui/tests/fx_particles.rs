@@ -1,5 +1,5 @@
 use ratatui::{buffer::Buffer, layout::Rect, style::Color};
-use squad_tui::effects::particles::{Burst, CAPACITY, ParticlePool, Point};
+use squad_tui::fx::particles::{Burst, CAPACITY, ParticlePool, Point};
 use std::time::Duration;
 fn burst(count: usize) -> Burst<'static> {
     Burst {

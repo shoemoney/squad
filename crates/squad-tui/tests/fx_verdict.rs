@@ -1,8 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{buffer::Buffer, layout::Rect, style::Color};
-use squad_tui::effects::verdict::{
-    Contender, Criterion, Level, Phase, Tick, Verdict, VerdictReveal,
-};
+use squad_tui::fx::verdict::{Contender, Criterion, Level, Phase, Tick, Verdict, VerdictReveal};
 use std::time::Duration;
 
 fn data() -> Verdict {

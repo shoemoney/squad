@@ -1,12 +1,7 @@
 //! Status samples use the caller's clock and real token counters, never a cosmetic rate.
+pub use crate::fx::FxLevel as Level;
 use ratatui::style::{Color, Modifier, Style};
 use std::{collections::VecDeque, time::Duration};
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Level {
-    Full,
-    Lite,
-    Off,
-}
 #[derive(Clone, Copy, Debug)]
 pub struct StatusStyle {
     pub level: Level,

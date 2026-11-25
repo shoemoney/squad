@@ -1,5 +1,5 @@
 use ratatui::{buffer::Buffer, layout::Rect, style::Color};
-use squad_tui::effects::meter::{Heat, Level, Meter, Palette, Spend};
+use squad_tui::fx::meter::{Heat, Level, Meter, Palette, Spend};
 use std::time::Duration;
 fn fx(level: Level, no_color: bool) -> Meter {
     Meter {

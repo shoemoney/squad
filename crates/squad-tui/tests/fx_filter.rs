@@ -1,11 +1,11 @@
 use ratatui::{buffer::Buffer, layout::Rect, style::Color};
-use squad_tui::effects::filter::{ColorTier, Filter};
+use squad_tui::fx::filter::{ColorTier, Filter};
 use std::time::Duration;
 #[test]
 fn pure_filters_and_no_color() {
     for tier in [
         ColorTier::TrueColor,
-        ColorTier::Ansi256,
+        ColorTier::Indexed256,
         ColorTier::Ansi16,
         ColorTier::NoColor,
     ] {
@@ -68,7 +68,7 @@ fn pure_filters_and_no_color() {
     );
     for tier in [
         ColorTier::TrueColor,
-        ColorTier::Ansi256,
+        ColorTier::Indexed256,
         ColorTier::Ansi16,
         ColorTier::NoColor,
     ] {
@@ -87,7 +87,7 @@ fn filter_storyboards() {
     let mut frames = Vec::new();
     for tier in [
         ColorTier::TrueColor,
-        ColorTier::Ansi256,
+        ColorTier::Indexed256,
         ColorTier::Ansi16,
         ColorTier::NoColor,
     ] {

@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Position, Rect},
     style::{Color, Style},
 };
-use squad_tui::effects::dispatch::{Dispatch, DispatchEffect, Level, Target};
+use squad_tui::fx::dispatch::{Dispatch, DispatchEffect, Level, Target};
 use std::time::Duration;
 
 fn base() -> Buffer {

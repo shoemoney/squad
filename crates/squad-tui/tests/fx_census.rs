@@ -34,7 +34,7 @@ fn glyphs(b: &Buffer) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-use squad_tui::effects::census::{CensusEffect, Estimate, Level, Motion};
+use squad_tui::fx::census::{CensusEffect, Estimate, Level, Motion};
 fn range(a: u64, b: u64) -> Option<Estimate> {
     Some(Estimate { low: a, high: b })
 }

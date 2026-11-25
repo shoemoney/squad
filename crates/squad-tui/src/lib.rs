@@ -1,5 +1,4 @@
 //! Squad terminal UI built on Ratatui.
-pub mod effects;
 pub mod fx;
 pub mod input_events;
 pub mod layout;

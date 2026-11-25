@@ -34,7 +34,7 @@ fn glyphs(b: &Buffer) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-use squad_tui::effects::survey::{Level, Motion, SurveyEffect, Votes};
+use squad_tui::fx::survey::{Level, Motion, SurveyEffect, Votes};
 fn votes(a: u32, d: u32, u: u32, m: u32) -> Votes {
     Votes {
         agree: a,

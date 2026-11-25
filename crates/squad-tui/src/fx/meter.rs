@@ -1,16 +1,11 @@
 //! Daily accounting presentation. Values are authoritative snapshots, never accumulated here.
+pub use crate::fx::FxLevel as Level;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{Color, Modifier, Style},
 };
 use std::time::Duration;
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Level {
-    Full,
-    Lite,
-    Off,
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Heat {
     Normal,

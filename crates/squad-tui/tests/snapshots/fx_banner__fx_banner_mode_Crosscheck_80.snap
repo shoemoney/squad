@@ -8,7 +8,7 @@ Full/TrueColor t=400
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Rgb(237, 195, 58)/Rgb(7, 9, 13)/BOLD 36:Rgb(238, 196, 59)/Rgb(7, 9, 13)/BOLD 37:Rgb(240, 197, 59)/Rgb(7, 9, 13)/BOLD 38:Rgb(241, 199, 59)/Rgb(7, 9, 13)/BOLD 39:Rgb(243, 200, 60)/Rgb(7, 9, 13)/BOLD 40:Rgb(246, 202, 60)/Rgb(7, 9, 13)/BOLD 41:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD 42:Rgb(251, 206, 62)/Rgb(7, 9, 13)/BOLD 43:Rgb(253, 208, 62)/Rgb(7, 9, 13)/BOLD 44:Rgb(255, 211, 63)/Rgb(7, 9, 13)/BOLD
+ 35:Rgb(235, 191, 31)/Rgb(2, 3, 8)/BOLD 36:Rgb(236, 192, 34)/Rgb(2, 3, 8)/BOLD 37:Rgb(238, 193, 37)/Rgb(2, 3, 8)/BOLD 38:Rgb(240, 195, 40)/Rgb(2, 3, 8)/BOLD 39:Rgb(242, 197, 44)/Rgb(2, 3, 8)/BOLD 40:Rgb(245, 200, 48)/Rgb(2, 3, 8)/BOLD 41:Rgb(247, 203, 52)/Rgb(2, 3, 8)/BOLD 42:Rgb(250, 206, 57)/Rgb(2, 3, 8)/BOLD 43:Rgb(253, 209, 61)/Rgb(2, 3, 8)/BOLD 44:Rgb(255, 210, 63)/Rgb(2, 3, 8)/BOLD
 03 ||
 
 04 ||
@@ -62,13 +62,13 @@ Full/TrueColor t=1900
 13 ||
 
 
-Full/Indexed t=400
+Full/Indexed256 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Indexed(221)/Indexed(16)/BOLD
+ 35:Indexed(178)/Indexed(16)/BOLD 36:Indexed(214)/Indexed(16)/BOLD 39:Indexed(220)/Indexed(16)/BOLD 40:Indexed(221)/Indexed(16)/BOLD
 03 ||
 
 04 ||
@@ -92,7 +92,7 @@ Full/Indexed t=400
 13 ||
 
 
-Full/Indexed t=1900
+Full/Indexed256 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -122,13 +122,13 @@ Full/Indexed t=1900
 13 ||
 
 
-Full/Ansi t=400
+Full/Ansi16 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Yellow/Black/BOLD
+ 35:LightYellow/Black/BOLD
 03 ||
 
 04 ||
@@ -144,7 +144,7 @@ Full/Ansi t=400
 09 ||
 
 10 |  PASS 1 · HUNT|
- 2:Yellow/Reset/BOLD
+ 2:LightYellow/Reset/BOLD
 11 ||
 
 12 |  protected reply stays put|
@@ -152,13 +152,13 @@ Full/Ansi t=400
 13 ||
 
 
-Full/Ansi t=1900
+Full/Ansi16 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Yellow/Reset/BOLD
+ 35:LightYellow/Reset/BOLD
 03 ||
 
 04 ||
@@ -302,7 +302,7 @@ Lite/TrueColor t=1900
 13 ||
 
 
-Lite/Indexed t=400
+Lite/Indexed256 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -332,7 +332,7 @@ Lite/Indexed t=400
 13 ||
 
 
-Lite/Indexed t=1900
+Lite/Indexed256 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -362,13 +362,13 @@ Lite/Indexed t=1900
 13 ||
 
 
-Lite/Ansi t=400
+Lite/Ansi16 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Yellow/Reset/BOLD
+ 35:LightYellow/Reset/BOLD
 03 ||
 
 04 ||
@@ -384,7 +384,7 @@ Lite/Ansi t=400
 09 ||
 
 10 |  PASS 1 · HUNT|
- 2:Yellow/Reset/BOLD
+ 2:LightYellow/Reset/BOLD
 11 ||
 
 12 |  protected reply stays put|
@@ -392,13 +392,13 @@ Lite/Ansi t=400
 13 ||
 
 
-Lite/Ansi t=1900
+Lite/Ansi16 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Yellow/Reset/BOLD
+ 35:LightYellow/Reset/BOLD
 03 ||
 
 04 ||
@@ -542,7 +542,7 @@ Off/TrueColor t=1900
 13 ||
 
 
-Off/Indexed t=400
+Off/Indexed256 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -572,7 +572,7 @@ Off/Indexed t=400
 13 ||
 
 
-Off/Indexed t=1900
+Off/Indexed256 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -602,13 +602,13 @@ Off/Indexed t=1900
 13 ||
 
 
-Off/Ansi t=400
+Off/Ansi16 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Yellow/Reset/BOLD
+ 35:LightYellow/Reset/BOLD
 03 ||
 
 04 ||
@@ -632,13 +632,13 @@ Off/Ansi t=400
 13 ||
 
 
-Off/Ansi t=1900
+Off/Ansi16 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                   CROSSCHECK|
- 35:Yellow/Reset/BOLD
+ 35:LightYellow/Reset/BOLD
 03 ||
 
 04 ||

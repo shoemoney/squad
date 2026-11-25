@@ -2,8 +2,8 @@
 //!
 //! Rectangles use buffer coordinates. `protected` covers message bodies; only
 //! the comet's colour pass may touch them. The insertion cell must be blank.
-mod color;
-use color::shade;
+
+use super::palette::darken as shade;
 use std::time::Duration;
 
 use ratatui::{
@@ -12,12 +12,7 @@ use ratatui::{
     style::{Color, Modifier},
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Level {
-    Full,
-    Lite,
-    Off,
-}
+pub use crate::fx::FxLevel as Level;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Moment {

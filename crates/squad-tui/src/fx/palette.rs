@@ -77,7 +77,13 @@ impl Oklch {
             ..self
         };
         let (mut lo, mut hi) = (0., mapped.c);
-        for _ in 0..16 {
+        // In-gamut colours need no chroma search. The old loop repeatedly
+        // tested the identical value sixteen times in this common case.
+        let in_gamut = mapped.linear_rgb().iter().all(|v| (0. ..=1.).contains(v));
+        if in_gamut {
+            lo = mapped.c;
+        }
+        for _ in 0..if in_gamut { 0 } else { 16 } {
             if mapped.linear_rgb().iter().all(|v| (0. ..=1.).contains(v)) {
                 lo = mapped.c;
             } else {
@@ -235,5 +241,89 @@ impl Palette {
                 Modifier::BOLD
             }),
         }
+    }
+}
+
+const ANSI: [(u8, u8, u8); 16] = [
+    (0, 0, 0),
+    (128, 0, 0),
+    (0, 128, 0),
+    (128, 128, 0),
+    (0, 0, 128),
+    (128, 0, 128),
+    (0, 128, 128),
+    (192, 192, 192),
+    (128, 128, 128),
+    (255, 0, 0),
+    (0, 255, 0),
+    (255, 255, 0),
+    (0, 0, 255),
+    (255, 0, 255),
+    (0, 255, 255),
+    (255, 255, 255),
+];
+const COLORS: [Color; 16] = [
+    Color::Black,
+    Color::Red,
+    Color::Green,
+    Color::Yellow,
+    Color::Blue,
+    Color::Magenta,
+    Color::Cyan,
+    Color::Gray,
+    Color::DarkGray,
+    Color::LightRed,
+    Color::LightGreen,
+    Color::LightYellow,
+    Color::LightBlue,
+    Color::LightMagenta,
+    Color::LightCyan,
+    Color::White,
+];
+fn rgb(c: Color) -> (u8, u8, u8) {
+    match c {
+        Color::Rgb(r, g, b) => (r, g, b),
+        Color::Indexed(i) if i < 16 => ANSI[usize::from(i)],
+        Color::Indexed(i) if i >= 232 => {
+            let v = 8 + (i - 232) * 10;
+            (v, v, v)
+        }
+        Color::Indexed(i) => {
+            let n = i - 16;
+            let v = |x: u8| if x == 0 { 0 } else { 55 + 40 * x };
+            (v(n / 36), v(n / 6 % 6), v(n % 6))
+        }
+        _ => COLORS
+            .iter()
+            .position(|v| *v == c)
+            .map(|i| ANSI[i])
+            .unwrap_or((255, 255, 255)),
+    }
+}
+fn nearest_ansi16(c: Color) -> Color {
+    if COLORS.contains(&c) || c == Color::Reset {
+        return c;
+    }
+    let c = rgb(c);
+    let index = ANSI
+        .iter()
+        .enumerate()
+        .min_by_key(|(_, v)| {
+            (i32::from(c.0) - i32::from(v.0)).pow(2)
+                + (i32::from(c.1) - i32::from(v.1)).pow(2)
+                + (i32::from(c.2) - i32::from(v.2)).pow(2)
+        })
+        .map(|(i, _)| i)
+        .unwrap_or(15);
+    COLORS[index]
+}
+
+/// Map any catalogue colour to the startup terminal tier.
+pub fn map_color(color: Color, tier: ColorTier) -> Color {
+    match tier {
+        ColorTier::TrueColor => color,
+        ColorTier::Indexed256 => cube256(color),
+        ColorTier::Ansi16 => nearest_ansi16(color),
+        ColorTier::NoColor => Color::Reset,
     }
 }

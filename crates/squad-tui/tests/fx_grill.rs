@@ -47,9 +47,7 @@ fn frame(b: &Buffer) -> String {
     }
     s
 }
-use squad_tui::effects::grill::{
-    CompletionReason as Reason, GrillEffect, Level, Motion, Treatment,
-};
+use squad_tui::fx::grill::{CompletionReason as Reason, GrillEffect, Level, Motion, Treatment};
 fn effect(level: Level, nc: bool, replay: bool, treatment: Treatment) -> GrillEffect {
     GrillEffect::new(Motion::new(level, nc, replay), 1, treatment, GOLD)
 }

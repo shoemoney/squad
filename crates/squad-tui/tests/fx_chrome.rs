@@ -3,7 +3,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Style},
 };
-use squad_tui::effects::chrome::{Chrome, Level};
+use squad_tui::fx::chrome::{Chrome, Level};
 use std::time::Duration;
 fn fx(level: Level, no_color: bool) -> Chrome {
     Chrome {

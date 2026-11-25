@@ -6,12 +6,7 @@ use ratatui::{
 };
 use std::time::Duration;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Level {
-    Full,
-    Lite,
-    Off,
-}
+pub use crate::fx::FxLevel as Level;
 
 /// The caller settles before collapse, stop, failure or relayout. Reopening uses
 /// the same instance (or Replay), so an old artifact cannot start again.
@@ -85,12 +80,8 @@ pub fn highlight(cell: &mut ratatui::buffer::Cell, color: Color, no_color: bool,
         cell.modifier.insert(Modifier::BOLD);
     } else {
         cell.fg = match (cell.fg, color) {
-            (Color::Rgb(r, g, b), Color::Rgb(a, c, d)) => {
-                let mix = |v: u8, w: u8| {
-                    (f32::from(v) + (f32::from(w) - f32::from(v)) * strength.clamp(0.0, 1.0))
-                        .round() as u8
-                };
-                Color::Rgb(mix(r, a), mix(g, c), mix(b, d))
+            (Color::Rgb(..), Color::Rgb(..)) => {
+                crate::fx::palette::interpolate(cell.fg, color, f64::from(strength))
             }
             _ => color,
         };

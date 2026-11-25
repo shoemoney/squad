@@ -70,7 +70,7 @@ t=280 ms
 02 ||
 
 03 |             ▓ ▓▓▓▓ ▓▓ ▓▓ ▓ ▓▓▓ ▓ ▓    ▓ ▓ ▓▓ ▓ ▓▓ ▓ ▓ ▓ ▓▓ ▓   ▓|
- 13:Indexed(167)/Indexed(16)/BOLD 41:Indexed(185)/Indexed(16)/BOLD 46:Indexed(221)/Indexed(16)/BOLD 64:Indexed(185)/Indexed(16)/BOLD
+ 13:Indexed(166)/Indexed(16)/BOLD 18:Indexed(160)/Indexed(16)/BOLD 30:Indexed(124)/Indexed(16)/BOLD 39:Indexed(160)/Indexed(16)/BOLD 41:Indexed(178)/Indexed(16)/BOLD 48:Indexed(214)/Indexed(16)/BOLD 51:Indexed(220)/Indexed(16)/BOLD 57:Indexed(214)/Indexed(16)/BOLD 60:Indexed(178)/Indexed(16)/BOLD
 04 ||
 
 05 ||
@@ -98,13 +98,13 @@ t=600 ms
 01 ||
 
 02 |              ___ ___ _  _   _   _      ___  ___  _   _ _  _ ___|
- 14:Indexed(203)/Indexed(16)/BOLD 29:Indexed(167)/Indexed(16)/BOLD 40:Indexed(221)/Indexed(16)/BOLD
+ 14:Indexed(167)/Indexed(16)/BOLD 29:Indexed(166)/Indexed(16)/BOLD 40:Indexed(220)/Indexed(16)/BOLD 41:Indexed(221)/Indexed(16)/BOLD
 03 |             | __|_ _| \| | /_\ | |    | _ \/ _ \| | | | \| |   \|
- 13:Indexed(167)/Indexed(16)/BOLD 41:Indexed(185)/Indexed(16)/BOLD 46:Indexed(221)/Indexed(16)/BOLD 64:Indexed(185)/Indexed(16)/BOLD
+ 13:Indexed(166)/Indexed(16)/BOLD 20:Indexed(160)/Indexed(16)/BOLD 32:Indexed(124)/Indexed(16)/BOLD 39:Indexed(160)/Indexed(16)/BOLD 41:Indexed(178)/Indexed(16)/BOLD 51:Indexed(214)/Indexed(16)/BOLD 53:Indexed(220)/Indexed(16)/BOLD 58:Indexed(214)/Indexed(16)/BOLD 64:Indexed(178)/Indexed(16)/BOLD
 04 |             | _| | || .` |/ _ \| |__  |   / (_) | |_| | .` | |) ||
- 13:Indexed(167)/Indexed(16)/BOLD 26:Indexed(131)/Indexed(16)/BOLD 43:Indexed(179)/Indexed(16)/BOLD
+ 13:Indexed(160)/Indexed(16)/BOLD 18:Indexed(124)/Indexed(16)/BOLD 43:Indexed(136)/Indexed(16)/BOLD 49:Indexed(178)/Indexed(16)/BOLD 62:Indexed(142)/Indexed(16)/BOLD 63:Indexed(136)/Indexed(16)/BOLD
 05 |             |_| |___|_|\_/_/ \_\____| |_|_\\___/ \___/|_|\_|___/|
- 13:Indexed(131)/Indexed(16)/BOLD 40:Indexed(143)/Indexed(16)/BOLD 50:Indexed(179)/Indexed(16)/BOLD 62:Indexed(143)/Indexed(16)/BOLD
+ 13:Indexed(124)/Indexed(16)/BOLD 21:Indexed(88)/Indexed(16)/BOLD 40:Indexed(94)/Indexed(16)/BOLD 43:Indexed(100)/Indexed(16)/BOLD 47:Indexed(136)/Indexed(16)/BOLD 64:Indexed(100)/Indexed(16)/BOLD
 06 ||
 
 07 ||
@@ -128,13 +128,13 @@ t=900 ms
 01 ||
 
 02 |              ___ ___ _  _   _   _      ___  ___  _   _ _  _ ___|
- 14:Indexed(203)/Indexed(16)/BOLD 29:Indexed(167)/Indexed(16)/BOLD 40:Indexed(221)/Indexed(16)/BOLD
+ 14:Indexed(167)/Indexed(16)/BOLD 29:Indexed(166)/Indexed(16)/BOLD 40:Indexed(214)/Indexed(16)/BOLD 41:Indexed(220)/Indexed(16)/BOLD 42:Indexed(221)/Indexed(16)/BOLD
 03 |             | __|_ _| \| | /_\ | |    | _ \/ _ \| | | | \| |   \|
- 13:Indexed(167)/Indexed(16)/BOLD 41:Indexed(179)/Indexed(16)/BOLD 43:Indexed(185)/Indexed(16)/BOLD 48:Indexed(221)/Indexed(16)/BOLD
+ 13:Indexed(166)/Indexed(16)/BOLD 21:Indexed(160)/Indexed(16)/BOLD 32:Indexed(124)/Indexed(16)/BOLD 39:Indexed(160)/Indexed(16)/BOLD 41:Indexed(178)/Indexed(16)/BOLD 51:Indexed(214)/Indexed(16)/BOLD 53:Indexed(220)/Indexed(16)/BOLD 60:Indexed(214)/Indexed(16)/BOLD 64:Indexed(178)/Indexed(16)/BOLD
 04 |             | _| | || .` |/ _ \| |__  |   / (_) | |_| | .` | |) ||
- 13:Indexed(167)/Indexed(16)/BOLD 26:Indexed(131)/Indexed(16)/BOLD 43:Indexed(179)/Indexed(16)/BOLD
+ 13:Indexed(160)/Indexed(16)/BOLD 20:Indexed(124)/Indexed(16)/BOLD 43:Indexed(136)/Indexed(16)/BOLD 49:Indexed(178)/Indexed(16)/BOLD 65:Indexed(136)/Indexed(16)/BOLD
 05 |             |_| |___|_|\_/_/ \_\____| |_|_\\___/ \___/|_|\_|___/|
- 13:Indexed(131)/Indexed(16)/BOLD 40:Indexed(143)/Indexed(16)/BOLD 50:Indexed(179)/Indexed(16)/BOLD 63:Indexed(143)/Indexed(16)/BOLD
+ 13:Indexed(124)/Indexed(16)/BOLD 22:Indexed(88)/Indexed(16)/BOLD 40:Indexed(94)/Indexed(16)/BOLD 45:Indexed(100)/Indexed(16)/BOLD 48:Indexed(136)/Indexed(16)/BOLD
 06 ||
 
 07 ||
@@ -158,13 +158,13 @@ t=1600 ms
 01 ||
 
 02 |              ___ ___ _  _   _   _      ___  ___  _   _ _  _ ___|
- 14:Indexed(203)/Indexed(16)/BOLD 33:Indexed(167)/Indexed(16)/BOLD 40:Indexed(221)/Indexed(16)/BOLD
+ 14:Indexed(167)/Indexed(16)/BOLD 33:Indexed(166)/Indexed(16)/BOLD 40:Indexed(178)/Indexed(16)/BOLD 41:Indexed(214)/Indexed(16)/BOLD 45:Indexed(221)/Indexed(16)/BOLD
 03 |             | __|_ _| \| | /_\ | |    | _ \/ _ \| | | | \| |   \|
- 13:Indexed(167)/Indexed(16)/BOLD 41:Indexed(179)/Indexed(16)/BOLD 46:Indexed(185)/Indexed(16)/BOLD 51:Indexed(221)/Indexed(16)/BOLD
+ 13:Indexed(166)/Indexed(16)/BOLD 23:Indexed(160)/Indexed(16)/BOLD 39:Indexed(124)/Indexed(16)/BOLD 41:Indexed(178)/Indexed(16)/BOLD 55:Indexed(214)/Indexed(16)/BOLD 57:Indexed(220)/Indexed(16)/BOLD 64:Indexed(214)/Indexed(16)/BOLD
 04 |             | _| | || .` |/ _ \| |__  |   / (_) | |_| | .` | |) ||
- 13:Indexed(167)/Indexed(16)/BOLD 29:Indexed(131)/Indexed(16)/BOLD 43:Indexed(179)/Indexed(16)/BOLD
+ 13:Indexed(160)/Indexed(16)/BOLD 23:Indexed(124)/Indexed(16)/BOLD 43:Indexed(136)/Indexed(16)/BOLD 52:Indexed(178)/Indexed(16)/BOLD
 05 |             |_| |___|_|\_/_/ \_\____| |_|_\\___/ \___/|_|\_|___/|
- 13:Indexed(131)/Indexed(16)/BOLD 40:Indexed(137)/Indexed(16)/BOLD 43:Indexed(143)/Indexed(16)/BOLD 53:Indexed(179)/Indexed(16)/BOLD
+ 13:Indexed(124)/Indexed(16)/BOLD 25:Indexed(88)/Indexed(16)/BOLD 40:Indexed(94)/Indexed(16)/BOLD 47:Indexed(100)/Indexed(16)/BOLD 51:Indexed(136)/Indexed(16)/BOLD
 06 ||
 
 07 ||
@@ -188,13 +188,13 @@ t=1900 ms
 01 ||
 
 02 |              ___ ___ _  _   _   _      ___  ___  _   _ _  _ ___|
- 14:Indexed(203)/Reset/BOLD 40:Indexed(221)/Reset/BOLD
+ 14:Indexed(167)/Reset/BOLD 40:Indexed(221)/Reset/BOLD
 03 |             | __|_ _| \| | /_\ | |    | _ \/ _ \| | | | \| |   \|
- 13:Indexed(167)/Reset/BOLD 41:Indexed(185)/Reset/BOLD
+ 13:Indexed(160)/Reset/BOLD 41:Indexed(178)/Reset/BOLD
 04 |             | _| | || .` |/ _ \| |__  |   / (_) | |_| | .` | |) ||
- 13:Indexed(167)/Reset/BOLD 43:Indexed(179)/Reset/BOLD
+ 13:Indexed(124)/Reset/BOLD 43:Indexed(136)/Reset/BOLD
 05 |             |_| |___|_|\_/_/ \_\____| |_|_\\___/ \___/|_|\_|___/|
- 13:Indexed(131)/Reset/BOLD 40:Indexed(143)/Reset/BOLD
+ 13:Indexed(88)/Reset/BOLD 40:Indexed(100)/Reset/BOLD
 06 ||
 
 07 ||
