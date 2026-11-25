@@ -1,0 +1,2659 @@
+[
+  {
+    "row": 1,
+    "input": "@claude Hello",
+    "condition": "None",
+    "description": "Message to `claude`; body `Hello`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Hello",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Hello"
+    }
+  },
+  {
+    "row": 2,
+    "input": "@grok @gemini Compare this",
+    "condition": "None",
+    "description": "Message to both members.",
+    "ast": {
+      "kind": "message",
+      "raw": "@grok @gemini Compare this",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "grok",
+        "gemini"
+      ],
+      "body": "Compare this"
+    }
+  },
+  {
+    "row": 3,
+    "input": "@all Suggest a use case",
+    "condition": "Default roster",
+    "description": "Message to all configured members.",
+    "ast": {
+      "kind": "message",
+      "raw": "@all Suggest a use case",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "body": "Suggest a use case"
+    }
+  },
+  {
+    "row": 4,
+    "input": "@all -grok -muse Suggest a use case",
+    "condition": "Default roster",
+    "description": "Explicit recipients `claude`, `fable`, `openai`, `gemini`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@all -grok -muse Suggest a use case",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini"
+      ],
+      "body": "Suggest a use case"
+    }
+  },
+  {
+    "row": 5,
+    "input": "@all -grok -grok Hello",
+    "condition": "Default roster",
+    "description": "Exclude `grok` once.",
+    "ast": {
+      "kind": "message",
+      "raw": "@all -grok -grok Hello",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "muse"
+      ],
+      "body": "Hello"
+    }
+  },
+  {
+    "row": 6,
+    "input": "@all -unknown Hello",
+    "condition": "None",
+    "description": "`Unknown recipient: @unknown.`",
+    "error": "Unknown recipient: @unknown.",
+    "code": "UNKNOWN_RECIPIENT",
+    "span": {
+      "end": 13,
+      "start": 5
+    }
+  },
+  {
+    "row": 7,
+    "input": "@all -grok Hello",
+    "condition": "Roster contains only `grok`",
+    "description": "`@all exclusions must leave at least one recipient.`",
+    "error": "@all exclusions must leave at least one recipient.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "start": 0,
+      "end": 4
+    }
+  },
+  {
+    "row": 8,
+    "input": "@all Explain -grok",
+    "condition": "None",
+    "description": "All members receive body `Explain -grok`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@all Explain -grok",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "body": "Explain -grok"
+    }
+  },
+  {
+    "row": 9,
+    "input": "@claude Explain -grok",
+    "condition": "None",
+    "description": "Only `claude` receives body `Explain -grok`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Explain -grok",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Explain -grok"
+    }
+  },
+  {
+    "row": 10,
+    "input": "Hello",
+    "condition": "None",
+    "description": "`Add at least one recipient: @nick or @all.`",
+    "error": "Add at least one recipient: @nick or @all.",
+    "code": "RECIPIENT_REQUIRED",
+    "span": {
+      "end": 5,
+      "start": 0
+    }
+  },
+  {
+    "row": 11,
+    "input": "@claude",
+    "condition": "None",
+    "description": "`Enter message text after the recipients.`",
+    "error": "Enter message text after the recipients.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 7,
+      "start": 0
+    }
+  },
+  {
+    "row": 12,
+    "input": "@Claude Hello",
+    "condition": "None",
+    "description": "`Unknown recipient: @Claude.`",
+    "error": "Unknown recipient: @Claude.",
+    "code": "UNKNOWN_RECIPIENT",
+    "span": {
+      "end": 7,
+      "start": 0
+    }
+  },
+  {
+    "row": 13,
+    "input": "@unknown Hello",
+    "condition": "None",
+    "description": "`Unknown recipient: @unknown.`",
+    "error": "Unknown recipient: @unknown.",
+    "code": "UNKNOWN_RECIPIENT",
+    "span": {
+      "end": 8,
+      "start": 0
+    }
+  },
+  {
+    "row": 14,
+    "input": "@me Hello",
+    "condition": "None",
+    "description": "`@me cannot be a recipient.`",
+    "error": "@me cannot be a recipient.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 3,
+      "start": 0
+    }
+  },
+  {
+    "row": 15,
+    "input": "@all @grok Hello",
+    "condition": "None",
+    "description": "`Use @all by itself or name individual recipients.`",
+    "error": "Use @all by itself or name individual recipients.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 10,
+      "start": 5
+    }
+  },
+  {
+    "row": 16,
+    "input": "@grok @grok Hello",
+    "condition": "None",
+    "description": "One recipient: `grok`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@grok @grok Hello",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "grok"
+      ],
+      "body": "Hello"
+    }
+  },
+  {
+    "row": 17,
+    "input": "@claude Email person@example.com",
+    "condition": "None",
+    "description": "Email retained literally.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Email person@example.com",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Email person@example.com"
+    }
+  },
+  {
+    "row": 18,
+    "input": "@claude Explain \\@grok",
+    "condition": "None",
+    "description": "Body `Explain @grok`; only `claude` receives it.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Explain \\@grok",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Explain @grok"
+    }
+  },
+  {
+    "row": 19,
+    "input": "@claude Explain \\$ROUNDS",
+    "condition": "None",
+    "description": "Body `Explain $ROUNDS`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Explain \\$ROUNDS",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Explain $ROUNDS"
+    }
+  },
+  {
+    "row": 20,
+    "input": "@claude Budget $20",
+    "condition": "None",
+    "description": "Body `Budget $20`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Budget $20",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Budget $20"
+    }
+  },
+  {
+    "row": 21,
+    "input": "@claude Explain `@grok $ROUNDS`",
+    "condition": "None",
+    "description": "Code retained; no additional recipient or expansion.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Explain `@grok $ROUNDS`",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Explain `@grok $ROUNDS`"
+    }
+  },
+  {
+    "row": 22,
+    "input": "@claude Use $ROUNDS rounds",
+    "condition": "None",
+    "description": "Body `Use 10 rounds`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Use $ROUNDS rounds",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Use 10 rounds"
+    }
+  },
+  {
+    "row": 23,
+    "input": "$ROUNDS=5",
+    "condition": "None",
+    "description": "Assignment-only control operation.",
+    "ast": {
+      "kind": "assignment",
+      "raw": "$ROUNDS=5",
+      "updates": [
+        {
+          "name": "ROUNDS",
+          "value": 5
+        }
+      ]
+    }
+  },
+  {
+    "row": 24,
+    "input": "/set ROUNDS 5",
+    "condition": "None",
+    "description": "Equivalent variable update.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/set ROUNDS 5",
+      "action": {
+        "name": "set",
+        "variable": "ROUNDS",
+        "value": 5
+      }
+    }
+  },
+  {
+    "row": 25,
+    "input": "$ROUNDS=5 @grok Hello",
+    "condition": "None",
+    "description": "Message to `grok`, body `Hello`, staged sticky value 5.",
+    "ast": {
+      "kind": "message",
+      "raw": "$ROUNDS=5 @grok Hello",
+      "quote": [],
+      "variableUpdates": [
+        {
+          "name": "ROUNDS",
+          "value": 5
+        }
+      ],
+      "recipients": [
+        "grok"
+      ],
+      "body": "Hello"
+    }
+  },
+  {
+    "row": 26,
+    "input": "@grok Hello $ROUNDS=5",
+    "condition": "None",
+    "description": "Same message and staged update.",
+    "ast": {
+      "kind": "message",
+      "raw": "@grok Hello $ROUNDS=5",
+      "quote": [],
+      "variableUpdates": [
+        {
+          "name": "ROUNDS",
+          "value": 5
+        }
+      ],
+      "recipients": [
+        "grok"
+      ],
+      "body": "Hello"
+    }
+  },
+  {
+    "row": 27,
+    "input": "@grok Use $ROUNDS rounds $ROUNDS=5",
+    "condition": "None",
+    "description": "Body `Use 5 rounds`; staged sticky value 5.",
+    "ast": {
+      "kind": "message",
+      "raw": "@grok Use $ROUNDS rounds $ROUNDS=5",
+      "quote": [],
+      "variableUpdates": [
+        {
+          "name": "ROUNDS",
+          "value": 5
+        }
+      ],
+      "recipients": [
+        "grok"
+      ],
+      "body": "Use 5 rounds"
+    }
+  },
+  {
+    "row": 28,
+    "input": "$ROUNDS=4 $ROUNDS=5",
+    "condition": "None",
+    "description": "Assignment-only operation setting 5.",
+    "ast": {
+      "kind": "assignment",
+      "raw": "$ROUNDS=4 $ROUNDS=5",
+      "updates": [
+        {
+          "name": "ROUNDS",
+          "value": 5
+        }
+      ]
+    }
+  },
+  {
+    "row": 29,
+    "input": "$ROUNDS=0",
+    "condition": "None",
+    "description": "`ROUNDS must be an integer from 1 to 20.`",
+    "error": "ROUNDS must be an integer from 1 to 20.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 9,
+      "start": 0
+    }
+  },
+  {
+    "row": 30,
+    "input": "$ROUNDS=3.5",
+    "condition": "None",
+    "description": "Same integer error.",
+    "error": "ROUNDS must be an integer from 1 to 20.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 11,
+      "start": 0
+    }
+  },
+  {
+    "row": 31,
+    "input": "$ROUNDS=",
+    "condition": "None",
+    "description": "Same integer error.",
+    "error": "ROUNDS must be an integer from 1 to 20.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 8,
+      "start": 0
+    }
+  },
+  {
+    "row": 32,
+    "input": "@grok Hello $ROUNDS=0",
+    "condition": "Current value 3",
+    "description": "Reject; current value remains 3.",
+    "error": "ROUNDS must be an integer from 1 to 20.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 21,
+      "start": 12
+    }
+  },
+  {
+    "row": 33,
+    "input": "$OTHER=2",
+    "condition": "None",
+    "description": "`Unknown variable: OTHER.`",
+    "error": "Unknown variable: OTHER.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 8,
+      "start": 0
+    }
+  },
+  {
+    "row": 34,
+    "input": "@grok Use $OTHER",
+    "condition": "None",
+    "description": "`Unknown variable: OTHER.`",
+    "error": "Unknown variable: OTHER.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 16,
+      "start": 10
+    }
+  },
+  {
+    "row": 35,
+    "input": "@grok $Rounds",
+    "condition": "None",
+    "description": "`Invalid token: $Rounds. Escape the sigil to use it literally.`",
+    "error": "Invalid token: $Rounds. Escape the sigil to use it literally.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 13,
+      "start": 6
+    }
+  },
+  {
+    "row": 36,
+    "input": "@grok $vote Yes",
+    "condition": "None",
+    "description": "`Command $vote is reserved and unavailable in v1.`",
+    "error": "Command $vote is reserved and unavailable in v1.",
+    "code": "COMMAND_NOT_IMPLEMENTED",
+    "span": {
+      "end": 11,
+      "start": 6
+    }
+  },
+  {
+    "row": 37,
+    "input": "@grok $review This",
+    "condition": "None",
+    "description": "`Command $review is reserved and unavailable in v1.`",
+    "error": "Command $review is reserved and unavailable in v1.",
+    "code": "COMMAND_NOT_IMPLEMENTED",
+    "span": {
+      "end": 13,
+      "start": 6
+    }
+  },
+  {
+    "row": 38,
+    "input": "@grok $dance",
+    "condition": "None",
+    "description": "`Unknown command: $dance.`",
+    "error": "Unknown command: $dance.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 12,
+      "start": 6
+    }
+  },
+  {
+    "row": 39,
+    "input": "@grok Critique this",
+    "condition": "`quote: [q1]`; q1 authored by `gemini`",
+    "description": "`grok` receives the question and author-labelled quote; no other member receives it.",
+    "ast": {
+      "kind": "message",
+      "raw": "@grok Critique this",
+      "quote": [
+        "01900000-0000-7000-8000-000000000001"
+      ],
+      "variableUpdates": [],
+      "recipients": [
+        "grok"
+      ],
+      "body": "Critique this"
+    }
+  },
+  {
+    "row": 40,
+    "input": "@grok Critique this",
+    "condition": "`replyTo: [q1]`",
+    "description": "`Solution selection is only allowed with $debate.`",
+    "error": "Solution selection is only allowed with $debate.",
+    "code": "INVALID_REFERENCE",
+    "span": {
+      "end": 19,
+      "start": 0
+    }
+  },
+  {
+    "row": 41,
+    "input": "@judge Decide",
+    "condition": "No quotes",
+    "description": "`Quote at least one message for @judge to rule on.`",
+    "error": "Quote at least one message for @judge to rule on.",
+    "code": "JUDGE_QUOTE_REQUIRED",
+    "span": {
+      "end": 6,
+      "start": 0
+    }
+  },
+  {
+    "row": 42,
+    "input": "@judge Which is best?",
+    "condition": "`quote: [q1, q2]`; neither is a verdict",
+    "description": "Standalone judge request opening a fresh case; free-form ruling.",
+    "ast": {
+      "kind": "judge",
+      "raw": "@judge Which is best?",
+      "quote": [
+        "01900000-0000-7000-8000-000000000001",
+        "01900000-0000-7000-8000-000000000002"
+      ],
+      "variableUpdates": [],
+      "recipients": [
+        "judge"
+      ],
+      "question": "Which is best?"
+    }
+  },
+  {
+    "row": 43,
+    "input": "@judge Explain your decision",
+    "condition": "`quote: [v1]`; v1 is a verdict",
+    "description": "Judge follow-up on v1’s sealed case.",
+    "ast": {
+      "kind": "judge",
+      "raw": "@judge Explain your decision",
+      "quote": [
+        "01900000-0000-7000-8000-000000000003"
+      ],
+      "variableUpdates": [],
+      "recipients": [
+        "judge"
+      ],
+      "question": "Explain your decision"
+    }
+  },
+  {
+    "row": 44,
+    "input": "@judge @grok Decide",
+    "condition": "`quote: [q1]`",
+    "description": "`Quote at least one message for @judge to rule on.`",
+    "error": "Quote at least one message for @judge to rule on.",
+    "code": "JUDGE_QUOTE_REQUIRED",
+    "span": {
+      "end": 6,
+      "start": 0
+    }
+  },
+  {
+    "row": 45,
+    "input": "@grok @gemini $debate Defend your solutions",
+    "condition": "Compatible prior solutions",
+    "description": "Ten-round debate; `judgeRequested: false`.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @gemini $debate Defend your solutions",
+      "quote": [],
+      "variableUpdates": [],
+      "debaters": [
+        "grok",
+        "gemini"
+      ],
+      "rounds": 10,
+      "instruction": "Defend your solutions",
+      "judgeRequested": false,
+      "replyTo": []
+    }
+  },
+  {
+    "row": 46,
+    "input": "@grok @gemini $debate until $ROUNDS @judge decides",
+    "condition": "Compatible prior solutions",
+    "description": "Instruction `until 10 @judge decides`; `judgeRequested: true`.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @gemini $debate until $ROUNDS @judge decides",
+      "quote": [],
+      "variableUpdates": [],
+      "debaters": [
+        "grok",
+        "gemini"
+      ],
+      "rounds": 10,
+      "instruction": "until 10 @judge decides",
+      "judgeRequested": true,
+      "replyTo": []
+    }
+  },
+  {
+    "row": 47,
+    "input": "@grok @claude $debate tabs vs spaces",
+    "condition": "No prior solutions",
+    "description": "Opening round 0 for both, then the configured rounds; no automatic judge.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @claude $debate tabs vs spaces",
+      "quote": [],
+      "variableUpdates": [],
+      "debaters": [
+        "grok",
+        "claude"
+      ],
+      "rounds": 10,
+      "instruction": "tabs vs spaces",
+      "judgeRequested": false,
+      "replyTo": []
+    }
+  },
+  {
+    "row": 48,
+    "input": "@grok @claude $debate tabs vs spaces @judge",
+    "condition": "Only one has a prior solution on the topic",
+    "description": "Opening round 0 for both, followed by the configured rounds and judging.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @claude $debate tabs vs spaces @judge",
+      "quote": [],
+      "variableUpdates": [],
+      "debaters": [
+        "grok",
+        "claude"
+      ],
+      "rounds": 10,
+      "instruction": "tabs vs spaces @judge",
+      "judgeRequested": true,
+      "replyTo": []
+    }
+  },
+  {
+    "row": 49,
+    "input": "@grok @gemini $debate $ROUNDS=5 until $ROUNDS",
+    "condition": "Compatible prior solutions",
+    "description": "Five-round debate; instruction `until 5`; staged sticky value 5.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @gemini $debate $ROUNDS=5 until $ROUNDS",
+      "quote": [],
+      "variableUpdates": [
+        {
+          "name": "ROUNDS",
+          "value": 5
+        }
+      ],
+      "debaters": [
+        "grok",
+        "gemini"
+      ],
+      "rounds": 5,
+      "instruction": "until 5",
+      "judgeRequested": false,
+      "replyTo": []
+    }
+  },
+  {
+    "row": 50,
+    "input": "@grok @gemini $debate until 7",
+    "condition": "Compatible prior solutions",
+    "description": "Ten rounds; numeric prose does not assign `ROUNDS`.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @gemini $debate until 7",
+      "quote": [],
+      "variableUpdates": [],
+      "debaters": [
+        "grok",
+        "gemini"
+      ],
+      "rounds": 10,
+      "instruction": "until 7",
+      "judgeRequested": false,
+      "replyTo": []
+    }
+  },
+  {
+    "row": 51,
+    "input": "@grok @gemini $debate Compare these",
+    "condition": "`replyTo: [g1, g2]`; valid shared-topic replies from the two debaters",
+    "description": "Explicit solution selections override recency.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @gemini $debate Compare these",
+      "quote": [],
+      "variableUpdates": [],
+      "debaters": [
+        "grok",
+        "gemini"
+      ],
+      "rounds": 10,
+      "instruction": "Compare these",
+      "judgeRequested": false,
+      "replyTo": [
+        "01900000-0000-7000-8000-000000000004",
+        "01900000-0000-7000-8000-000000000005"
+      ]
+    }
+  },
+  {
+    "row": 52,
+    "input": "@grok @gemini $debate Compare these",
+    "condition": "Explicit selections answer different messages",
+    "description": "`Debaters' solutions must answer the same user message.`",
+    "error": "Debaters' solutions must answer the same user message.",
+    "code": "DEBATE_TOPIC_MISMATCH",
+    "span": {
+      "end": 35,
+      "start": 0
+    }
+  },
+  {
+    "row": 53,
+    "input": "@grok $debate",
+    "condition": "None",
+    "description": "`$debate requires exactly two distinct debaters.`",
+    "error": "$debate requires exactly two distinct debaters.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 13,
+      "start": 0
+    }
+  },
+  {
+    "row": 54,
+    "input": "@grok @gemini @muse $debate",
+    "condition": "None",
+    "description": "`Add a question after $debate.`",
+    "error": "Add a question after $debate.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 27,
+      "start": 0
+    }
+  },
+  {
+    "row": 55,
+    "input": "@all $debate",
+    "condition": "None",
+    "description": "`Add a question after $debate.`",
+    "error": "Add a question after $debate.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 56,
+    "input": "@all -muse $debate",
+    "condition": "None",
+    "description": "`Add a question after $debate.`",
+    "error": "Add a question after $debate.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 18,
+      "start": 0
+    }
+  },
+  {
+    "row": 57,
+    "input": "@grok @gemini $debate $debate",
+    "condition": "None",
+    "description": "`Use only one $ command per submission.`",
+    "error": "Use only one $ command per submission.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 29,
+      "start": 22
+    }
+  },
+  {
+    "row": 58,
+    "input": "@grok @gemini $debate Continue",
+    "condition": "Debate d1 is active",
+    "description": "`A debate is already running. Stop it before starting another.`",
+    "error": "A debate is already running. Stop it before starting another.",
+    "code": "DEBATE_BUSY",
+    "span": {
+      "end": 30,
+      "start": 0
+    }
+  },
+  {
+    "row": 59,
+    "input": "/help",
+    "condition": "None",
+    "description": "Slash action `help`.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/help",
+      "action": {
+        "name": "help"
+      }
+    }
+  },
+  {
+    "row": 60,
+    "input": "/who",
+    "condition": "None",
+    "description": "Slash action `who`.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/who",
+      "action": {
+        "name": "who"
+      }
+    }
+  },
+  {
+    "row": 61,
+    "input": "/clear",
+    "condition": "None",
+    "description": "Persistent-room clear action.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/clear",
+      "action": {
+        "name": "clear"
+      }
+    }
+  },
+  {
+    "row": 62,
+    "input": "/stop",
+    "condition": "None",
+    "description": "Room-wide stop action; no recipient or active contest is required for parsing.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/stop",
+      "action": {
+        "name": "stop"
+      }
+    }
+  },
+  {
+    "row": 63,
+    "input": "/stop @grok",
+    "condition": "None",
+    "description": "Targeted stop action for `grok`.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/stop @grok",
+      "action": {
+        "name": "stop",
+        "nick": "grok"
+      }
+    }
+  },
+  {
+    "row": 64,
+    "input": "/stop now",
+    "condition": "None",
+    "description": "`Usage: /stop [@nick]`",
+    "error": "Usage: /stop [@nick]",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 9,
+      "start": 0
+    }
+  },
+  {
+    "row": 65,
+    "input": "/judge",
+    "condition": "None",
+    "description": "Judge action with target omitted.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/judge",
+      "action": {
+        "name": "judge"
+      }
+    }
+  },
+  {
+    "row": 66,
+    "input": "/judge 01900000-0000-7000-8000-000000000009",
+    "condition": "d1 represents a valid debate identifier",
+    "description": "Judge action targeting the existing debate transcript.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/judge 01900000-0000-7000-8000-000000000009",
+      "action": {
+        "name": "judge",
+        "debateId": "01900000-0000-7000-8000-000000000009"
+      }
+    }
+  },
+  {
+    "row": 67,
+    "input": "/regen",
+    "condition": "None",
+    "description": "Regeneration action with target omitted.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/regen",
+      "action": {
+        "name": "regen"
+      }
+    }
+  },
+  {
+    "row": 68,
+    "input": "/regen 01900000-0000-7000-8000-00000000000a",
+    "condition": "m1 represents a valid message identifier",
+    "description": "Regeneration action targeting m1.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/regen 01900000-0000-7000-8000-00000000000a",
+      "action": {
+        "name": "regen",
+        "messageId": "01900000-0000-7000-8000-00000000000a"
+      }
+    }
+  },
+  {
+    "row": 69,
+    "input": "/export room",
+    "condition": "None",
+    "description": "Markdown room-export action.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export room",
+      "action": {
+        "name": "export",
+        "scope": "room"
+      }
+    }
+  },
+  {
+    "row": 70,
+    "input": "/export debate 01900000-0000-7000-8000-000000000009",
+    "condition": "d1 represents a valid debate identifier",
+    "description": "Markdown debate-export action.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export debate 01900000-0000-7000-8000-000000000009",
+      "action": {
+        "name": "export",
+        "scope": "debate",
+        "id": "01900000-0000-7000-8000-000000000009"
+      }
+    }
+  },
+  {
+    "row": 71,
+    "input": "/export",
+    "condition": "None",
+    "description": "`Usage: /export room\\|debate\\|grill\\|tournament\\|census\\|crosscheck\\|survey\\|probe [id]`",
+    "error": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 7,
+      "start": 0
+    }
+  },
+  {
+    "row": 72,
+    "input": "/unknown",
+    "condition": "None",
+    "description": "`Unknown slash command: /unknown.`",
+    "error": "Unknown slash command: /unknown.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 8,
+      "start": 0
+    }
+  },
+  {
+    "row": 73,
+    "input": "$GRILL_ROUNDS=3",
+    "condition": "None",
+    "description": "Assignment-only operation setting `GRILL_ROUNDS` to 3.",
+    "ast": {
+      "kind": "assignment",
+      "raw": "$GRILL_ROUNDS=3",
+      "updates": [
+        {
+          "name": "GRILL_ROUNDS",
+          "value": 3
+        }
+      ]
+    }
+  },
+  {
+    "row": 74,
+    "input": "/set GRILL_ROUNDS 3",
+    "condition": "None",
+    "description": "Equivalent variable update.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/set GRILL_ROUNDS 3",
+      "action": {
+        "name": "set",
+        "variable": "GRILL_ROUNDS",
+        "value": 3
+      }
+    }
+  },
+  {
+    "row": 75,
+    "input": "$GRILL_ROUNDS=0",
+    "condition": "None",
+    "description": "`GRILL_ROUNDS must be an integer from 1 to 10.`",
+    "error": "GRILL_ROUNDS must be an integer from 1 to 10.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 15,
+      "start": 0
+    }
+  },
+  {
+    "row": 76,
+    "input": "$GRILL_ROUNDS=11",
+    "condition": "None",
+    "description": "Same integer error.",
+    "error": "GRILL_ROUNDS must be an integer from 1 to 10.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 16,
+      "start": 0
+    }
+  },
+  {
+    "row": 77,
+    "input": "$ROUNDS=5 $GRILL_ROUNDS=3",
+    "condition": "None",
+    "description": "One assignment control operation staging both independent updates.",
+    "ast": {
+      "kind": "assignment",
+      "raw": "$ROUNDS=5 $GRILL_ROUNDS=3",
+      "updates": [
+        {
+          "name": "ROUNDS",
+          "value": 5
+        },
+        {
+          "name": "GRILL_ROUNDS",
+          "value": 3
+        }
+      ]
+    }
+  },
+  {
+    "row": 78,
+    "input": "$ROUNDS=5 $GRILL_ROUNDS=0",
+    "condition": "Stored values 10 and 2",
+    "description": "Reject; both stored values remain unchanged.",
+    "error": "GRILL_ROUNDS must be an integer from 1 to 10.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 25,
+      "start": 10
+    }
+  },
+  {
+    "row": 79,
+    "input": "@claude Use $ROUNDS and $GRILL_ROUNDS $GRILL_ROUNDS=3 $ROUNDS=5",
+    "condition": "None",
+    "description": "Body `Use 5 and 3`; stages both updates.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Use $ROUNDS and $GRILL_ROUNDS $GRILL_ROUNDS=3 $ROUNDS=5",
+      "quote": [],
+      "variableUpdates": [
+        {
+          "name": "GRILL_ROUNDS",
+          "value": 3
+        },
+        {
+          "name": "ROUNDS",
+          "value": 5
+        }
+      ],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Use 5 and 3"
+    }
+  },
+  {
+    "row": 80,
+    "input": "@all $tournament Design a useful CLI",
+    "condition": "Default roster",
+    "description": "Tournament with all six entrants; judging implied; no pick.",
+    "ast": {
+      "kind": "tournament",
+      "raw": "@all $tournament Design a useful CLI",
+      "quote": [],
+      "variableUpdates": [],
+      "entrants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "prompt": "Design a useful CLI"
+    }
+  },
+  {
+    "row": 81,
+    "input": "@all -muse $tournament Design a useful CLI",
+    "condition": "Default roster",
+    "description": "Tournament with the five remaining entrants.",
+    "ast": {
+      "kind": "tournament",
+      "raw": "@all -muse $tournament Design a useful CLI",
+      "quote": [],
+      "variableUpdates": [],
+      "entrants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok"
+      ],
+      "prompt": "Design a useful CLI"
+    }
+  },
+  {
+    "row": 82,
+    "input": "@grok @gemini @claude $tournament Design a useful CLI @judge",
+    "condition": "None",
+    "description": "Three entrants; prompt `Design a useful CLI`; judging implied.",
+    "ast": {
+      "kind": "tournament",
+      "raw": "@grok @gemini @claude $tournament Design a useful CLI @judge",
+      "quote": [],
+      "variableUpdates": [],
+      "entrants": [
+        "grok",
+        "gemini",
+        "claude"
+      ],
+      "prompt": "Design a useful CLI"
+    }
+  },
+  {
+    "row": 83,
+    "input": "@grok @gemini $tournament Design a useful CLI",
+    "condition": "None",
+    "description": "`$tournament needs at least three entrants.`",
+    "error": "$tournament needs at least three entrants.",
+    "code": "TOURNAMENT_ENTRANTS_REQUIRED",
+    "span": {
+      "end": 45,
+      "start": 0
+    }
+  },
+  {
+    "row": 84,
+    "input": "@grok @grok @gemini $tournament Design a useful CLI",
+    "condition": "None",
+    "description": "Same entrant-count error.",
+    "error": "$tournament needs at least three entrants.",
+    "code": "TOURNAMENT_ENTRANTS_REQUIRED",
+    "span": {
+      "end": 51,
+      "start": 0
+    }
+  },
+  {
+    "row": 85,
+    "input": "@all $tournament",
+    "condition": "Default roster",
+    "description": "`Add a prompt after $tournament.`",
+    "error": "Add a prompt after $tournament.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 16,
+      "start": 0
+    }
+  },
+  {
+    "row": 86,
+    "input": "@grok $grill",
+    "condition": "`grok` has an eligible prior plan",
+    "description": "Direct two-round grill; every other member grills.",
+    "ast": {
+      "kind": "grill",
+      "raw": "@grok $grill",
+      "quote": [],
+      "variableUpdates": [],
+      "leader": "grok",
+      "grillers": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "muse"
+      ],
+      "rounds": 2,
+      "focus": ""
+    }
+  },
+  {
+    "row": 87,
+    "input": "@grok $grill Focus on operating cost",
+    "condition": "`grok` has an eligible prior plan",
+    "description": "Direct grill; focus `Focus on operating cost`.",
+    "ast": {
+      "kind": "grill",
+      "raw": "@grok $grill Focus on operating cost",
+      "quote": [],
+      "variableUpdates": [],
+      "leader": "grok",
+      "grillers": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "muse"
+      ],
+      "rounds": 2,
+      "focus": "Focus on operating cost"
+    }
+  },
+  {
+    "row": 88,
+    "input": "@grok $grill",
+    "condition": "No eligible prior plan or quoted selection",
+    "description": "`@grok has no plan to grill yet. Ask it something first.`",
+    "error": "@grok has no plan to grill yet. Ask it something first.",
+    "code": "GRILL_SOURCE_MISSING",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 89,
+    "input": "@grok $grill",
+    "condition": "`quote: [p1]`; p1 is an eligible reply from `grok`",
+    "description": "Direct grill using p1 as the selected plan.",
+    "ast": {
+      "kind": "grill",
+      "raw": "@grok $grill",
+      "quote": [
+        "01900000-0000-7000-8000-000000000006"
+      ],
+      "variableUpdates": [],
+      "leader": "grok",
+      "grillers": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "muse"
+      ],
+      "rounds": 2,
+      "focus": "",
+      "planSelection": "01900000-0000-7000-8000-000000000006"
+    }
+  },
+  {
+    "row": 90,
+    "input": "@grok $grill",
+    "condition": "`quote: [p1, p2]`; both are eligible replies from `grok`",
+    "description": "`Select exactly one reply from @grok as the plan to grill.`",
+    "error": "Select exactly one reply from @grok as the plan to grill.",
+    "code": "GRILL_SOURCE_MISSING",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 91,
+    "input": "@grok @claude @gemini $grill",
+    "condition": "`grok` has an eligible prior plan",
+    "description": "Direct grill; `grok` leads; only `claude` and `gemini` grill.",
+    "ast": {
+      "kind": "grill",
+      "raw": "@grok @claude @gemini $grill",
+      "quote": [],
+      "variableUpdates": [],
+      "leader": "grok",
+      "grillers": [
+        "claude",
+        "gemini"
+      ],
+      "rounds": 2,
+      "focus": ""
+    }
+  },
+  {
+    "row": 92,
+    "input": "@grok @claude $grill Design a backup plan",
+    "condition": "None",
+    "description": "Question-first grill for two candidates; no leader selected yet.",
+    "ast": {
+      "kind": "questionfirst",
+      "raw": "@grok @claude $grill Design a backup plan",
+      "quote": [],
+      "variableUpdates": [],
+      "mode": "grill",
+      "candidates": [
+        "grok",
+        "claude"
+      ],
+      "question": "Design a backup plan",
+      "rounds": 2,
+      "judgeRequested": false
+    }
+  },
+  {
+    "row": 93,
+    "input": "@grok $grill $GRILL_ROUNDS=3",
+    "condition": "`grok` has an eligible prior plan",
+    "description": "Direct three-round grill; staged sticky value 3.",
+    "ast": {
+      "kind": "grill",
+      "raw": "@grok $grill $GRILL_ROUNDS=3",
+      "quote": [],
+      "variableUpdates": [
+        {
+          "name": "GRILL_ROUNDS",
+          "value": 3
+        }
+      ],
+      "leader": "grok",
+      "grillers": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "muse"
+      ],
+      "rounds": 3,
+      "focus": ""
+    }
+  },
+  {
+    "row": 94,
+    "input": "@grok $grill @judge",
+    "condition": "`grok` has an eligible prior plan",
+    "description": "`@judge cannot be used with $grill.`",
+    "error": "@judge cannot be used with $grill.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 19,
+      "start": 13
+    }
+  },
+  {
+    "row": 95,
+    "input": "@all $debate Design a backup plan",
+    "condition": "Default roster",
+    "description": "Question-first debate; ordinary answers, then a two-member pick; judging requested by default.",
+    "ast": {
+      "kind": "questionfirst",
+      "raw": "@all $debate Design a backup plan",
+      "quote": [],
+      "variableUpdates": [],
+      "mode": "debate",
+      "candidates": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "question": "Design a backup plan",
+      "rounds": 10,
+      "judgeRequested": true
+    }
+  },
+  {
+    "row": 96,
+    "input": "@all -muse $debate Design a backup plan",
+    "condition": "Default roster",
+    "description": "Same flow with five candidates.",
+    "ast": {
+      "kind": "questionfirst",
+      "raw": "@all -muse $debate Design a backup plan",
+      "quote": [],
+      "variableUpdates": [],
+      "mode": "debate",
+      "candidates": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok"
+      ],
+      "question": "Design a backup plan",
+      "rounds": 10,
+      "judgeRequested": true
+    }
+  },
+  {
+    "row": 97,
+    "input": "@grok @gemini @claude $debate Design a backup plan",
+    "condition": "None",
+    "description": "Question-first debate with three candidates.",
+    "ast": {
+      "kind": "questionfirst",
+      "raw": "@grok @gemini @claude $debate Design a backup plan",
+      "quote": [],
+      "variableUpdates": [],
+      "mode": "debate",
+      "candidates": [
+        "grok",
+        "gemini",
+        "claude"
+      ],
+      "question": "Design a backup plan",
+      "rounds": 10,
+      "judgeRequested": true
+    }
+  },
+  {
+    "row": 98,
+    "input": "@grok @gemini $debate Design a backup plan",
+    "condition": "None",
+    "description": "Direct debate; fresh-topic opening round if required; no pick.",
+    "ast": {
+      "kind": "debate",
+      "raw": "@grok @gemini $debate Design a backup plan",
+      "quote": [],
+      "variableUpdates": [],
+      "debaters": [
+        "grok",
+        "gemini"
+      ],
+      "rounds": 10,
+      "instruction": "Design a backup plan",
+      "judgeRequested": false,
+      "replyTo": []
+    }
+  },
+  {
+    "row": 99,
+    "input": "@all $grill Design a backup plan",
+    "condition": "Default roster",
+    "description": "Question-first grill; ordinary answers, then a one-member leader pick.",
+    "ast": {
+      "kind": "questionfirst",
+      "raw": "@all $grill Design a backup plan",
+      "quote": [],
+      "variableUpdates": [],
+      "mode": "grill",
+      "candidates": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "question": "Design a backup plan",
+      "rounds": 2,
+      "judgeRequested": false
+    }
+  },
+  {
+    "row": 100,
+    "input": "@all $grill",
+    "condition": "None",
+    "description": "`Add a question after $grill.`",
+    "error": "Add a question after $grill.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 11,
+      "start": 0
+    }
+  },
+  {
+    "row": 101,
+    "input": "@all $debate Design a backup plan",
+    "condition": "`replyTo: [q1]`",
+    "description": "`Question-first contests use their collected answers; do not attach solution selections.`",
+    "error": "Question-first contests use their collected answers; do not attach solution selections.",
+    "code": "INVALID_REFERENCE",
+    "span": {
+      "end": 33,
+      "start": 0
+    }
+  },
+  {
+    "row": 102,
+    "input": "@grok @gemini",
+    "condition": "Debate pick pending; eligible `grok`, `gemini`, `claude`",
+    "description": "`ContestPick` for the pending contest, selecting those two collected answers.",
+    "ast": {
+      "kind": "contestpick",
+      "raw": "@grok @gemini",
+      "contestId": "01900000-0000-7000-8000-000000000014",
+      "nicks": [
+        "grok",
+        "gemini"
+      ]
+    }
+  },
+  {
+    "row": 103,
+    "input": "@grok",
+    "condition": "Same pending debate pick",
+    "description": "`Pick exactly two of: @grok, @gemini, @claude.`",
+    "error": "Pick exactly two of: @claude, @gemini, @grok.",
+    "code": "CONTEST_PICK_INVALID",
+    "span": {
+      "end": 5,
+      "start": 0
+    }
+  },
+  {
+    "row": 104,
+    "input": "@grok @grok",
+    "condition": "Same pending debate pick",
+    "description": "Same distinct-count error.",
+    "error": "Pick exactly two of: @claude, @gemini, @grok.",
+    "code": "CONTEST_PICK_INVALID",
+    "span": {
+      "end": 11,
+      "start": 0
+    }
+  },
+  {
+    "row": 105,
+    "input": "@grok @muse",
+    "condition": "Same pending debate pick; `muse` did not answer",
+    "description": "`@muse did not answer, so it cannot be picked.`",
+    "error": "@muse did not answer, so it cannot be picked.",
+    "code": "CONTEST_PICK_INVALID",
+    "span": {
+      "start": 6,
+      "end": 11
+    }
+  },
+  {
+    "row": 106,
+    "input": "@grok",
+    "condition": "Grill pick pending; eligible `grok`, `gemini`, `claude`",
+    "description": "`ContestPick` selecting `grok` as leader; the other two become grillers.",
+    "ast": {
+      "kind": "contestpick",
+      "raw": "@grok",
+      "contestId": "01900000-0000-7000-8000-000000000014",
+      "nicks": [
+        "grok"
+      ]
+    }
+  },
+  {
+    "row": 107,
+    "input": "@grok @gemini",
+    "condition": "Same pending grill pick",
+    "description": "`Pick exactly one of: @grok, @gemini, @claude.`",
+    "error": "Pick exactly one of: @claude, @gemini, @grok.",
+    "code": "CONTEST_PICK_INVALID",
+    "span": {
+      "end": 13,
+      "start": 0
+    }
+  },
+  {
+    "row": 108,
+    "input": "@claude explain your third point",
+    "condition": "Either pick pending",
+    "description": "Ordinary message; pick stays pending.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude explain your third point",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "explain your third point"
+    }
+  },
+  {
+    "row": 109,
+    "input": "@grok @gemini",
+    "condition": "No pending pick",
+    "description": "`Enter message text after the recipients.`",
+    "error": "Enter message text after the recipients.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 13,
+      "start": 0
+    }
+  },
+  {
+    "row": 110,
+    "input": "/stop",
+    "condition": "Pick pending",
+    "description": "Cancel contest with reason `pick_cancelled`; collected answers remain.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/stop",
+      "action": {
+        "name": "stop"
+      }
+    }
+  },
+  {
+    "row": 111,
+    "input": "@grok @gemini $debate Continue",
+    "condition": "Grill active",
+    "description": "`A grill is already running. Stop it before starting another.`",
+    "error": "A grill is already running. Stop it before starting another.",
+    "code": "DEBATE_BUSY",
+    "span": {
+      "end": 30,
+      "start": 0
+    }
+  },
+  {
+    "row": 112,
+    "input": "/export grill",
+    "condition": "None",
+    "description": "Markdown grill-export action with target omitted.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export grill",
+      "action": {
+        "name": "export",
+        "scope": "grill"
+      }
+    }
+  },
+  {
+    "row": 113,
+    "input": "/export tournament 01900000-0000-7000-8000-00000000000b",
+    "condition": "t1 represents a valid tournament identifier",
+    "description": "Markdown tournament-export action.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export tournament 01900000-0000-7000-8000-00000000000b",
+      "action": {
+        "name": "export",
+        "scope": "tournament",
+        "id": "01900000-0000-7000-8000-00000000000b"
+      }
+    }
+  },
+  {
+    "row": 114,
+    "input": "@all $census",
+    "condition": "`quote: [p1]`; p1 is an eligible plan reply",
+    "description": "Census of p1 with six participants and two passes.",
+    "ast": {
+      "kind": "census",
+      "raw": "@all $census",
+      "quote": [
+        "01900000-0000-7000-8000-000000000006"
+      ],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "quoted",
+        "eventId": "01900000-0000-7000-8000-000000000006"
+      },
+      "passes": 2
+    }
+  },
+  {
+    "row": 115,
+    "input": "@all $census Launch one region, then expand after review.",
+    "condition": "None",
+    "description": "Census with the extracted text as its pasted plan.",
+    "ast": {
+      "kind": "census",
+      "raw": "@all $census Launch one region, then expand after review.",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "pasted",
+        "text": "Launch one region, then expand after review."
+      },
+      "passes": 2
+    }
+  },
+  {
+    "row": 116,
+    "input": "@grok $census",
+    "condition": "`grok` has an eligible latest reply",
+    "description": "Census of that reply; all six configured members participate.",
+    "ast": {
+      "kind": "census",
+      "raw": "@grok $census",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "latestReply",
+        "nick": "grok"
+      },
+      "passes": 2
+    }
+  },
+  {
+    "row": 117,
+    "input": "@grok @grok $census",
+    "condition": "Same condition",
+    "description": "Same sole-member source shortcut after deduplication.",
+    "ast": {
+      "kind": "census",
+      "raw": "@grok @grok $census",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "latestReply",
+        "nick": "grok"
+      },
+      "passes": 2
+    }
+  },
+  {
+    "row": 118,
+    "input": "@grok $census",
+    "condition": "No eligible latest reply",
+    "description": "`@grok has no plan for $census yet. Ask it something first.`",
+    "error": "@grok has no plan for $census yet. Ask it something first.",
+    "code": "CENSUS_SOURCE_MISSING",
+    "span": {
+      "end": 13,
+      "start": 0
+    }
+  },
+  {
+    "row": 119,
+    "input": "@all -muse $census",
+    "condition": "`quote: [p1]`",
+    "description": "Five census participants; two passes.",
+    "ast": {
+      "kind": "census",
+      "raw": "@all -muse $census",
+      "quote": [
+        "01900000-0000-7000-8000-000000000006"
+      ],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok"
+      ],
+      "plan": {
+        "kind": "quoted",
+        "eventId": "01900000-0000-7000-8000-000000000006"
+      },
+      "passes": 2
+    }
+  },
+  {
+    "row": 120,
+    "input": "@grok @gemini $census Plan text",
+    "condition": "None",
+    "description": "`$census needs at least three participants.`",
+    "error": "$census needs at least three participants.",
+    "code": "CENSUS_PARTICIPANTS_REQUIRED",
+    "span": {
+      "end": 31,
+      "start": 0
+    }
+  },
+  {
+    "row": 121,
+    "input": "@all $census",
+    "condition": "No quotes",
+    "description": "`Add a plan for $census: quote one plan, paste it, or use @nick for that member's latest reply.`",
+    "error": "Add a plan for $census: quote one plan, paste it, or use @nick for that member's latest reply.",
+    "code": "CENSUS_SOURCE_MISSING",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 122,
+    "input": "@all $census Another plan",
+    "condition": "`quote: [p1]`",
+    "description": "`Supply the $census plan by quote or pasted text, not both.`",
+    "error": "Supply the $census plan by quote or pasted text, not both.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 25,
+      "start": 0
+    }
+  },
+  {
+    "row": 123,
+    "input": "@all $census",
+    "condition": "`quote: [p1, p2]`; both are eligible plans",
+    "description": "`Select exactly one member reply or grill plan version for $census.`",
+    "error": "Select exactly one member reply or grill plan version for $census.",
+    "code": "CENSUS_SOURCE_MISSING",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 124,
+    "input": "@all $census",
+    "condition": "`quote: [gp3]`; gp3 is a stored grill plan version",
+    "description": "Census of that frozen plan version.",
+    "ast": {
+      "kind": "census",
+      "raw": "@all $census",
+      "quote": [
+        "01900000-0000-7000-8000-000000000008"
+      ],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "quoted",
+        "eventId": "01900000-0000-7000-8000-000000000008"
+      },
+      "passes": 2
+    }
+  },
+  {
+    "row": 125,
+    "input": "@all $census $CENSUS_PASSES=5",
+    "condition": "`quote: [p1]`",
+    "description": "Five passes; stages `CENSUS_PASSES=5`.",
+    "ast": {
+      "kind": "census",
+      "raw": "@all $census $CENSUS_PASSES=5",
+      "quote": [
+        "01900000-0000-7000-8000-000000000006"
+      ],
+      "variableUpdates": [
+        {
+          "name": "CENSUS_PASSES",
+          "value": 5
+        }
+      ],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "quoted",
+        "eventId": "01900000-0000-7000-8000-000000000006"
+      },
+      "passes": 5
+    }
+  },
+  {
+    "row": 126,
+    "input": "$CENSUS_PASSES=1",
+    "condition": "None",
+    "description": "Assignment-only operation setting the pass count to 1.",
+    "ast": {
+      "kind": "assignment",
+      "raw": "$CENSUS_PASSES=1",
+      "updates": [
+        {
+          "name": "CENSUS_PASSES",
+          "value": 1
+        }
+      ]
+    }
+  },
+  {
+    "row": 127,
+    "input": "/set CENSUS_PASSES 3",
+    "condition": "None",
+    "description": "Equivalent variable update.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/set CENSUS_PASSES 3",
+      "action": {
+        "name": "set",
+        "variable": "CENSUS_PASSES",
+        "value": 3
+      }
+    }
+  },
+  {
+    "row": 128,
+    "input": "$CENSUS_PASSES=0",
+    "condition": "None",
+    "description": "`CENSUS_PASSES must be an integer from 1 to 5.`",
+    "error": "CENSUS_PASSES must be an integer from 1 to 5.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 16,
+      "start": 0
+    }
+  },
+  {
+    "row": 129,
+    "input": "$CENSUS_PASSES=6",
+    "condition": "None",
+    "description": "Same integer error.",
+    "error": "CENSUS_PASSES must be an integer from 1 to 5.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 16,
+      "start": 0
+    }
+  },
+  {
+    "row": 130,
+    "input": "$CENSUS_PASSES=2.5",
+    "condition": "None",
+    "description": "Same integer error.",
+    "error": "CENSUS_PASSES must be an integer from 1 to 5.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 18,
+      "start": 0
+    }
+  },
+  {
+    "row": 131,
+    "input": "$CENSUS_PASSES=",
+    "condition": "None",
+    "description": "Same integer error.",
+    "error": "CENSUS_PASSES must be an integer from 1 to 5.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 15,
+      "start": 0
+    }
+  },
+  {
+    "row": 132,
+    "input": "@claude Use $CENSUS_PASSES passes $CENSUS_PASSES=3",
+    "condition": "None",
+    "description": "Body `Use 3 passes`; stages the sticky value 3.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Use $CENSUS_PASSES passes $CENSUS_PASSES=3",
+      "quote": [],
+      "variableUpdates": [
+        {
+          "name": "CENSUS_PASSES",
+          "value": 3
+        }
+      ],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Use 3 passes"
+    }
+  },
+  {
+    "row": 133,
+    "input": "$ROUNDS=5 $GRILL_ROUNDS=3 $CENSUS_PASSES=0",
+    "condition": "Stored values 10, 2, and 2",
+    "description": "Reject; all stored values remain unchanged.",
+    "error": "CENSUS_PASSES must be an integer from 1 to 5.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 42,
+      "start": 26
+    }
+  },
+  {
+    "row": 134,
+    "input": "@all $crosscheck Keep service available; no extra staff.",
+    "condition": "`quote: [p1]`",
+    "description": "Crosscheck of p1 with the supplied goal-and-constraints brief.",
+    "ast": {
+      "kind": "crosscheck",
+      "raw": "@all $crosscheck Keep service available; no extra staff.",
+      "quote": [
+        "01900000-0000-7000-8000-000000000006"
+      ],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "quoted",
+        "eventId": "01900000-0000-7000-8000-000000000006"
+      },
+      "goalConstraints": "Keep service available; no extra staff."
+    }
+  },
+  {
+    "row": 135,
+    "input": "@all $crosscheck",
+    "condition": "`quote: [p1]`",
+    "description": "Crosscheck of p1; goal and constraints absent, so preflight includes extraction.",
+    "ast": {
+      "kind": "crosscheck",
+      "raw": "@all $crosscheck",
+      "quote": [
+        "01900000-0000-7000-8000-000000000006"
+      ],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "quoted",
+        "eventId": "01900000-0000-7000-8000-000000000006"
+      }
+    }
+  },
+  {
+    "row": 136,
+    "input": "@grok $crosscheck No extra staff.",
+    "condition": "`grok` has an eligible latest reply",
+    "description": "All members crosscheck that reply; brief `No extra staff.`",
+    "ast": {
+      "kind": "crosscheck",
+      "raw": "@grok $crosscheck No extra staff.",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "latestReply",
+        "nick": "grok"
+      },
+      "goalConstraints": "No extra staff."
+    }
+  },
+  {
+    "row": 137,
+    "input": "@all $crosscheck Launch one region, then expand after review.",
+    "condition": "None",
+    "description": "Pasted plan; goal and constraints absent.",
+    "ast": {
+      "kind": "crosscheck",
+      "raw": "@all $crosscheck Launch one region, then expand after review.",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "pasted",
+        "text": "Launch one region, then expand after review."
+      }
+    }
+  },
+  {
+    "row": 138,
+    "input": "@all $crosscheck",
+    "condition": "No quotes",
+    "description": "`Add a plan for $crosscheck: quote one plan, paste it, or use @nick for that member's latest reply.`",
+    "error": "Add a plan for $crosscheck: quote one plan, paste it, or use @nick for that member's latest reply.",
+    "code": "CROSSCHECK_SOURCE_MISSING",
+    "span": {
+      "end": 16,
+      "start": 0
+    }
+  },
+  {
+    "row": 139,
+    "input": "@grok @gemini $crosscheck",
+    "condition": "`quote: [p1]`",
+    "description": "`$crosscheck needs at least three participants.`",
+    "error": "$crosscheck needs at least three participants.",
+    "code": "CROSSCHECK_PARTICIPANTS_REQUIRED",
+    "span": {
+      "end": 25,
+      "start": 0
+    }
+  },
+  {
+    "row": 140,
+    "input": "@all $crosscheck",
+    "condition": "`quote: [p1, p2]`; both are eligible plans",
+    "description": "`Select exactly one member reply or grill plan version for $crosscheck.`",
+    "error": "Select exactly one member reply or grill plan version for $crosscheck.",
+    "code": "CROSSCHECK_SOURCE_MISSING",
+    "span": {
+      "end": 16,
+      "start": 0
+    }
+  },
+  {
+    "row": 141,
+    "input": "@all $survey Which rollout should we use?",
+    "condition": "None",
+    "description": "Survey with new parallel answers; no human pick.",
+    "ast": {
+      "kind": "survey",
+      "raw": "@all $survey Which rollout should we use?",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "source": {
+        "kind": "question",
+        "text": "Which rollout should we use?"
+      }
+    }
+  },
+  {
+    "row": 142,
+    "input": "@all $survey",
+    "condition": "Most recent eligible parallel-answer set exists",
+    "description": "Survey reusing that set’s selected-member answers and original question.",
+    "ast": {
+      "kind": "survey",
+      "raw": "@all $survey",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "source": {
+        "kind": "latestParallelAnswers"
+      }
+    }
+  },
+  {
+    "row": 143,
+    "input": "@all -muse $survey",
+    "condition": "Same condition",
+    "description": "Reuse restricted to the five selected members.",
+    "ast": {
+      "kind": "survey",
+      "raw": "@all -muse $survey",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok"
+      ],
+      "source": {
+        "kind": "latestParallelAnswers"
+      }
+    }
+  },
+  {
+    "row": 144,
+    "input": "@all $survey",
+    "condition": "No eligible parallel-answer set",
+    "description": "`No parallel answers are available for $survey. Add a question after $survey.`",
+    "error": "No parallel answers are available for $survey. Add a question after $survey.",
+    "code": "SURVEY_SOURCE_MISSING",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 145,
+    "input": "@all $probe Requests stall after deploy; database ruled out; inspect logs and metrics.",
+    "condition": "Default roster",
+    "description": "Probe with six selected members and the extracted brief.",
+    "ast": {
+      "kind": "probe",
+      "raw": "@all $probe Requests stall after deploy; database ruled out; inspect logs and metrics.",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "brief": "Requests stall after deploy; database ruled out; inspect logs and metrics."
+    }
+  },
+  {
+    "row": 146,
+    "input": "@all -muse $probe Requests stall; inspect logs.",
+    "condition": "Default roster",
+    "description": "Five selected members accepted; the last in resolved roster order sits out before the engine splits roles.",
+    "ast": {
+      "kind": "probe",
+      "raw": "@all -muse $probe Requests stall; inspect logs.",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok"
+      ],
+      "brief": "Requests stall; inspect logs."
+    }
+  },
+  {
+    "row": 147,
+    "input": "@grok @gemini @claude @openai $probe Requests stall; inspect logs.",
+    "condition": "None",
+    "description": "Four-member probe.",
+    "ast": {
+      "kind": "probe",
+      "raw": "@grok @gemini @claude @openai $probe Requests stall; inspect logs.",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "grok",
+        "gemini",
+        "claude",
+        "openai"
+      ],
+      "brief": "Requests stall; inspect logs."
+    }
+  },
+  {
+    "row": 148,
+    "input": "@grok @grok @gemini @claude $probe Requests stall.",
+    "condition": "None",
+    "description": "`$probe needs at least four members; an odd selection leaves the last member out.`",
+    "error": "$probe needs at least four members; an odd selection leaves the last member out.",
+    "code": "PROBE_PARTICIPANTS_REQUIRED",
+    "span": {
+      "end": 50,
+      "start": 0
+    }
+  },
+  {
+    "row": 149,
+    "input": "@all $probe",
+    "condition": "Default roster",
+    "description": "`Add an observation, what is ruled out, and what can be inspected after $probe.`",
+    "error": "Add an observation, what is ruled out, and what can be inspected after $probe.",
+    "code": "PROBE_INPUT_REQUIRED",
+    "span": {
+      "end": 11,
+      "start": 0
+    }
+  },
+  {
+    "row": 150,
+    "input": "@all $census @judge",
+    "condition": "`quote: [p1]`",
+    "description": "Census; script judging implied; no extra ruling.",
+    "ast": {
+      "kind": "census",
+      "raw": "@all $census @judge",
+      "quote": [
+        "01900000-0000-7000-8000-000000000006"
+      ],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "plan": {
+        "kind": "quoted",
+        "eventId": "01900000-0000-7000-8000-000000000006"
+      },
+      "passes": 2
+    }
+  },
+  {
+    "row": 151,
+    "input": "@all $survey Which rollout? @judge",
+    "condition": "None",
+    "description": "Survey question `Which rollout?`; script judging implied.",
+    "ast": {
+      "kind": "survey",
+      "raw": "@all $survey Which rollout? @judge",
+      "quote": [],
+      "variableUpdates": [],
+      "participants": [
+        "claude",
+        "fable",
+        "openai",
+        "gemini",
+        "grok",
+        "muse"
+      ],
+      "source": {
+        "kind": "question",
+        "text": "Which rollout?"
+      }
+    }
+  },
+  {
+    "row": 152,
+    "input": "@all $probe Investigate the outage. $survey",
+    "condition": "None",
+    "description": "`Use only one $ command per submission.`",
+    "error": "Use only one $ command per submission.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "end": 43,
+      "start": 36
+    }
+  },
+  {
+    "row": 153,
+    "input": "@all $census",
+    "condition": "`quote: [p1]`; `replyTo: [p1]`",
+    "description": "`Solution selection is only allowed with $debate.`",
+    "error": "Solution selection is only allowed with $debate.",
+    "code": "INVALID_REFERENCE",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 154,
+    "input": "@all $survey New question",
+    "condition": "Census active",
+    "description": "`A census is already running. Stop it before starting another.`",
+    "error": "A census is already running. Stop it before starting another.",
+    "code": "CONTEST_BUSY",
+    "span": {
+      "end": 25,
+      "start": 0
+    }
+  },
+  {
+    "row": 155,
+    "input": "@all $probe Investigate the outage.",
+    "condition": "Crosscheck active",
+    "description": "`A crosscheck is already running. Stop it before starting another.`",
+    "error": "A crosscheck is already running. Stop it before starting another.",
+    "code": "CONTEST_BUSY",
+    "span": {
+      "end": 35,
+      "start": 0
+    }
+  },
+  {
+    "row": 156,
+    "input": "@all $census",
+    "condition": "`quote: [p1]`; survey active",
+    "description": "`A survey is already running. Stop it before starting another.`",
+    "error": "A survey is already running. Stop it before starting another.",
+    "code": "CONTEST_BUSY",
+    "span": {
+      "end": 12,
+      "start": 0
+    }
+  },
+  {
+    "row": 157,
+    "input": "@all $crosscheck",
+    "condition": "`quote: [p1]`; probe active",
+    "description": "`A probe is already running. Stop it before starting another.`",
+    "error": "A probe is already running. Stop it before starting another.",
+    "code": "CONTEST_BUSY",
+    "span": {
+      "end": 16,
+      "start": 0
+    }
+  },
+  {
+    "row": 158,
+    "input": "@claude Explain \\$census",
+    "condition": "None",
+    "description": "Ordinary message with literal body `Explain $census`.",
+    "ast": {
+      "kind": "message",
+      "raw": "@claude Explain \\$census",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "claude"
+      ],
+      "body": "Explain $census"
+    }
+  },
+  {
+    "row": 159,
+    "input": "/export census",
+    "condition": "None",
+    "description": "Markdown census-export action with target omitted.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export census",
+      "action": {
+        "name": "export",
+        "scope": "census"
+      }
+    }
+  },
+  {
+    "row": 160,
+    "input": "/export crosscheck 01900000-0000-7000-8000-00000000000c",
+    "condition": "c1 represents a valid contest identifier",
+    "description": "Markdown crosscheck-export action.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export crosscheck 01900000-0000-7000-8000-00000000000c",
+      "action": {
+        "name": "export",
+        "scope": "crosscheck",
+        "id": "01900000-0000-7000-8000-00000000000c"
+      }
+    }
+  },
+  {
+    "row": 161,
+    "input": "/export survey",
+    "condition": "None",
+    "description": "Markdown survey-export action with target omitted.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export survey",
+      "action": {
+        "name": "export",
+        "scope": "survey"
+      }
+    }
+  },
+  {
+    "row": 162,
+    "input": "/export probe 01900000-0000-7000-8000-000000000006",
+    "condition": "p1 represents a valid contest identifier",
+    "description": "Markdown probe-export action.",
+    "ast": {
+      "kind": "slash",
+      "raw": "/export probe 01900000-0000-7000-8000-000000000006",
+      "action": {
+        "name": "export",
+        "scope": "probe",
+        "id": "01900000-0000-7000-8000-000000000006"
+      }
+    }
+  },
+  {
+    "input": "@grok A\n@gemini!",
+    "description": "Review regression: grammar escapes and one-sided whitespace",
+    "ast": {
+      "kind": "message",
+      "raw": "@grok A\n@gemini!",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "grok",
+        "gemini"
+      ],
+      "body": "A\n!"
+    }
+  },
+  {
+    "input": "@grok \\\\@gemini",
+    "description": "Review regression: grammar escapes and one-sided whitespace",
+    "ast": {
+      "kind": "message",
+      "raw": "@grok \\\\@gemini",
+      "quote": [],
+      "variableUpdates": [],
+      "recipients": [
+        "grok"
+      ],
+      "body": "\\@gemini"
+    }
+  },
+  {
+    "input": "@all @all hi",
+    "description": "Review resolution: duplicate all / persistent room",
+    "error": "Use @all by itself or name individual recipients.",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "start": 5,
+      "end": 9
+    }
+  },
+  {
+    "input": "/export room 01900000-0000-7000-8000-000000000001",
+    "description": "Review resolution: duplicate all / persistent room",
+    "error": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
+    "code": "INVALID_COMMAND",
+    "span": {
+      "start": 0,
+      "end": 49
+    }
+  }
+]

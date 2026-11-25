@@ -1,0 +1,2650 @@
+---
+source: crates/squad-protocol/src/parser/parser_tests.rs
+assertion_line: 169
+expression: snapshots
+---
+[
+  {
+    "result": {
+      "Ok": {
+        "body": "Hello",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Hello",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 1
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Compare this",
+        "kind": "message",
+        "quote": [],
+        "raw": "@grok @gemini Compare this",
+        "recipients": [
+          "grok",
+          "gemini"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 2
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Suggest a use case",
+        "kind": "message",
+        "quote": [],
+        "raw": "@all Suggest a use case",
+        "recipients": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 3
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Suggest a use case",
+        "kind": "message",
+        "quote": [],
+        "raw": "@all -grok -muse Suggest a use case",
+        "recipients": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 4
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Hello",
+        "kind": "message",
+        "quote": [],
+        "raw": "@all -grok -grok Hello",
+        "recipients": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "muse"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 5
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "UNKNOWN_RECIPIENT",
+        "message": "Unknown recipient: @unknown.",
+        "span": {
+          "end": 13,
+          "start": 5
+        }
+      }
+    },
+    "row": 6
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "@all exclusions must leave at least one recipient.",
+        "span": {
+          "end": 4,
+          "start": 0
+        }
+      }
+    },
+    "row": 7
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Explain -grok",
+        "kind": "message",
+        "quote": [],
+        "raw": "@all Explain -grok",
+        "recipients": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 8
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Explain -grok",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Explain -grok",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 9
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "RECIPIENT_REQUIRED",
+        "message": "Add at least one recipient: @nick or @all.",
+        "span": {
+          "end": 5,
+          "start": 0
+        }
+      }
+    },
+    "row": 10
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Enter message text after the recipients.",
+        "span": {
+          "end": 7,
+          "start": 0
+        }
+      }
+    },
+    "row": 11
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "UNKNOWN_RECIPIENT",
+        "message": "Unknown recipient: @Claude.",
+        "span": {
+          "end": 7,
+          "start": 0
+        }
+      }
+    },
+    "row": 12
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "UNKNOWN_RECIPIENT",
+        "message": "Unknown recipient: @unknown.",
+        "span": {
+          "end": 8,
+          "start": 0
+        }
+      }
+    },
+    "row": 13
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "@me cannot be a recipient.",
+        "span": {
+          "end": 3,
+          "start": 0
+        }
+      }
+    },
+    "row": 14
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Use @all by itself or name individual recipients.",
+        "span": {
+          "end": 10,
+          "start": 5
+        }
+      }
+    },
+    "row": 15
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Hello",
+        "kind": "message",
+        "quote": [],
+        "raw": "@grok @grok Hello",
+        "recipients": [
+          "grok"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 16
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Email person@example.com",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Email person@example.com",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 17
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Explain @grok",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Explain \\@grok",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 18
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Explain $ROUNDS",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Explain \\$ROUNDS",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 19
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Budget $20",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Budget $20",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 20
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Explain `@grok $ROUNDS`",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Explain `@grok $ROUNDS`",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 21
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Use 10 rounds",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Use $ROUNDS rounds",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 22
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "assignment",
+        "raw": "$ROUNDS=5",
+        "updates": [
+          {
+            "name": "ROUNDS",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 23
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "set",
+          "value": 5,
+          "variable": "ROUNDS"
+        },
+        "kind": "slash",
+        "raw": "/set ROUNDS 5"
+      }
+    },
+    "row": 24
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Hello",
+        "kind": "message",
+        "quote": [],
+        "raw": "$ROUNDS=5 @grok Hello",
+        "recipients": [
+          "grok"
+        ],
+        "variableUpdates": [
+          {
+            "name": "ROUNDS",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 25
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Hello",
+        "kind": "message",
+        "quote": [],
+        "raw": "@grok Hello $ROUNDS=5",
+        "recipients": [
+          "grok"
+        ],
+        "variableUpdates": [
+          {
+            "name": "ROUNDS",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 26
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Use 5 rounds",
+        "kind": "message",
+        "quote": [],
+        "raw": "@grok Use $ROUNDS rounds $ROUNDS=5",
+        "recipients": [
+          "grok"
+        ],
+        "variableUpdates": [
+          {
+            "name": "ROUNDS",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 27
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "assignment",
+        "raw": "$ROUNDS=4 $ROUNDS=5",
+        "updates": [
+          {
+            "name": "ROUNDS",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 28
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "ROUNDS must be an integer from 1 to 20.",
+        "span": {
+          "end": 9,
+          "start": 0
+        }
+      }
+    },
+    "row": 29
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "ROUNDS must be an integer from 1 to 20.",
+        "span": {
+          "end": 11,
+          "start": 0
+        }
+      }
+    },
+    "row": 30
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "ROUNDS must be an integer from 1 to 20.",
+        "span": {
+          "end": 8,
+          "start": 0
+        }
+      }
+    },
+    "row": 31
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "ROUNDS must be an integer from 1 to 20.",
+        "span": {
+          "end": 21,
+          "start": 12
+        }
+      }
+    },
+    "row": 32
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Unknown variable: OTHER.",
+        "span": {
+          "end": 8,
+          "start": 0
+        }
+      }
+    },
+    "row": 33
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Unknown variable: OTHER.",
+        "span": {
+          "end": 16,
+          "start": 10
+        }
+      }
+    },
+    "row": 34
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Invalid token: $Rounds. Escape the sigil to use it literally.",
+        "span": {
+          "end": 13,
+          "start": 6
+        }
+      }
+    },
+    "row": 35
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "COMMAND_NOT_IMPLEMENTED",
+        "message": "Command $vote is reserved and unavailable in v1.",
+        "span": {
+          "end": 11,
+          "start": 6
+        }
+      }
+    },
+    "row": 36
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "COMMAND_NOT_IMPLEMENTED",
+        "message": "Command $review is reserved and unavailable in v1.",
+        "span": {
+          "end": 13,
+          "start": 6
+        }
+      }
+    },
+    "row": 37
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Unknown command: $dance.",
+        "span": {
+          "end": 12,
+          "start": 6
+        }
+      }
+    },
+    "row": 38
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Critique this",
+        "kind": "message",
+        "quote": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "raw": "@grok Critique this",
+        "recipients": [
+          "grok"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 39
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_REFERENCE",
+        "message": "Solution selection is only allowed with $debate.",
+        "span": {
+          "end": 19,
+          "start": 0
+        }
+      }
+    },
+    "row": 40
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "JUDGE_QUOTE_REQUIRED",
+        "message": "Quote at least one message for @judge to rule on.",
+        "span": {
+          "end": 6,
+          "start": 0
+        }
+      }
+    },
+    "row": 41
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "judge",
+        "question": "Which is best?",
+        "quote": [
+          "01900000-0000-7000-8000-000000000001",
+          "01900000-0000-7000-8000-000000000002"
+        ],
+        "raw": "@judge Which is best?",
+        "recipients": [
+          "judge"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 42
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "judge",
+        "question": "Explain your decision",
+        "quote": [
+          "01900000-0000-7000-8000-000000000003"
+        ],
+        "raw": "@judge Explain your decision",
+        "recipients": [
+          "judge"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 43
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "JUDGE_QUOTE_REQUIRED",
+        "message": "Quote at least one message for @judge to rule on.",
+        "span": {
+          "end": 6,
+          "start": 0
+        }
+      }
+    },
+    "row": 44
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "gemini"
+        ],
+        "instruction": "Defend your solutions",
+        "judgeRequested": false,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @gemini $debate Defend your solutions",
+        "replyTo": [],
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 45
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "gemini"
+        ],
+        "instruction": "until 10 @judge decides",
+        "judgeRequested": true,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @gemini $debate until $ROUNDS @judge decides",
+        "replyTo": [],
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 46
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "claude"
+        ],
+        "instruction": "tabs vs spaces",
+        "judgeRequested": false,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @claude $debate tabs vs spaces",
+        "replyTo": [],
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 47
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "claude"
+        ],
+        "instruction": "tabs vs spaces @judge",
+        "judgeRequested": true,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @claude $debate tabs vs spaces @judge",
+        "replyTo": [],
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 48
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "gemini"
+        ],
+        "instruction": "until 5",
+        "judgeRequested": false,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @gemini $debate $ROUNDS=5 until $ROUNDS",
+        "replyTo": [],
+        "rounds": 5,
+        "variableUpdates": [
+          {
+            "name": "ROUNDS",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 49
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "gemini"
+        ],
+        "instruction": "until 7",
+        "judgeRequested": false,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @gemini $debate until 7",
+        "replyTo": [],
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 50
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "gemini"
+        ],
+        "instruction": "Compare these",
+        "judgeRequested": false,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @gemini $debate Compare these",
+        "replyTo": [
+          "01900000-0000-7000-8000-000000000004",
+          "01900000-0000-7000-8000-000000000005"
+        ],
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 51
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "DEBATE_TOPIC_MISMATCH",
+        "message": "Debaters' solutions must answer the same user message.",
+        "span": {
+          "end": 35,
+          "start": 0
+        }
+      }
+    },
+    "row": 52
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "$debate requires exactly two distinct debaters.",
+        "span": {
+          "end": 13,
+          "start": 0
+        }
+      }
+    },
+    "row": 53
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Add a question after $debate.",
+        "span": {
+          "end": 27,
+          "start": 0
+        }
+      }
+    },
+    "row": 54
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Add a question after $debate.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 55
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Add a question after $debate.",
+        "span": {
+          "end": 18,
+          "start": 0
+        }
+      }
+    },
+    "row": 56
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Use only one $ command per submission.",
+        "span": {
+          "end": 29,
+          "start": 22
+        }
+      }
+    },
+    "row": 57
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "DEBATE_BUSY",
+        "message": "A debate is already running. Stop it before starting another.",
+        "span": {
+          "end": 30,
+          "start": 0
+        }
+      }
+    },
+    "row": 58
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "help"
+        },
+        "kind": "slash",
+        "raw": "/help"
+      }
+    },
+    "row": 59
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "who"
+        },
+        "kind": "slash",
+        "raw": "/who"
+      }
+    },
+    "row": 60
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "clear"
+        },
+        "kind": "slash",
+        "raw": "/clear"
+      }
+    },
+    "row": 61
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "stop"
+        },
+        "kind": "slash",
+        "raw": "/stop"
+      }
+    },
+    "row": 62
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "stop",
+          "nick": "grok"
+        },
+        "kind": "slash",
+        "raw": "/stop @grok"
+      }
+    },
+    "row": 63
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Usage: /stop [@nick]",
+        "span": {
+          "end": 9,
+          "start": 0
+        }
+      }
+    },
+    "row": 64
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "judge"
+        },
+        "kind": "slash",
+        "raw": "/judge"
+      }
+    },
+    "row": 65
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "debateId": "01900000-0000-7000-8000-000000000009",
+          "name": "judge"
+        },
+        "kind": "slash",
+        "raw": "/judge 01900000-0000-7000-8000-000000000009"
+      }
+    },
+    "row": 66
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "regen"
+        },
+        "kind": "slash",
+        "raw": "/regen"
+      }
+    },
+    "row": 67
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "messageId": "01900000-0000-7000-8000-00000000000a",
+          "name": "regen"
+        },
+        "kind": "slash",
+        "raw": "/regen 01900000-0000-7000-8000-00000000000a"
+      }
+    },
+    "row": 68
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "export",
+          "scope": "room"
+        },
+        "kind": "slash",
+        "raw": "/export room"
+      }
+    },
+    "row": 69
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "id": "01900000-0000-7000-8000-000000000009",
+          "name": "export",
+          "scope": "debate"
+        },
+        "kind": "slash",
+        "raw": "/export debate 01900000-0000-7000-8000-000000000009"
+      }
+    },
+    "row": 70
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
+        "span": {
+          "end": 7,
+          "start": 0
+        }
+      }
+    },
+    "row": 71
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Unknown slash command: /unknown.",
+        "span": {
+          "end": 8,
+          "start": 0
+        }
+      }
+    },
+    "row": 72
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "assignment",
+        "raw": "$GRILL_ROUNDS=3",
+        "updates": [
+          {
+            "name": "GRILL_ROUNDS",
+            "value": 3
+          }
+        ]
+      }
+    },
+    "row": 73
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "set",
+          "value": 3,
+          "variable": "GRILL_ROUNDS"
+        },
+        "kind": "slash",
+        "raw": "/set GRILL_ROUNDS 3"
+      }
+    },
+    "row": 74
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "GRILL_ROUNDS must be an integer from 1 to 10.",
+        "span": {
+          "end": 15,
+          "start": 0
+        }
+      }
+    },
+    "row": 75
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "GRILL_ROUNDS must be an integer from 1 to 10.",
+        "span": {
+          "end": 16,
+          "start": 0
+        }
+      }
+    },
+    "row": 76
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "assignment",
+        "raw": "$ROUNDS=5 $GRILL_ROUNDS=3",
+        "updates": [
+          {
+            "name": "ROUNDS",
+            "value": 5
+          },
+          {
+            "name": "GRILL_ROUNDS",
+            "value": 3
+          }
+        ]
+      }
+    },
+    "row": 77
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "GRILL_ROUNDS must be an integer from 1 to 10.",
+        "span": {
+          "end": 25,
+          "start": 10
+        }
+      }
+    },
+    "row": 78
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Use 5 and 3",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Use $ROUNDS and $GRILL_ROUNDS $GRILL_ROUNDS=3 $ROUNDS=5",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": [
+          {
+            "name": "GRILL_ROUNDS",
+            "value": 3
+          },
+          {
+            "name": "ROUNDS",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 79
+  },
+  {
+    "result": {
+      "Ok": {
+        "entrants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "kind": "tournament",
+        "prompt": "Design a useful CLI",
+        "quote": [],
+        "raw": "@all $tournament Design a useful CLI",
+        "variableUpdates": []
+      }
+    },
+    "row": 80
+  },
+  {
+    "result": {
+      "Ok": {
+        "entrants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok"
+        ],
+        "kind": "tournament",
+        "prompt": "Design a useful CLI",
+        "quote": [],
+        "raw": "@all -muse $tournament Design a useful CLI",
+        "variableUpdates": []
+      }
+    },
+    "row": 81
+  },
+  {
+    "result": {
+      "Ok": {
+        "entrants": [
+          "grok",
+          "gemini",
+          "claude"
+        ],
+        "kind": "tournament",
+        "prompt": "Design a useful CLI",
+        "quote": [],
+        "raw": "@grok @gemini @claude $tournament Design a useful CLI @judge",
+        "variableUpdates": []
+      }
+    },
+    "row": 82
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "TOURNAMENT_ENTRANTS_REQUIRED",
+        "message": "$tournament needs at least three entrants.",
+        "span": {
+          "end": 45,
+          "start": 0
+        }
+      }
+    },
+    "row": 83
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "TOURNAMENT_ENTRANTS_REQUIRED",
+        "message": "$tournament needs at least three entrants.",
+        "span": {
+          "end": 51,
+          "start": 0
+        }
+      }
+    },
+    "row": 84
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Add a prompt after $tournament.",
+        "span": {
+          "end": 16,
+          "start": 0
+        }
+      }
+    },
+    "row": 85
+  },
+  {
+    "result": {
+      "Ok": {
+        "focus": "",
+        "grillers": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "muse"
+        ],
+        "kind": "grill",
+        "leader": "grok",
+        "quote": [],
+        "raw": "@grok $grill",
+        "rounds": 2,
+        "variableUpdates": []
+      }
+    },
+    "row": 86
+  },
+  {
+    "result": {
+      "Ok": {
+        "focus": "Focus on operating cost",
+        "grillers": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "muse"
+        ],
+        "kind": "grill",
+        "leader": "grok",
+        "quote": [],
+        "raw": "@grok $grill Focus on operating cost",
+        "rounds": 2,
+        "variableUpdates": []
+      }
+    },
+    "row": 87
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "GRILL_SOURCE_MISSING",
+        "message": "@grok has no plan to grill yet. Ask it something first.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 88
+  },
+  {
+    "result": {
+      "Ok": {
+        "focus": "",
+        "grillers": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "muse"
+        ],
+        "kind": "grill",
+        "leader": "grok",
+        "planSelection": "01900000-0000-7000-8000-000000000006",
+        "quote": [
+          "01900000-0000-7000-8000-000000000006"
+        ],
+        "raw": "@grok $grill",
+        "rounds": 2,
+        "variableUpdates": []
+      }
+    },
+    "row": 89
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "GRILL_SOURCE_MISSING",
+        "message": "Select exactly one reply from @grok as the plan to grill.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 90
+  },
+  {
+    "result": {
+      "Ok": {
+        "focus": "",
+        "grillers": [
+          "claude",
+          "gemini"
+        ],
+        "kind": "grill",
+        "leader": "grok",
+        "quote": [],
+        "raw": "@grok @claude @gemini $grill",
+        "rounds": 2,
+        "variableUpdates": []
+      }
+    },
+    "row": 91
+  },
+  {
+    "result": {
+      "Ok": {
+        "candidates": [
+          "grok",
+          "claude"
+        ],
+        "judgeRequested": false,
+        "kind": "questionfirst",
+        "mode": "grill",
+        "question": "Design a backup plan",
+        "quote": [],
+        "raw": "@grok @claude $grill Design a backup plan",
+        "rounds": 2,
+        "variableUpdates": []
+      }
+    },
+    "row": 92
+  },
+  {
+    "result": {
+      "Ok": {
+        "focus": "",
+        "grillers": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "muse"
+        ],
+        "kind": "grill",
+        "leader": "grok",
+        "quote": [],
+        "raw": "@grok $grill $GRILL_ROUNDS=3",
+        "rounds": 3,
+        "variableUpdates": [
+          {
+            "name": "GRILL_ROUNDS",
+            "value": 3
+          }
+        ]
+      }
+    },
+    "row": 93
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "@judge cannot be used with $grill.",
+        "span": {
+          "end": 19,
+          "start": 13
+        }
+      }
+    },
+    "row": 94
+  },
+  {
+    "result": {
+      "Ok": {
+        "candidates": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "judgeRequested": true,
+        "kind": "questionfirst",
+        "mode": "debate",
+        "question": "Design a backup plan",
+        "quote": [],
+        "raw": "@all $debate Design a backup plan",
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 95
+  },
+  {
+    "result": {
+      "Ok": {
+        "candidates": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok"
+        ],
+        "judgeRequested": true,
+        "kind": "questionfirst",
+        "mode": "debate",
+        "question": "Design a backup plan",
+        "quote": [],
+        "raw": "@all -muse $debate Design a backup plan",
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 96
+  },
+  {
+    "result": {
+      "Ok": {
+        "candidates": [
+          "grok",
+          "gemini",
+          "claude"
+        ],
+        "judgeRequested": true,
+        "kind": "questionfirst",
+        "mode": "debate",
+        "question": "Design a backup plan",
+        "quote": [],
+        "raw": "@grok @gemini @claude $debate Design a backup plan",
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 97
+  },
+  {
+    "result": {
+      "Ok": {
+        "debaters": [
+          "grok",
+          "gemini"
+        ],
+        "instruction": "Design a backup plan",
+        "judgeRequested": false,
+        "kind": "debate",
+        "quote": [],
+        "raw": "@grok @gemini $debate Design a backup plan",
+        "replyTo": [],
+        "rounds": 10,
+        "variableUpdates": []
+      }
+    },
+    "row": 98
+  },
+  {
+    "result": {
+      "Ok": {
+        "candidates": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "judgeRequested": false,
+        "kind": "questionfirst",
+        "mode": "grill",
+        "question": "Design a backup plan",
+        "quote": [],
+        "raw": "@all $grill Design a backup plan",
+        "rounds": 2,
+        "variableUpdates": []
+      }
+    },
+    "row": 99
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Add a question after $grill.",
+        "span": {
+          "end": 11,
+          "start": 0
+        }
+      }
+    },
+    "row": 100
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_REFERENCE",
+        "message": "Question-first contests use their collected answers; do not attach solution selections.",
+        "span": {
+          "end": 33,
+          "start": 0
+        }
+      }
+    },
+    "row": 101
+  },
+  {
+    "result": {
+      "Ok": {
+        "contestId": "01900000-0000-7000-8000-000000000014",
+        "kind": "contestpick",
+        "nicks": [
+          "grok",
+          "gemini"
+        ],
+        "raw": "@grok @gemini"
+      }
+    },
+    "row": 102
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_PICK_INVALID",
+        "message": "Pick exactly two of: @claude, @gemini, @grok.",
+        "span": {
+          "end": 5,
+          "start": 0
+        }
+      }
+    },
+    "row": 103
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_PICK_INVALID",
+        "message": "Pick exactly two of: @claude, @gemini, @grok.",
+        "span": {
+          "end": 11,
+          "start": 0
+        }
+      }
+    },
+    "row": 104
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_PICK_INVALID",
+        "message": "@muse did not answer, so it cannot be picked.",
+        "span": {
+          "end": 11,
+          "start": 6
+        }
+      }
+    },
+    "row": 105
+  },
+  {
+    "result": {
+      "Ok": {
+        "contestId": "01900000-0000-7000-8000-000000000014",
+        "kind": "contestpick",
+        "nicks": [
+          "grok"
+        ],
+        "raw": "@grok"
+      }
+    },
+    "row": 106
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_PICK_INVALID",
+        "message": "Pick exactly one of: @claude, @gemini, @grok.",
+        "span": {
+          "end": 13,
+          "start": 0
+        }
+      }
+    },
+    "row": 107
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "explain your third point",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude explain your third point",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 108
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Enter message text after the recipients.",
+        "span": {
+          "end": 13,
+          "start": 0
+        }
+      }
+    },
+    "row": 109
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "stop"
+        },
+        "kind": "slash",
+        "raw": "/stop"
+      }
+    },
+    "row": 110
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "DEBATE_BUSY",
+        "message": "A grill is already running. Stop it before starting another.",
+        "span": {
+          "end": 30,
+          "start": 0
+        }
+      }
+    },
+    "row": 111
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "export",
+          "scope": "grill"
+        },
+        "kind": "slash",
+        "raw": "/export grill"
+      }
+    },
+    "row": 112
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "id": "01900000-0000-7000-8000-00000000000b",
+          "name": "export",
+          "scope": "tournament"
+        },
+        "kind": "slash",
+        "raw": "/export tournament 01900000-0000-7000-8000-00000000000b"
+      }
+    },
+    "row": 113
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "passes": 2,
+        "plan": {
+          "eventId": "01900000-0000-7000-8000-000000000006",
+          "kind": "quoted"
+        },
+        "quote": [
+          "01900000-0000-7000-8000-000000000006"
+        ],
+        "raw": "@all $census",
+        "variableUpdates": []
+      }
+    },
+    "row": 114
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "passes": 2,
+        "plan": {
+          "kind": "pasted",
+          "text": "Launch one region, then expand after review."
+        },
+        "quote": [],
+        "raw": "@all $census Launch one region, then expand after review.",
+        "variableUpdates": []
+      }
+    },
+    "row": 115
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "passes": 2,
+        "plan": {
+          "kind": "latestReply",
+          "nick": "grok"
+        },
+        "quote": [],
+        "raw": "@grok $census",
+        "variableUpdates": []
+      }
+    },
+    "row": 116
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "passes": 2,
+        "plan": {
+          "kind": "latestReply",
+          "nick": "grok"
+        },
+        "quote": [],
+        "raw": "@grok @grok $census",
+        "variableUpdates": []
+      }
+    },
+    "row": 117
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CENSUS_SOURCE_MISSING",
+        "message": "@grok has no plan for $census yet. Ask it something first.",
+        "span": {
+          "end": 13,
+          "start": 0
+        }
+      }
+    },
+    "row": 118
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok"
+        ],
+        "passes": 2,
+        "plan": {
+          "eventId": "01900000-0000-7000-8000-000000000006",
+          "kind": "quoted"
+        },
+        "quote": [
+          "01900000-0000-7000-8000-000000000006"
+        ],
+        "raw": "@all -muse $census",
+        "variableUpdates": []
+      }
+    },
+    "row": 119
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CENSUS_PARTICIPANTS_REQUIRED",
+        "message": "$census needs at least three participants.",
+        "span": {
+          "end": 31,
+          "start": 0
+        }
+      }
+    },
+    "row": 120
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CENSUS_SOURCE_MISSING",
+        "message": "Add a plan for $census: quote one plan, paste it, or use @nick for that member's latest reply.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 121
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Supply the $census plan by quote or pasted text, not both.",
+        "span": {
+          "end": 25,
+          "start": 0
+        }
+      }
+    },
+    "row": 122
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CENSUS_SOURCE_MISSING",
+        "message": "Select exactly one member reply or grill plan version for $census.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 123
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "passes": 2,
+        "plan": {
+          "eventId": "01900000-0000-7000-8000-000000000008",
+          "kind": "quoted"
+        },
+        "quote": [
+          "01900000-0000-7000-8000-000000000008"
+        ],
+        "raw": "@all $census",
+        "variableUpdates": []
+      }
+    },
+    "row": 124
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "passes": 5,
+        "plan": {
+          "eventId": "01900000-0000-7000-8000-000000000006",
+          "kind": "quoted"
+        },
+        "quote": [
+          "01900000-0000-7000-8000-000000000006"
+        ],
+        "raw": "@all $census $CENSUS_PASSES=5",
+        "variableUpdates": [
+          {
+            "name": "CENSUS_PASSES",
+            "value": 5
+          }
+        ]
+      }
+    },
+    "row": 125
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "assignment",
+        "raw": "$CENSUS_PASSES=1",
+        "updates": [
+          {
+            "name": "CENSUS_PASSES",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "row": 126
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "set",
+          "value": 3,
+          "variable": "CENSUS_PASSES"
+        },
+        "kind": "slash",
+        "raw": "/set CENSUS_PASSES 3"
+      }
+    },
+    "row": 127
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "CENSUS_PASSES must be an integer from 1 to 5.",
+        "span": {
+          "end": 16,
+          "start": 0
+        }
+      }
+    },
+    "row": 128
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "CENSUS_PASSES must be an integer from 1 to 5.",
+        "span": {
+          "end": 16,
+          "start": 0
+        }
+      }
+    },
+    "row": 129
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "CENSUS_PASSES must be an integer from 1 to 5.",
+        "span": {
+          "end": 18,
+          "start": 0
+        }
+      }
+    },
+    "row": 130
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "CENSUS_PASSES must be an integer from 1 to 5.",
+        "span": {
+          "end": 15,
+          "start": 0
+        }
+      }
+    },
+    "row": 131
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Use 3 passes",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Use $CENSUS_PASSES passes $CENSUS_PASSES=3",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": [
+          {
+            "name": "CENSUS_PASSES",
+            "value": 3
+          }
+        ]
+      }
+    },
+    "row": 132
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "CENSUS_PASSES must be an integer from 1 to 5.",
+        "span": {
+          "end": 42,
+          "start": 26
+        }
+      }
+    },
+    "row": 133
+  },
+  {
+    "result": {
+      "Ok": {
+        "goalConstraints": "Keep service available; no extra staff.",
+        "kind": "crosscheck",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "plan": {
+          "eventId": "01900000-0000-7000-8000-000000000006",
+          "kind": "quoted"
+        },
+        "quote": [
+          "01900000-0000-7000-8000-000000000006"
+        ],
+        "raw": "@all $crosscheck Keep service available; no extra staff.",
+        "variableUpdates": []
+      }
+    },
+    "row": 134
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "crosscheck",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "plan": {
+          "eventId": "01900000-0000-7000-8000-000000000006",
+          "kind": "quoted"
+        },
+        "quote": [
+          "01900000-0000-7000-8000-000000000006"
+        ],
+        "raw": "@all $crosscheck",
+        "variableUpdates": []
+      }
+    },
+    "row": 135
+  },
+  {
+    "result": {
+      "Ok": {
+        "goalConstraints": "No extra staff.",
+        "kind": "crosscheck",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "plan": {
+          "kind": "latestReply",
+          "nick": "grok"
+        },
+        "quote": [],
+        "raw": "@grok $crosscheck No extra staff.",
+        "variableUpdates": []
+      }
+    },
+    "row": 136
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "crosscheck",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "plan": {
+          "kind": "pasted",
+          "text": "Launch one region, then expand after review."
+        },
+        "quote": [],
+        "raw": "@all $crosscheck Launch one region, then expand after review.",
+        "variableUpdates": []
+      }
+    },
+    "row": 137
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CROSSCHECK_SOURCE_MISSING",
+        "message": "Add a plan for $crosscheck: quote one plan, paste it, or use @nick for that member's latest reply.",
+        "span": {
+          "end": 16,
+          "start": 0
+        }
+      }
+    },
+    "row": 138
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CROSSCHECK_PARTICIPANTS_REQUIRED",
+        "message": "$crosscheck needs at least three participants.",
+        "span": {
+          "end": 25,
+          "start": 0
+        }
+      }
+    },
+    "row": 139
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CROSSCHECK_SOURCE_MISSING",
+        "message": "Select exactly one member reply or grill plan version for $crosscheck.",
+        "span": {
+          "end": 16,
+          "start": 0
+        }
+      }
+    },
+    "row": 140
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "survey",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "quote": [],
+        "raw": "@all $survey Which rollout should we use?",
+        "source": {
+          "kind": "question",
+          "text": "Which rollout should we use?"
+        },
+        "variableUpdates": []
+      }
+    },
+    "row": 141
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "survey",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "quote": [],
+        "raw": "@all $survey",
+        "source": {
+          "kind": "latestParallelAnswers"
+        },
+        "variableUpdates": []
+      }
+    },
+    "row": 142
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "survey",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok"
+        ],
+        "quote": [],
+        "raw": "@all -muse $survey",
+        "source": {
+          "kind": "latestParallelAnswers"
+        },
+        "variableUpdates": []
+      }
+    },
+    "row": 143
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "SURVEY_SOURCE_MISSING",
+        "message": "No parallel answers are available for $survey. Add a question after $survey.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 144
+  },
+  {
+    "result": {
+      "Ok": {
+        "brief": "Requests stall after deploy; database ruled out; inspect logs and metrics.",
+        "kind": "probe",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "quote": [],
+        "raw": "@all $probe Requests stall after deploy; database ruled out; inspect logs and metrics.",
+        "variableUpdates": []
+      }
+    },
+    "row": 145
+  },
+  {
+    "result": {
+      "Ok": {
+        "brief": "Requests stall; inspect logs.",
+        "kind": "probe",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok"
+        ],
+        "quote": [],
+        "raw": "@all -muse $probe Requests stall; inspect logs.",
+        "variableUpdates": []
+      }
+    },
+    "row": 146
+  },
+  {
+    "result": {
+      "Ok": {
+        "brief": "Requests stall; inspect logs.",
+        "kind": "probe",
+        "participants": [
+          "grok",
+          "gemini",
+          "claude",
+          "openai"
+        ],
+        "quote": [],
+        "raw": "@grok @gemini @claude @openai $probe Requests stall; inspect logs.",
+        "variableUpdates": []
+      }
+    },
+    "row": 147
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "PROBE_PARTICIPANTS_REQUIRED",
+        "message": "$probe needs at least four members; an odd selection leaves the last member out.",
+        "span": {
+          "end": 50,
+          "start": 0
+        }
+      }
+    },
+    "row": 148
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "PROBE_INPUT_REQUIRED",
+        "message": "Add an observation, what is ruled out, and what can be inspected after $probe.",
+        "span": {
+          "end": 11,
+          "start": 0
+        }
+      }
+    },
+    "row": 149
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "census",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "passes": 2,
+        "plan": {
+          "eventId": "01900000-0000-7000-8000-000000000006",
+          "kind": "quoted"
+        },
+        "quote": [
+          "01900000-0000-7000-8000-000000000006"
+        ],
+        "raw": "@all $census @judge",
+        "variableUpdates": []
+      }
+    },
+    "row": 150
+  },
+  {
+    "result": {
+      "Ok": {
+        "kind": "survey",
+        "participants": [
+          "claude",
+          "fable",
+          "openai",
+          "gemini",
+          "grok",
+          "muse"
+        ],
+        "quote": [],
+        "raw": "@all $survey Which rollout? @judge",
+        "source": {
+          "kind": "question",
+          "text": "Which rollout?"
+        },
+        "variableUpdates": []
+      }
+    },
+    "row": 151
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Use only one $ command per submission.",
+        "span": {
+          "end": 43,
+          "start": 36
+        }
+      }
+    },
+    "row": 152
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_REFERENCE",
+        "message": "Solution selection is only allowed with $debate.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 153
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_BUSY",
+        "message": "A census is already running. Stop it before starting another.",
+        "span": {
+          "end": 25,
+          "start": 0
+        }
+      }
+    },
+    "row": 154
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_BUSY",
+        "message": "A crosscheck is already running. Stop it before starting another.",
+        "span": {
+          "end": 35,
+          "start": 0
+        }
+      }
+    },
+    "row": 155
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_BUSY",
+        "message": "A survey is already running. Stop it before starting another.",
+        "span": {
+          "end": 12,
+          "start": 0
+        }
+      }
+    },
+    "row": 156
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "CONTEST_BUSY",
+        "message": "A probe is already running. Stop it before starting another.",
+        "span": {
+          "end": 16,
+          "start": 0
+        }
+      }
+    },
+    "row": 157
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "Explain $census",
+        "kind": "message",
+        "quote": [],
+        "raw": "@claude Explain \\$census",
+        "recipients": [
+          "claude"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 158
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "export",
+          "scope": "census"
+        },
+        "kind": "slash",
+        "raw": "/export census"
+      }
+    },
+    "row": 159
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "id": "01900000-0000-7000-8000-00000000000c",
+          "name": "export",
+          "scope": "crosscheck"
+        },
+        "kind": "slash",
+        "raw": "/export crosscheck 01900000-0000-7000-8000-00000000000c"
+      }
+    },
+    "row": 160
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "name": "export",
+          "scope": "survey"
+        },
+        "kind": "slash",
+        "raw": "/export survey"
+      }
+    },
+    "row": 161
+  },
+  {
+    "result": {
+      "Ok": {
+        "action": {
+          "id": "01900000-0000-7000-8000-000000000006",
+          "name": "export",
+          "scope": "probe"
+        },
+        "kind": "slash",
+        "raw": "/export probe 01900000-0000-7000-8000-000000000006"
+      }
+    },
+    "row": 162
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "A\n!",
+        "kind": "message",
+        "quote": [],
+        "raw": "@grok A\n@gemini!",
+        "recipients": [
+          "grok",
+          "gemini"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 163
+  },
+  {
+    "result": {
+      "Ok": {
+        "body": "\\@gemini",
+        "kind": "message",
+        "quote": [],
+        "raw": "@grok \\\\@gemini",
+        "recipients": [
+          "grok"
+        ],
+        "variableUpdates": []
+      }
+    },
+    "row": 164
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Use @all by itself or name individual recipients.",
+        "span": {
+          "end": 9,
+          "start": 5
+        }
+      }
+    },
+    "row": 165
+  },
+  {
+    "result": {
+      "Err": {
+        "code": "INVALID_COMMAND",
+        "message": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
+        "span": {
+          "end": 49,
+          "start": 0
+        }
+      }
+    },
+    "row": 166
+  }
+]

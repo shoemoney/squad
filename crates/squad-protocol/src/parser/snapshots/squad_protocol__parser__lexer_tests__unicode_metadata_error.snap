@@ -1,0 +1,12 @@
+---
+source: crates/squad-protocol/src/parser/lexer_tests.rs
+expression: error
+---
+{
+  "code": "INVALID_REFERENCE",
+  "message": "Quoted message 01900000-0000-7000-8000-0000000003e7 is unavailable.",
+  "span": {
+    "start": 0,
+    "end": 15
+  }
+}
