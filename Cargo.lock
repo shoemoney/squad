@@ -3194,13 +3194,16 @@ dependencies = [
  "pulldown-cmark",
  "ratatui",
  "serde_json",
+ "squad-agents",
  "squad-core",
  "squad-protocol",
  "syntect",
  "tachyonfx",
+ "tempfile",
  "tokio",
  "unicode-segmentation",
  "unicode-width",
+ "wiremock",
 ]
 
 [[package]]

@@ -688,7 +688,9 @@ fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
             (s.contest_id, ContestKind::Survey)
         }
         EnvelopePayload::GrillSetup(s) => (s.contest_id, ContestKind::Grill),
-        EnvelopePayload::GrillState(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillState(s) | EnvelopePayload::ContestState(ContestState::Grill(s)) => {
+            (s.contest_id, ContestKind::Grill)
+        }
         EnvelopePayload::GrillQuestion(s) => (s.contest_id, ContestKind::Grill),
         EnvelopePayload::GrillAnswer(s) => (s.contest_id, ContestKind::Grill),
         EnvelopePayload::GrillPass(s) => (s.contest_id, ContestKind::Grill),

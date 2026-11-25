@@ -38,10 +38,20 @@ pub fn apply(
                 .as_ref()
                 .is_none_or(|n| setup.participants().contains(n))
             {
-                state.state = GrillStatus::Stopped;
-                state.state_version += 1;
-                state.terminal_reason = Some("stopped".into());
-                super::grill::save(tx, group, id, &state)?;
+                if state.state == GrillStatus::Preflight {
+                    let raw: String = tx.query_row(
+                        "SELECT plan_json FROM contests WHERE contest_id=?",
+                        [state.contest_id.to_string()],
+                        |r| r.get(0),
+                    )?;
+                    let plan: ContestPreflight = serde_json::from_str(&raw)?;
+                    super::grill::resolve(tx, group, id, state.contest_id, plan.plan_id, true, 0)?;
+                } else {
+                    state.state = GrillStatus::Stopped;
+                    state.state_version += 1;
+                    state.terminal_reason = Some("stopped".into());
+                    super::grill::save(tx, group, id, &state)?;
+                }
                 stopped_contest = Some(state.contest_id);
             }
         } else if let Ok(mut state) = serde_json::from_str::<TournamentState>(&raw) {

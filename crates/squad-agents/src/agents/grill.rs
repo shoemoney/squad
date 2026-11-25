@@ -75,15 +75,29 @@ impl WorkExecutor for GrillExecutor {
                 match stream_attempt(context, &grant, &self.client, request, cancel, false).await {
                     Ok(v) => v,
                     Err(ExecutionError::Reader(e)) => return Err(e),
-                    Err(_) => return failed(context, &grant, ErrorCode::PROVIDER_ERROR).await,
+                    Err(ExecutionError::Transport(e) | ExecutionError::RetryAfter(e, _)) => {
+                        return failed(
+                            context,
+                            &grant,
+                            match e {
+                                TransportError::FirstTokenTimeout
+                                | TransportError::IdleTimeout
+                                | TransportError::Deadline => ErrorCode::PROVIDER_TIMEOUT,
+                                TransportError::Cancelled => ErrorCode::WORK_CANCELLED,
+                                _ => ErrorCode::PROVIDER_ERROR,
+                            },
+                        )
+                        .await;
+                    }
                 };
-            if input
-                .parse_output(&grant.work.kind, &output.content)
-                .is_err()
+            if output.finish_reason != FinishReason::Stop
+                || input
+                    .parse_output(&grant.work.kind, &output.content)
+                    .is_err()
             {
                 return failed(context, &grant, ErrorCode::MODE_INVALID_OUTPUT).await;
             }
-            acknowledged(context.submit.submit(ExecutorRequest::Result{work_id:grant.work.work_id,attempt:grant.work.attempt,fence:grant.fence,epoch:grant.epoch,output:EnvelopePayload::ContestArtifact(ContestArtifact{contest_id:input.state.contest_id,step_id:grant.work.step_id.ok_or(ReaderError::NotRunnable)?,artifact_kind:Text::new(grant.work.kind.grill_composition().expect("checked")).expect("literal"),work_id:Some(grant.work.work_id),source_refs:vec![],data:serde_json::json!({"generation":identity(&grant),"raw":output.content})})}).await)
+            acknowledged(context.submit.submit(ExecutorRequest::Result{work_id:grant.work.work_id,attempt:grant.work.attempt,fence:grant.fence,epoch:grant.epoch,output:EnvelopePayload::ContestArtifact(ContestArtifact{contest_id:input.state.contest_id,step_id:grant.work.step_id.ok_or(ReaderError::NotRunnable)?,artifact_kind:Text::new(grant.work.kind.grill_composition().expect("checked")).expect("literal"),work_id:Some(grant.work.work_id),source_refs:vec![],data:serde_json::json!({"generation":identity(&grant),"raw":output.content,"finishReason":output.finish_reason})})}).await)
         })
     }
 }

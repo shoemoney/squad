@@ -111,7 +111,13 @@ pub fn work(
     })
 }
 pub fn prompt_key(state: &GrillState) -> String {
-    format!("{}:{}:{}", state.round, state.turn, state.state.as_str())
+    format!(
+        "{}:{}:{}:{}",
+        state.round,
+        state.turn,
+        state.plan_version,
+        state.state.as_str()
+    )
 }
 #[allow(clippy::too_many_arguments)]
 pub fn prepare(
@@ -151,6 +157,7 @@ pub fn prepare(
     let mut nominal = 0.;
     let mut reserved = 0.;
     let mut frozen_bindings = BTreeMap::new();
+    let mut models = serde_json::Map::new();
     for nick in setup.participants() {
         frozen_bindings.insert(
             nick.to_string(),
@@ -169,68 +176,73 @@ pub fn prepare(
         + u64::from(setup.total_rounds) * setup.grillers.len() as u64 * 32768;
     for round in 1..=setup.total_rounds {
         state.round = round;
-        state.plan_version = round;
-        state.griller_order = setup.grillers.clone();
-        let len = state.griller_order.len();
-        state.griller_order.rotate_left((round as usize - 1) % len);
-        for turn in 0..len as u32 {
-            state.turn = turn;
-            for status in [
-                GrillStatus::Questioning,
-                GrillStatus::Answering,
-                GrillStatus::Rebuilding,
-            ] {
-                if status == GrillStatus::Rebuilding && turn + 1 != len as u32 {
-                    continue;
+        for version in 1..=round {
+            state.plan_version = version;
+            state.griller_order = setup.grillers.clone();
+            let len = state.griller_order.len();
+            state.griller_order.rotate_left((round as usize - 1) % len);
+            for turn in 0..len as u32 {
+                state.turn = turn;
+                for status in [
+                    GrillStatus::Questioning,
+                    GrillStatus::Answering,
+                    GrillStatus::Rebuilding,
+                ] {
+                    if status == GrillStatus::Rebuilding && turn + 1 != len as u32 {
+                        continue;
+                    }
+                    state.state = status;
+                    let w = work(&state, StepId::new(), id, pack.version(), "pending")?;
+                    let binding = &frozen_bindings[&w.target.to_string()];
+                    let (composition, inputs) = pack
+                        .grill_inputs(config, &w, binding, &frozen, &state)
+                        .map_err(|_| invalid())?;
+                    let rendered = pack
+                        .render_composition(composition, &inputs, false)
+                        .map_err(|_| invalid())?;
+                    let hash = squad_store::commit::digest(&rendered)?;
+                    prompts.insert(
+                        prompt_key(&state),
+                        serde_json::json!({"rendered":rendered,"hash":hash}),
+                    );
+                    let (length, pricing): (i64, String) = tx.query_row(
+                        "SELECT context_length,pricing_json FROM catalog WHERE slug=?",
+                        [binding.model.as_str()],
+                        |r| Ok((r.get(0)?, r.get(1)?)),
+                    )?;
+                    models.insert(w.target.to_string(),serde_json::json!({"contextLength":length,"pricing":serde_json::from_str::<serde_json::Value>(&pricing)?,"binding":binding}));
+                    let reasoning = match binding.effort {
+                        ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
+                        ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
+                        ReasoningEffort::High => constants::REASONING_HIGH_TOKENS,
+                    };
+                    let output = w.max_output_tokens.unwrap_or(2048) + reasoning;
+                    let input_bound = bound + serde_json::to_string(&rendered)?.len() as u64;
+                    if input_bound + u64::from(output) + 4096 > length as u64 {
+                        return Err(StoreError::Domain(
+                            ErrorCode::CONTEXT_TOO_LARGE,
+                            "Grill floor does not fit the model context",
+                        ));
+                    }
+                    let prices: serde_json::Value = serde_json::from_str(&pricing)?;
+                    let price = |key: &str| -> Result<f64> {
+                        prices[key]
+                            .as_str()
+                            .and_then(|s| s.parse().ok())
+                            .or_else(|| prices[key].as_f64())
+                            .filter(|v| v.is_finite() && *v >= 0.)
+                            .ok_or(StoreError::Domain(
+                                ErrorCode::MODEL_UNAVAILABLE,
+                                "Grill pricing is unavailable",
+                            ))
+                    };
+                    let cost = input_bound as f64 * price("prompt")?
+                        + f64::from(output) * price("completion")?;
+                    if version == round {
+                        nominal += cost;
+                        reserved += cost * 2.;
+                    }
                 }
-                state.state = status;
-                let w = work(&state, StepId::new(), id, pack.version(), "pending")?;
-                let binding = &frozen_bindings[&w.target.to_string()];
-                let (composition, inputs) = pack
-                    .grill_inputs(config, &w, binding, &frozen, &state)
-                    .map_err(|_| invalid())?;
-                let rendered = pack
-                    .render_composition(composition, &inputs, false)
-                    .map_err(|_| invalid())?;
-                let hash = squad_store::commit::digest(&rendered)?;
-                prompts.insert(
-                    prompt_key(&state),
-                    serde_json::json!({"rendered":rendered,"hash":hash}),
-                );
-                let (length, pricing): (i64, String) = tx.query_row(
-                    "SELECT context_length,pricing_json FROM catalog WHERE slug=?",
-                    [binding.model.as_str()],
-                    |r| Ok((r.get(0)?, r.get(1)?)),
-                )?;
-                let reasoning = match binding.effort {
-                    ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
-                    ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
-                    ReasoningEffort::High => constants::REASONING_HIGH_TOKENS,
-                };
-                let output = w.max_output_tokens.unwrap_or(2048) + reasoning;
-                let input_bound = bound + serde_json::to_string(&rendered)?.len() as u64;
-                if input_bound + u64::from(output) + 4096 > length as u64 {
-                    return Err(StoreError::Domain(
-                        ErrorCode::CONTEXT_TOO_LARGE,
-                        "Grill floor does not fit the model context",
-                    ));
-                }
-                let prices: serde_json::Value = serde_json::from_str(&pricing)?;
-                let price = |key: &str| -> Result<f64> {
-                    prices[key]
-                        .as_str()
-                        .and_then(|s| s.parse().ok())
-                        .or_else(|| prices[key].as_f64())
-                        .filter(|v| v.is_finite() && *v >= 0.)
-                        .ok_or(StoreError::Domain(
-                            ErrorCode::MODEL_UNAVAILABLE,
-                            "Grill pricing is unavailable",
-                        ))
-                };
-                let cost = input_bound as f64 * price("prompt")?
-                    + f64::from(output) * price("completion")?;
-                nominal += cost;
-                reserved += cost * 2.;
             }
         }
     }
@@ -259,7 +271,12 @@ pub fn prepare(
         state.state = GrillStatus::Preflight;
     }
     if replacing {
-        tx.execute("UPDATE contests SET state_version=1,state_json=?,plan_id=?,plan_json=?,expires_at=? WHERE contest_id=?",params![serde_json::to_string(&state)?,plan.plan_id.to_string(),serde_json::to_string(&plan)?,plan.expires_at.to_rfc3339(),setup.contest_id.to_string()])?;
+        state.state_version = tx.query_row(
+            "SELECT state_version+1 FROM contests WHERE contest_id=?",
+            [setup.contest_id.to_string()],
+            |r| r.get::<_, i64>(0),
+        )? as u64;
+        tx.execute("UPDATE contests SET state_version=?,state_json=?,plan_id=?,plan_json=?,expires_at=? WHERE contest_id=?",params![state.state_version as i64,serde_json::to_string(&state)?,plan.plan_id.to_string(),serde_json::to_string(&plan)?,plan.expires_at.to_rfc3339(),setup.contest_id.to_string()])?;
     } else {
         tx.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active,plan_id,plan_json,expires_at) VALUES (?,'grill',(SELECT epoch FROM room_meta),1,?,1,?,?,?)",params![setup.contest_id.to_string(),serde_json::to_string(&state)?,plan.plan_id.to_string(),serde_json::to_string(&plan)?,plan.expires_at.to_rfc3339()])?;
     }
@@ -273,7 +290,7 @@ pub fn prepare(
         tx,
         setup.contest_id,
         "grill.provenance",
-        &serde_json::json!({"bindings":frozen_bindings,"prompts":prompts,"packVersion":pack.version()}),
+        &serde_json::json!({"bindings":frozen_bindings,"models":models,"prompts":prompts,"packVersion":pack.version()}),
     )?;
     if !replacing {
         let mut event = envelope(
@@ -485,8 +502,19 @@ pub fn allocate(
         || works.len() != 1
         || step.assignments.len() != 1
         || step.script_version.as_str() != "grill-v1"
+        || !step.inputs.is_empty()
+        || !step.assignments[0].payload_refs.is_empty()
         || step.move_name != ContestMove::Turns
     {
+        return Err(invalid());
+    }
+    let ordinal: u32 = tx.query_row(
+        "SELECT COALESCE(MAX(ordinal),0)+1 FROM contest_steps WHERE contest_id=?",
+        [state.contest_id.to_string()],
+        |r| r.get(0),
+    )?;
+    let trigger:String=tx.query_row("SELECT e.id FROM contest_events c JOIN events e ON e.seq=c.event_seq WHERE c.contest_id=? ORDER BY e.seq DESC LIMIT 1",[state.contest_id.to_string()],|r|r.get(0))?;
+    if step.ordinal != ordinal || works[0].trigger_event_id.to_string() != trigger {
         return Err(invalid());
     }
     let frozen = provenance(tx, state.contest_id)?;
@@ -561,6 +589,9 @@ pub fn canonical(db: &Connection, w: &Work, payload: &EnvelopePayload) -> Result
         || current_step(db, a.contest_id)? != w.step_id
         || a.artifact_kind.as_str() != w.kind.grill_composition().ok_or_else(invalid)?
     {
+        return Err(invalid());
+    }
+    if a.data["finishReason"] != serde_json::json!(FinishReason::Stop) {
         return Err(invalid());
     }
     let generation: GenerationIdentity = serde_json::from_value(a.data["generation"].clone())?;

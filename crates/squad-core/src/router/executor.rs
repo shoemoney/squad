@@ -173,6 +173,7 @@ pub fn failed(
             return Ok(group.accepted(id));
         }
         terminal(tx, group, id, &work, failure)?;
+        super::picks::refresh(tx,group,id)?;
         Ok(group.accepted(id))
     })
 }

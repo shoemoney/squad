@@ -143,6 +143,7 @@ fn nick(s: &str) -> MemberNick {
 }
 #[derive(Clone, Copy)]
 enum Scenario {
+    SlowAnswer,
     Happy,
     Pass,
     InvalidQuestion,
@@ -176,13 +177,18 @@ impl Respond for Answers {
             };
         }
         if user.contains("Return a JSON object with only answers") {
-            return if matches!(self.scenario, Scenario::LeaderFailure) {
+            let answer = if matches!(self.scenario, Scenario::LeaderFailure) {
                 streaming("{}", "stop")
             } else {
                 streaming(
                     r#"{"answers":[{"questionIndex":0,"answer":"Use a bounded queue.","planChanges":"Add backpressure."}]}"#,
                     "stop",
                 )
+            };
+            return if matches!(self.scenario, Scenario::SlowAnswer) {
+                answer.set_delay(Duration::from_secs(1))
+            } else {
+                answer
             };
         }
         if user.contains("Return only the complete standalone revised plan") {
@@ -293,5 +299,364 @@ async fn sequential_floor_and_export() {
         .unwrap();
     assert_eq!(state, "COMPLETE");
     f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+
+fn status(f: &Fixture) -> String {
+    f.db()
+        .query_row(
+            "SELECT json_extract(state_json,'$.state') FROM contests WHERE kind='grill'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+}
+fn calls(f: &Fixture, kind: &str) -> i64 {
+    f.db()
+        .query_row(
+            "SELECT COUNT(*) FROM attempts a JOIN work w ON w.work_id=a.work_id WHERE w.kind=?",
+            [kind],
+            |r| r.get(0),
+        )
+        .unwrap()
+}
+fn no_reservation(f: &Fixture) {
+    let held: i64 = f
+        .db()
+        .query_row(
+            "SELECT COUNT(*) FROM reservations WHERE attempt IS NULL",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(held, 0);
+    f.assert_ledger();
+}
+#[tokio::test]
+async fn voluntary_pass_finishes_early() {
+    let f = Fixture::scenario(3, Scenario::Pass).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 $grill").await;
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(f.count("grill.pass"), 2);
+    assert_eq!(f.count("grill.answer"), 0);
+    assert_eq!(f.count("grill.plan"), 1);
+    assert_eq!(calls(&f, "grill.question"), 2);
+    assert_eq!(
+        f.db()
+            .query_row(
+                "SELECT json_extract(state_json,'$.terminalReason') FROM contests",
+                [],
+                |r| r.get::<_, String>(0)
+            )
+            .unwrap(),
+        "survived"
+    );
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn invalid_pass_is_retried_and_skipped_without_survival() {
+    let f = Fixture::scenario(3, Scenario::InvalidQuestion).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 $grill").await;
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(calls(&f, "grill.question"), 8);
+    assert_eq!(f.count("grill.pass"), 4);
+    assert_eq!(f.count("grill.plan"), 1);
+    assert_eq!(status(&f), "COMPLETE");
+    let voluntary:i64=f.db().query_row("SELECT COUNT(*) FROM events WHERE kind='grill.pass' AND json_extract(payload,'$.reason')='pass'",[],|r|r.get(0)).unwrap();
+    assert_eq!(voluntary, 0);
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn leader_exhaustion_preserves_last_plan() {
+    let f = Fixture::scenario(3, Scenario::LeaderFailure).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 $grill").await;
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(status(&f), "FAILED");
+    assert_eq!(calls(&f, "grill.answer"), 2);
+    assert_eq!(f.count("grill.plan"), 1);
+    assert_eq!(f.count("grill.answer"), 0);
+    let export = room
+        .export(ExportScope::Grill, Some(contest(&f)))
+        .await
+        .unwrap();
+    assert!(export.contains("Initial plan"));
+    assert!(export.contains("How does mechanism"));
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn confirmation_cancel_and_restart_without_duplicate_calls() {
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    let result = send(&f, &room, "@member0 $grill").await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = result
+    else {
+        panic!("{result:?}")
+    };
+    assert_eq!(calls(&f, "grill.question"), 0);
+    assert_eq!(room.state().await.pending_preflights.len(), 1);
+    room.shutdown().await.unwrap();
+    drop(room);
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(calls(&f, "grill.question"), 0);
+    assert!(matches!(
+        room.submit(Request::ContestConfirm {
+            request_id: EventId::new(),
+            contest_id: plan.contest_id,
+            plan_id: plan.plan_id
+        })
+        .await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| terminal(&f)).await;
+    let before = calls(&f, "grill.question");
+    assert_eq!(before, 4);
+    room.shutdown().await.unwrap();
+    drop(room);
+    let room = f.open(OpenMode::Interactive).await;
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    assert_eq!(calls(&f, "grill.question"), before);
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn cancellation_and_expiry_do_not_call_provider() {
+    for expire in [false, true] {
+        let mut f = Fixture::new().await;
+        f.config.budget.debate_confirm_usd = 0.;
+        let room = f.open(OpenMode::Interactive).await;
+        seed(&f, &room).await;
+        let result = send(&f, &room, "@member0 $grill").await;
+        let RequestResult::PendingConfirmation {
+            preflight: PendingPreflight::Contest(plan),
+            ..
+        } = result
+        else {
+            panic!("{result:?}")
+        };
+        if expire {
+            let mut changed = plan.clone();
+            changed.expires_at = chrono::Utc::now() - chrono::Duration::seconds(1);
+            f.db()
+                .execute(
+                    "UPDATE contests SET plan_json=?,expires_at=?",
+                    rusqlite::params![
+                        serde_json::to_string(&changed).unwrap(),
+                        changed.expires_at.to_rfc3339()
+                    ],
+                )
+                .unwrap();
+        }
+        let req = if expire {
+            Request::ContestConfirm {
+                request_id: EventId::new(),
+                contest_id: plan.contest_id,
+                plan_id: plan.plan_id,
+            }
+        } else {
+            Request::ContestCancel {
+                request_id: EventId::new(),
+                contest_id: plan.contest_id,
+                plan_id: plan.plan_id,
+            }
+        };
+        room.submit(req).await;
+        assert_eq!(status(&f), "STOPPED");
+        assert_eq!(calls(&f, "grill.question"), 0);
+        no_reservation(&f);
+        room.shutdown().await.unwrap();
+    }
+}
+#[tokio::test]
+async fn daily_refusal_before_any_grill_attempt() {
+    let mut f = Fixture::new().await;
+    f.config.budget.daily_max_usd = 0.05;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    let result = send(&f, &room, "@member0 $grill").await;
+    assert!(
+        matches!(
+            result,
+            RequestResult::Rejected {
+                error: ErrorPayload {
+                    code: ErrorCode::DAILY_MAX_REACHED,
+                    ..
+                },
+                ..
+            }
+        ),
+        "{result:?}"
+    );
+    assert_eq!(calls(&f, "grill.question"), 0);
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn question_first_pick_reuses_ordinary_answers() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = send(&f, &room, "@all $grill Design a plan").await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("contest.pick_requested") == 1).await;
+    assert_eq!(calls(&f, "reply"), 3);
+    let result = send(&f, &room, "@member1").await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(status(&f), "COMPLETE");
+    assert_eq!(calls(&f, "reply"), 3);
+    assert_eq!(f.count("contest.picked"), 1);
+    assert_eq!(f.count("grill.question"), 4);
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn stop_fences_inflight_floor_and_releases_hold() {
+    let f = Fixture::scenario(3, Scenario::SlowQuestion).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 $grill").await;
+    f.wait(|| calls(&f, "grill.question") == 1).await;
+    let later = send(&f, &room, "@member2 Later ordinary request").await;
+    assert!(matches!(later, RequestResult::Accepted { .. }), "{later:?}");
+    let held: i64 = f
+        .db()
+        .query_row(
+            "SELECT COUNT(*) FROM work WHERE held_by_contest_id IS NOT NULL",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(held, 1);
+    let result = room
+        .submit(Request::Stop {
+            request_id: EventId::new(),
+            target: Some(nick("member0")),
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    assert_eq!(status(&f), "STOPPED");
+    f.wait(|| f.count("message.final") == 2).await;
+    tokio::time::sleep(Duration::from_millis(2200)).await;
+    assert_eq!(f.count("grill.pass"), 0);
+    assert_eq!(f.count("grill.question"), 0);
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+fn contest(f: &Fixture) -> ContestId {
+    f.db()
+        .query_row(
+            "SELECT contest_id FROM contests WHERE kind='grill'",
+            [],
+            |r| r.get::<_, String>(0),
+        )
+        .unwrap()
+        .parse()
+        .unwrap()
+}
+#[tokio::test]
+async fn restart_preserves_accepted_turns_and_frozen_prompts() {
+    let mut f = Fixture::scenario(3, Scenario::SlowAnswer).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 $grill $GRILL_ROUNDS=1").await;
+    f.wait(|| f.count("grill.question") == 1 && calls(&f, "grill.answer") == 1)
+        .await;
+    room.shutdown().await.unwrap();
+    drop(room);
+    f.config.agents[0].persona = "CHANGED_PERSONA_AFTER_ADMISSION".into();
+    let overrides = f._dir.path().join("overrides");
+    std::fs::create_dir(&overrides).unwrap();
+    std::fs::write(
+        overrides.join("grill.answer.md"),
+        format!(
+            "CHANGED_TEMPLATE_AFTER_ADMISSION\n{}",
+            include_str!("../../../prompts/grill.answer.md")
+        ),
+    )
+    .unwrap();
+    f.config.prompts.directory = Some(overrides);
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(f.count("grill.question"), 2);
+    assert_eq!(calls(&f, "grill.question"), 2);
+    assert_eq!(f.count("grill.answer"), 2);
+    assert_eq!(calls(&f, "grill.answer"), 3);
+    for r in f
+        .fake
+        .server
+        .received_requests()
+        .await
+        .unwrap()
+        .into_iter()
+        .filter(|r| r.url.path().ends_with("completions"))
+    {
+        let body = String::from_utf8(r.body).unwrap();
+        if body.contains("Return a JSON object with only answers") {
+            assert!(!body.contains("CHANGED_PERSONA_AFTER_ADMISSION"));
+            assert!(!body.contains("CHANGED_TEMPLATE_AFTER_ADMISSION"));
+        }
+    }
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn real_floor_is_limited_to_selected_participants() {
+    let f = Fixture::scenario(4, Scenario::Happy).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 @member1 $grill").await;
+    f.wait(|| terminal(&f)).await;
+    let outsiders:i64=f.db().query_row("SELECT COUNT(*) FROM history WHERE context_id IN ('member2','member3') AND projection_key LIKE 'grill.%'",[],|r|r.get(0)).unwrap();
+    assert_eq!(outsiders, 0);
+    let events = room.page_events(None, 500).await.unwrap();
+    for e in events {
+        if matches!(
+            e.content,
+            EnvelopePayload::GrillQuestion(_)
+                | EnvelopePayload::GrillAnswer(_)
+                | EnvelopePayload::GrillPlan(_)
+        ) {
+            assert_eq!(
+                e.base.recipients,
+                vec![
+                    Recipient::Me,
+                    Recipient::Member(nick("member0")),
+                    Recipient::Member(nick("member1"))
+                ]
+            );
+        }
+    }
+    let export = room
+        .export(ExportScope::Grill, Some(contest(&f)))
+        .await
+        .unwrap();
+    assert!(export.contains("Plan changes"));
+    assert!(export.contains("bounded queues"));
+    assert!(!export.contains("PERSONA"));
+    let projections:i64=f.db().query_row("SELECT COUNT(*) FROM history WHERE context_id LIKE 'contest:%' AND projection_key='grill.working'",[],|r|r.get(0)).unwrap();
+    assert!(projections > 0);
+    no_reservation(&f);
     room.shutdown().await.unwrap();
 }

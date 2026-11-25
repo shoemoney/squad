@@ -50,6 +50,9 @@ impl ContestRouter for Router {
     ) -> Result<CommitOutcome> {
         Router::open_debate_case(self, e, b)
     }
+    fn grill_state(&self, id: ContestId) -> Result<GrillState> {
+        self.store.call(move |db| squad_store::grill::state(db, id))
+    }
     fn debate_state(&self, id: DebateId) -> Result<DebateState> {
         Router::debate_state(self, id)
     }

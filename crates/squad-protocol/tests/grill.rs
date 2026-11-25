@@ -112,3 +112,102 @@ fn grill_work_requires_fresh_context_matching_prompt_and_no_judge() {
     work.prompt_ref.as_mut().unwrap().template_id = Text::new("judge.round").unwrap();
     assert!(work.validate().is_err());
 }
+
+#[test]
+fn provider_question_contract_requires_exact_pass_and_new_bounded_questions() {
+    let setup = setup();
+    let state = GrillState {
+        contest_id: setup.contest_id,
+        state: GrillStatus::Questioning,
+        state_version: 2,
+        round: 1,
+        total_rounds: 2,
+        leader: setup.leader,
+        griller_order: setup.grillers,
+        turn: 0,
+        plan_version: 1,
+        questions_asked: 0,
+        passed: 0,
+        terminal_reason: None,
+    };
+    let input = GrillWorkInput {
+        state,
+        question: None,
+        earlier_questions: vec!["Who pays?".into()],
+        answer_words: 20,
+        plan_words: 30,
+    };
+    assert!(matches!(
+        input.parse_output(&WorkKind::GrillQuestion, "PASS"),
+        Ok(EnvelopePayload::GrillPass(_))
+    ));
+    for raw in [
+        " PASS",
+        "PASS\n",
+        "pass",
+        r#"{"questions":[]}"#,
+        r#"{"questions":["who pays?"]}"#,
+        r#"{"questions":["New?"],"leader":"intruder"}"#,
+    ] {
+        assert!(
+            input.parse_output(&WorkKind::GrillQuestion, raw).is_err(),
+            "{raw}"
+        );
+    }
+    assert!(
+        matches!(input.parse_output(&WorkKind::GrillQuestion,r#"{"questions":["What fails?","How does it recover?"]}"#),Ok(EnvelopePayload::GrillQuestion(q)) if q.angle=="cost"&&q.questions.len()==2)
+    );
+}
+#[test]
+fn provider_answers_require_complete_indices_changes_and_limits() {
+    let setup = setup();
+    let q = GrillQuestion {
+        contest_id: setup.contest_id,
+        round: 1,
+        turn: 0,
+        griller: setup.grillers[0].clone(),
+        leader: setup.leader.clone(),
+        plan_version: 1,
+        angle: "cost".into(),
+        questions: vec!["Who pays?".into(), "How much?".into()],
+    };
+    let state = GrillState {
+        contest_id: setup.contest_id,
+        state: GrillStatus::Answering,
+        state_version: 3,
+        round: 1,
+        total_rounds: 2,
+        leader: setup.leader,
+        griller_order: setup.grillers,
+        turn: 0,
+        plan_version: 1,
+        questions_asked: 1,
+        passed: 0,
+        terminal_reason: None,
+    };
+    let input = GrillWorkInput {
+        state,
+        question: Some((EventId::new(), q)),
+        earlier_questions: vec![],
+        answer_words: 10,
+        plan_words: 30,
+    };
+    let valid = serde_json::json!({"answers":[{"questionIndex":0,"answer":"Users","planChanges":"Price transparently"},{"questionIndex":1,"answer":"One dollar","planChanges":"Publish pricing"}]});
+    assert!(
+        input
+            .parse_output(&WorkKind::GrillAnswer, &valid.to_string())
+            .is_ok()
+    );
+    for invalid in [
+        serde_json::json!({"answers":[]}),
+        serde_json::json!({"answers":[valid["answers"][0].clone(),valid["answers"][0].clone()]}),
+        serde_json::json!({"answers":[valid["answers"][0].clone()]}),
+        serde_json::json!({"answers":[valid["answers"][0].clone(),{"questionIndex":1,"answer":"one","planChanges":""}]}),
+    ] {
+        assert!(
+            input
+                .parse_output(&WorkKind::GrillAnswer, &invalid.to_string())
+                .is_err()
+        );
+    }
+}
