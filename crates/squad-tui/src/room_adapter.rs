@@ -69,6 +69,7 @@ pub fn snapshot(state: &RoomState, events: Vec<CommittedEnvelope>) -> RoomSnapsh
         }
     }
     view.participants = state.participants.clone();
+    view.models = state.models.clone();
     view.preflights = state.pending_preflights.clone();
     view.scoreboard = state.scoreboard.clone();
     view.trophies = state.trophies.clone();

@@ -4,25 +4,25 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
-claude · idle    │                           VERDICT
-rate n/a         │Judging complete
-model demo/model
-n/a tok · n/a    │JUDGE
-W1 L0 · T0       │VERDICT · Winner: @claude
-fable · idle     │Judge: demo/judge
-rate n/a         │@claude weighted total: 8.00 / 10
-model demo/model │@openai weighted total: 7.00 / 10
-n/a tok · n/a    │Round tally · @claude: 24
-W0 L0 · T0       │Round tally · @openai: 21
-openai · idle    │Durability wins the foundation; take bounded, input-first
-rate n/a         │scheduling from the other proposal. Together they make a
-model demo/model │responsive room that survives restarts.
-n/a tok · n/a    │RESPECT · What to steal from the loser
-W0 L1 · T0       │• Bounded input-first scheduling
-                 │F7 Expand scores & reasons · Follow up with @judge
-+3 more · scroll
+claude · 4.5     │
+idle W1 L0       │Round 3 · claude 8 : 7 openai · total 24 : 21
+fable · 4.1      │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
+idle W0 L0       │                           VERDICT
+openai · 5.1
+idle W0 L1       │╭────────────────────────────────────────────────────────────╮
+gemini · 3-pro   ││Winner: @claude                                             │
+idle W0 L0       ││claude 8.00 : 7.00 openai                                   │
+grok · 4         ││Tally 24 : 21 · Judge demo/judge                            │
+idle W0 L0       ││Durability wins the foundation; take bounded, input-first   │
+muse · 3         ││scheduling from the other proposal. Together they make a    │
+idle W0 L0       ││responsive room that survives restarts.                     │
+                 ││RESPECT · What to steal from the loser                      │
+                 ││• Bounded input-first scheduling                            │
+                 ││F7 Expand scores & reasons · Follow up with @judge          │
+                 │╰────────────────────────────────────────────────────────────╯
+
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
 > Ask the squad…
 
 
-F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

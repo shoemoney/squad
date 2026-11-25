@@ -93,10 +93,15 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     });
     if let Some(view) = active {
         Paragraph::new(format!(
-            "@{} vs @{} · {}",
+            "{} vs {} · {}{}",
             view.state.debaters[0],
             view.state.debaters[1],
-            crate::widgets::debate::status_label(&view.state)
+            crate::widgets::debate::status_label(&view.state),
+            view.tally.as_ref().map_or(String::new(), |t| format!(
+                " · total {} : {}",
+                t.get(&view.state.debaters[0]).copied().unwrap_or(0),
+                t.get(&view.state.debaters[1]).copied().unwrap_or(0)
+            ))
         ))
         .style(theme.chrome())
         .render(
@@ -271,13 +276,32 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 .join(" ")
         )
     } else if area.width < 100 {
-        "F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit".into()
+        "F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit".into()
     } else {
-        "F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · Esc Stop · Ctrl+C Quit".into()
+        "F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit".into()
     };
     Paragraph::new(footer)
         .style(Style::default().add_modifier(Modifier::DIM))
         .render(geometry.help, frame.buffer_mut());
+    if app.participant_details
+        && let Some(member) = members.get(app.composed.participants.focused)
+    {
+        let details = Rect::new(
+            transcript_area.x,
+            transcript_area.y,
+            transcript_area.width,
+            transcript_area.height.min(12),
+        );
+        Clear.render(details, frame.buffer_mut());
+        let mut lines = vec![ratatui::text::Line::raw(
+            "Participant · ↑/↓ Choose · F8 Close",
+        )];
+        lines.extend(member.lines(&theme.palette));
+        Paragraph::new(lines)
+            .wrap(ratatui::widgets::Wrap { trim: false })
+            .block(ratatui::widgets::Block::bordered().title("Model details"))
+            .render(details, frame.buffer_mut());
+    }
     if !app.quotes.ids.is_empty() {
         let previews = app.quotes.previews(&app.session.snapshot.context);
         let text = previews
@@ -511,10 +535,19 @@ fn participant_models(app: &App) -> Vec<crate::widgets::participants::Participan
                         }
                         _ => None,
                     });
+            let model = app
+                .session
+                .snapshot
+                .models
+                .iter()
+                .find(|m| m.nick == squad_protocol::Actor::Member(nick.clone()))
+                .map(|m| m.resolved_slug.to_string())
+                .unwrap_or_else(|| latest.as_ref().map_or(String::new(), |v| v.0.clone()));
+            let version = crate::widgets::participants::short_version(&model);
             crate::widgets::participants::ParticipantView {
                 nick: nick.to_string(),
-                version: String::new(),
-                model: latest.as_ref().map_or(String::new(), |v| v.0.clone()),
+                version,
+                model,
                 slot,
                 presence: presence
                     .map_or(squad_protocol::PresenceStatus::Idle, |p| p.status.clone()),

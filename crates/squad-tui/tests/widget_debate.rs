@@ -344,12 +344,10 @@ fn narrow_banners_are_single_rows_and_state_labels_are_readable() {
     let geometry = render(&view, buf.area, &mut buf, &Palette::new(ColorTier::NoColor));
     assert!(geometry.banners.iter().all(|(_, r)| r.height == 1));
     let output = screen(&buf);
-    assert!(output.contains("Debate 1 · Round 1 of 2"));
+    assert!(output.contains("Debate 1 · claude vs gemini · Round 1 of 2"));
     assert!(!output.contains(&state.debate_id.to_string()));
     assert!(!output.contains("RoundRunning"));
     assert!(!output.contains("Press Esc again"));
     assert!(output.contains("A topic supplied by committed opening"));
-    assert!(output.contains("W4 L2"));
-    assert!(output.contains("W3 L1"));
-    assert!(geometry.versus_card.height >= 4);
+    assert_eq!(geometry.versus_card.height, 2);
 }

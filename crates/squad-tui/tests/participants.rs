@@ -38,7 +38,7 @@ fn screen(w: u16, h: u16, scroll: usize) -> String {
         area,
         &mut buf,
     );
-    assert!(rects.total_rows > usize::from(h));
+    assert_eq!(rects.total_rows, 24);
     assert_eq!(members[0].detail(), "provider/full-concrete-model-version");
     (0..h)
         .map(|y| {
@@ -56,7 +56,7 @@ fn participants_snapshots() {
     insta::assert_snapshot!("participants_80x24", screen(80, 24, 0));
     insta::assert_snapshot!("participants_120x40", screen(120, 40, 0));
     insta::assert_snapshot!("participants_narrow", screen(24, 24, 0));
-    insta::assert_snapshot!("participants_scrolled", screen(80, 24, 48));
+    insta::assert_snapshot!("participants_scrolled", screen(80, 12, 12));
 }
 
 #[test]
@@ -132,16 +132,15 @@ fn protocol_models_keep_personas_distinct_exclude_judge_and_presence_is_idempote
 }
 
 #[test]
-fn compact_metrics_do_not_wrap_and_old_rates_are_dim() {
-    use ratatui::style::Modifier;
+fn six_members_fit_in_twelve_rows_with_identity_and_records() {
     let mut members = roster();
-    members[0].nick = "claude".into();
-    members[0].version.clear();
-    members[0].queue_depth = 0;
-    members[0].presence = PresenceStatus::Idle;
+    members.truncate(6);
+    for (i, member) in members.iter_mut().enumerate() {
+        member.nick = format!("member{i}");
+    }
     let palette = Palette::new(ColorTier::TrueColor);
     let mut buf = Buffer::empty(Rect::new(0, 0, 16, 17));
-    render(
+    let shapes = render(
         &ParticipantsView {
             members: &members,
             palette: &palette,
@@ -150,32 +149,20 @@ fn compact_metrics_do_not_wrap_and_old_rates_are_dim() {
         buf.area,
         &mut buf,
     );
-    let row = (0..16).map(|x| buf[(x, 1)].symbol()).collect::<String>();
-    assert!(row.contains("~24.5 tok/s"));
-    assert!(buf[(0, 1)].modifier.contains(Modifier::DIM));
-    assert_eq!(buf[(0, 16)].symbol(), "+");
-}
-
-#[test]
-fn compact_roster_preserves_long_identity_across_heading_rows() {
-    let mut members = roster();
-    members.truncate(1);
-    let palette = Palette::new(ColorTier::NoColor);
-    let mut buf = Buffer::empty(Rect::new(0, 0, 16, 24));
-    render(
-        &ParticipantsView {
-            members: &members,
-            palette: &palette,
-            scroll: 0,
-        },
-        buf.area,
-        &mut buf,
+    assert_eq!(shapes.names.len(), 6);
+    assert_eq!(shapes.total_rows, 12);
+    for (i, member) in members.iter().enumerate() {
+        let y = i as u16 * 2;
+        assert_eq!(buf[(0, y)].fg, palette.member(&member.nick, member.slot));
+        let activity = (0..16)
+            .map(|x| buf[(x, y + 1)].symbol())
+            .collect::<String>();
+        assert!(activity.contains("live W7 L2"));
+    }
+    assert!(
+        members[0]
+            .lines(&palette)
+            .iter()
+            .any(|l| l.to_string().contains("~24.5 tok/s"))
     );
-    let text = (0..24)
-        .flat_map(|y| (0..16).map(move |x| (x, y)))
-        .map(|p| buf[p].symbol())
-        .collect::<String>()
-        .replace(' ', "");
-    assert!(text.contains(&members[0].nick));
-    assert!(text.contains("q2"));
 }

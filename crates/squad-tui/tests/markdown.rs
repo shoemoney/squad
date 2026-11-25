@@ -139,7 +139,7 @@ fn wraps_cells_graphemes_tabs_and_explicit_newlines() {
                 .collect()
         })
         .collect();
-    assert_eq!(content, ["  e\u{301}界👩‍💻   ", "    X  ", "  last  "]);
+    assert_eq!(content, ["  e\u{301}界👩‍💻  ", "  X  ", "  last  "]);
     assert!(
         content
             .iter()
@@ -280,4 +280,23 @@ fn prose_wraps_at_words_across_style_spans() {
             .fg,
         Some(Color::Cyan)
     );
+}
+
+#[test]
+fn soft_wrap_consumes_prose_delimiters_but_preserves_code_indentation() {
+    let rows = wrap_lines(&[Line::raw("  one two three four five")], 12);
+    assert!(rows[0].to_string().starts_with("    one"));
+    for row in &rows[1..] {
+        let text = row.to_string();
+        assert!(!text[2..].starts_with(' '), "stray delimiter: {text:?}");
+    }
+    let mut code = MarkdownRenderer::new();
+    code.update("code", "```text\n    one  two\n```", true, 10);
+    let text = code
+        .visible_rows(0..code.row_count())
+        .lines
+        .iter()
+        .map(ToString::to_string)
+        .collect::<String>();
+    assert!(text.contains("      "));
 }

@@ -4,25 +4,25 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
-claude · idle    │  history at every interruption point. A reliable room makes
-rate n/a         │   recovery boring, even when its models are surprising.
-model demo/model
-n/a tok · n/a    │grok · complete
-W0 L0 · T0       │  Twelve models talking at once? Excellent way to discover
-fable · idle     │  your supposedly asynchronous UI is a slideshow. Set a
-rate n/a         │  frame budget, bound the queues, and inject a slow judge.
-model demo/model │  If typing stutters, the benchmark fails. Pretty pixels do
-n/a tok · n/a    │  not get an exemption.
-W0 L0 · T0
-openai · idle    │muse · complete
-rate n/a         │  Ship a rehearsal before asking for credentials. Let
-model demo/model │  someone watch an idea grow, survive a challenge, and
-n/a tok · n/a    │  become a better plan. The first minute should show the
-W0 L0 · T0       │  whole journey: question, disagreement, evidence, and a
+claude · 4.5     │  history at every interruption point. A reliable room makes
+idle W0 L0       │  recovery boring, even when its models are surprising.
+fable · 4.1
+idle W0 L0       │grok · complete
+openai · 5.1     │  Twelve models talking at once? Excellent way to discover
+idle W0 L0       │  your supposedly asynchronous UI is a slideshow. Set a
+gemini · 3-pro   │  frame budget, bound the queues, and inject a slow judge.
+idle W0 L0       │  If typing stutters, the benchmark fails. Pretty pixels do
+grok · 4         │  not get an exemption.
+idle W0 L0
+muse · 3         │muse · complete
+idle W0 L0       │  Ship a rehearsal before asking for credentials. Let
+                 │  someone watch an idea grow, survive a challenge, and
+                 │  become a better plan. The first minute should show the
+                 │  whole journey: question, disagreement, evidence, and a
                  │  verdict that keeps the best part of both answers.
-+3 more · scroll
+
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
 > Ask the squad…
 
 
-F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

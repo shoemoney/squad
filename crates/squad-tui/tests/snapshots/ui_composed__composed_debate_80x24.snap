@@ -4,25 +4,25 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
-claude · idle    @claude vs @openai · Round 3 of 3
-rate n/a         │  input-first scheduler as part of the delivery contract:
-model demo/model │  durability is the foundation, and latency is how people
-n/a tok · n/a    │  experience it.
-W0 L0 · T0       │@openai · complete
-fable · idle     │  Closing: make both promises observable. Track commit
-rate n/a         │  receipts and p99 draw time in the same rehearsal. Fail the
-model demo/model │   release if either regresses. Keep the writer small, keep
-n/a tok · n/a    │  input immediate, and let a deterministic demo prove the
-W0 L0 · T0       │  product before a real provider is connected.
-openai · idle    │@claude: 8/10
-rate n/a         │@openai: 7/10
-model demo/model │[Expand scorecard]
-n/a tok · n/a    │Authoritative tally: @claude 24 · @openai 21
-W0 L0 · T0       │[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────]
-                 │Judging follows closing statements
-+3 more · scroll
+claude · 4.5     claude vs openai · Round 3 of 3 · total 24 : 21
+idle W0 L0       │▌  usage, and final outcomes atomically. Replay reconstructs
+fable · 4.1      │▌  the room without replaying celebrations. I accept the
+idle W0 L0       │▌  input-first scheduler as part of the delivery contract:
+openai · 5.1     │▌  durability is the foundation, and latency is how people
+idle W0 L0       │▌  experience it.
+gemini · 3-pro   │
+idle W0 L0       │▌  @openai · complete
+grok · 4         │▌  Closing: make both promises observable. Track commit
+idle W0 L0       │▌  receipts and p99 draw time in the same rehearsal. Fail
+muse · 3         │▌  the release if either regresses. Keep the writer small,
+idle W0 L0       │▌  keep input immediate, and let a deterministic demo prove
+                 │▌  the product before a real provider is connected.
+                 │
+                 │Round 3 · claude 8 : 7 openai · total 24 : 21
+                 │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
+
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
 > Ask the squad…
 
 
-F6 Focus · Tab Complete · Esc Stop · F7 Scores · Ctrl+C Quit
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

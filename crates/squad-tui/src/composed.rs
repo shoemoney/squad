@@ -42,6 +42,8 @@ pub struct Graphics {
     pub scores: Vec<(u32, MemberNick, Rect)>,
     pub tug: Rect,
     pub verdict: Rect,
+    pub winner: Rect,
+    pub totals: Vec<Rect>,
 }
 fn identity(id: impl ToString) -> MessageId {
     id.to_string().parse().expect("protocol UUID")
@@ -241,7 +243,9 @@ impl Composed {
                     self.graphics.insert(
                         model.id,
                         Graphics {
-                            verdict: geometry.card.union(geometry.winner),
+                            verdict: geometry.card,
+                            winner: geometry.winner,
+                            totals: geometry.totals,
                             ..Default::default()
                         },
                     );
@@ -346,7 +350,7 @@ impl Composed {
         let Some(start) = self.transcript.start_row(id) else {
             return Rect::default();
         };
-        let y = start + 1 + usize::from(local.y);
+        let y = start + usize::from(local.y);
         let bottom = y + usize::from(local.height);
         let clipped_top = y.max(top);
         let clipped_bottom = bottom.min(top + usize::from(area.height));

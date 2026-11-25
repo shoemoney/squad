@@ -100,8 +100,8 @@ async fn composed_screens() {
             }
             if stage == "verdict" {
                 assert!(output.contains("Winner: @claude"), "{output}");
-                assert!(output.contains("@claude weighted total:"));
-                assert!(output.contains("@openai weighted total:"));
+                assert!(output.contains("claude 8.00 : 7.00 openai"));
+                assert!(output.contains("Tally 24 : 21"));
             }
             insta::assert_snapshot!(format!("composed_{stage}_{width}x{height}"), output);
             app.stop_confirmation = Some(Duration::from_secs(2));
@@ -186,4 +186,37 @@ async fn duplicate_finals_replay_and_inline_turns() {
     ));
     assert_eq!(app.session.transcript.cards.len(), before);
     assert!(q.is_empty());
+}
+
+#[tokio::test]
+async fn startup_identities_and_focused_details_are_available_before_replies() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    let room = FakeRoom::new();
+    let state = room.state().await;
+    assert_eq!(state.models.len(), 6);
+    let caps = TerminalCaps::resolve(
+        |key| (key == "SQUAD_FX").then(|| "off".into()),
+        true,
+        (80, 24).into(),
+    )
+    .unwrap();
+    let mut app = App::new(caps);
+    app.session.restore(state);
+    let output = screen(&mut app, 80, 24);
+    for nick in ["claude", "fable", "openai", "gemini", "grok", "muse"] {
+        assert!(output.contains(nick), "{output}");
+    }
+    assert!(!output.contains("more · scroll"));
+    assert!(!output.contains("model n/a"));
+    app.handle(
+        Event::Key(KeyEvent::new(KeyCode::F(8), KeyModifiers::NONE)),
+        Duration::ZERO,
+    );
+    assert!(screen(&mut app, 80, 24).contains("anthropic/claude-sonnet-4.5"));
+    app.handle(
+        Event::Key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)),
+        Duration::ZERO,
+    );
+    assert_eq!(app.composed.participants.focused, 1);
+    assert!(screen(&mut app, 80, 24).contains("anthropic/claude-opus-4.1"));
 }

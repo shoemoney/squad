@@ -23,6 +23,7 @@ pub struct App {
     pub completion: CompletionState,
     pub completion_open: bool,
     pub focus_input: bool,
+    pub participant_details: bool,
     pub quit: bool,
     pub dirty: bool,
     pub pending: Option<Request>,
@@ -60,6 +61,7 @@ impl App {
             completion: CompletionState::default(),
             completion_open: false,
             focus_input: true,
+            participant_details: false,
             quit: false,
             dirty: true,
             pending: None,
@@ -283,6 +285,22 @@ impl App {
                 match key.code {
                     KeyCode::Esc => {
                         self.escape(now);
+                        return;
+                    }
+                    KeyCode::F(8) => {
+                        self.participant_details = !self.participant_details;
+                        self.dirty = true;
+                        return;
+                    }
+                    KeyCode::Up | KeyCode::Down if self.participant_details => {
+                        let max = self.session.snapshot.context.roster.len().saturating_sub(1);
+                        self.composed.participants.focused = self
+                            .composed
+                            .participants
+                            .focused
+                            .saturating_add_signed(if key.code == KeyCode::Up { -1 } else { 1 })
+                            .min(max);
+                        self.dirty = true;
                         return;
                     }
                     KeyCode::F(7) => {

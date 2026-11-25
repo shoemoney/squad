@@ -135,7 +135,6 @@ impl ParticipantView {
         ]
     }
     fn compact_rows(&self, width: u16, palette: &Palette) -> Vec<Line<'static>> {
-        let lines = self.lines(palette);
         let status = match self.presence {
             PresenceStatus::Idle => "idle",
             PresenceStatus::Thinking => "think",
@@ -143,47 +142,37 @@ impl ParticipantView {
             PresenceStatus::Error => "error",
             PresenceStatus::Offline => "off",
         };
-        let status = format!(
-            "{status}{}{}",
-            if self.queue_depth > 0 {
-                format!(" q{}", self.queue_depth)
-            } else {
+        let heading = format!(
+            "{}{}",
+            sanitize(&self.nick),
+            if self.version.is_empty() {
                 String::new()
-            },
-            if self.eliminated { " · out" } else { "" }
+            } else {
+                format!(" · {}", self.version)
+            }
         );
-        let name = lines[0].to_string();
-        let heading = format!("{name} · {status}");
-        let mut rows = crate::text::wrap(&heading, usize::from(width.max(1)))
-            .into_iter()
-            .map(|row| {
-                Line::styled(
-                    row.cells
-                        .into_iter()
-                        .map(|cell| cell.display)
-                        .collect::<String>(),
-                    lines[0].style,
-                )
-            })
-            .collect::<Vec<_>>();
-        rows.push(lines[3].clone());
-        rows.push(lines[4].clone());
-        rows.push(if width < 20 && self.tokens.is_some() {
-            Line::styled(
+        let mut rows = vec![Line::styled(
+            heading,
+            Style::default()
+                .fg(palette.member(&self.nick, self.slot))
+                .add_modifier(Modifier::BOLD),
+        )];
+        rows.push(Line::from(vec![
+            ratatui::text::Span::styled(
+                format!("{status} "),
+                Style::default().fg(palette.member(&self.nick, self.slot)),
+            ),
+            ratatui::text::Span::styled(
                 format!(
-                    "{}t {}",
-                    self.tokens.map_or("n/a".into(), |n| n.to_string()),
-                    self.cost_usd.map_or("n/a".into(), |n| format!("${n:.3}"))
+                    "W{} L{}{}",
+                    self.wins,
+                    self.losses,
+                    if self.eliminated { " out" } else { "" }
                 ),
-                lines[5].style,
-            )
-        } else {
-            lines[5].clone()
-        });
-        rows.push(Line::raw(format!(
-            "W{} L{} · T{}",
-            self.wins, self.losses, self.trophies
-        )));
+                Style::default().add_modifier(Modifier::DIM),
+            ),
+        ]));
+        let _ = width;
         rows
     }
 }
@@ -292,4 +281,14 @@ impl ParticipantsState {
             };
         }
     }
+}
+
+/// Preserve the distinguishing version from the concrete startup identity.
+pub fn short_version(slug: &str) -> String {
+    let name = slug.rsplit('/').next().unwrap_or(slug);
+    let start = name
+        .char_indices()
+        .find(|(_, c)| c.is_ascii_digit())
+        .map(|(i, _)| i);
+    start.map_or_else(|| name.to_owned(), |i| name[i..].to_owned())
 }

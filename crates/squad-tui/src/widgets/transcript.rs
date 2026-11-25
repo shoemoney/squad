@@ -163,10 +163,17 @@ impl CachedMessage {
         self.anchor_cache.truncate(self.markdown.blocks().len());
         self.source_rows
             .resize(self.markdown.row_count(), source.graphemes(true).count());
-        self.height = 1 + self.prefix.len() + self.markdown.row_count() + self.suffix.len() + 1;
+        self.height = self.header_rows()
+            + self.prefix.len()
+            + self.markdown.row_count()
+            + self.suffix.len()
+            + 1;
+    }
+    fn header_rows(&self) -> usize {
+        usize::from(self.model.widget_rows.is_empty())
     }
     fn body_start(&self) -> usize {
-        1 + self.prefix.len()
+        self.header_rows() + self.prefix.len()
     }
 }
 /// Top-of-viewport identity and original-source grapheme, never a terminal byte/cell offset.
@@ -420,7 +427,7 @@ pub fn render(
                 buf.set_string(area.x, row_y, "▌", Style::default().fg(color));
             }
             let content = Rect::new(area.x + 1, row_y, area.width.saturating_sub(1), 1);
-            if row == 0 {
+            if row == 0 && message.header_rows() > 0 {
                 let header = format!(
                     "{}{}{}",
                     sanitize(&message.model.author),
@@ -441,7 +448,9 @@ pub fn render(
                 )
                 .render(content, buf);
             } else if row < body_start {
-                message.prefix[row - 1].clone().render(content, buf);
+                message.prefix[row - message.header_rows()]
+                    .clone()
+                    .render(content, buf);
             } else if row < body_end {
                 let mut line = body.lines[row - visible_body_start].clone();
                 if palette.tier == ColorTier::NoColor {

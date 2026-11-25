@@ -125,7 +125,11 @@ impl MarkdownRenderer {
             for (index, block) in parsed.iter_mut().enumerate() {
                 block.finalized = complete || index < finalized_count;
                 if !resized {
-                    block.wrapped = wrap_lines(&block.styled, width);
+                    block.wrapped = wrap_lines_policy(
+                        &block.styled,
+                        width,
+                        !matches!(block.kind, BlockKind::Code { .. }),
+                    );
                     self.stats.wrapped_blocks += 1;
                 }
             }
@@ -135,7 +139,11 @@ impl MarkdownRenderer {
         }
         if resized {
             for block in &mut self.blocks {
-                block.wrapped = wrap_lines(&block.styled, width);
+                block.wrapped = wrap_lines_policy(
+                    &block.styled,
+                    width,
+                    !matches!(block.kind, BlockKind::Code { .. }),
+                );
                 self.stats.wrapped_blocks += 1;
             }
         }
@@ -503,6 +511,9 @@ fn render_events(
 /// Greedy grapheme wrapping, shared by prose and code. Styling boundaries cannot
 /// split an extended grapheme. Tabs use four-cell stops at the content origin.
 pub fn wrap_lines(lines: &[Line<'_>], width: usize) -> Vec<Line<'static>> {
+    wrap_lines_policy(lines, width, true)
+}
+fn wrap_lines_policy(lines: &[Line<'_>], width: usize, prose: bool) -> Vec<Line<'static>> {
     if width == 0 {
         return Vec::new();
     }
@@ -518,6 +529,7 @@ pub fn wrap_lines(lines: &[Line<'_>], width: usize) -> Vec<Line<'static>> {
         let mut row = Vec::new();
         let mut cells = 0;
         let mut source_cells = 0;
+        let mut soft_wrap = false;
         let mut span_index = 0;
         let mut span_end = line.spans.first().map_or(0, |span| span.content.len());
         let words: std::collections::HashMap<usize, usize> = text
@@ -531,8 +543,12 @@ pub fn wrap_lines(lines: &[Line<'_>], width: usize) -> Vec<Line<'static>> {
                 && cells + word_width > available
                 && !row.is_empty()
             {
+                if prose {
+                    trim_delimiters(&mut row);
+                }
                 output.push(padded(std::mem::take(&mut row), padding));
                 cells = 0;
+                soft_wrap = true;
             }
             while offset >= span_end && span_index + 1 < line.spans.len() {
                 span_index += 1;
@@ -546,6 +562,7 @@ pub fn wrap_lines(lines: &[Line<'_>], width: usize) -> Vec<Line<'static>> {
                 output.push(padded(std::mem::take(&mut row), padding));
                 cells = 0;
                 source_cells = 0;
+                soft_wrap = false;
                 continue;
             }
             let expanded;
@@ -564,8 +581,15 @@ pub fn wrap_lines(lines: &[Line<'_>], width: usize) -> Vec<Line<'static>> {
             for part in parts {
                 let size = UnicodeWidthStr::width(part);
                 if cells + size > available && !row.is_empty() {
+                    if prose {
+                        trim_delimiters(&mut row);
+                    }
                     output.push(padded(std::mem::take(&mut row), padding));
                     cells = 0;
+                    soft_wrap = true;
+                }
+                if prose && soft_wrap && row.is_empty() && crate::text::is_wrap_delimiter(part) {
+                    continue;
                 }
                 row.push(Span::styled(part.to_owned(), style));
                 cells += size;
@@ -583,4 +607,13 @@ fn padded(mut spans: Vec<Span<'static>>, padding: usize) -> Line<'static> {
         spans.push(Span::raw(" ".repeat(padding)));
     }
     Line::from(spans)
+}
+
+fn trim_delimiters(row: &mut Vec<Span<'static>>) {
+    while row
+        .last()
+        .is_some_and(|s| crate::text::is_wrap_delimiter(&s.content))
+    {
+        row.pop();
+    }
 }
