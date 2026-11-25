@@ -459,11 +459,13 @@ fn pick_hooks_expose_eligible_rows_and_text_is_complete_without_effects() {
         "text carries eligibility without effects"
     );
 
-    let mut p = ParticipantsRects::default();
-    p.names = vec![
-        ("grok".into(), Rect::new(0, 0, 10, 1)),
-        ("claude".into(), Rect::new(0, 1, 10, 1)),
-    ];
+    let p = ParticipantsRects {
+        names: vec![
+            ("grok".into(), Rect::new(0, 0, 10, 1)),
+            ("claude".into(), Rect::new(0, 1, 10, 1)),
+        ],
+        ..Default::default()
+    };
     assert_eq!(pick_candidate_rows(&p, &["grok".into()]).len(), 1);
     assert_eq!(pick_marker("grok", &["grok".into()]), "eligible to pick");
     assert_eq!(pick_marker("claude", &["grok".into()]), "");

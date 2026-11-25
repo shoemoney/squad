@@ -1978,14 +1978,13 @@ impl RoomPort for FakeRoom {
                             ));
                         }
                     }
-                    if target.is_none() {
-                        if let Some(ContestState::Debate(mut state)) = contest {
-                            state.state = DebateStatus::Stopped;
-                            state.state_version += 1;
-                            accepted_events.push(
-                                self.commit(Actor::System, EnvelopePayload::DebateState(state)),
-                            );
-                        }
+                    if target.is_none()
+                        && let Some(ContestState::Debate(mut state)) = contest
+                    {
+                        state.state = DebateStatus::Stopped;
+                        state.state_version += 1;
+                        accepted_events
+                            .push(self.commit(Actor::System, EnvelopePayload::DebateState(state)));
                     }
                     request_id
                 }
