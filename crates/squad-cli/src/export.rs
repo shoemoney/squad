@@ -19,7 +19,7 @@ pub fn run(data_dir: &Path, args: &Export, stdout: &mut dyn Write) -> Result<(),
             .map_err(|_| format!("Could not write export: {}.", path.display()))?;
         writeln!(stdout, "{}", path.display())
     } else {
-        write!(stdout, "{markdown}")
+        write!(stdout, "{}", squad_tui::markdown::sanitize(&markdown))
     }
     .map_err(|_| "Could not write export output.".to_owned())
 }

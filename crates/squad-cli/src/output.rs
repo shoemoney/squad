@@ -1,5 +1,6 @@
 use serde_json::{Value, json};
 use squad_protocol::*;
+use squad_tui::markdown::sanitize;
 use std::io::{self, Write};
 
 pub struct Output<'a> {
@@ -26,7 +27,7 @@ impl Output<'_> {
             }
             self.record(value)
         } else {
-            writeln!(self.stderr, "{message}")
+            writeln!(self.stderr, "{}", sanitize(message))
         }
     }
     pub fn ack(
@@ -87,10 +88,10 @@ impl Output<'_> {
                         p.rounds,
                         p.debaters[0],
                         p.debaters[1],
-                        p.judge_model.as_deref().unwrap_or("none")
+                        sanitize(p.judge_model.as_deref().unwrap_or("none"))
                     )?;
                     if let Some(warning) = &p.warning {
-                        writeln!(self.stdout, "Warning: {warning}")?;
+                        writeln!(self.stdout, "Warning: {}", sanitize(warning.as_str()))?;
                     }
                 }
                 PendingPreflight::Contest(p) => {
@@ -109,7 +110,7 @@ impl Output<'_> {
                         serde_json::to_string_pretty(&p.settings)?
                     )?;
                     if let Some(warning) = &p.warning {
-                        writeln!(self.stdout, "Warning: {warning}")?;
+                        writeln!(self.stdout, "Warning: {}", sanitize(warning.as_str()))?;
                     }
                 }
             }
@@ -155,10 +156,12 @@ impl Output<'_> {
                 writeln!(
                     self.stdout,
                     "{author}: {}",
-                    payload["content"]
-                        .as_str()
-                        .or_else(|| payload["body"].as_str())
-                        .unwrap_or("")
+                    sanitize(
+                        payload["content"]
+                            .as_str()
+                            .or_else(|| payload["body"].as_str())
+                            .unwrap_or("")
+                    )
                 )
             } else {
                 // Field labels retain the owning round/step and attribution even
