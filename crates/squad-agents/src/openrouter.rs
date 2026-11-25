@@ -461,7 +461,8 @@ impl OpenRouterClient {
                     }
                 };
                 drop(call);
-                if matches!(error, TransportError::ModelNotFound | TransportError::Http(404) | TransportError::Provider(Some(404)))
+                if (matches!(error, TransportError::ModelNotFound | TransportError::Provider(Some(404)))
+                    || error.http_status() == Some(404))
                     && let Some(recovery) = &this.model_recovery {
                     tokio::select! {
                         biased;

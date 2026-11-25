@@ -425,3 +425,57 @@ async fn cancelled_billed_call_and_delayed_cost_remain_reconcilable() {
     assert_eq!(value["data"]["id"], GENERATION);
     assert_eq!(value["data"]["total_cost"], 0.000045);
 }
+
+struct AliasStore(Option<AliasCacheEntry>);
+impl ResolutionStore for AliasStore {
+    type Error = ();
+    fn cached_alias(&self, _: &str, _: &str) -> Result<Option<AliasCacheEntry>, ()> {
+        Ok(self.0.clone())
+    }
+    fn save_alias(&mut self, _: &str, _: &str, entry: &AliasCacheEntry) -> Result<(), ()> {
+        self.0 = Some(entry.clone());
+        Ok(())
+    }
+    fn remove_alias(&mut self, _: &str, _: &str) -> Result<(), ()> {
+        self.0 = None;
+        Ok(())
+    }
+    fn cached_catalog(&self) -> Result<Option<CatalogSnapshot>, ()> {
+        Ok(None)
+    }
+    fn save_resolution(&mut self, _: &ResolutionSnapshot) -> Result<(), ()> {
+        Ok(())
+    }
+}
+#[tokio::test]
+async fn cached_alias_target_must_still_be_in_the_fresh_catalog() {
+    let listed = normalize_catalog(catalog()).unwrap()[MODEL].clone();
+    // A listed cached target is reused without probing.
+    let fake = FakeOpenRouter::start().await;
+    fake.catalog(catalog()).await;
+    let mut store = AliasStore(Some(AliasCacheEntry {
+        model: listed.clone(),
+        resolved_at: 0,
+    }));
+    let result = resolve_persisted(&client(&fake), &config("~fixture/latest"), 10, &mut store)
+        .await
+        .unwrap();
+    assert_eq!(result.members[0].model.as_ref().unwrap().id, MODEL);
+    assert!(fake.captured_bodies().await.is_empty());
+    // A delisted cached target is re-resolved once and the cache is repaired.
+    let fake = FakeOpenRouter::start().await;
+    fake.catalog(catalog()).await;
+    fake.completions(vec![alias_probe(MODEL)]).await;
+    let mut gone = listed.clone();
+    gone.id = "fixture/delisted".into();
+    let mut store = AliasStore(Some(AliasCacheEntry {
+        model: gone,
+        resolved_at: 0,
+    }));
+    let result = resolve_persisted(&client(&fake), &config("~fixture/latest"), 10, &mut store)
+        .await
+        .unwrap();
+    assert_eq!(result.members[0].model.as_ref().unwrap().id, MODEL);
+    assert_eq!(fake.captured_bodies().await.len(), 1);
+    assert_eq!(store.0.unwrap().model.id, MODEL);
+}

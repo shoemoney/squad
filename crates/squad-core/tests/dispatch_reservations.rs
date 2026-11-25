@@ -27,6 +27,7 @@ async fn try_start(f: &Fixture, id: WorkId) -> RequestResult {
     };
     submit
         .submit(ExecutorRequest::StartAttempt {
+            input_tokens: None,
             work_id: id,
             attempt: g.work.attempt,
             fence: g.fence,
@@ -88,6 +89,7 @@ async fn success_settles_once_and_releases_unused_retry() {
         assert!(matches!(
             submit
                 .submit(ExecutorRequest::StartAttempt {
+                    input_tokens: None,
                     work_id: id,
                     attempt: g.work.attempt,
                     fence: g.fence
@@ -210,6 +212,7 @@ async fn competing_dispatches_cannot_spend_the_same_daily_capacity() {
         async move {
             submit
                 .submit(ExecutorRequest::StartAttempt {
+                    input_tokens: None,
                     work_id: g.work.work_id,
                     attempt: g.work.attempt,
                     fence: g.fence,
@@ -243,7 +246,14 @@ async fn rollover_moves_only_unused_capacity_and_preserves_unknown_started_share
     let next = tomorrow.clone();
     f.store
         .call(move |db| {
-            squad_store::accounting::start_priced(db, &g, chrono::Utc::now(), &next, 20_000_000)
+            squad_store::accounting::start_priced(
+                db,
+                &g,
+                chrono::Utc::now(),
+                &next,
+                None,
+                20_000_000,
+            )
         })
         .unwrap();
     let a = f
@@ -256,4 +266,144 @@ async fn rollover_moves_only_unused_capacity_and_preserves_unknown_started_share
         .unwrap();
     assert_eq!((a.reserved_micros, a.unknown_calls), (unit, 1));
     assert_eq!((b.reserved_micros, b.unknown_calls), (unit, 1));
+}
+
+async fn opus_class(max: i64) -> Fixture {
+    let f = Fixture::new(2, max).await;
+    f.store.call(|db| {
+        db.execute(r#"UPDATE catalog SET context_length=1000000,max_output=128000,pricing_json='{"prompt":"0.000015","completion":"0.000075"}'"#, [])?;
+        Ok(())
+    }).unwrap();
+    f
+}
+async fn try_start_sized(f: &Fixture, id: WorkId, input_tokens: Option<u64>) -> RequestResult {
+    let submit = f.bus.executor_submit(ExecutorKey::Member(nick("member0")));
+    let RequestResult::Internal(InternalResult::Claimed(g)) =
+        submit.submit(ExecutorRequest::Claim { work_id: id }).await
+    else {
+        panic!("claim")
+    };
+    submit
+        .submit(ExecutorRequest::StartAttempt {
+            work_id: id,
+            attempt: g.work.attempt,
+            fence: g.fence,
+            input_tokens,
+        })
+        .await
+}
+#[tokio::test]
+async fn reservation_is_sized_from_the_assembled_prompt_not_the_context_window() {
+    // An Opus-class model at the default $20 cap: the old worst-case sizing
+    // priced a full 1M-token prompt per attempt and refused every call.
+    let f = opus_class(20_000_000).await;
+    let id = f.send("@member0 sized").await[0];
+    assert!(
+        matches!(try_start_sized(&f, id, None).await, RequestResult::Rejected {error,..} if error.code==ErrorCode::DAILY_MAX_REACHED),
+        "worst-case sizing no longer fits the default cap"
+    );
+    let f = opus_class(20_000_000).await;
+    let id = f.send("@member0 sized").await[0];
+    assert!(matches!(
+        try_start_sized(&f, id, Some(2_000)).await,
+        RequestResult::Internal(InternalResult::Started(_))
+    ));
+    let (_, reserved, _) = totals(&f);
+    // Two permitted attempts of (2,000 prompt tokens + visible ceiling + reasoning budget).
+    let per_attempt = reserved / 2;
+    eprintln!("reserved for a 2k-token prompt: {reserved} micros ({per_attempt} per attempt)");
+    assert!(reserved > 0 && reserved < 1_000_000, "{reserved}");
+}
+#[tokio::test]
+async fn a_larger_prompt_reserves_more_and_is_capped_by_the_context_budget() {
+    let f = opus_class(20_000_000).await;
+    let a = f.send("@member0 small").await[0];
+    try_start_sized(&f, a, Some(1_000)).await;
+    let small = totals(&f).1;
+    let f = opus_class(20_000_000).await;
+    let b = f.send("@member0 big").await[0];
+    try_start_sized(&f, b, Some(20_000)).await;
+    let big = totals(&f).1;
+    assert!(big > small, "{big} > {small}");
+    let f = opus_class(20_000_000).await;
+    let c = f.send("@member0 absurd").await[0];
+    let result = try_start_sized(&f, c, Some(u64::MAX / 4)).await;
+    assert!(
+        matches!(result, RequestResult::Rejected { .. }),
+        "a prompt estimate above the context budget is clamped to the worst case"
+    );
+}
+
+async fn settle(
+    f: &Fixture,
+    outcome: UsageOutcome,
+    id: WorkId,
+    generation: Option<&str>,
+) -> (i64, i64, u32) {
+    let g = f.claim(id, ExecutorKey::Member(nick("member0"))).await;
+    let reserved = totals(f).1;
+    assert!(reserved > 0);
+    let mut record = account(&g, None);
+    record.usage = None;
+    record.outcome = outcome;
+    record.provider_request_id = generation.map(str::to_owned);
+    let submit = f.bus.executor_submit(g.owner.clone());
+    for _ in 0..2 {
+        assert!(matches!(
+            submit
+                .submit(ExecutorRequest::Account {
+                    fence: g.fence,
+                    epoch: g.epoch,
+                    record: record.clone()
+                })
+                .await,
+            RequestResult::Accepted { .. }
+        ));
+    }
+    let (spent, left, unknown) = totals(f);
+    assert_eq!(spent, 0);
+    assert!(left <= reserved);
+    (spent, reserved - left, unknown)
+}
+#[tokio::test]
+async fn calls_that_never_received_a_generation_id_release_their_share_at_once() {
+    // HTTP 4xx/5xx before streaming and network errors finish as Failed; a
+    // stop finishes as Cancelled. None of them was billed.
+    for outcome in [UsageOutcome::Failed, UsageOutcome::Cancelled] {
+        let f = priced(20_000_000).await;
+        let id = f.send("@member0 refused by the provider").await[0];
+        let (_, released, unknown) = settle(&f, outcome, id, None).await;
+        assert!(released > 0, "the attempt's share is released");
+        assert_eq!(unknown, 0, "and no unknown call is left behind");
+    }
+}
+#[tokio::test]
+async fn calls_with_a_generation_id_stay_reserved_until_the_cost_is_known() {
+    for outcome in [UsageOutcome::Failed, UsageOutcome::Cancelled] {
+        let f = priced(20_000_000).await;
+        let id = f.send("@member0 billed maybe").await[0];
+        let (_, released, unknown) = settle(&f, outcome, id, Some("gen-1")).await;
+        assert_eq!(released, 0, "a failed cost lookup keeps the share reserved");
+        assert_eq!(unknown, 1);
+    }
+}
+#[tokio::test]
+async fn unfinished_calls_are_not_released_by_a_pending_snapshot() {
+    let f = priced(20_000_000).await;
+    let id = f.send("@member0 in flight").await[0];
+    let g = f.claim(id, ExecutorKey::Member(nick("member0"))).await;
+    let reserved = totals(&f).1;
+    let mut record = account(&g, None);
+    record.usage = None;
+    record.outcome = UsageOutcome::Unknown;
+    record.ended_at = None;
+    f.bus
+        .executor_submit(g.owner.clone())
+        .submit(ExecutorRequest::Account {
+            fence: g.fence,
+            epoch: g.epoch,
+            record,
+        })
+        .await;
+    assert_eq!(totals(&f), (0, reserved, 1));
 }

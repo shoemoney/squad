@@ -100,16 +100,7 @@ pub fn attempt(state: &AttemptState, now: DateTime, invalid_output: bool) -> Att
     )
 }
 pub fn attempt_limit(kind: &WorkKind) -> u8 {
-    match kind {
-        WorkKind::JudgeRound => constants::ROUND_JUDGE_ATTEMPTS,
-        WorkKind::Judge
-        | WorkKind::CrosscheckGoal
-        | WorkKind::CrosscheckNormalize
-        | WorkKind::CrosscheckRule => constants::FINAL_JUDGE_ATTEMPTS,
-        WorkKind::SurveyExtract | WorkKind::SurveyReport => 3,
-        WorkKind::ProbeReport => constants::FINAL_JUDGE_ATTEMPTS,
-        _ => constants::DEBATE_TURN_ATTEMPTS,
-    }
+    constants::attempt_limit(kind)
 }
 /// Called by the router's Failed handler. This pure policy neither requeues work
 /// nor submits requests; the router persists repair data and authorizes attempts.

@@ -184,6 +184,7 @@ async fn local_day_rollover_shared_totals_and_raised_limit_use_the_configured_me
     };
     let RequestResult::Rejected { error, .. } = submit
         .submit(ExecutorRequest::StartAttempt {
+            input_tokens: None,
             work_id: refused,
             attempt: claim.work.attempt,
             fence: claim.fence,
@@ -327,6 +328,7 @@ async fn missing_plan_reservation_rejects_dispatch_without_leaving_running_work(
     assert!(matches!(
         submit
             .submit(ExecutorRequest::StartAttempt {
+                input_tokens: None,
                 work_id: id,
                 attempt: grant.work.attempt,
                 fence: grant.fence

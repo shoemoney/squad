@@ -305,6 +305,7 @@ fn lost_result_reply_reuses_receipt_and_never_recounts_cost_or_history() {
     runtime
         .process(
             Request::Internal(InternalRequest::Executor(ExecutorRequest::StartAttempt {
+                input_tokens: None,
                 work_id: id,
                 attempt: 1,
                 fence: grant.fence,

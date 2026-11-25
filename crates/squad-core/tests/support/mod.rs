@@ -188,6 +188,7 @@ impl Fixture {
         };
         let RequestResult::Internal(InternalResult::Started(grant)) = submit
             .submit(ExecutorRequest::StartAttempt {
+                input_tokens: None,
                 work_id: id,
                 attempt: grant.work.attempt,
                 fence: grant.fence,

@@ -79,10 +79,10 @@ fn unknown_billed_failure_correction_and_clear_preserve_the_ledger() {
                 20_000_000,
             )?;
             a::start(&tx, &grant, chrono::Utc::now(), "2026-11-23", 20_000_000)?;
-            a::reconcile(
-                &tx,
-                &usage(&grant, "2026-11-23", None, UsageOutcome::Failed),
-            )?;
+            // A generation id exists but its cost lookup failed: stays unknown.
+            let mut unknown = usage(&grant, "2026-11-23", None, UsageOutcome::Failed);
+            unknown.provider_request_id = Some("gen-unknown".into());
+            a::reconcile(&tx, &unknown)?;
             assert_eq!(
                 a::daily(&tx, "2026-11-23")?,
                 a::DailySpend {

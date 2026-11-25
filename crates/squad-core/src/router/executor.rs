@@ -184,6 +184,7 @@ pub fn start(
     work_id: WorkId,
     attempt: u32,
     fence: u64,
+    input_tokens: Option<u64>,
     max: i64,
 ) -> Result<CommitOutcome> {
     let id = EventId::new();
@@ -208,10 +209,11 @@ pub fn start(
         let (_, binding) = squad_store::work::template(tx, work_id)?.ok_or(StoreError::Unavailable)?;
         let grant = ExecutionGrant { binding, work, owner, fence, epoch: epoch as u64, lease_until: record.lease_until.ok_or(StoreError::Unavailable)?, deadline: record.deadline };
         let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-        match squad_store::accounting::start_priced(tx, &grant, group.accepted_at, &day, max) {
+        match squad_store::accounting::start_priced(tx, &grant, group.accepted_at, &day, input_tokens, max) {
             Ok(()) => Ok(RequestResult::Internal(InternalResult::Started(grant))),
             Err(StoreError::Domain(code, message)) => {
                 let text = if code == ErrorCode::DAILY_MAX_REACHED {
+                    // Exact wording mandated by PRD 02, 04 and 10 for the daily max.
                     format!("Daily max of ${:.2} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.", max as f64 / 1e6)
                 } else { message.to_owned() };
                 let mut failure = error(code, text);

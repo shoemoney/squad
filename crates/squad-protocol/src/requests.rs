@@ -139,6 +139,10 @@ pub enum ExecutorRequest {
         work_id: WorkId,
         attempt: u32,
         fence: u64,
+        /// Estimated tokens of the prompt assembled for this attempt. Ordinary
+        /// dispatch sizes its reservation from it; `None` reserves the worst case.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        input_tokens: Option<u64>,
     },
     RenewLease {
         work_id: WorkId,

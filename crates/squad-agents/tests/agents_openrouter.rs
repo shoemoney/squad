@@ -543,3 +543,34 @@ async fn reasoning_budget_obeys_openrouter_mutually_exclusive_fields() {
     assert_eq!(bodies[0]["reasoning"], json!({"max_tokens": 4096}));
     assert_eq!(bodies[0]["max_tokens"], 6144);
 }
+
+struct CountRecovery(Arc<Mutex<u32>>);
+impl ModelRecovery for CountRecovery {
+    fn recover(
+        &self,
+        _client: OpenRouterClient,
+        _model: String,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
+        *self.0.lock().unwrap() += 1;
+        Box::pin(async {})
+    }
+}
+#[tokio::test]
+async fn openrouters_404_with_a_json_body_still_triggers_alias_repair() {
+    let fake = fake::FakeOpenRouter::start().await;
+    fake.completions(vec![ResponseTemplate::new(404).set_body_json(
+        json!({"error": {"message": "Upstream hiccup", "code": 404}}),
+    )])
+    .await;
+    let calls = Arc::new(Mutex::new(0));
+    let events = client(&fake)
+        .with_model_recovery(Arc::new(CountRecovery(calls.clone())))
+        .stream(request(), CancellationToken::new())
+        .collect::<Vec<_>>()
+        .await;
+    assert!(events.iter().any(|e| matches!(
+        e,
+        StreamEvent::AttemptFailed { error, .. } if error.http_status() == Some(404)
+    )));
+    assert_eq!(*calls.lock().unwrap(), 1);
+}

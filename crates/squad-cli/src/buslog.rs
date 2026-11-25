@@ -28,17 +28,29 @@ pub struct BusLog {
 static ACTIVE: OnceLock<BusLog> = OnceLock::new();
 
 impl BusLog {
-    /// Creates (truncating) the file with owner-only permissions.
+    /// Creates (truncating) the file with owner-only permissions. A symlink or a
+    /// non-regular file at `path` is refused, never followed, truncated or chmodded.
     pub fn open(path: &Path, bodies: bool, secrets: Vec<String>) -> Result<Self, String> {
         let mut options = OpenOptions::new();
-        options.write(true).create(true).truncate(true);
+        options.write(true).create(true);
         #[cfg(unix)]
         {
             use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
+            // O_NONBLOCK keeps a planted FIFO from hanging the open.
+            options
+                .mode(0o600)
+                .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
         }
         let file = options
             .open(path)
+            .map_err(|_| format!("Cannot open bus log: {}.", path.display()))?;
+        if !file.metadata().is_ok_and(|meta| meta.is_file()) {
+            return Err(format!(
+                "Bus log must be a regular file: {}.",
+                path.display()
+            ));
+        }
+        file.set_len(0)
             .map_err(|_| format!("Cannot open bus log: {}.", path.display()))?;
         #[cfg(unix)]
         {
@@ -180,5 +192,41 @@ impl BodyTap {
                 Err(TryRecvError::Empty | TryRecvError::Closed) => return,
             }
         }
+    }
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::BusLog;
+    use std::os::unix::fs::{PermissionsExt, symlink};
+
+    #[test]
+    fn a_planted_symlink_is_refused_and_its_target_untouched() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("victim");
+        std::fs::write(&target, "precious").unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let link = dir.path().join("bus.log");
+        symlink(&target, &link).unwrap();
+        assert!(BusLog::open(&link, false, Vec::new()).is_err());
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "precious");
+        assert_eq!(
+            std::fs::metadata(&target).unwrap().permissions().mode() & 0o777,
+            0o644
+        );
+    }
+
+    #[test]
+    fn non_regular_files_are_refused_and_regular_ones_truncated_to_0600() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(BusLog::open(dir.path(), false, Vec::new()).is_err());
+        let file = dir.path().join("bus.log");
+        std::fs::write(&file, "old contents").unwrap();
+        BusLog::open(&file, false, Vec::new()).unwrap();
+        assert_eq!(std::fs::metadata(&file).unwrap().len(), 0);
+        assert_eq!(
+            std::fs::metadata(&file).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
     }
 }

@@ -196,6 +196,7 @@ async fn result_work_history_and_actual_cost_commit_once() {
     router
         .process(
             Request::Internal(InternalRequest::Executor(ExecutorRequest::StartAttempt {
+                input_tokens: None,
                 work_id: record.work_id,
                 attempt: 1,
                 fence: grant.fence,
