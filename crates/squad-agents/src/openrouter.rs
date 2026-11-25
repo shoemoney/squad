@@ -173,7 +173,7 @@ pub enum StreamEvent {
     },
 }
 
-/// Deliberately contains no provider response text, request URL, or headers.
+/// Carries sanitized provider messages without attaching request URLs or headers.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TransportError {
     InvalidConfiguration,
@@ -182,6 +182,7 @@ pub enum TransportError {
     UnsupportedReasoning,
     OutputLimit,
     Http(u16),
+    HttpMessage { status: u16, message: String },
     Network,
     MalformedEvent,
     Provider(Option<u16>),
@@ -196,6 +197,9 @@ impl fmt::Display for TransportError {
         if matches!(self, Self::UnsupportedReasoning) {
             return f.write_str("MODEL_PARAMETER_UNSUPPORTED: reasoning");
         }
+        if let Self::HttpMessage { status, message } = self {
+            return write!(f, "OpenRouter HTTP {status}: {message}");
+        }
         write!(f, "OpenRouter transport: {self:?}")
     }
 }
@@ -209,6 +213,10 @@ impl TransportError {
                 | Self::FirstTokenTimeout
                 | Self::IdleTimeout
                 | Self::Http(429 | 500..=599)
+                | Self::HttpMessage {
+                    status: 429 | 500..=599,
+                    ..
+                }
                 | Self::Provider(Some(429 | 500..=599))
         )
     }
@@ -288,6 +296,37 @@ impl OpenRouterClient {
         })
     }
 
+    async fn http_error(&self, response: reqwest::Response) -> TransportError {
+        let status = response.status().as_u16();
+        // Bound untrusted error bodies; never include raw bodies or response headers.
+        let mut bytes = response.bytes_stream();
+        let mut body = Vec::new();
+        while let Some(Ok(chunk)) = bytes.next().await {
+            if body.len() + chunk.len() > 16_384 {
+                return TransportError::Http(status);
+            }
+            body.extend_from_slice(&chunk);
+        }
+        let value: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
+        if status == 400 && model_not_found(&value) {
+            return TransportError::ModelNotFound;
+        }
+        let Some(message) = value.pointer("/error/message").and_then(Value::as_str) else {
+            return TransportError::Http(status);
+        };
+        let credential = self.authorization.to_str().unwrap_or_default();
+        let key = credential.strip_prefix("Bearer ").unwrap_or(credential);
+        let message = message
+            .replace(credential, "[REDACTED]")
+            .replace(key, "[REDACTED]");
+        let message: String = message
+            .chars()
+            .filter(|ch| !ch.is_control())
+            .take(1024)
+            .collect();
+        TransportError::HttpMessage { status, message }
+    }
+
     /// Fresh startup catalog fetch. The resolver owns its three-failure policy.
     pub async fn fetch_catalog(&self) -> Result<Value, TransportError> {
         let url = self
@@ -339,7 +378,7 @@ impl OpenRouterClient {
             .await
             .map_err(|_| TransportError::Network)?;
         if !response.status().is_success() {
-            return Err(TransportError::Http(response.status().as_u16()));
+            return Err(self.http_error(response).await);
         }
         let value: Value = response
             .json()
@@ -458,11 +497,7 @@ impl OpenRouterClient {
             let status = response.status();
             if !status.is_success() {
                 *retry_after = response.headers().get(RETRY_AFTER).and_then(|v| v.to_str().ok()).and_then(parse_retry_after);
-                let value = response.json::<Value>().await.ok();
-                if status.as_u16() == 400 && value.as_ref().is_some_and(model_not_found) {
-                    Err(TransportError::ModelNotFound)?;
-                }
-                Err(TransportError::Http(status.as_u16()))?;
+                Err(self.http_error(response).await)?;
                 return;
             }
             let mut bytes = response.bytes_stream();
@@ -556,6 +591,29 @@ fn model_not_found(value: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn http_error_keeps_status_and_message_without_credentials_or_headers() {
+        use wiremock::{
+            Mock, MockServer, ResponseTemplate,
+            matchers::{method, path},
+        };
+        let server = MockServer::start().await;
+        Mock::given(method("GET")).and(path("/models"))
+            .respond_with(ResponseTemplate::new(400)
+                .insert_header("x-private", "header-secret")
+                .set_body_json(json!({"error": {"message": "Only one reasoning option allowed; Bearer fixture-secret\u{1b}", "headers": {"secret": "header-secret"}}})))
+            .mount(&server).await;
+        let client =
+            OpenRouterClient::new(&format!("{}/", server.uri()), "fixture-secret").unwrap();
+        let error = client.fetch_catalog().await.unwrap_err();
+        let text = error.to_string();
+        assert!(text.contains("HTTP 400: Only one reasoning option allowed"));
+        assert!(!text.contains("fixture-secret"));
+        assert!(!text.contains("header-secret"));
+        assert!(!text.contains('\u{1b}'));
+        assert!(!error.retryable());
+    }
+
     #[test]
     fn retry_after_supports_http_dates_and_delta_seconds() {
         assert_eq!(parse_retry_after("13"), Some(Duration::from_secs(13)));

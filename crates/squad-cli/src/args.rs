@@ -40,6 +40,9 @@ pub enum Command {
         /// Additionally print every supported variable, its default, effective nonsecret value, and source
         #[arg(long)]
         env: bool,
+        /// Check free OpenRouter catalog and key endpoints (never generate)
+        #[arg(long)]
+        online: bool,
     },
 }
 
@@ -56,6 +59,9 @@ pub struct Send {
     /// Write the JSON lines records defined below
     #[arg(long)]
     pub json: bool,
+    /// Print raw accounting updates instead of coalesced call summaries
+    #[arg(long)]
+    pub verbose: bool,
     /// Exit after durable commit, print the accepted cursor, and leave accepted work for the next interactive open
     #[arg(long)]
     pub no_wait: bool,
@@ -229,7 +235,10 @@ mod tests {
             Cli::try_parse_from(["squad", "doctor", "--env"])
                 .unwrap()
                 .command,
-            Some(Command::Doctor { env: true })
+            Some(Command::Doctor {
+                env: true,
+                online: false
+            })
         ));
     }
 

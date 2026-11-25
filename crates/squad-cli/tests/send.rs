@@ -277,3 +277,40 @@ async fn sequence_quotes_resolve_only_to_stored_identities() {
     assert_eq!(input.quote, Some(vec![ID.parse().unwrap()]));
     assert_eq!(input.text.as_str(), "@beta consider this");
 }
+
+#[tokio::test]
+async fn accounting_updates_coalesce_by_attempt_and_preserve_latest_cost() {
+    for verbose in [false, true] {
+        let room = FakeRoom::default();
+        for seq in 2..=101 {
+            room.emitted.borrow_mut().push(event(
+                seq,
+                "usage.record",
+                json!({
+                    "workId": ID, "attempt": 1, "target": "alpha", "contextId": "member:alpha",
+                    "model": "p/model", "startedAt": "2026-11-24T00:00:00Z",
+                    "endedAt": "2026-11-24T00:00:01Z", "outcome": "completed",
+                    "usage": {"inputTokens": 10, "outputTokens": 5, "costUsd": seq as f64 / 1000.0},
+                    "responseModel": "p/model", "day": "2026-11-24"
+                }),
+            ));
+        }
+        let mut options = args("@alpha hello", true, false);
+        options.verbose = verbose;
+        let (code, output, _) = send(&room, &options, None).await;
+        assert_eq!(code, 0);
+        let records: Vec<serde_json::Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert_eq!(
+            records
+                .iter()
+                .filter(|v| v["event"]["kind"] == "usage.record")
+                .count(),
+            if verbose { 100 } else { 1 }
+        );
+        assert_eq!(records.last().unwrap()["knownCostUsd"], 0.101);
+        assert_eq!(records.last().unwrap()["calls"], 1);
+    }
+}

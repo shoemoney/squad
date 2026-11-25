@@ -25,6 +25,7 @@ impl Output<'_> {
         message: &str,
         retryable: bool,
     ) -> io::Result<()> {
+        let message = diagnostic(code, message);
         if self.json {
             let mut value = json!({"type":"error","error":{"code":code,"message":message,"retryable":retryable}});
             if let Some(id) = id {
@@ -32,7 +33,7 @@ impl Output<'_> {
             }
             self.record(value)
         } else {
-            writeln!(self.stderr, "{}", sanitize(message))
+            writeln!(self.stderr, "{}", sanitize(&message))
         }
     }
     pub fn ack(
@@ -209,4 +210,14 @@ fn terminal_json(json: String) -> String {
         }
     }
     output
+}
+
+fn diagnostic(code: ErrorCode, message: &str) -> String {
+    if code == ErrorCode::DEBATE_TOPIC_MISMATCH {
+        format!(
+            "{message} Send one shared question to both debaters (for example, @alice @bob your question), wait for both replies, then request the debate."
+        )
+    } else {
+        message.to_owned()
+    }
 }

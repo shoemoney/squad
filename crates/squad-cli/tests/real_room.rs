@@ -54,6 +54,7 @@ fn send(no_wait: bool) -> squad_cli::args::Send {
         yes: false,
         json: true,
         no_wait,
+        verbose: false,
     }
 }
 #[tokio::test]
