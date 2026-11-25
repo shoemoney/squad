@@ -1,0 +1,26 @@
+---
+source: crates/squad-tui/tests/widget_tournament.rs
+expression: text(&b)
+---
+▾ TOURNAMENT · COMPLETE
+Design a reliable release process.
+Judge judge/model · round 2 · survivors
+gemini
+@grok · trophies 2 · ELIMINATED
+@gemini · trophies 4
+▸ ROUND 1 · 3 REMAIN
+▾ FINAL
+ROUND REPLAY · replacement work accepted
+@grok · forfeit · retry 3/3
+Last accepted answer retained.
+@gemini · complete
+Stage, verify, then publish.
+1. @gemini · score 91
+Clear rollback and verification.
+2. @grok · score 42 · ELIMINATED
+Missing rollback evidence.
+CHAMPION · @gemini
+FINAL PLACEMENTS
+1. @gemini
+2. @grok
+3. @claude

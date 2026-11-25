@@ -1,0 +1,13 @@
+---
+source: crates/squad-tui/tests/widget_pick.rs
+expression: t
+---
+COLLECTING_ANSWERS
+How should we ship safely?
+Ordinary answers
+@grok · answered
+Verify before publishing.
+@gemini · answered
+Keep a tested rollback.
+@claude · stopped
+Pick exactly two of: @grok, @gemini.

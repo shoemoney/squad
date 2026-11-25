@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/widget_grill.rs
+expression: t
+---
+▾ GRILL · COMPLETE
+Leader @grok · grillers claude, gemini
+Stress-test the rollout plan.
+Shared floor: leader and grillers receive committed plans, questions and
+answers. Non-participants receive nothing.
+GRILL_ROUNDS 3 · round 2 · turn gemini · plan v2
+questions asked 1 · passed 2
+GRILL ROUND 1
+claude ▸ grills ▸ grok · complete
+Angle: rollback
+Q: What if verification fails?
+A: Revert the release.
+Plan changes: Add a rollback checkpoint.
+GRILL ROUND 2
+gemini ▸ grills ▸ grok · complete
+Angle: operability
+PASS · No further questions.
+▸ PLAN v1
+▾ PLAN v2 · latest
+Stage, verify, publish. Revert on failure.
+FINAL PLAN
+Stage, verify, publish. Revert on failure.
+SURVIVED
+▾ QUESTION-AND-ANSWER APPENDIX

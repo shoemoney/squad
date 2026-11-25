@@ -1,0 +1,14 @@
+---
+source: crates/squad-tui/tests/widget_pick.rs
+expression: t
+---
+CHOOSE YOUR DEBATE BROS
+Type two names, e.g. @grok @gemini · Esc to cancel
+How should we ship safely?
+pick pending · restored
+▸ @grok · answered · eligible
+Verify before publishing.
+▸ @gemini · answered · eligible
+Keep a tested rollback.
+@claude · stopped
+Pick exactly two of: @grok, @gemini.
