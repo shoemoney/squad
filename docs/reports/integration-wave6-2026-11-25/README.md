@@ -58,3 +58,27 @@ The raw log also contains the nested WAL subprocess success line; it is not
 an additional Cargo test. `cargo fmt --all --check` and `git diff --check` passed.
 
 `CARGO_BUILD_JOBS=8 cargo clippy --workspace --all-targets -- -D warnings` passed (exit 0).
+
+## Color and effects refinement
+
+Two design review rounds followed the operational gates. The first identified
+raw RGB logo-sweep samples leaking into indexed-color terminals, equally
+saturated idle/live roster labels, and an unaccented focused input divider.
+The changes map startup sweep signatures to terminal capability, dim idle and
+offline status, emphasize active/error status, and use the established gold
+accent on the focused input divider. Prose retains the terminal foreground.
+No animation passes or scheduling work were added. The second review checked
+fresh full-color local demo captures and signed off without further findings.
+A 900-ms indexed-logo frame regression verifies no RGB cells leak through.
+The focused chrome, participant and composition checks passed (12 tests).
+
+Final gates after the design refinements: workspace tests **913 passed,
+0 failed, 2 pre-existing ignored** (exit 0); all-target Clippy with warnings
+denied, formatting and diff whitespace checks all passed. The additional test
+is the indexed-logo frame regression. The workspace log includes unused-import
+warnings from the initial compile; those imports were removed and final Clippy
+verifies the warning-free source.
+
+Local demo terminal captures: [startup](startup.png), [six-member streaming](streaming.png),
+and [opening with the focused gold input divider](opening-focused.png).
+These use `FakeRoom`, not live provider traffic.

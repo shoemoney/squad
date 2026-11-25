@@ -13,7 +13,6 @@ use crate::{
 use ratatui::{
     Frame,
     layout::Rect,
-    style::{Modifier, Style},
     widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap},
 };
 use std::time::Duration;
@@ -224,11 +223,11 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         .preview
         .as_ref()
         .map_or("squad".into(), |v| v.recipients.join(" "));
-    let chrome = Style::default().add_modifier(if app.focus_input {
-        Modifier::BOLD
+    let chrome = if app.focus_input {
+        theme.chrome()
     } else {
-        Modifier::DIM
-    });
+        theme.quiet_chrome()
+    };
     Paragraph::new(format!(
         "─ Input · To {recipients} · quotes {} {}",
         app.quotes.ids.len(),

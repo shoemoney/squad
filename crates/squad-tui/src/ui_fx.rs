@@ -49,7 +49,7 @@ pub fn attach(
                     no_color,
                     ansi16: caps.color == ColorTier::Ansi16,
                     gold: palette.chrome(),
-                    rainbow: &fx::palette::SIGNATURES,
+                    rainbow: palette.signatures(),
                     seed,
                 };
                 let roster_names = roster.names.clone();

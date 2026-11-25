@@ -160,7 +160,20 @@ impl ParticipantView {
         rows.push(Line::from(vec![
             ratatui::text::Span::styled(
                 format!("{status} "),
-                Style::default().fg(palette.member(&self.nick, self.slot)),
+                match self.presence {
+                    PresenceStatus::Idle | PresenceStatus::Offline => {
+                        Style::default().add_modifier(Modifier::DIM)
+                    }
+                    PresenceStatus::Thinking | PresenceStatus::Streaming => Style::default()
+                        .fg(palette.member(&self.nick, self.slot))
+                        .add_modifier(Modifier::BOLD),
+                    PresenceStatus::Error => Style::default()
+                        .fg(crate::fx::palette::map_color(
+                            ratatui::style::Color::Red,
+                            palette.tier,
+                        ))
+                        .add_modifier(Modifier::BOLD),
+                },
             ),
             ratatui::text::Span::styled(
                 format!(

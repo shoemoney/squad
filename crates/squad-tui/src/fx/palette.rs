@@ -12,6 +12,9 @@ pub const SIGNATURES: [Color; 6] = [
     Color::Rgb(230, 233, 239),
     Color::Rgb(255, 79, 163),
 ];
+static INDEXED_SIGNATURES: std::sync::LazyLock<[Color; 6]> =
+    std::sync::LazyLock::new(|| SIGNATURES.map(cube256));
+
 pub const ANSI_MEMBERS: [Color; 12] = [
     Color::Yellow,
     Color::Magenta,
@@ -211,6 +214,15 @@ impl Palette {
             ColorTier::Indexed256 => cube256(self.slots[slot]),
             ColorTier::Ansi16 => ANSI_MEMBERS[slot],
             ColorTier::NoColor => Color::Reset,
+        }
+    }
+    /// Startup sweep colours obey the same terminal tier as roster identities.
+    pub fn signatures(&self) -> &'static [Color] {
+        match self.tier {
+            ColorTier::TrueColor => &SIGNATURES,
+            ColorTier::Indexed256 => &*INDEXED_SIGNATURES,
+            ColorTier::Ansi16 => &ANSI_MEMBERS[..6],
+            ColorTier::NoColor => &[],
         }
     }
     pub fn chrome(&self) -> Color {

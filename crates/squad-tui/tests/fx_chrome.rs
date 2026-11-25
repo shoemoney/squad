@@ -137,3 +137,27 @@ fn clipping_and_failed_resolution() {
     assert_eq!(b[(0, 0)].symbol(), "×");
     fx(Level::Full, false).resize(&mut b, Rect::new(19, 4, 100, 100), Duration::ZERO, &[]);
 }
+
+#[test]
+fn indexed_logo_sweep_stays_in_the_terminal_palette() {
+    use squad_tui::fx::{ColorTier, Palette};
+    let palette = Palette::new(ColorTier::Indexed256);
+    let chrome = Chrome {
+        gold: palette.chrome(),
+        rainbow: palette.signatures(),
+        ..fx(Level::Full, false)
+    };
+    let mut buffer = stage();
+    chrome.logo(
+        &mut buffer,
+        Rect::new(7, 1, 5, 1),
+        Duration::from_millis(900),
+        &[],
+    );
+    assert!((7..12).all(|x| matches!(buffer[(x, 1)].fg, Color::Indexed(_))));
+    assert!(
+        buffer.content.iter().all(|cell| {
+            !matches!(cell.fg, Color::Rgb(..)) && !matches!(cell.bg, Color::Rgb(..))
+        })
+    );
+}
