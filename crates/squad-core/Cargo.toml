@@ -22,8 +22,10 @@ rusqlite = { version = "0.38", features = ["bundled"] }
 tracing.workspace = true
 
 [dev-dependencies]
+tracing-subscriber = { workspace = true, features = ["fmt"] }
 wiremock = "0.6"
-tempfile = { workspace = true }
+tempfile.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "test-util"] }
 insta = { workspace = true }
 serde_json = { workspace = true }
 

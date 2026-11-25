@@ -9,6 +9,7 @@ pub mod ephemeral;
 pub mod picks;
 pub mod preflight;
 pub mod recovery;
+pub mod executor;
 pub mod references;
 pub mod regen;
 pub mod retry;
@@ -265,46 +266,27 @@ impl Router {
                 work_id,
                 attempt,
                 fence,
-            } => {
-                let result = self.store.call(move |db| {
-                    let tx =
-                        db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-                    let epoch: i64 =
-                        tx.query_row("SELECT epoch FROM room_meta", [], |r| r.get(0))?;
-                    let now = chrono::Utc::now();
-                    let work = squad_store::work::check_fence(
-                        &tx,
-                        work_id,
-                        &owner,
-                        attempt,
-                        fence,
-                        epoch as u64,
-                        now,
-                    )?;
-                    let (_, binding) = squad_store::work::template(&tx, work_id)?
-                        .ok_or(StoreError::Unavailable)?;
-                    let record =
-                        squad_store::work::record(&tx, work_id)?.ok_or(StoreError::Unavailable)?;
-                    let grant = ExecutionGrant {
-                        binding,
-                        work,
-                        owner,
-                        fence,
-                        epoch: epoch as u64,
-                        lease_until: record.lease_until.ok_or(StoreError::Unavailable)?,
-                        deadline: record.deadline,
-                    };
-                    let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-                    squad_store::accounting::start(&tx, &grant, now, &day, max)?;
-                    tx.commit()?;
-                    Ok(RequestResult::Internal(InternalResult::Started(grant)))
-                })?;
-                Ok(CommitOutcome {
-                    result,
-                    events: Vec::new(),
-                    duplicate: false,
-                })
+            } => executor::start(&self.store, owner, work_id, attempt, fence, max),
+            ExecutorRequest::Account { epoch, record, .. } => {
+                executor::account(&self.store, owner, epoch, record, max)
             }
+            ExecutorRequest::Failed {
+                work_id,
+                attempt,
+                fence,
+                epoch,
+                error,
+                repair,
+            } => executor::failed(
+                &self.store,
+                owner,
+                work_id,
+                attempt,
+                fence,
+                epoch,
+                error,
+                repair,
+            ),
             ExecutorRequest::RenewLease { work_id, fence } => {
                 let result = self.store.call(move |db| {
                     let tx =
@@ -457,7 +439,7 @@ impl Router {
                     }
                     let status=if matches!(&output,EnvelopePayload::DebateRoundScore(score) if score.scores.is_none()){WorkStatus::Failed}else{WorkStatus::Completed};
                     group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::WorkState(WorkStateEvent {work_id,trigger_event_id:work.trigger_event_id,target:work.target.clone(),context_id:work.context_id.clone(),attempt,status,error:None,debate_id:work.debate_id,case_id:work.case_id,contest_id:work.contest_id})))?;
-                    let usage=settle_usage(tx,&work,&output)?;
+                    let usage=executor::stored_usage(tx,settle_usage(tx,&work,&output)?)?;
                     group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::UsageRecord(usage)))?;
                     let day: String = tx.query_row(
                         "SELECT day FROM attempts WHERE work_id=? AND attempt=?",
@@ -567,12 +549,6 @@ impl Router {
                     duplicate: false,
                 })
             }
-            // Account and Failed are additive variants landing from the agents worker.
-            #[allow(unreachable_patterns)]
-            _ => Err(StoreError::Domain(
-                ErrorCode::COMMAND_NOT_IMPLEMENTED,
-                "Executor extension is not integrated",
-            )),
         }
     }
 }

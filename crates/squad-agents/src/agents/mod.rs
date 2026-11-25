@@ -49,7 +49,11 @@ pub async fn stream_attempt(
         WorkKind::JudgeRound => DeadlineClass::RoundJudge,
     });
     request.model = grant.binding.model.to_string();
-    request.reasoning_effort = grant.binding.effort;
+    request.reasoning_effort = if grant.work.kind == WorkKind::JudgeRound {
+        ReasoningEffort::Low
+    } else {
+        grant.binding.effort
+    };
     let mut account = AttemptAccounting::new(
         grant,
         chrono::Utc::now(),
@@ -196,6 +200,7 @@ pub async fn failed(
                 attempt: grant.work.attempt,
                 fence: grant.fence,
                 epoch: grant.epoch,
+                repair: None,
                 error: ErrorPayload {
                     code,
                     text: Text::new(format!("{code:?}")).expect("error code"),

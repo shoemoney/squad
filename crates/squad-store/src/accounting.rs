@@ -150,8 +150,85 @@ pub fn transfer_unstarted(db: &Connection, work: WorkId, day: &str) -> Result<()
     }
     Ok(())
 }
+/// Assign a frozen per-call share of a canonical plan reservation. The started
+/// share survives release of the plan's unstarted remainder, including unknown costs.
+fn split_plan_reservation(db: &Connection, grant: &ExecutionGrant, day: &str) -> Result<()> {
+    let meta: Option<String> = db
+        .query_row(
+            "SELECT scheduling_meta FROM work WHERE work_id=?",
+            [grant.work.work_id.to_string()],
+            |r| r.get(0),
+        )
+        .optional()?;
+    let Some(meta) = meta else {
+        return Ok(());
+    };
+    let meta: serde_json::Value = serde_json::from_str(&meta)?;
+    let (plan, amount) = match (meta.get("planId"), meta.get("attemptReservationMicros")) {
+        (None, None) => return Ok(()),
+        (Some(plan), Some(amount)) => (
+            plan.as_str()
+                .and_then(|s| s.parse::<PlanId>().ok())
+                .ok_or_else(|| invalid("Invalid frozen reservation plan"))?,
+            amount
+                .as_i64()
+                .filter(|n| *n >= 0)
+                .ok_or_else(|| invalid("Invalid frozen attempt reservation"))?,
+        ),
+        _ => return Err(invalid("Incomplete frozen attempt reservation")),
+    };
+    let contest = grant
+        .work
+        .contest_id
+        .ok_or_else(|| invalid("Plan reservation requires contest work"))?;
+    let reservation = format!("plan:{plan}");
+    let row: Option<(String,i64)> = db.query_row("SELECT day,amount_micros FROM reservations WHERE reservation_id=? AND plan_id=? AND contest_id=? AND attempt IS NULL AND unresolved=0", params![reservation,plan.to_string(),contest.to_string()], |r|Ok((r.get(0)?,r.get(1)?))).optional()?;
+    let (old_day, remaining) = row.ok_or_else(|| invalid("Missing canonical plan reservation"))?;
+    if amount > remaining {
+        return Err(invalid("Attempt exceeds remaining plan reservation"));
+    }
+    ensure_day(db, day)?;
+    db.execute(
+        "UPDATE reservations SET amount_micros=?1,amount_usd=?2 WHERE reservation_id=?3",
+        params![
+            remaining - amount,
+            (remaining - amount) as f64 / 1e6,
+            reservation
+        ],
+    )?;
+    db.execute("INSERT INTO reservations(reservation_id,epoch,work_id,plan_id,contest_id,amount_usd,day,amount_micros) VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",params![format!("attempt:{}:{}",grant.work.work_id,grant.work.attempt),grant.epoch as i64,grant.work.work_id.to_string(),plan.to_string(),contest.to_string(),amount as f64/1e6,day,amount])?;
+    if old_day != day {
+        db.execute(
+            "UPDATE spend_daily SET reserved_micros=reserved_micros-? WHERE day=?",
+            params![amount, old_day],
+        )?;
+        db.execute(
+            "UPDATE spend_daily SET reserved_micros=reserved_micros+? WHERE day=?",
+            params![amount, day],
+        )?;
+    }
+    Ok(())
+}
+
 /// This must commit before calling the provider. A crash after this point is an unknown call.
 pub fn start(
+    db: &Connection,
+    grant: &ExecutionGrant,
+    now: DateTime,
+    day: &str,
+    max: i64,
+) -> Result<()> {
+    // The router may commit a refusal event after a daily gate failure. Keep
+    // reservation splitting/day transfer atomic even in that transaction.
+    db.execute_batch("SAVEPOINT provider_start")?;
+    let result = start_inner(db, grant, now, day, max);
+    if result.is_err() {
+        db.execute_batch("ROLLBACK TO provider_start")?;
+    }
+    db.execute_batch("RELEASE provider_start")?;
+    result
+}
+fn start_inner(
     db: &Connection,
     grant: &ExecutionGrant,
     now: DateTime,
@@ -165,10 +242,11 @@ pub fn start(
     )? {
         return Ok(());
     }
+    split_plan_reservation(db, grant, day)?;
     transfer_unstarted(db, grant.work.work_id, day)?;
     admit(db, day, 0, max)?;
     ensure_day(db, day)?;
-    db.execute("INSERT INTO attempts(work_id,attempt,epoch,target,context_id,model,day,started_at,outcome,unresolved) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'unknown',1)",params![grant.work.work_id.to_string(),grant.work.attempt,grant.epoch as i64,grant.work.target.to_string(),grant.work.context_id.0,grant.binding.model.as_str(),day,now.to_rfc3339()])?;
+    db.execute("INSERT INTO attempts(work_id,attempt,epoch,target,context_id,model,day,started_at,outcome,unresolved,debate_id,case_id,contest_id) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'unknown',1,?9,?10,?11)",params![grant.work.work_id.to_string(),grant.work.attempt,grant.epoch as i64,grant.work.target.to_string(),grant.work.context_id.0,grant.binding.model.as_str(),day,now.to_rfc3339(),grant.work.debate_id.map(|id|id.to_string()),grant.work.case_id.map(|id|id.to_string()),grant.work.contest_id.map(|id|id.to_string())])?;
     db.execute(
         "UPDATE reservations SET attempt=?1,unresolved=1 WHERE work_id=?2 AND attempt IS NULL",
         params![grant.work.attempt, grant.work.work_id.to_string()],
@@ -185,7 +263,7 @@ pub fn start(
 }
 /// Idempotent corrections apply only their difference. No work foreign key permits late billing after clear.
 pub fn reconcile(db: &Connection, record: &UsageRecord) -> Result<()> {
-    if record.attempt == 0 {
+    if record.validate().is_err() {
         return Err(invalid("Invalid accounting attempt"));
     }
     let row:Option<(String,Option<i64>,bool,String,String,String)>=db.query_row("SELECT day,reported_cost_micros,unresolved,target,context_id,model FROM attempts WHERE work_id=? AND attempt=?",params![record.work_id.to_string(),record.attempt],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?,r.get(5)?))).optional()?;
@@ -199,6 +277,32 @@ pub fn reconcile(db: &Connection, record: &UsageRecord) -> Result<()> {
     {
         return Err(invalid("Accounting identity mismatch"));
     }
+    let attribution: (Option<String>, Option<String>, Option<String>) = db.query_row(
+        "SELECT debate_id,case_id,contest_id FROM attempts WHERE work_id=? AND attempt=?",
+        params![record.work_id.to_string(), record.attempt],
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+    )?;
+    if attribution
+        != (
+            record.debate_id.map(|id| id.to_string()),
+            record.case_id.map(|id| id.to_string()),
+            record.contest_id.map(|id| id.to_string()),
+        )
+    {
+        return Err(invalid("Accounting attribution mismatch"));
+    }
+    let (old_usage, old_ended): (Option<String>, Option<String>) = db.query_row(
+        "SELECT usage_json,ended_at FROM attempts WHERE work_id=? AND attempt=?",
+        params![record.work_id.to_string(), record.attempt],
+        |r| Ok((r.get(0)?, r.get(1)?)),
+    )?;
+    let mut merged_usage = record.usage.clone();
+    if let (Some(usage), Some(old_usage)) = (&mut merged_usage, old_usage) {
+        let prior: Usage = serde_json::from_str(&old_usage)?;
+        if usage.cost_usd.is_none() {
+            usage.cost_usd = prior.cost_usd;
+        }
+    }
     let cost = record
         .usage
         .as_ref()
@@ -207,6 +311,7 @@ pub fn reconcile(db: &Connection, record: &UsageRecord) -> Result<()> {
         .transpose()
         .map_err(|_| invalid("Invalid reported cost"))?;
     let outcome = serde_json::to_value(&record.outcome)?;
+    let stale_pending = old_ended.is_some() && record.ended_at.is_none();
     if let Some(cost) = cost {
         let difference = cost - old.unwrap_or(0);
         db.execute("UPDATE spend_daily SET spent_micros=spent_micros+?1,unknown_calls=unknown_calls-?2 WHERE day=?3",params![difference,u32::from(unknown),day])?;
@@ -225,7 +330,10 @@ pub fn reconcile(db: &Connection, record: &UsageRecord) -> Result<()> {
         )?;
         db.execute("UPDATE attempts SET reported_cost_micros=?1,unresolved=0 WHERE work_id=?2 AND attempt=?3",params![cost,record.work_id.to_string(),record.attempt])?;
     }
-    db.execute("UPDATE attempts SET outcome=?1,ended_at=?2,usage_json=?3,provider_request_id=COALESCE(?4,provider_request_id),response_model=?5 WHERE work_id=?6 AND attempt=?7",params![outcome.as_str(),record.ended_at.map(|v|v.to_rfc3339()),record.usage.as_ref().map(encode).transpose()?,record.provider_request_id,record.response_model.as_ref().map(|model|model.as_str()),record.work_id.to_string(),record.attempt])?;
+    if stale_pending {
+        return Ok(());
+    }
+    db.execute("UPDATE attempts SET outcome=?1,ended_at=?2,usage_json=COALESCE(?3,usage_json),provider_request_id=COALESCE(?4,provider_request_id),response_model=COALESCE(?5,response_model) WHERE work_id=?6 AND attempt=?7",params![outcome.as_str(),record.ended_at.map(|v|v.to_rfc3339()),merged_usage.as_ref().map(encode).transpose()?,record.provider_request_id,record.response_model.as_ref().map(|model|model.as_str()),record.work_id.to_string(),record.attempt])?;
     Ok(())
 }
 pub fn budget(db: &Connection, day: &str, max: i64) -> Result<BudgetStateEvent> {
@@ -239,4 +347,26 @@ pub fn budget(db: &Connection, day: &str, max: i64) -> Result<BudgetStateEvent> 
         day: day.into(),
         unknown_calls: spend.unknown_calls,
     })
+}
+
+/// Terminal work releases only calls that never received a durable provider start.
+/// Started unknown amounts and the owning plan's remaining pool are independent.
+pub fn release_unstarted_work(db: &Connection, work: WorkId) -> Result<()> {
+    let mut query=db.prepare("SELECT day,SUM(amount_micros) FROM reservations WHERE work_id=? AND attempt IS NULL AND unresolved=0 GROUP BY day")?;
+    let rows = query
+        .query_map([work.to_string()], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?))
+        })?
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    for (day, amount) in rows {
+        db.execute(
+            "UPDATE spend_daily SET reserved_micros=reserved_micros-? WHERE day=?",
+            params![amount, day],
+        )?;
+    }
+    db.execute(
+        "DELETE FROM reservations WHERE work_id=? AND attempt IS NULL AND unresolved=0",
+        [work.to_string()],
+    )?;
+    Ok(())
 }

@@ -163,6 +163,9 @@ pub enum ExecutorRequest {
         fence: u64,
         epoch: u64,
         error: ErrorPayload,
+        /// Private rejected output for router-owned repair storage. Never project into events.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        repair: Option<JudgeRepairData>,
     },
     Result {
         work_id: WorkId,
