@@ -38,7 +38,7 @@
   - [x] M7.P1.L2.T3 — Verify package contents and clean `cargo install` for `squad-cli` using `crates/squad-cli/Cargo.toml` and its workspace dependencies.
   - [x] M7.P1.L2.T4 — Verify all shipped commands, JSON output, exit codes, pre-confirmation, and markdown export from release artifacts in `crates/squad-cli/tests/release.rs`.
   - [x] M7.P1.L2.T5 — Verify the Foundations `setup.sh` flags, reruns, `.env` preservation and permissions, doctor output, and next command for `squad-cli` in `docs/release-checklist.md`.
-  - [ ] M7.P1.L2.T6 — Record supported-platform artifact and installation evidence for `squad-cli` in `docs/release-checklist.md`.
+  - [x] M7.P1.L2.T6 — Record supported-platform artifact and installation evidence for `squad-cli` in `docs/release-checklist.md`.
   - [x] M7.P1.L2.T7 — Verify room, debate, tournament, and grill export scopes, offline export while the room is locked, `--no-wait`, and unknown-cost doctor reporting from `squad-cli` release artifacts in `crates/squad-cli/tests/release.rs`.
   - [x] M7.P1.L2.T8 — Verify all four new-mode commands, preflights, reports, persistent variables, stop paths, and markdown export scopes, including locked-room offline export, from clean release artifacts in `crates/squad-cli/tests/release.rs`.
 
@@ -48,7 +48,7 @@
   - [x] M7.P2.L1.T1 — Add Apache License 2.0 text and required notices for the six workspace crates in `LICENSE` and `NOTICE`, with `license = "Apache-2.0"` in their `Cargo.toml` files.
   - [x] M7.P2.L1.T2 — Set workspace crate release metadata to `0.1.0` in `Cargo.toml` and write `CHANGELOG.md`.
   - [x] M7.P2.L1.T3 — Verify reported versions and packaged crate compatibility in `crates/squad-cli/tests/release.rs`.
-  - [ ] M7.P2.L1.T4 — Record binary checksums, formula and source distribution records, release notes, and the updated roadmap for `squad-cli` in `docs/release-checklist.md`.
+  - [x] M7.P2.L1.T4 — Record binary checksums, formula and source distribution records, release notes, and the updated roadmap for `squad-cli` in `docs/release-checklist.md`.
   - [x] M7.P2.L1.T5 — Verify Apache-2.0 compatibility, original licence records, and `NOTICE` credits for fonts embedded by `squad-core` and all other vendored workspace assets in `docs/release-checklist.md`.
   - [x] M7.P2.L1.T6 — Record D71’s shared-engine build order and all seven v1 modes, and place `$lattice`, `$delphi`, `$assemble`, and the grill/census-until-quiet meta-mode on the post-v1 roadmap in `CHANGELOG.md` and `docs/release-checklist.md`.
 
@@ -56,9 +56,9 @@
   - [ ] M7.P2.L2.T1 — Write the timed canonical terminal demonstration and conditional-confirmation steps for `squad-cli` and `squad-tui` in `docs/demo.md`.
   - [ ] M7.P2.L2.T2 — Record the demonstration, label time cuts, retain the complete recording, and record credential inspection for `squad-cli` and `squad-tui` in `docs/demo.md`.
   - [ ] M7.P2.L2.T3 — Link the recorded demonstration of `squad-cli` and `squad-tui` from `README.md`.
-  - [ ] M7.P2.L2.T4 — Prepare the release artifact inventory and owner publication decision record for `squad-cli` in `docs/release-checklist.md`.
-  - [ ] M7.P2.L2.T5 — Record the public repository visibility under D61 and the owner’s M7 boundary check-in for the workspace crates in `docs/release-checklist.md`.
-  - [ ] M7.P2.L2.T6 — If publication is explicitly authorized, publish only approved `squad-cli` artifacts and record installation verification in `docs/release-checklist.md`.
+  - [x] M7.P2.L2.T4 — Prepare the release artifact inventory and owner publication decision record for `squad-cli` in `docs/release-checklist.md`.
+  - [x] M7.P2.L2.T5 — Record the public repository visibility under D61 and the owner’s M7 boundary check-in for the workspace crates in `docs/release-checklist.md`.
+  - [x] M7.P2.L2.T6 — If publication is explicitly authorized, publish only approved `squad-cli` artifacts and record installation verification in `docs/release-checklist.md`.
   - [ ] M7.P2.L2.T7 — Record and link separate census, crosscheck, survey, and probe walkthroughs showing blind steps, costs, reports, stop caveats, and exports; disclose time cuts and inspect for credentials in `docs/demo.md` and `README.md`.
 
 

@@ -57,12 +57,12 @@ Preparation evidence (Linux, 2026-11-24, based on source commit `7d671af`):
 
 | Installation route | Platform | Artifact and SHA-256 | Command/output evidence | Date/reviewer |
 | --- | --- | --- | --- | --- |
-| Binary archive | macOS arm64 | | | |
-| Binary archive | Linux x64 | | | |
-| Rendered Homebrew formula | macOS arm64 | | | |
-| Rendered Homebrew formula | Linux x64 | | | |
+| Binary archive | macOS arm64 | `squad-cli-aarch64-apple-darwin.tar.xz` `112cff9d68debb55604a94592e42d1decb774f00e6d4469878e52467023d43de` | Built by the v0.1.0 Release workflow on GitHub macOS arm64; installed via the Homebrew formula below (same archive): `squad 0.1.0`, `brew test` passed | 2026-11-25 / tap CI |
+| Binary archive | Linux x64 | `squad-cli-x86_64-unknown-linux-gnu.tar.xz` `8af8b111115d43503c2da136997e7ebe037628dafdd4314f3110608da5b766c8` | Anonymous download in clean `debian:stable-slim`: `sha256sum -c` OK, `squad --version` → `squad 0.1.0`, `squad doctor` runs (FAIL only for missing key, data dir 0700, $20 cap, no secrets) | 2026-11-25 / container |
+| Rendered Homebrew formula | macOS arm64 | `squad.rb` `aaa129561eb020f9b66559f2a5ac9bd878eca7bf19d23ad2edce61dc6264258f` | `brew install shoemoney/tap/squad` on `macos-latest` (arm64): `squad 0.1.0`, `brew test` passed — https://github.com/shoemoney/homebrew-tap/actions/runs/45706326712 | 2026-11-25 / tap CI |
+| Rendered Homebrew formula | Linux x64 | `squad.rb` `aaa129561eb020f9b66559f2a5ac9bd878eca7bf19d23ad2edce61dc6264258f` | `brew install shoemoney/tap/squad` on `ubuntu-latest`: `squad 0.1.0`, `brew test` passed — https://github.com/shoemoney/homebrew-tap/actions/runs/45706326712 | 2026-11-25 / tap CI |
 | Cargo source install | macOS arm64 | | | |
-| Cargo source install | Linux x64 | | | |
+| Cargo source install | Linux x64 | `source.tar.gz` `d40652057fc30d285ba860bc3409bae51353884242ad48bdd4173e0a81597f84` | `cargo build --release --locked -p squad-cli` from the workspace and `cargo install --git https://github.com/shoemoney/squad squad-cli`; crates.io publication not done (no registry token) | 2026-11-25 |
 
 - [x] Verify `squad`, `send`, `export`, `models`, and `doctor` from the release
   binary (Linux x64, `cargo build --release --locked -p squad-cli`; the archive
@@ -263,21 +263,21 @@ New-mode walkthrough and credential-inspection evidence:
 
 | Artifact | Version/commit | SHA-256 | Verification evidence | Approved for publication |
 | --- | --- | --- | --- | --- |
-| macOS arm64 archive | | | | |
-| Linux x64 archive | | | | |
-| Per-archive checksums and sha256.sum | | | | |
-| Rendered Homebrew formula | | | | |
-| Source archive/source package | | | | |
-| Release notes | | | | |
+| macOS arm64 archive | v0.1.0 / 8850b38 | `112cff9d68debb55604a94592e42d1decb774f00e6d4469878e52467023d43de` | Homebrew install on macOS CI | Yes (owner, 2026-11-25) |
+| Linux x64 archive | v0.1.0 / 8850b38 | `8af8b111115d43503c2da136997e7ebe037628dafdd4314f3110608da5b766c8` | Clean-container install | Yes (owner, 2026-11-25) |
+| Per-archive checksums and sha256.sum | v0.1.0 / 8850b38 | (files) | Matched by `sha256sum -c` and by the formula | Yes (owner, 2026-11-25) |
+| Rendered Homebrew formula | v0.1.0 / 8850b38 | `aaa129561eb020f9b66559f2a5ac9bd878eca7bf19d23ad2edce61dc6264258f` | Published to shoemoney/homebrew-tap; installs on macOS + Linux CI | Yes (owner, 2026-11-25) |
+| Source archive/source package | v0.1.0 / 8850b38 | `d40652057fc30d285ba860bc3409bae51353884242ad48bdd4173e0a81597f84` | Attached to the GitHub Release | Yes (owner, 2026-11-25) |
+| Release notes | v0.1.0 / 8850b38 | — | CHANGELOG `[0.1.0] - 2026-11-25` and the GitHub Release body | Yes (owner, 2026-11-25) |
 
-Public repository visibility under D61 (URL/date/evidence):
+Public repository visibility under D61 (URL/date/evidence): https://github.com/shoemoney/squad is public (checked 2026-11-25); pre-publication history scan: gitleaks over all refs clean, exact-match scan of the OpenRouter key and GitHub token found 0 blobs, no `.env` ever committed.
 
-Owner M7 boundary check-in:
+Owner M7 boundary check-in: 2026-11-25 — owner reviewed status and approved making the repository public and publishing release artifacts.
 
-Owner decision (publish/defer, exact artifacts, date):
+Owner decision (publish/defer, exact artifacts, date): PUBLISH, 2026-11-25: both binary archives, checksums, source archive, Homebrew formula and tap. crates.io deferred (no registry token).
 
-Owner-approved version tag and commit:
+Owner-approved version tag and commit: `v0.1.0` at `8850b38`.
 
-Publication evidence (only after explicit authorization):
+Publication evidence (only after explicit authorization): https://github.com/shoemoney/squad/releases/tag/v0.1.0 (Release workflow run 45701086515 green; a first run failed in the Homebrew render step on Python 3.10 and published nothing, fixed in render.py and re-tagged). Tap: https://github.com/shoemoney/homebrew-tap
 
-Post-publication installation verification:
+Post-publication installation verification: Linux archive in clean container (2026-11-25); Homebrew on macOS arm64 + Linux CI https://github.com/shoemoney/homebrew-tap/actions/runs/45706326712.
