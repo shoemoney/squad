@@ -1,0 +1,23 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: "serde_json::to_string_pretty(&value[\"activeContest\"]).unwrap()"
+---
+{
+  "kind": "grill",
+  "state": {
+    "contestId": "01900000-0000-7000-8000-000000000002",
+    "grillerOrder": [
+      "beta"
+    ],
+    "leader": "alpha",
+    "passed": 0,
+    "planVersion": 1,
+    "questionsAsked": 1,
+    "round": 1,
+    "state": "QUESTIONING",
+    "stateVersion": 2,
+    "terminalReason": null,
+    "totalRounds": 3,
+    "turn": 1
+  }
+}

@@ -1,0 +1,20 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: "serde_json::to_string_pretty(&value[\"activeContest\"]).unwrap()"
+---
+{
+  "kind": "census",
+  "state": {
+    "artifactEventIds": [
+      "01900000-0000-7000-8000-00000000001f"
+    ],
+    "contestId": "01900000-0000-7000-8000-000000000003",
+    "pass": 2,
+    "planVersion": 1,
+    "stateVersion": 3,
+    "status": "HUNTING",
+    "stepId": "01900000-0000-7000-8000-00000000001e",
+    "terminalReason": null,
+    "unfinishedWorkIds": []
+  }
+}

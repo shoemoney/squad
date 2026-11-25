@@ -1,0 +1,56 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: "serde_json::to_string_pretty(&value).unwrap()"
+---
+{
+  "activeContest": null,
+  "dailySpend": {
+    "day": "2026-11-24",
+    "hasUnreconciledCharges": true,
+    "limitUsd": 20.0,
+    "reservedUsd": 1.5,
+    "spentUsd": 4.5,
+    "unknownCalls": 2
+  },
+  "debates": [],
+  "models": [],
+  "participants": [
+    {
+      "nick": "alpha",
+      "observedAt": "<observed>",
+      "queueDepth": 0,
+      "status": "idle"
+    },
+    {
+      "nick": "beta",
+      "observedAt": "<observed>",
+      "queueDepth": 0,
+      "status": "idle"
+    }
+  ],
+  "pendingPreflights": [],
+  "room": "main",
+  "scoreboard": [
+    {
+      "losses": 1,
+      "nick": "alpha",
+      "trophies": 2,
+      "wins": 3
+    },
+    {
+      "losses": 3,
+      "nick": "beta",
+      "trophies": 0,
+      "wins": 1
+    }
+  ],
+  "trophies": {
+    "alpha": 2,
+    "beta": 0
+  },
+  "vars": {
+    "CENSUS_PASSES": 2,
+    "GRILL_ROUNDS": 2,
+    "ROUNDS": 10
+  }
+}

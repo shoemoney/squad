@@ -1,0 +1,17 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: "serde_json::to_string_pretty(&value[\"activeContest\"]).unwrap()"
+---
+{
+  "kind": "survey",
+  "state": {
+    "artifactEventIds": [
+      "01900000-0000-7000-8000-000000000033"
+    ],
+    "contestId": "01900000-0000-7000-8000-000000000005",
+    "state": "VOTING",
+    "stateVersion": 3,
+    "stepId": "01900000-0000-7000-8000-000000000032",
+    "terminalReason": null
+  }
+}
