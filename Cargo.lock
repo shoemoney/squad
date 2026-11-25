@@ -3111,6 +3111,7 @@ dependencies = [
  "clap",
  "crossterm",
  "insta",
+ "libc",
  "reqwest",
  "rusqlite",
  "serde",
