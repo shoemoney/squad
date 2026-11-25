@@ -71,17 +71,11 @@ macOS arm64 installation evidence remain pending the owner's decision.
 
 ### Known issues (found by the release tests, not fixed here)
 
-- `--bus-log` and `--bus-log-bodies` are accepted but write nothing for `send`;
-  `doctor --bus-log` still reports "not implemented yet".
-- A noninteractive refusal ("Re-run with --yes") leaves the pending preflight
-  stored, so the re-run is rejected with `CONTEST_BUSY` or `DEBATE_BUSY` until
-  the plan expires.
+- (fixed) `--bus-log` and `--bus-log-bodies` now write for `send`, and `doctor --bus-log` no longer errors.
+- (fixed) a noninteractive refusal ("Re-run with --yes") now cancels the pending preflight, so the re-run starts clean.
 - (fixed) the prompt pack now lives in `crates/squad-core/prompts/`, inside the
   `squad-core` package, so a registry package of `squad-core` carries every
   embedded prompt.
-- `squad-core` embeds the repository-root `prompts/` directory, which is not
-  part of its package, so a registry package of `squad-core` cannot build.
-  `cargo install --path` and cargo-dist builds are unaffected.
 
 ### Planned after v1
 

@@ -222,7 +222,7 @@ Nicks are lowercase. `@Claude` is an error, and Squad never changes the case for
 
 **Escaping:** type `\@claude` to get the literal text `@claude`. Text inside backticks is also protected, and so is text inside a fenced code block. An email address like `you@example.com` is plain text on its own.
 
-**Attached quotes:** on the CLI, `--quote <seq>` attaches a committed message by its sequence number. The TUI shows attached quotes above the input.
+**Attached quotes:** on the CLI, `--quote <seq>` attaches a committed message by its sequence number. In the TUI, move focus to the room with `F6`, then use `Up` / `Down` to pick a message, `Space` to select more than one, and `Enter` twice to quote (the first `Enter` opens the action menu, the second runs **Quote**). Attached quotes show above the input, and `Esc` removes them.
 
 ### Commands
 
@@ -286,7 +286,8 @@ The bottom bar shows the most useful keys for your terminal width.
 | `Enter` | Sends the message. |
 | `Ctrl+J`, `Alt+Enter` (or `Shift+Enter` in kitty-protocol terminals) | Inserts a new line. |
 | `Tab` | Opens completion, or accepts the selected item. |
-| `Up` / `Down` | Moves through open completion. |
+| `Up` / `Down` | Moves through open completion. With focus on the room, moves between messages. |
+| `Space` | With focus on the room, selects or deselects the focused message for quoting. |
 | `Ctrl+R` | Inserts the last recipients. |
 | `Alt+Up` / `Alt+Down` | Moves through input history. |
 | `Ctrl+A` | Selects all input. |
@@ -297,6 +298,7 @@ The bottom bar shows the most useful keys for your terminal width.
 | `F12` | Shows or hides the debug overlay. |
 | `PageUp` / `PageDown` | Scrolls the room. |
 | `End` | Jumps back to live. |
+| `Enter` (room focused) | Opens the message action menu. `Enter` again quotes the selected messages (or the focused one). |
 | `y` / `n` | Confirms or cancels a pending cost preview. |
 | `Esc` | Closes the topmost open panel first. Then it cancels a pending cost preview, or clears attached quotes. After that it stops work. During a contest, press `Esc` twice within 2 seconds. |
 | `q` | Quits, when focus is not in the input. |
@@ -370,11 +372,11 @@ squad doctor [--env] [--online]
 
 | Flag | What it does |
 |---|---|
-| (none) | Offline checks: configuration, credential presence, data directory, terminal, cost accounting, and cached model resolution. Makes no network calls. |
+| (none) | Offline checks: configuration, credential presence, data directory, terminal, cost accounting, storage use, and cached model resolution. Makes no network calls. |
 | `--online` | Adds two free checks: OpenRouter reachability (`models`) and key validity (`key`). It never generates text. |
 | `--env` | Also prints every supported variable with its default and meaning. |
 
-`doctor` does not open the room. It ends with `Overall: PASS` or `Overall: FAIL`. A failed required check exits with code 1.
+`doctor` does not open the room. It prints a `Storage: <used> MiB used of 1024.0 MiB (<percent>%)` line, read-only from the database, and adds `WARNING - near the ceiling` from 90% and `WARNING - at the ceiling` at the limit. A storage warning does not fail doctor. It ends with `Overall: PASS` or `Overall: FAIL`. A failed required check exits with code 1.
 
 ### Exit codes
 
@@ -464,7 +466,7 @@ Every variable below is optional, except `OPENROUTER_API_KEY`. Run `squad doctor
 | `SQUAD_TURN_WORDS` | `400` | Word limit for debate turns and grill answers. |
 | `SQUAD_FINAL_TURN_WORDS` | `500` | Word limit for the final debate turn. |
 | `SQUAD_PLAN_WORDS` | `1200` | Word limit for rebuilt grill plans. |
-| `SQUAD_PROMPTS_DIR` | Unset (built-in prompts) | Directory of prompt templates to use instead of the built-in ones. |
+| `SQUAD_PROMPTS_DIR` | Unset (built-in prompts) | Directory of prompt templates to use instead of the built-in ones. The built-in pack lives in `crates/squad-core/prompts` and ships inside the `squad-core` package. |
 | `SQUAD_DATA_DIR` | Linux: `~/.local/share/squad` (or `$XDG_DATA_HOME/squad`). macOS: `~/Library/Application Support/squad` | Where the database, cache and logs live. `--data-dir` overrides it. |
 | `SQUAD_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error` or `off`. |
 | `NO_COLOR` | Unset | Any non-empty value turns colour off. |
@@ -647,7 +649,7 @@ Normal calls are **`R × (2G + 1)`**: each griller asks once per round, the lead
 Each planned call reserves **twice** its nominal cost. Each member call gets 2 attempts, with the second issued by Squad, and a 180-second deadline.
 
 ### 🏁 How it ends
-- After the last round's rebuild, the grill completes.
+- After the last round's rebuild, the grill completes with reason `rounds_complete`.
 - Other end reasons: `survived` (an all-pass round), `grillers_exhausted` (the final round ended with no questions and not everyone passed), `stopped`, and `leader_failed`.
 
 ### 🛑 Stop
@@ -999,7 +1001,7 @@ Every new-mode report says which members were skipped. Here is what happens when
 
 - **One active contest per room.** A competing start is refused with `A {kind} is already running. Stop it before starting another.`
 - **Admission:** every start goes through parsing, then preflight. Preflight estimates the cost and checks it against what's left of the **daily maximum**. If it doesn't fit, the contest is refused with `DAILY_MAX_REACHED`.
-- **Confirmation:** if the estimate is above the confirmation threshold (`SQUAD_DEBATE_CONFIRM_USD`), Squad asks you to confirm. The preflight for each new mode expires after **5 minutes**.
+- **Confirmation:** if the estimate is above the confirmation threshold (`SQUAD_DEBATE_CONFIRM_USD`), Squad asks you to confirm. Every preflight, for every mode, expires after **10 minutes**.
 - **Scripts:** all seven modes are scripts over the same moves. Those moves are fan-outs to members in parallel, barriers that commit a report, judge moves, tallies, and the final report.
 - **Holds and fences:** participants are held for the contest. Stopping fences outstanding work, cancels it, and releases reservations for work that never started.
 - **Recovery:** contest progress is stored in SQLite and recovers after a restart.
@@ -1044,7 +1046,7 @@ Before a contest runs, Squad works out what it will cost and shows you a preflig
 - A debate **auto-confirms** when its estimate is at or below `SQUAD_DEBATE_CONFIRM_USD` (default `2`). Above that, the card shows `Y Confirm · N Cancel`.
 - Other preflights show the same card. Anything above the threshold waits for you.
 - `squad send` never confirms on its own. Without `--yes` it stops with `Confirmation required. Re-run with --yes in noninteractive mode.` and cancels the pending plan. Add `--yes` to pre-confirm.
-- A preflight expires if you sit on it too long. A debate plan lasts **10 minutes**. The other contest modes last **5 minutes**. An expired debate plan reports `Debate plan expired`.
+- A preflight expires if you sit on it too long. Every contest plan, in every mode, lasts **10 minutes**. An expired debate plan reports `Debate plan expired`.
 - A contest that cannot fit in what is left of today's cap is refused before it starts. See [The daily cap](#-the-daily-cap-and-daily_max_reached).
 
 ## ⚖️ Judging and cases
@@ -1147,6 +1149,7 @@ Your room lives in one SQLite file.
 - The database runs in WAL mode with full sync, so committed writes survive a crash.
 - Squad creates the data directory as `0700`, and sets it back to `0700` when the room opens.
 - Credentials never go into the database.
+- **Storage ceiling:** the database is capped at **1 GiB** of live pages (free pages left by deletes do not count). Once it holds that much, new generation is refused with `STORAGE_LIMIT`: `Storage limit reached. History is preserved: export it with `squad export`, then free space with /clear.` This covers user messages that would start model work, confirmations, picks, judge requests, census continues, retries and regens. **Still available:** reading history, `squad export`, `/clear`, assignments and slash commands, `squad doctor` and `squad models`. `/clear` frees space (the database is compacted afterwards).
 
 ## 🧹 `/clear`
 
