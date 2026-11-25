@@ -11,6 +11,7 @@ rust-version.workspace = true
 squad-protocol = { workspace = true }
 squad-store = { workspace = true }
 squad-agents = { workspace = true }
+figlet-rs = "1"
 
 [lints]
 workspace = true

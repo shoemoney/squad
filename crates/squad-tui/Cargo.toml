@@ -10,6 +10,17 @@ rust-version.workspace = true
 [dependencies]
 squad-protocol = { workspace = true }
 squad-core = { workspace = true }
+ratatui = "0.30"
+crossterm = { workspace = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tachyonfx = "0.25"
+pulldown-cmark = { version = "0.13", default-features = false }
+syntect = { version = "5", default-features = false, features = ["default-fancy"] }
+unicode-width = "0.2"
+unicode-segmentation = "1"
+
+[dev-dependencies]
+insta = { workspace = true }
 
 [lints]
 workspace = true
