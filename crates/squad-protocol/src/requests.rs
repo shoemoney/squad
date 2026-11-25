@@ -150,6 +150,20 @@ pub enum ExecutorRequest {
         delta: Delta,
     },
     Presence(Presence),
+    /// Upsert the one provider-call record, including after result fencing.
+    Account {
+        fence: u64,
+        epoch: u64,
+        record: UsageRecord,
+    },
+    /// Report an attempt failure; only the router decides work terminal state.
+    Failed {
+        work_id: WorkId,
+        attempt: u32,
+        fence: u64,
+        epoch: u64,
+        error: ErrorPayload,
+    },
     Result {
         work_id: WorkId,
         attempt: u32,
@@ -340,6 +354,30 @@ impl FeedItem {
                 )?;
                 envelope.validate()
             }
+        }
+    }
+}
+
+impl ExecutorRequest {
+    /// Structural validation for additive attempt lifecycle submissions. Authority,
+    /// current fences and accounting upserts are checked by the bound router.
+    pub fn validate_attempt_submission(&self) -> crate::validation::ValidationResult {
+        use crate::validation::ensure;
+        match self {
+            Self::Account { record, .. } => record.validate(),
+            Self::Failed {
+                work_id,
+                attempt,
+                error,
+                ..
+            } => {
+                ensure(*attempt > 0, "failure attempt must be positive")?;
+                ensure(
+                    error.work_id == Some(*work_id),
+                    "failure work identity mismatch",
+                )
+            }
+            _ => Ok(()),
         }
     }
 }

@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+chrono = { version = "0.4", features = ["clock"] }
 squad-protocol = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

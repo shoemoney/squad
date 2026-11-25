@@ -159,6 +159,9 @@ pub enum StreamEvent {
         attempt: u8,
         usage: Usage,
     },
+    RetryAfter {
+        delay: Duration,
+    },
     AttemptFailed {
         attempt: u8,
         error: TransportError,
@@ -195,7 +198,7 @@ impl fmt::Display for TransportError {
 }
 impl std::error::Error for TransportError {}
 impl TransportError {
-    fn retryable(&self) -> bool {
+    pub fn retryable(&self) -> bool {
         matches!(
             self,
             Self::Network
@@ -287,6 +290,16 @@ impl OpenRouterClient {
             .await
     }
 
+    /// Reconcile a known provider generation without exposing credentials.
+    pub async fn generation(&self, id: &str) -> Result<Value, TransportError> {
+        let mut url = self
+            .endpoint
+            .join("../generation")
+            .map_err(|_| TransportError::InvalidConfiguration)?;
+        url.query_pairs_mut().append_pair("id", id);
+        self.json_call(self.http.get(url)).await
+    }
+
     async fn json_call(&self, request: reqwest::RequestBuilder) -> Result<Value, TransportError> {
         let response = request
             .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
@@ -315,6 +328,16 @@ impl OpenRouterClient {
     /// Lazy stream: dropping it aborts HTTP reads and retry waiting. Cancellation
     /// wins over dispatch, including when the token was already cancelled.
     pub fn stream(&self, request: ChatRequest, cancel: CancellationToken) -> EventStream {
+        self.stream_until(request, cancel, None)
+    }
+
+    /// A router deadline can shorten, but never extend, the constant deadline.
+    pub fn stream_until(
+        &self,
+        request: ChatRequest,
+        cancel: CancellationToken,
+        authorized_deadline: Option<Instant>,
+    ) -> EventStream {
         let this = self.clone();
         Box::pin(async_stream::stream! {
             let body = match request.body() {
@@ -325,7 +348,8 @@ impl OpenRouterClient {
                 ExecutionPolicy::OrdinaryReply => (limits::REPLY_ATTEMPTS, DeadlineClass::Ordinary),
                 ExecutionPolicy::SingleAttempt(class) => (1, class),
             };
-            let deadline = Instant::now() + class.duration();
+            let constant_deadline = Instant::now() + class.duration();
+            let deadline = authorized_deadline.map_or(constant_deadline, |limit| limit.min(constant_deadline));
             for attempt in 1..=attempts {
                 if cancel.is_cancelled() {
                     yield StreamEvent::AttemptFailed { attempt, error: TransportError::Cancelled }; return;
@@ -361,6 +385,7 @@ impl OpenRouterClient {
                 };
                 drop(call);
                 let retry = attempt < attempts && error.retryable();
+                if let Some(delay) = retry_after { yield StreamEvent::RetryAfter { delay }; }
                 yield StreamEvent::AttemptFailed { attempt, error };
                 if !retry { return; }
                 // Full jitter over the exponential window; first retry is [0, 1s].
