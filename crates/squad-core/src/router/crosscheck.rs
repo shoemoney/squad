@@ -177,7 +177,10 @@ pub fn prepare(
             contest_id,
             kind: ContestKind::Crosscheck,
             plan_id,
-            expires_at: group.accepted_at + chrono::Duration::minutes(5),
+            expires_at: group.accepted_at
+                + chrono::Duration::milliseconds(
+                    squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64,
+                ),
             estimate: DebateEstimate {
                 estimated_usd: estimated,
                 reserved_usd: reserved,

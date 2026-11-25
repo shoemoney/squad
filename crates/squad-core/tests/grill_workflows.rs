@@ -902,3 +902,24 @@ async fn expired_attempts_retry_then_record_timeout_without_late_acceptance() {
     no_reservation(&f);
     room.shutdown().await.unwrap();
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn preflight_plan_expires_after_ten_minutes() {
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    let result = send(&f, &room, "@member0 $grill").await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = result
+    else {
+        panic!("{result:?}")
+    };
+    let ttl = plan.expires_at - chrono::Utc::now();
+    assert!(
+        ttl > chrono::Duration::minutes(9) && ttl <= chrono::Duration::minutes(10),
+        "{ttl}"
+    );
+}

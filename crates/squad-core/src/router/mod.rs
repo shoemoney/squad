@@ -38,6 +38,7 @@ pub struct Router {
     confirmation_threshold: f64,
     pub ephemeral: ephemeral::Ephemeral,
     pub(crate) grill_active: bool,
+    storage_capacity: u64,
 }
 pub fn envelope(
     correlation: EventId,
@@ -148,7 +149,13 @@ impl Router {
             variable_defaults: Default::default(),
             confirmation_threshold: constants::DEFAULT_DEBATE_CONFIRM_USD,
             ephemeral: Default::default(),
+            storage_capacity: squad_store::storage::DEFAULT_CAPACITY,
         })
+    }
+    /// Override the durable-storage ceiling (tests use a small value).
+    pub fn with_storage_capacity(mut self, bytes: u64) -> Self {
+        self.storage_capacity = bytes;
+        self
     }
     pub fn parse_context(&self) -> Result<parser::ParseContext> {
         let roster = self.roster.clone();
@@ -321,6 +328,8 @@ impl Router {
         let engine_config = self.engine_config.clone();
         let self_threshold = self.confirmation_threshold;
         let clear = matches!(request, Request::Clear { .. });
+        let storage_capacity = self.storage_capacity;
+        let generates = admits_generation(&request);
         let defaults = self.variable_defaults;
         let tournament_max = self.daily_max;
         let tournament_threshold = self.confirmation_threshold;
@@ -332,6 +341,9 @@ impl Router {
         let survey_max = self.daily_max;
         let survey_threshold = self.confirmation_threshold;
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
+            if generates && let Err(StoreError::Domain(code,text))=squad_store::storage::ensure_capacity(tx,storage_capacity) {
+                return Ok(RequestResult::Rejected {request_id:id,error:error(code,text)});
+            }
             match request {
                 Request::UserMessage {input,parsed,preconfirmed}=> {
                     let meta=parser::SubmissionMeta {quote:input.quote.clone().unwrap_or_default(),reply_to:input.reply_to.clone().unwrap_or_default()};
@@ -1065,4 +1077,22 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
         }
     }
     Ok(ctx)
+}
+
+/// Requests that start or restart model generation; refused at the storage ceiling.
+fn admits_generation(request: &Request) -> bool {
+    match request {
+        Request::UserMessage { parsed, .. } => !matches!(
+            parsed,
+            ParsedInput::Assignment { .. } | ParsedInput::Slash { .. }
+        ),
+        Request::ContestConfirm { .. }
+        | Request::DebateConfirm { .. }
+        | Request::ContestPick { .. }
+        | Request::Judge { .. }
+        | Request::CensusContinue { .. }
+        | Request::Retry { .. }
+        | Request::Regen { .. } => true,
+        _ => false,
+    }
 }

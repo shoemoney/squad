@@ -271,11 +271,10 @@ fn reserve_dispatch(db: &Connection, grant: &ExecutionGrant, day: &str, max: i64
     };
     let supported: Vec<String> = serde_json::from_str(&supported)?;
     let reasoning = if supported.iter().any(|p| p == "reasoning") {
-        match grant.binding.effort {
-            ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
-            ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
-            ReasoningEffort::High => constants::REASONING_HIGH_TOKENS,
-        }
+        constants::reasoning_budget(constants::effective_effort(
+            &grant.work.kind,
+            grant.binding.effort,
+        ))
     } else {
         0
     };

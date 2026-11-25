@@ -119,3 +119,51 @@ fn rebuild_rotation_and_leader_failure_preserve_plan() {
     assert_eq!(state.plan_version, 2);
     assert!(transition(&state, &GrillTransition::ParticipantsReady, 0, 0).is_err());
 }
+#[test]
+fn final_round_rebuild_completes_with_a_reason() {
+    let mut s = setup();
+    s.total_rounds = 1;
+    let mut state = initial_state(&s).unwrap();
+    state = transition(&state, &GrillTransition::ParticipantsReady, 0, 0).unwrap();
+    state = transition(
+        &state,
+        &GrillTransition::QuestionsCommitted {
+            question_event_id: EventId::new(),
+        },
+        1,
+        0,
+    )
+    .unwrap();
+    state = transition(
+        &state,
+        &GrillTransition::AnswerCommitted {
+            answer_event_id: EventId::new(),
+        },
+        1,
+        0,
+    )
+    .unwrap();
+    for _ in 0..2 {
+        state = transition(
+            &state,
+            &GrillTransition::PassCommitted {
+                pass_event_id: EventId::new(),
+            },
+            1,
+            0,
+        )
+        .unwrap();
+    }
+    assert_eq!(state.state, GrillStatus::Rebuilding);
+    state = transition(
+        &state,
+        &GrillTransition::PlanCommitted {
+            plan_event_id: EventId::new(),
+        },
+        1,
+        0,
+    )
+    .unwrap();
+    assert_eq!(state.state, GrillStatus::Complete);
+    assert_eq!(state.terminal_reason.as_deref(), Some("rounds_complete"));
+}

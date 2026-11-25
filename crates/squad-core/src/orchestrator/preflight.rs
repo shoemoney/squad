@@ -52,8 +52,8 @@ fn call(
         ),
         WorkKind::JudgeRound => (
             constants::ROUND_JUDGE_VISIBLE_TOKENS,
-            if model.reasoning_effort.is_some() {
-                constants::REASONING_LOW_TOKENS
+            if let Some(effort) = model.reasoning_effort {
+                constants::reasoning_budget(constants::effective_effort(&kind, effort))
             } else {
                 0
             },

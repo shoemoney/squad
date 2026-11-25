@@ -143,6 +143,7 @@ pub fn transition(
             next.plan_version += 1;
             if state.round == state.total_rounds {
                 next.state = GrillStatus::Complete;
+                next.terminal_reason = Some("rounds_complete".into());
             } else {
                 next.round += 1;
                 next.turn = 0;

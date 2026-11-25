@@ -329,3 +329,23 @@ fn round_reasoning_is_low_even_when_final_reasoning_is_high() {
             .all(|c| c.reasoning_effort.is_none() && c.reasoning_tokens == 0)
     );
 }
+#[test]
+fn preflight_round_judge_bound_matches_the_runtime_reservation_budget() {
+    for effort in [
+        ReasoningEffort::Low,
+        ReasoningEffort::Medium,
+        ReasoningEffort::High,
+    ] {
+        let mut p = plan(2, false, true);
+        let judge = p.judge.as_mut().unwrap();
+        judge.reasoning_effort = Some(effort);
+        judge.reasoning_tokens = constants::reasoning_budget(effort);
+        freeze(&mut p, 100.0);
+        for round in p.calls.iter().filter(|c| c.kind == WorkKind::JudgeRound) {
+            assert_eq!(
+                round.reasoning_tokens,
+                constants::reasoning_budget(constants::effective_effort(&round.kind, effort))
+            );
+        }
+    }
+}

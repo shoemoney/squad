@@ -147,3 +147,50 @@ fn debug_is_a_transient_and_escape_does_not_stop_contest() {
     assert!(!app.debug_open);
     assert!(app.pending.is_none());
 }
+fn record(seq: i64, text: &str) -> parser::RecordSummary {
+    parser::RecordSummary {
+        event_id: EventId::new(),
+        message_id: Some(MessageId::new()),
+        seq: Cursor::new(seq).unwrap(),
+        kind: Text::new("message.final").unwrap(),
+        author: Actor::Me,
+        recipients: vec![],
+        content: text.into(),
+        in_reply_to_message_id: None,
+        contest_id: None,
+        case_id: None,
+        plan_event_id: None,
+        grid_event_id: None,
+        cell_ids: vec![],
+        state_version: None,
+        superseded: false,
+        eligible: true,
+    }
+}
+#[test]
+fn transcript_focus_select_and_action_menu_attach_quotes() {
+    let mut app = app();
+    let (a, b) = (record(1, "first"), record(2, "second"));
+    let ids = (a.event_id, b.event_id);
+    app.session.snapshot.context.records = vec![b, a];
+    // Input focus never steals message keys.
+    app.handle(key(KeyCode::Char(' ')), Duration::ZERO);
+    assert!(app.quotes.ids.is_empty());
+    app.handle(key(KeyCode::F(6)), Duration::ZERO);
+    app.handle(key(KeyCode::Down), Duration::ZERO);
+    app.handle(key(KeyCode::Char(' ')), Duration::ZERO);
+    app.handle(key(KeyCode::Down), Duration::ZERO);
+    app.handle(key(KeyCode::Char(' ')), Duration::ZERO);
+    assert!(
+        app.quotes.ids.is_empty(),
+        "selection alone attaches nothing"
+    );
+    app.handle(key(KeyCode::Enter), Duration::ZERO);
+    assert!(app.action_menu);
+    assert!(app.quotes.ids.is_empty());
+    app.handle(key(KeyCode::Enter), Duration::ZERO);
+    assert_eq!(app.quotes.ids, vec![ids.0, ids.1]);
+    assert!(!app.action_menu);
+    // Submission metadata carries the quotes.
+    assert_eq!(app.quotes.metadata().quote, vec![ids.0, ids.1]);
+}

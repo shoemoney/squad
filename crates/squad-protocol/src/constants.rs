@@ -196,3 +196,25 @@ pub const DELTA_BATCH_INTERVAL_MS: u64 = 50;
 
 /// Flush pending presentation deltas at this UTF-8 byte threshold.
 pub const DELTA_BATCH_BYTES: usize = 8 * 1_024;
+
+/// Reasoning budget for an effort level.
+pub fn reasoning_budget(effort: crate::config::ReasoningEffort) -> u32 {
+    match effort {
+        crate::config::ReasoningEffort::Low => REASONING_LOW_TOKENS,
+        crate::config::ReasoningEffort::Medium => REASONING_MEDIUM_TOKENS,
+        crate::config::ReasoningEffort::High => REASONING_HIGH_TOKENS,
+    }
+}
+
+/// Effort a call actually runs with: `judge.round` is always low, whatever the
+/// judge binding says. Preflight and runtime reservation both read this.
+pub fn effective_effort(
+    kind: &crate::work::WorkKind,
+    bound: crate::config::ReasoningEffort,
+) -> crate::config::ReasoningEffort {
+    if *kind == crate::work::WorkKind::JudgeRound {
+        ROUND_JUDGE_REASONING_EFFORT
+    } else {
+        bound
+    }
+}

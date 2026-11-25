@@ -20,6 +20,7 @@ pub mod judge_repairs;
 pub mod readers;
 pub mod room_lock;
 pub mod round_scores;
+pub mod storage;
 pub mod work;
 pub mod writer;
 pub use error::{Result, StoreError};

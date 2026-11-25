@@ -23,4 +23,5 @@ Plan changes: Bound the queue.
 Use a bounded queue and backpressure.
 FINAL PLAN
 Use a bounded queue and backpressure.
+rounds_complete
 ▸ QUESTION-AND-ANSWER APPENDIX
