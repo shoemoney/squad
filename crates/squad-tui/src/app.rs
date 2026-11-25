@@ -41,6 +41,13 @@ pub struct App {
     pub stop_confirmation: Option<Duration>,
     pub transient: Option<String>,
     pub debug_open: bool,
+    /// Ctrl+F literal search over the loaded durable transcript.
+    pub search: crate::search::SearchState,
+    pub search_open: bool,
+    /// False when the terminal cannot take OSC 52; copy then says to use /export.
+    pub clipboard_available: bool,
+    /// Latest copy request; the terminal owner writes `sequence` then clears it.
+    pub pending_copy: Option<crate::clipboard::CopyRequest>,
     pub last_recipients: Vec<String>,
     pub fx: FxManager,
     pub clock: SystemClock,
@@ -82,6 +89,10 @@ impl App {
             stop_confirmation: None,
             transient: None,
             debug_open: false,
+            search: Default::default(),
+            search_open: false,
+            clipboard_available: true,
+            pending_copy: None,
             last_recipients: vec![],
             fx: FxManager::new(clock.clone(), caps),
             clock,
@@ -280,6 +291,114 @@ impl App {
         ));
         self.dirty = true;
     }
+    pub fn open_search(&mut self) {
+        self.search_open = true;
+        self.refresh_search();
+    }
+    pub fn close_search(&mut self) {
+        self.search_open = false;
+        self.search = Default::default();
+        self.notice = None;
+        self.dirty = true;
+    }
+    /// Rebuilds matches from the loaded durable cards; in-flight text is not searchable.
+    pub fn refresh_search(&mut self) {
+        let documents: Vec<_> = self
+            .session
+            .transcript
+            .cards
+            .values()
+            .map(|card| crate::search::SearchDocument {
+                id: card.id,
+                source: card.text.clone(),
+                durable: card.complete,
+                collapsed: false,
+            })
+            .collect();
+        let before = self.session.snapshot.cursor.clone();
+        self.search.refresh(&documents, false, before);
+        self.reveal_current_match();
+        self.dirty = true;
+    }
+    pub fn search_next(&mut self, backwards: bool) {
+        if self.search.navigate(backwards).is_some() {
+            self.reveal_current_match();
+        }
+        self.dirty = true;
+    }
+    fn reveal_current_match(&mut self) {
+        let Some(found) = self.search.current.and_then(|i| self.search.matches.get(i)) else {
+            return;
+        };
+        self.composed.anchor = Some(crate::widgets::transcript::TranscriptAnchor {
+            id: found.id,
+            source_grapheme: found.graphemes.start,
+            row_in_header: None,
+        });
+        self.session.transcript.sync_activity();
+        self.session.transcript.follow = false;
+    }
+    fn search_key(&mut self, key: &crossterm::event::KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Esc => self.close_search(),
+            KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => {
+                self.search_next(true)
+            }
+            KeyCode::Enter | KeyCode::Down => self.search_next(false),
+            KeyCode::Up => self.search_next(true),
+            KeyCode::Backspace => {
+                self.search.query.pop();
+                self.refresh_search();
+            }
+            KeyCode::Char(c)
+                if !key
+                    .modifiers
+                    .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+            {
+                self.search.query.push(c);
+                self.refresh_search();
+            }
+            _ => return false,
+        }
+        true
+    }
+    /// Copies the selected messages (or the focused one) as plain, sanitized text.
+    pub fn copy_selected(&mut self) {
+        let context = &self.session.snapshot.context;
+        let ids: Vec<_> = if self.msg_selected.is_empty() {
+            self.msg_focus.into_iter().collect()
+        } else {
+            let order = self.selectable_records();
+            let mut ids = self.msg_selected.clone();
+            ids.sort_by_key(|id| order.iter().position(|o| o == id));
+            ids
+        };
+        let text = ids
+            .iter()
+            .filter_map(|id| context.record(*id))
+            .map(|r| r.content.to_string())
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        if text.is_empty() {
+            self.notice = Some("Nothing selected to copy. Focus a message first (F6, ↑/↓).".into());
+        } else {
+            match crate::clipboard::request_copy(
+                &text,
+                crate::clipboard::CopyTarget::Message,
+                self.clipboard_available,
+            ) {
+                Ok(request) => {
+                    self.notice = Some(request.feedback.into());
+                    self.pending_copy = Some(request);
+                }
+                Err(e) => self.notice = Some(e.feedback().into()),
+            }
+        }
+        self.dirty = true;
+    }
+    pub fn take_copy(&mut self) -> Option<crate::clipboard::CopyRequest> {
+        self.pending_copy.take()
+    }
     pub fn escape(&mut self, now: Duration) {
         if self.export_path.take().is_some() {
             self.export_scope = None;
@@ -379,6 +498,23 @@ impl App {
             if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
                 self.quit = true;
                 return;
+            }
+            if key.kind == KeyEventKind::Press && self.export_path.is_none() {
+                if key.code == KeyCode::Char('f') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                    if self.search_open {
+                        self.close_search();
+                    } else {
+                        self.open_search();
+                    }
+                    return;
+                }
+                if key.code == KeyCode::Char('y') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.copy_selected();
+                    return;
+                }
+                if self.search_open && self.search_key(key) {
+                    return;
+                }
             }
             if self.export_path.is_some()
                 && key.code == KeyCode::Esc
