@@ -123,17 +123,17 @@
 ## Phase M5.P3 — Prompt pack
 
 - **M5.P3.L1 — Add prompt templates**
-  - [ ] M5.P3.L1.T1 — Add root `prompts/room.system.md` and `prompts/room.user.md` with roster, `user.name`, persona, word-limit, and quote framing for the `squad-core` prompt pack.
-  - [ ] M5.P3.L1.T2 — Add root `prompts/debate.round0.md`, `prompts/debate.round1.md`, `prompts/debate.rebuttal.md`, and `prompts/debate.closing.md` for the `squad-core` prompt pack.
-  - [ ] M5.P3.L1.T3 — Add root `prompts/judge.system.md`, `prompts/judge.user.md`, `prompts/judge.repair.md`, `prompts/judge.standalone.md`, and `prompts/judge.followup.md` for the `squad-core` prompt pack.
-  - [ ] M5.P3.L1.T4 — Add root `prompts/squad.notice.md`, `prompts/debate.forfeit.md`, and `prompts/debate.verdict.md` for the `squad-core` prompt pack.
-  - [ ] M5.P3.L1.T5 — Declare template IDs, required placeholders, composition rules, and pack version in root `prompts/manifest.json` for the `squad-core` prompt pack.
-  - [ ] M5.P3.L1.T6 — Add root `prompts/judge.round.md` with target-round scoring, equal-score support, bounded reasons, and strict JSON for the `squad-core` prompt pack; register its placeholders and composition in root `prompts/manifest.json`.
-  - [ ] M5.P3.L1.T7 — Add round-scoring mode to root `prompts/judge.system.md`, round-score evidence and `tallyOverrideReason` guidance to root `prompts/judge.user.md` and `prompts/judge.repair.md`, and per-round records to root `prompts/debate.verdict.md`; update the `squad-core` prompt pack version in root `prompts/manifest.json`.
-  - [ ] M5.P3.L1.T8 — Add root `prompts/debate.setup.md` and `prompts/debate.opening.md` for the `squad-core` prompt pack, with JSON source framing, user-role delivery, and registered placeholder requirements in `prompts/manifest.json`.
-  - [ ] M5.P3.L1.T9 — Update root `prompts/room.system.md` and `prompts/manifest.json` for the `squad-core` prompt pack with tournament privacy, the grill shared-floor exception, and the single-system-message tournament suffix composition.
-  - [ ] M5.P3.L1.T10 — Extend root `prompts/room.system.md` and `prompts/judge.system.md` for census, crosscheck, survey, and probe step boundaries and structured task modes without changing existing debate, tournament, or grill behavior.
-  - [ ] M5.P3.L1.T11 — Register all four modes' template IDs, composition-specific placeholders, strict schema sources, shared repair suffix, and the two `crosscheck.normalize.md` compositions in root `prompts/manifest.json`; increment the pack version.
+  - [x] M5.P3.L1.T1 — Add root `prompts/room.system.md` and `prompts/room.user.md` with roster, `user.name`, persona, word-limit, and quote framing for the `squad-core` prompt pack.
+  - [x] M5.P3.L1.T2 — Add root `prompts/debate.round0.md`, `prompts/debate.round1.md`, `prompts/debate.rebuttal.md`, and `prompts/debate.closing.md` for the `squad-core` prompt pack.
+  - [x] M5.P3.L1.T3 — Add root `prompts/judge.system.md`, `prompts/judge.user.md`, `prompts/judge.repair.md`, `prompts/judge.standalone.md`, and `prompts/judge.followup.md` for the `squad-core` prompt pack.
+  - [x] M5.P3.L1.T4 — Add root `prompts/squad.notice.md`, `prompts/debate.forfeit.md`, and `prompts/debate.verdict.md` for the `squad-core` prompt pack.
+  - [x] M5.P3.L1.T5 — Declare template IDs, required placeholders, composition rules, and pack version in root `prompts/manifest.json` for the `squad-core` prompt pack.
+  - [x] M5.P3.L1.T6 — Add root `prompts/judge.round.md` with target-round scoring, equal-score support, bounded reasons, and strict JSON for the `squad-core` prompt pack; register its placeholders and composition in root `prompts/manifest.json`.
+  - [x] M5.P3.L1.T7 — Add round-scoring mode to root `prompts/judge.system.md`, round-score evidence and `tallyOverrideReason` guidance to root `prompts/judge.user.md` and `prompts/judge.repair.md`, and per-round records to root `prompts/debate.verdict.md`; update the `squad-core` prompt pack version in root `prompts/manifest.json`.
+  - [x] M5.P3.L1.T8 — Add root `prompts/debate.setup.md` and `prompts/debate.opening.md` for the `squad-core` prompt pack, with JSON source framing, user-role delivery, and registered placeholder requirements in `prompts/manifest.json`.
+  - [x] M5.P3.L1.T9 — Update root `prompts/room.system.md` and `prompts/manifest.json` for the `squad-core` prompt pack with tournament privacy, the grill shared-floor exception, and the single-system-message tournament suffix composition.
+  - [x] M5.P3.L1.T10 — Extend root `prompts/room.system.md` and `prompts/judge.system.md` for census, crosscheck, survey, and probe step boundaries and structured task modes without changing existing debate, tournament, or grill behavior.
+  - [x] M5.P3.L1.T11 — Register all four modes' template IDs, composition-specific placeholders, strict schema sources, shared repair suffix, and the two `crosscheck.normalize.md` compositions in root `prompts/manifest.json`; increment the pack version.
 
 - **M5.P3.L2 — Render configured prompts**
   - [ ] M5.P3.L2.T3 — Map canonical environment-derived configuration, work identity, and authorized history to the placeholder table in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.

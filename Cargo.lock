@@ -1834,6 +1834,7 @@ name = "squad-core"
 version = "0.1.0"
 dependencies = [
  "figlet-rs",
+ "serde_json",
  "squad-agents",
  "squad-protocol",
  "squad-store",
