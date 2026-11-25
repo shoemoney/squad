@@ -385,15 +385,19 @@ impl Runner {
                 .ok_or(ReaderError::NotRunnable)?,
         )
         .map_err(|_| ReaderError::NotRunnable)?;
-        let invocation: EventId = serde_json::from_value(state["judgeInvocationId"].clone())
-            .map_err(|_| ReaderError::NotRunnable)?;
+        let followup_invocation = values.get("case_followup_invocation");
+        let invocation: EventId = match followup_invocation {
+            Some(raw) => raw.parse().map_err(|_| ReaderError::NotRunnable)?,
+            None => serde_json::from_value(state["judgeInvocationId"].clone())
+                .map_err(|_| ReaderError::NotRunnable)?,
+        };
         let history = context.history.for_work(grant.work.work_id).await?;
         let case = grant.work.case_id.ok_or(ReaderError::NotRunnable)?;
         let mut debaters = None;
         let mut tally = BTreeMap::new();
         let mut rubric = Text::new("v1").expect("version");
-        let followup =
-            grant.work.prompt_ref.as_ref().is_some_and(|p| {
+        let followup = followup_invocation.is_some()
+            || grant.work.prompt_ref.as_ref().is_some_and(|p| {
                 p.template_id.as_str().trim_end_matches(".md") == "judge.followup"
             });
         let (id, inputs) = if followup {
