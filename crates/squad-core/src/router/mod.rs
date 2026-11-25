@@ -140,7 +140,7 @@ impl Router {
                 if let EnvelopePayload::DebateState(s) = &event.content {
                     scope.insert(s.debate_id);
                 } else if let EnvelopePayload::TournamentState(s) = &event.content {
-                    self.wake_members();
+                    scope.insert(s.contest_id);
                 } else if let EnvelopePayload::CrosscheckState(s) = &event.content {
                     scope.insert(s.contest_id);
                 }
@@ -254,7 +254,6 @@ impl Router {
         let bindings = self.bindings.clone();
         let engine_config = self.engine_config.clone();
         let self_threshold = self.confirmation_threshold;
-        let max = self.daily_max;
         let clear = matches!(request, Request::Clear { .. });
         let defaults = self.variable_defaults;
         let tournament_max = self.daily_max;

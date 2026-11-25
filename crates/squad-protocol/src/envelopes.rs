@@ -1068,7 +1068,15 @@ fn validate_envelope(
             "invalid report",
         )?,
         EnvelopePayload::SystemNotice(notice) => same_contest(notice.debate_id, notice.contest_id)?,
-        EnvelopePayload::CaseFollowup(_)
+        EnvelopePayload::TournamentSetup(_)
+        | EnvelopePayload::TournamentState(_)
+        | EnvelopePayload::TournamentPreflight(_)
+        | EnvelopePayload::TournamentEntry(_)
+        | EnvelopePayload::TournamentRanking(_)
+        | EnvelopePayload::TournamentResult(_)
+        | EnvelopePayload::TournamentChampion(_)
+        | EnvelopePayload::TournamentJudgment(_)
+        | EnvelopePayload::CaseFollowup(_)
         | EnvelopePayload::MessageSuperseded(_)
         | EnvelopePayload::ScoresChanged(_)
         | EnvelopePayload::RoomCleared(_) => {}
