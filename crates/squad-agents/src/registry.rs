@@ -86,6 +86,10 @@ impl<'a> Registry<'a> {
             WorkKind::SurveyVote | WorkKind::SurveyRevote => {
                 (TaskKind::Reply, DeadlineClass::Ordinary)
             }
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer => {
+                (TaskKind::DebateTurn, DeadlineClass::DebateTurn)
+            }
+            WorkKind::GrillRebuild => (TaskKind::Plan, DeadlineClass::DebateTurn),
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),

@@ -35,6 +35,8 @@ pub struct PlanVersion {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct GrillView {
     pub id: Option<ContestId>,
+    pub question_turns: std::collections::BTreeMap<squad_protocol::EventId, usize>,
+    pub state_version: u64,
     pub leader: String,
     pub grillers: Vec<String>,
     pub focus: String,
@@ -223,4 +225,131 @@ pub fn render(view: &GrillView, area: Rect, buf: &mut Buffer, palette: &Palette)
         }
     }
     rects
+}
+
+impl GrillView {
+    /// Consume only committed typed payloads. Session owns event deduplication
+    /// and suppresses returned effects during replay.
+    pub fn apply_event(
+        &mut self,
+        event: &squad_protocol::CommittedEnvelope,
+    ) -> Option<crate::fx::FxCue> {
+        use crate::fx::FxCue;
+        use squad_protocol::*;
+        let id = match &event.content {
+            EnvelopePayload::GrillSetup(v) => v.contest_id,
+            EnvelopePayload::GrillState(v) => v.contest_id,
+            EnvelopePayload::GrillQuestion(v) => v.contest_id,
+            EnvelopePayload::GrillAnswer(v) => v.contest_id,
+            EnvelopePayload::GrillPass(v) => v.contest_id,
+            EnvelopePayload::GrillPlan(v) => v.contest_id,
+            EnvelopePayload::GrillComplete(v) => v.contest_id,
+            _ => return None,
+        };
+        if self.id.is_some_and(|old| old != id) {
+            return None;
+        }
+        self.id = Some(id);
+        let effect_id: EventId = id.to_string().parse().expect("UUID identity");
+        match &event.content {
+            EnvelopePayload::GrillSetup(v) => {
+                self.leader = v.leader.to_string();
+                self.grillers = v.grillers.iter().map(ToString::to_string).collect();
+                self.focus = v.focus.clone();
+                self.total_rounds = v.total_rounds;
+            }
+            EnvelopePayload::GrillState(v) if v.state_version > self.state_version => {
+                self.state_version = v.state_version;
+                self.state = v.state.as_str().to_owned();
+                self.reason = v.terminal_reason.clone();
+                self.current_round = v.round;
+                self.questions_asked = v.questions_asked;
+                self.passed = v.passed;
+                let nick = v.griller_order.get(v.turn as usize)?;
+                let changed = self.current_turn != nick.as_str();
+                self.current_turn = nick.to_string();
+                if v.state == GrillStatus::Complete
+                    && v.terminal_reason.as_deref() == Some("survived")
+                {
+                    return Some(FxCue::GrillSurvived {
+                        contest_id: effect_id,
+                    });
+                }
+                if changed && v.state == GrillStatus::Questioning {
+                    return Some(FxCue::GrillTurnChanged {
+                        contest_id: effect_id,
+                        member: nick.clone(),
+                    });
+                }
+            }
+            EnvelopePayload::GrillQuestion(v) => {
+                if self.question_turns.contains_key(&event.base.id) {
+                    return None;
+                }
+                self.question_turns.insert(event.base.id, self.turns.len());
+                self.turns.push(Turn {
+                    round: v.round,
+                    griller: v.griller.to_string(),
+                    angle: v.angle.clone(),
+                    status: "awaiting answer".into(),
+                    content: TurnContent::Questions(
+                        v.questions
+                            .iter()
+                            .map(|q| Exchange {
+                                question: q.clone(),
+                                ..Default::default()
+                            })
+                            .collect(),
+                    ),
+                });
+            }
+            EnvelopePayload::GrillAnswer(v) => {
+                let turn = self
+                    .turns
+                    .get_mut(*self.question_turns.get(&v.question_event_id)?)?;
+                if let TurnContent::Questions(items) = &mut turn.content {
+                    for answer in &v.answers {
+                        let item = items.get_mut(answer.question_index as usize)?;
+                        item.answer = answer.answer.clone();
+                        item.plan_changes = answer.plan_changes.clone();
+                    }
+                    turn.status = "complete".into();
+                }
+            }
+            EnvelopePayload::GrillPass(v) => self.turns.push(Turn {
+                round: v.round,
+                griller: v.griller.to_string(),
+                angle: String::new(),
+                status: "complete".into(),
+                content: match v.reason {
+                    GrillPassReason::Pass => TurnContent::Pass("PASS".into()),
+                    GrillPassReason::Timeout => TurnContent::Skipped("timeout".into()),
+                    GrillPassReason::Error => TurnContent::Skipped("error".into()),
+                },
+            }),
+            EnvelopePayload::GrillPlan(v) => {
+                if self.plans.iter().any(|p| p.version == v.version) {
+                    return None;
+                }
+                self.plans.push(PlanVersion {
+                    version: v.version,
+                    text: v.text.clone(),
+                    expanded: None,
+                });
+                return Some(FxCue::GrillPlanReady {
+                    contest_id: effect_id,
+                    version: v.version,
+                });
+            }
+            EnvelopePayload::GrillComplete(v) => {
+                self.final_plan = self
+                    .plans
+                    .iter()
+                    .find(|p| p.version == v.final_plan_version)
+                    .map(|p| p.text.clone())
+            }
+            _ => {}
+        }
+        None
+    }
 }

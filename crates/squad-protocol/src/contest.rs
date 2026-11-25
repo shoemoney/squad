@@ -230,6 +230,7 @@ pub struct ContestTransitionSubmission {
     rename_all_fields = "camelCase"
 )]
 pub enum ContestTransition {
+    Grill(GrillTransition),
     Debate(DebateTransition),
     Tournament(TournamentTransition),
     Census(CensusTransition),

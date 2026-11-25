@@ -202,6 +202,20 @@ pub enum EnvelopePayload {
     UsageRecord(UsageRecord),
     #[serde(rename = "budget.state")]
     BudgetState(BudgetStateEvent),
+    #[serde(rename = "grill.setup")]
+    GrillSetup(GrillSetup),
+    #[serde(rename = "grill.state")]
+    GrillState(GrillState),
+    #[serde(rename = "grill.question")]
+    GrillQuestion(GrillQuestion),
+    #[serde(rename = "grill.answer")]
+    GrillAnswer(GrillAnswer),
+    #[serde(rename = "grill.pass")]
+    GrillPass(GrillPass),
+    #[serde(rename = "grill.plan")]
+    GrillPlan(GrillPlan),
+    #[serde(rename = "grill.complete")]
+    GrillComplete(GrillComplete),
     #[serde(rename = "debate.preflight")]
     DebatePreflight(DebatePreflight),
     #[serde(rename = "debate.preflight.result")]
@@ -825,6 +839,24 @@ fn validate_envelope(
             same_contest(state.debate_id, state.contest_id)?;
         }
         EnvelopePayload::Error(error) => validate_error(error)?,
+        EnvelopePayload::GrillSetup(v) => v.validate()?,
+        EnvelopePayload::GrillState(v) => v.validate()?,
+        EnvelopePayload::GrillQuestion(v) => {
+            v.validate()?;
+            ensure(
+                base.sender == Actor::Member(v.griller.clone()),
+                "grill question author mismatch",
+            )?;
+        }
+        EnvelopePayload::GrillPlan(v) => v.validate(u32::MAX)?,
+        EnvelopePayload::GrillAnswer(v) => ensure(
+            !v.answers.is_empty() && v.answers.len() <= 3,
+            "invalid grill answer",
+        )?,
+        EnvelopePayload::GrillPass(v) => ensure((1..=10).contains(&v.round), "invalid grill pass")?,
+        EnvelopePayload::GrillComplete(v) => {
+            ensure(v.final_plan_version > 0, "invalid final grill plan")?
+        }
         EnvelopePayload::DebatePreflight(preflight) => preflight.validate()?,
         EnvelopePayload::DebatePreflightResult(result) => {
             validate_preflight_result(&result.status, &result.confirmation, &result.error)?
@@ -1062,6 +1094,7 @@ fn validate_envelope(
         EnvelopePayload::ContestTransition(submission) => {
             let kind = match &submission.transition {
                 ContestTransition::Debate(_) => ContestKind::Debate,
+                ContestTransition::Grill(_) => ContestKind::Grill,
                 ContestTransition::Tournament(_) => ContestKind::Tournament,
                 ContestTransition::Census(_) => ContestKind::Census,
                 ContestTransition::Crosscheck(_) => ContestKind::Crosscheck,

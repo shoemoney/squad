@@ -6,6 +6,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum WorkKind {
+    #[serde(rename = "grill.question")]
+    GrillQuestion,
+    #[serde(rename = "grill.answer")]
+    GrillAnswer,
+    #[serde(rename = "grill.rebuild")]
+    GrillRebuild,
     #[serde(rename = "reply")]
     Reply,
     #[serde(rename = "crosscheck.goal")]
@@ -228,6 +234,42 @@ impl Work {
                     "survey attempt limit",
                 )?;
             }
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer | WorkKind::GrillRebuild => {
+                ensure(
+                    matches!(self.target, Target::Member(_))
+                        && self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.case_id.is_none()
+                        && self.round.is_some_and(|r| (1..=10).contains(&r))
+                        && self.attempt <= 2,
+                    "invalid grill work",
+                )?;
+                let Target::Member(nick) = &self.target else {
+                    unreachable!("checked member")
+                };
+                ensure(
+                    self.context_id.0
+                        == format!(
+                            "contest:{}:{}:{}",
+                            self.contest_id.expect("checked contest"),
+                            self.step_id.expect("checked step"),
+                            nick
+                        ),
+                    "grill requires fresh step context",
+                )?;
+                let template = match self.kind {
+                    WorkKind::GrillQuestion => "grill.question",
+                    WorkKind::GrillAnswer => "grill.answer",
+                    _ => "grill.rebuild",
+                };
+                ensure(
+                    self.prompt_ref.as_ref().is_some_and(|p| {
+                        p.template_id.as_str().trim_end_matches(".md") == template
+                    }),
+                    "grill prompt mismatch",
+                )?;
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -337,6 +379,10 @@ impl Work {
             WorkKind::SurveyExtract | WorkKind::SurveyReport => 4096,
             #[cfg(feature = "mode-survey")]
             WorkKind::SurveyVote | WorkKind::SurveyRevote => 2048,
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer => {
+                constants::DEBATE_TURN_VISIBLE_TOKENS
+            }
+            WorkKind::GrillRebuild => constants::PLAN_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
             WorkKind::DebateTurn => constants::DEBATE_TURN_VISIBLE_TOKENS,

@@ -56,6 +56,9 @@ pub async fn stream_attempt(
         }
         WorkKind::SurveyExtract | WorkKind::SurveyReport => DeadlineClass::FinalJudge,
         WorkKind::SurveyVote | WorkKind::SurveyRevote => DeadlineClass::Ordinary,
+        WorkKind::GrillQuestion | WorkKind::GrillAnswer | WorkKind::GrillRebuild => {
+            DeadlineClass::DebateTurn
+        }
         WorkKind::Reply => DeadlineClass::Ordinary,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,

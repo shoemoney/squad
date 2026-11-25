@@ -23,3 +23,4 @@ pub mod crosscheck_redaction;
 pub mod survey;
 
 pub mod blind;
+pub mod grill;

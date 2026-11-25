@@ -43,13 +43,14 @@ fn initial_schema_is_atomic_complete_and_reopenable() {
         "catalog",
         "models",
         "superseded",
+        "grill_plans",
+        "grill_turns",
         "tournament_labels",
         "tournament_rounds",
         "tournament_results",
     ] {
         assert!(names.iter().any(|n| n == table), "{table}");
     }
-    assert!(!names.iter().any(|n| n.starts_with("grill_")));
     assert_eq!(
         db.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
             .unwrap(),

@@ -154,6 +154,7 @@ pub struct Session {
     pub debate_streams: BTreeMap<MessageId, Delta>,
     pub cases: BTreeMap<CaseId, crate::widgets::case::CaseView>,
     pub census: BTreeMap<ContestId, crate::widgets::census::CensusView>,
+    pub grills: BTreeMap<ContestId, crate::widgets::grill::GrillView>,
     pub stream_started: BTreeMap<MessageId, Duration>,
     pub stream_rates: BTreeMap<Nick, f64>,
 }
@@ -168,7 +169,7 @@ impl Session {
         self.contests.clear();
         self.debates.clear();
         self.tournaments.clear();
-        self.tournaments.clear();
+        self.grills.clear();
         self.debate_streams.clear();
         self.debate_messages.clear();
         self.cases.clear();
@@ -327,6 +328,36 @@ impl Session {
         let mut cue = None;
         let mut immediate = true;
         match content {
+            EnvelopePayload::GrillSetup(_)
+            | EnvelopePayload::GrillState(_)
+            | EnvelopePayload::GrillQuestion(_)
+            | EnvelopePayload::GrillAnswer(_)
+            | EnvelopePayload::GrillPass(_)
+            | EnvelopePayload::GrillPlan(_)
+            | EnvelopePayload::GrillComplete(_) => {
+                if let Some(commit) = committed {
+                    let event = CommittedEnvelope {
+                        base: base.clone(),
+                        commit: commit.clone(),
+                        content: content.clone(),
+                    };
+                    let id = match content {
+                        EnvelopePayload::GrillSetup(v) => v.contest_id,
+                        EnvelopePayload::GrillState(v) => v.contest_id,
+                        EnvelopePayload::GrillQuestion(v) => v.contest_id,
+                        EnvelopePayload::GrillAnswer(v) => v.contest_id,
+                        EnvelopePayload::GrillPass(v) => v.contest_id,
+                        EnvelopePayload::GrillPlan(v) => v.contest_id,
+                        EnvelopePayload::GrillComplete(v) => v.contest_id,
+                        _ => unreachable!(),
+                    };
+                    cue = self
+                        .grills
+                        .entry(id)
+                        .or_insert_with(|| crate::widgets::grill::GrillView::new("", vec![]))
+                        .apply_event(&event);
+                }
+            }
             EnvelopePayload::Delta(d) => {
                 use std::collections::btree_map::Entry;
                 // Durable terminal outcomes always win over delayed/repeated deltas.
@@ -1003,6 +1034,7 @@ impl Session {
                 self.contests.clear();
                 self.debates.clear();
                 self.tournaments.clear();
+                self.grills.clear();
                 self.debate_streams.clear();
                 self.debate_messages.clear();
                 self.cases.clear();

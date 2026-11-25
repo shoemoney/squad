@@ -45,3 +45,5 @@ pub mod tournament;
 pub use tournament::*;
 pub mod census;
 pub use census::*;
+pub mod grill;
+pub use grill::*;

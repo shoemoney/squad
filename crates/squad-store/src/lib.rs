@@ -28,5 +28,6 @@ pub mod contest_steps;
 
 pub mod census;
 pub mod crosscheck;
+pub mod grill;
 pub mod survey;
 pub mod tournaments;
