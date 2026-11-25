@@ -16,9 +16,7 @@ unicode-width = "0.2"
 
 [dev-dependencies]
 insta = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-serde_json = { workspace = true }

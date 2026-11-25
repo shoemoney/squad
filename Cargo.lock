@@ -1834,10 +1834,12 @@ name = "squad-core"
 version = "0.1.0"
 dependencies = [
  "figlet-rs",
+ "insta",
  "serde_json",
  "squad-agents",
  "squad-protocol",
  "squad-store",
+ "unicode-width",
 ]
 
 [[package]]
