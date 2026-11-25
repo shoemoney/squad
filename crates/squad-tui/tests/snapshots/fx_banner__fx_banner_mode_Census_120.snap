@@ -1,0 +1,722 @@
+---
+source: crates/squad-tui/tests/fx_banner.rs
+expression: frames
+---
+Full/TrueColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Rgb(253, 208, 62)/Rgb(7, 9, 13)/BOLD 44:Rgb(255, 211, 63)/Rgb(7, 9, 13)/BOLD 45:Rgb(255, 213, 63)/Rgb(7, 9, 13)/BOLD 46:Rgb(255, 215, 64)/Rgb(7, 9, 13)/BOLD 48:Rgb(255, 219, 65)/Rgb(7, 9, 13)/BOLD 49:Rgb(255, 220, 66)/Rgb(7, 9, 13)/BOLD 50:Rgb(255, 222, 66)/Rgb(7, 9, 13)/BOLD 51:Rgb(255, 223, 66)/Rgb(7, 9, 13)/BOLD 52:Rgb(255, 224, 67)/Rgb(7, 9, 13)/BOLD 58:Rgb(255, 222, 66)/Rgb(7, 9, 13)/BOLD 60:Rgb(255, 219, 65)/Rgb(7, 9, 13)/BOLD 61:Rgb(255, 217, 65)/Rgb(7, 9, 13)/BOLD 62:Rgb(255, 215, 64)/Rgb(7, 9, 13)/BOLD 63:Rgb(255, 213, 63)/Rgb(7, 9, 13)/BOLD 66:Rgb(250, 206, 61)/Rgb(7, 9, 13)/BOLD 70:Rgb(241, 199, 59)/Rgb(7, 9, 13)/BOLD 72:Rgb(238, 196, 59)/Rgb(7, 9, 13)/BOLD 73:Rgb(237, 195, 58)/Rgb(7, 9, 13)/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Rgb(228, 187, 56)/Rgb(7, 9, 13)/BOLD 44:Rgb(233, 192, 57)/Rgb(7, 9, 13)/BOLD 45:Rgb(236, 194, 58)/Rgb(7, 9, 13)/BOLD 46:Rgb(238, 196, 58)/Rgb(7, 9, 13)/BOLD 47:Rgb(241, 198, 59)/Rgb(7, 9, 13)/BOLD 49:Rgb(245, 201, 60)/Rgb(7, 9, 13)/BOLD 50:Rgb(246, 203, 60)/Rgb(7, 9, 13)/BOLD 51:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD 52:Rgb(249, 205, 61)/Rgb(7, 9, 13)/BOLD 57:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD 59:Rgb(245, 201, 60)/Rgb(7, 9, 13)/BOLD 61:Rgb(240, 198, 59)/Rgb(7, 9, 13)/BOLD 62:Rgb(238, 196, 58)/Rgb(7, 9, 13)/BOLD 63:Rgb(235, 194, 58)/Rgb(7, 9, 13)/BOLD 64:Rgb(233, 192, 57)/Rgb(7, 9, 13)/BOLD 65:Rgb(230, 189, 56)/Rgb(7, 9, 13)/BOLD 67:Rgb(225, 185, 55)/Rgb(7, 9, 13)/BOLD 69:Rgb(220, 181, 54)/Rgb(7, 9, 13)/BOLD 71:Rgb(217, 178, 53)/Rgb(7, 9, 13)/BOLD 73:Rgb(214, 176, 53)/Rgb(7, 9, 13)/BOLD 74:Rgb(214, 176, 52)/Rgb(7, 9, 13)/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Rgb(202, 166, 50)/Rgb(7, 9, 13)/BOLD 43:Rgb(207, 171, 51)/Rgb(7, 9, 13)/BOLD 47:Rgb(218, 179, 53)/Rgb(7, 9, 13)/BOLD 50:Rgb(223, 184, 55)/Rgb(7, 9, 13)/BOLD 51:Rgb(225, 185, 55)/Rgb(7, 9, 13)/BOLD 53:Rgb(226, 186, 56)/Rgb(7, 9, 13)/BOLD 56:Rgb(226, 186, 55)/Rgb(7, 9, 13)/BOLD 57:Rgb(225, 185, 55)/Rgb(7, 9, 13)/BOLD 59:Rgb(222, 182, 54)/Rgb(7, 9, 13)/BOLD 60:Rgb(220, 181, 54)/Rgb(7, 9, 13)/BOLD 61:Rgb(217, 179, 53)/Rgb(7, 9, 13)/BOLD 62:Rgb(215, 177, 53)/Rgb(7, 9, 13)/BOLD 64:Rgb(210, 173, 51)/Rgb(7, 9, 13)/BOLD 65:Rgb(207, 170, 51)/Rgb(7, 9, 13)/BOLD 67:Rgb(202, 166, 50)/Rgb(7, 9, 13)/BOLD 69:Rgb(197, 162, 48)/Rgb(7, 9, 13)/BOLD 71:Rgb(194, 159, 47)/Rgb(7, 9, 13)/BOLD 72:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 73:Rgb(191, 158, 47)/Rgb(7, 9, 13)/BOLD 74:Rgb(191, 157, 47)/Rgb(7, 9, 13)/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Rgb(179, 147, 44)/Rgb(7, 9, 13)/BOLD 43:Rgb(184, 152, 45)/Rgb(7, 9, 13)/BOLD 44:Rgb(187, 154, 46)/Rgb(7, 9, 13)/BOLD 45:Rgb(190, 156, 46)/Rgb(7, 9, 13)/BOLD 46:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 47:Rgb(195, 160, 48)/Rgb(7, 9, 13)/BOLD 49:Rgb(199, 164, 49)/Rgb(7, 9, 13)/BOLD 50:Rgb(200, 165, 49)/Rgb(7, 9, 13)/BOLD 51:Rgb(202, 166, 49)/Rgb(7, 9, 13)/BOLD 52:Rgb(203, 167, 50)/Rgb(7, 9, 13)/BOLD 59:Rgb(199, 163, 49)/Rgb(7, 9, 13)/BOLD 60:Rgb(197, 162, 48)/Rgb(7, 9, 13)/BOLD 61:Rgb(194, 160, 48)/Rgb(7, 9, 13)/BOLD 62:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 63:Rgb(189, 156, 46)/Rgb(7, 9, 13)/BOLD 65:Rgb(184, 152, 45)/Rgb(7, 9, 13)/BOLD 67:Rgb(179, 147, 44)/Rgb(7, 9, 13)/BOLD 68:Rgb(177, 145, 43)/Rgb(7, 9, 13)/BOLD 69:Rgb(174, 143, 43)/Rgb(7, 9, 13)/BOLD 71:Rgb(171, 141, 42)/Rgb(7, 9, 13)/BOLD 72:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 74:Rgb(168, 138, 41)/Rgb(7, 9, 13)/BOLD 77:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD
+06 |                                          ▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓|
+ 42:Rgb(159, 131, 39)/Rgb(7, 9, 13)/BOLD 43:Rgb(161, 133, 39)/Rgb(7, 9, 13)/BOLD 44:Rgb(164, 135, 40)/Rgb(7, 9, 13)/BOLD 45:Rgb(167, 137, 41)/Rgb(7, 9, 13)/BOLD 46:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 47:Rgb(172, 141, 42)/Rgb(7, 9, 13)/BOLD 48:Rgb(174, 143, 43)/Rgb(7, 9, 13)/BOLD 49:Rgb(176, 145, 43)/Rgb(7, 9, 13)/BOLD 50:Rgb(177, 146, 43)/Rgb(7, 9, 13)/BOLD 51:Rgb(179, 147, 44)/Rgb(7, 9, 13)/BOLD 52:Rgb(180, 148, 44)/Rgb(7, 9, 13)/BOLD 54:Rgb(181, 149, 44)/Rgb(7, 9, 13)/BOLD 55:Rgb(180, 148, 44)/Rgb(7, 9, 13)/BOLD 57:Rgb(179, 147, 44)/Rgb(7, 9, 13)/BOLD 58:Rgb(177, 146, 43)/Rgb(7, 9, 13)/BOLD 59:Rgb(176, 145, 43)/Rgb(7, 9, 13)/BOLD 60:Rgb(174, 143, 43)/Rgb(7, 9, 13)/BOLD 61:Rgb(171, 141, 42)/Rgb(7, 9, 13)/BOLD 62:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 63:Rgb(167, 137, 41)/Rgb(7, 9, 13)/BOLD 64:Rgb(164, 135, 40)/Rgb(7, 9, 13)/BOLD 66:Rgb(159, 130, 39)/Rgb(7, 9, 13)/BOLD 67:Rgb(156, 128, 38)/Rgb(7, 9, 13)/BOLD 68:Rgb(154, 126, 38)/Rgb(7, 9, 13)/BOLD 69:Rgb(151, 125, 37)/Rgb(7, 9, 13)/BOLD 70:Rgb(149, 123, 37)/Rgb(7, 9, 13)/BOLD 71:Rgb(148, 122, 36)/Rgb(7, 9, 13)/BOLD 72:Rgb(147, 121, 36)/Rgb(7, 9, 13)/BOLD 73:Rgb(146, 120, 36)/Rgb(7, 9, 13)/BOLD 74:Rgb(145, 119, 35)/Rgb(7, 9, 13)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Rgb(255, 210, 63)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/TrueColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Rgb(255, 210, 63)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Rgb(232, 191, 57)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Rgb(209, 172, 51)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Rgb(186, 153, 45)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Rgb(163, 134, 40)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Indexed t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Indexed(221)/Indexed(16)/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Indexed(185)/Indexed(16)/BOLD 44:Indexed(221)/Indexed(16)/BOLD 67:Indexed(185)/Indexed(16)/BOLD 71:Indexed(179)/Indexed(16)/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Indexed(179)/Indexed(16)/BOLD 47:Indexed(185)/Indexed(16)/BOLD 62:Indexed(179)/Indexed(16)/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Indexed(179)/Indexed(16)/BOLD 68:Indexed(143)/Indexed(16)/BOLD
+06 |                                          ▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓|
+ 42:Indexed(143)/Indexed(16)/BOLD 51:Indexed(179)/Indexed(16)/BOLD 58:Indexed(143)/Indexed(16)/BOLD 68:Indexed(137)/Indexed(16)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Indexed(221)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Indexed t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Indexed(221)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Indexed(221)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Indexed(179)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Indexed(179)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Indexed(143)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Ansi t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Yellow/Black/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Yellow/Black/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Yellow/Black/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Yellow/Black/BOLD
+06 |                                          ▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓|
+ 42:Yellow/Black/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Yellow/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/Ansi t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Yellow/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Yellow/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Yellow/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Yellow/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Yellow/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/NoColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Reset/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Reset/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Reset/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Reset/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Reset/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Full/NoColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Reset/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Reset/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Reset/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Reset/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Reset/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/TrueColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Rgb(255, 210, 63)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Rgb(232, 191, 57)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Rgb(209, 172, 51)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Rgb(186, 153, 45)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Rgb(163, 134, 40)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Rgb(255, 210, 63)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/TrueColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Rgb(255, 210, 63)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Rgb(232, 191, 57)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Rgb(209, 172, 51)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Rgb(186, 153, 45)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Rgb(163, 134, 40)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Indexed t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Indexed(221)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Indexed(221)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Indexed(179)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Indexed(179)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Indexed(143)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Indexed(221)/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Indexed t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Indexed(221)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Indexed(221)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Indexed(179)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Indexed(179)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Indexed(143)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Ansi t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Yellow/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Yellow/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Yellow/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Yellow/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Yellow/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Yellow/Reset/BOLD
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/Ansi t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Yellow/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Yellow/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Yellow/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Yellow/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Yellow/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/NoColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Reset/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Reset/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Reset/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Reset/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Reset/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Lite/NoColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Reset/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Reset/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Reset/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Reset/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Reset/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/TrueColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Rgb(255, 210, 63)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Rgb(232, 191, 57)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Rgb(209, 172, 51)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Rgb(186, 153, 45)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Rgb(163, 134, 40)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/TrueColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Rgb(255, 210, 63)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Rgb(232, 191, 57)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Rgb(209, 172, 51)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Rgb(186, 153, 45)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Rgb(163, 134, 40)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Indexed t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Indexed(221)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Indexed(221)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Indexed(179)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Indexed(179)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Indexed(143)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Indexed t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Indexed(221)/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Indexed(221)/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Indexed(179)/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Indexed(179)/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Indexed(143)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Ansi t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Yellow/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Yellow/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Yellow/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Yellow/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Yellow/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/Ansi t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Yellow/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Yellow/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Yellow/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Yellow/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Yellow/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/NoColor t=400
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Reset/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Reset/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Reset/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Reset/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Reset/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+Off/NoColor t=1900
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                           ____ _____ _   _ ____  _   _ ____|
+ 43:Reset/Reset/BOLD
+03 |                                          / ___| ____| \ | / ___|| | | / ___||
+ 42:Reset/Reset/BOLD
+04 |                                         | |   |  _| |  \| \___ \| | | \___ \|
+ 41:Reset/Reset/BOLD
+05 |                                         | |___| |___| |\  |___) | |_| |___) ||
+ 41:Reset/Reset/BOLD
+06 |                                          \____|_____|_| \_|____/ \___/|____/|
+ 42:Reset/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 |  PASS 1 · HUNT|
+ 2:Reset/Reset/NONE
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||

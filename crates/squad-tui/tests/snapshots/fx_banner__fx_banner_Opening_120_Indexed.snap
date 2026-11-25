@@ -1,0 +1,212 @@
+---
+source: crates/squad-tui/tests/fx_banner.rs
+expression: frames
+---
+t=0 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 ||
+
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=120 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 ||
+
+03 ||
+
+04 |                                                            ━|
+ 60:White/Indexed(16)/BOLD
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=280 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 ||
+
+03 ||
+
+04 |                                       ▓ ▓ ▓ ▓ ▓▓▓ ▓  ▓▓ ▓  ▓▓ ▓▓ ▓▓  ▓▓ ▓ ▓  ▓|
+ 39:Indexed(215)/Indexed(16)/BOLD 43:Indexed(178)/Indexed(16)/BOLD 45:Indexed(185)/Indexed(16)/BOLD 47:Indexed(149)/Indexed(16)/BOLD 48:Indexed(150)/Indexed(16)/BOLD 49:Indexed(114)/Indexed(16)/BOLD 51:Indexed(79)/Indexed(16)/BOLD 54:Indexed(44)/Indexed(16)/BOLD 57:Indexed(45)/Indexed(16)/BOLD 60:Indexed(81)/Indexed(16)/BOLD 61:Indexed(117)/Indexed(16)/BOLD 63:Indexed(147)/Indexed(16)/BOLD 66:Indexed(183)/Indexed(16)/BOLD 70:Indexed(218)/Indexed(16)/BOLD 75:Indexed(217)/Indexed(16)/BOLD 78:Indexed(216)/Indexed(16)/BOLD
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=600 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Indexed(214)/Indexed(16)/BOLD 42:Indexed(178)/Indexed(16)/BOLD 43:Indexed(184)/Indexed(16)/BOLD 46:Indexed(149)/Indexed(16)/BOLD 47:Indexed(150)/Indexed(16)/BOLD 48:Indexed(114)/Indexed(16)/BOLD 49:Indexed(115)/Indexed(16)/BOLD 52:Indexed(44)/Indexed(16)/BOLD 55:Indexed(45)/Indexed(16)/BOLD 62:Indexed(147)/Indexed(16)/BOLD 64:Indexed(183)/Indexed(16)/BOLD 68:Indexed(219)/Indexed(16)/BOLD 72:Indexed(218)/Indexed(16)/BOLD 75:Indexed(216)/Indexed(16)/BOLD 78:Indexed(215)/Indexed(16)/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Indexed(178)/Indexed(16)/BOLD 42:Indexed(184)/Indexed(16)/BOLD 44:Indexed(149)/Indexed(16)/BOLD 45:Indexed(150)/Indexed(16)/BOLD 48:Indexed(79)/Indexed(16)/BOLD 50:Indexed(44)/Indexed(16)/BOLD 54:Indexed(45)/Indexed(16)/BOLD 57:Indexed(81)/Indexed(16)/BOLD 59:Indexed(117)/Indexed(16)/BOLD 61:Indexed(147)/Indexed(16)/BOLD 63:Indexed(183)/Indexed(16)/BOLD 67:Indexed(219)/Indexed(16)/BOLD 69:Indexed(218)/Indexed(16)/BOLD 71:Indexed(217)/Indexed(16)/BOLD 74:Indexed(216)/Indexed(16)/BOLD 77:Indexed(215)/Indexed(16)/BOLD 79:Indexed(214)/Indexed(16)/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Indexed(178)/Indexed(16)/BOLD 41:Indexed(185)/Indexed(16)/BOLD 43:Indexed(150)/Indexed(16)/BOLD 45:Indexed(114)/Indexed(16)/BOLD 47:Indexed(79)/Indexed(16)/BOLD 48:Indexed(43)/Indexed(16)/BOLD 49:Indexed(44)/Indexed(16)/BOLD 54:Indexed(45)/Indexed(16)/BOLD 55:Indexed(81)/Indexed(16)/BOLD 57:Indexed(117)/Indexed(16)/BOLD 60:Indexed(147)/Indexed(16)/BOLD 61:Indexed(183)/Indexed(16)/BOLD 66:Indexed(218)/Indexed(16)/BOLD 70:Indexed(217)/Indexed(16)/BOLD 73:Indexed(216)/Indexed(16)/BOLD 75:Indexed(215)/Indexed(16)/BOLD 78:Indexed(214)/Indexed(16)/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Indexed(185)/Indexed(16)/BOLD 41:Indexed(149)/Indexed(16)/BOLD 42:Indexed(150)/Indexed(16)/BOLD 43:Indexed(114)/Indexed(16)/BOLD 45:Indexed(79)/Indexed(16)/BOLD 48:Indexed(44)/Indexed(16)/BOLD 50:Indexed(45)/Indexed(16)/BOLD 54:Indexed(81)/Indexed(16)/BOLD 55:Indexed(117)/Indexed(16)/BOLD 57:Indexed(147)/Indexed(16)/BOLD 60:Indexed(183)/Indexed(16)/BOLD 64:Indexed(219)/Indexed(16)/BOLD 66:Indexed(218)/Indexed(16)/BOLD 69:Indexed(217)/Indexed(16)/BOLD 73:Indexed(216)/Indexed(16)/BOLD 75:Indexed(215)/Indexed(16)/BOLD 76:Indexed(214)/Indexed(16)/BOLD 77:Indexed(178)/Indexed(16)/BOLD 79:Indexed(185)/Indexed(16)/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Indexed(150)/Indexed(16)/BOLD 42:Indexed(114)/Indexed(16)/BOLD 43:Indexed(115)/Indexed(16)/BOLD 44:Indexed(79)/Indexed(16)/BOLD 45:Indexed(43)/Indexed(16)/BOLD 46:Indexed(44)/Indexed(16)/BOLD 51:Indexed(45)/Indexed(16)/BOLD 52:Indexed(81)/Indexed(16)/BOLD 53:Indexed(117)/Indexed(16)/BOLD 55:Indexed(153)/Indexed(16)/BOLD 56:Indexed(147)/Indexed(16)/BOLD 58:Indexed(183)/Indexed(16)/BOLD 62:Indexed(219)/Indexed(16)/BOLD 63:Indexed(218)/Indexed(16)/BOLD 66:Indexed(217)/Indexed(16)/BOLD 69:Indexed(216)/Indexed(16)/BOLD 72:Indexed(215)/Indexed(16)/BOLD 75:Indexed(214)/Indexed(16)/BOLD 76:Indexed(184)/Indexed(16)/BOLD 78:Indexed(185)/Indexed(16)/BOLD 79:Indexed(149)/Indexed(16)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=900 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Indexed(149)/Indexed(16)/BOLD 43:Indexed(150)/Indexed(16)/BOLD 46:Indexed(79)/Indexed(16)/BOLD 47:Indexed(43)/Indexed(16)/BOLD 48:Indexed(44)/Indexed(16)/BOLD 52:Indexed(45)/Indexed(16)/BOLD 55:Indexed(81)/Indexed(16)/BOLD 56:Indexed(117)/Indexed(16)/BOLD 58:Indexed(147)/Indexed(16)/BOLD 62:Indexed(183)/Indexed(16)/BOLD 64:Indexed(219)/Indexed(16)/BOLD 65:Indexed(218)/Indexed(16)/BOLD 72:Indexed(216)/Indexed(16)/BOLD 75:Indexed(215)/Indexed(16)/BOLD 77:Indexed(214)/Indexed(16)/BOLD 78:Indexed(178)/Indexed(16)/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Indexed(149)/Indexed(16)/BOLD 42:Indexed(114)/Indexed(16)/BOLD 44:Indexed(79)/Indexed(16)/BOLD 45:Indexed(43)/Indexed(16)/BOLD 48:Indexed(44)/Indexed(16)/BOLD 50:Indexed(45)/Indexed(16)/BOLD 53:Indexed(81)/Indexed(16)/BOLD 54:Indexed(117)/Indexed(16)/BOLD 56:Indexed(153)/Indexed(16)/BOLD 57:Indexed(147)/Indexed(16)/BOLD 59:Indexed(183)/Indexed(16)/BOLD 63:Indexed(219)/Indexed(16)/BOLD 64:Indexed(218)/Indexed(16)/BOLD 67:Indexed(217)/Indexed(16)/BOLD 71:Indexed(216)/Indexed(16)/BOLD 73:Indexed(215)/Indexed(16)/BOLD 76:Indexed(178)/Indexed(16)/BOLD 77:Indexed(184)/Indexed(16)/BOLD 79:Indexed(185)/Indexed(16)/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Indexed(150)/Indexed(16)/BOLD 41:Indexed(114)/Indexed(16)/BOLD 43:Indexed(79)/Indexed(16)/BOLD 45:Indexed(44)/Indexed(16)/BOLD 48:Indexed(45)/Indexed(16)/BOLD 51:Indexed(81)/Indexed(16)/BOLD 54:Indexed(117)/Indexed(16)/BOLD 55:Indexed(147)/Indexed(16)/BOLD 57:Indexed(183)/Indexed(16)/BOLD 61:Indexed(219)/Indexed(16)/BOLD 63:Indexed(218)/Indexed(16)/BOLD 66:Indexed(217)/Indexed(16)/BOLD 70:Indexed(216)/Indexed(16)/BOLD 71:Indexed(215)/Indexed(16)/BOLD 75:Indexed(178)/Indexed(16)/BOLD 78:Indexed(149)/Indexed(16)/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Indexed(114)/Indexed(16)/BOLD 41:Indexed(79)/Indexed(16)/BOLD 42:Indexed(43)/Indexed(16)/BOLD 43:Indexed(44)/Indexed(16)/BOLD 48:Indexed(45)/Indexed(16)/BOLD 50:Indexed(81)/Indexed(16)/BOLD 51:Indexed(117)/Indexed(16)/BOLD 53:Indexed(147)/Indexed(16)/BOLD 56:Indexed(183)/Indexed(16)/BOLD 60:Indexed(219)/Indexed(16)/BOLD 63:Indexed(218)/Indexed(16)/BOLD 64:Indexed(217)/Indexed(16)/BOLD 67:Indexed(216)/Indexed(16)/BOLD 70:Indexed(215)/Indexed(16)/BOLD 73:Indexed(178)/Indexed(16)/BOLD 75:Indexed(185)/Indexed(16)/BOLD 77:Indexed(149)/Indexed(16)/BOLD 79:Indexed(114)/Indexed(16)/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Indexed(79)/Indexed(16)/BOLD 41:Indexed(43)/Indexed(16)/BOLD 42:Indexed(44)/Indexed(16)/BOLD 45:Indexed(45)/Indexed(16)/BOLD 51:Indexed(153)/Indexed(16)/BOLD 52:Indexed(147)/Indexed(16)/BOLD 54:Indexed(183)/Indexed(16)/BOLD 58:Indexed(219)/Indexed(16)/BOLD 59:Indexed(218)/Indexed(16)/BOLD 62:Indexed(217)/Indexed(16)/BOLD 65:Indexed(216)/Indexed(16)/BOLD 68:Indexed(215)/Indexed(16)/BOLD 71:Indexed(214)/Indexed(16)/BOLD 72:Indexed(184)/Indexed(16)/BOLD 74:Indexed(185)/Indexed(16)/BOLD 75:Indexed(149)/Indexed(16)/BOLD 76:Indexed(150)/Indexed(16)/BOLD 78:Indexed(114)/Indexed(16)/BOLD 79:Indexed(115)/Indexed(16)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=1600 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Indexed(44)/Indexed(16)/BOLD 42:Indexed(45)/Indexed(16)/BOLD 46:Indexed(117)/Indexed(16)/BOLD 48:Indexed(153)/Indexed(16)/BOLD 49:Indexed(147)/Indexed(16)/BOLD 52:Indexed(183)/Indexed(16)/BOLD 55:Indexed(219)/Indexed(16)/BOLD 56:Indexed(218)/Indexed(16)/BOLD 62:Indexed(216)/Indexed(16)/BOLD 65:Indexed(215)/Indexed(16)/BOLD 68:Indexed(214)/Indexed(16)/BOLD 72:Indexed(149)/Indexed(16)/BOLD 75:Indexed(114)/Indexed(16)/BOLD 76:Indexed(79)/Indexed(16)/BOLD 78:Indexed(43)/Indexed(16)/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Indexed(45)/Indexed(16)/BOLD 44:Indexed(81)/Indexed(16)/BOLD 45:Indexed(117)/Indexed(16)/BOLD 48:Indexed(147)/Indexed(16)/BOLD 50:Indexed(183)/Indexed(16)/BOLD 53:Indexed(219)/Indexed(16)/BOLD 54:Indexed(218)/Indexed(16)/BOLD 59:Indexed(217)/Indexed(16)/BOLD 61:Indexed(216)/Indexed(16)/BOLD 63:Indexed(215)/Indexed(16)/BOLD 66:Indexed(214)/Indexed(16)/BOLD 67:Indexed(178)/Indexed(16)/BOLD 69:Indexed(185)/Indexed(16)/BOLD 71:Indexed(149)/Indexed(16)/BOLD 73:Indexed(114)/Indexed(16)/BOLD 74:Indexed(115)/Indexed(16)/BOLD 76:Indexed(43)/Indexed(16)/BOLD 77:Indexed(44)/Indexed(16)/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Indexed(45)/Indexed(16)/BOLD 43:Indexed(117)/Indexed(16)/BOLD 45:Indexed(153)/Indexed(16)/BOLD 47:Indexed(147)/Indexed(16)/BOLD 48:Indexed(183)/Indexed(16)/BOLD 54:Indexed(218)/Indexed(16)/BOLD 57:Indexed(217)/Indexed(16)/BOLD 60:Indexed(216)/Indexed(16)/BOLD 63:Indexed(215)/Indexed(16)/BOLD 64:Indexed(214)/Indexed(16)/BOLD 66:Indexed(184)/Indexed(16)/BOLD 70:Indexed(150)/Indexed(16)/BOLD 71:Indexed(114)/Indexed(16)/BOLD 73:Indexed(79)/Indexed(16)/BOLD 75:Indexed(43)/Indexed(16)/BOLD 78:Indexed(44)/Indexed(16)/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Indexed(45)/Indexed(16)/BOLD 41:Indexed(81)/Indexed(16)/BOLD 42:Indexed(117)/Indexed(16)/BOLD 45:Indexed(147)/Indexed(16)/BOLD 48:Indexed(183)/Indexed(16)/BOLD 50:Indexed(219)/Indexed(16)/BOLD 51:Indexed(218)/Indexed(16)/BOLD 55:Indexed(217)/Indexed(16)/BOLD 57:Indexed(216)/Indexed(16)/BOLD 60:Indexed(215)/Indexed(16)/BOLD 63:Indexed(214)/Indexed(16)/BOLD 64:Indexed(178)/Indexed(16)/BOLD 66:Indexed(185)/Indexed(16)/BOLD 67:Indexed(149)/Indexed(16)/BOLD 69:Indexed(150)/Indexed(16)/BOLD 70:Indexed(114)/Indexed(16)/BOLD 73:Indexed(43)/Indexed(16)/BOLD 75:Indexed(44)/Indexed(16)/BOLD 77:Indexed(45)/Indexed(16)/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Indexed(117)/Indexed(16)/BOLD 42:Indexed(153)/Indexed(16)/BOLD 43:Indexed(147)/Indexed(16)/BOLD 45:Indexed(183)/Indexed(16)/BOLD 51:Indexed(218)/Indexed(16)/BOLD 53:Indexed(217)/Indexed(16)/BOLD 56:Indexed(216)/Indexed(16)/BOLD 59:Indexed(215)/Indexed(16)/BOLD 61:Indexed(214)/Indexed(16)/BOLD 62:Indexed(178)/Indexed(16)/BOLD 63:Indexed(184)/Indexed(16)/BOLD 65:Indexed(185)/Indexed(16)/BOLD 66:Indexed(149)/Indexed(16)/BOLD 67:Indexed(150)/Indexed(16)/BOLD 68:Indexed(114)/Indexed(16)/BOLD 71:Indexed(43)/Indexed(16)/BOLD 72:Indexed(44)/Indexed(16)/BOLD 76:Indexed(45)/Indexed(16)/BOLD 79:Indexed(81)/Indexed(16)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=1900 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Indexed(44)/Reset/BOLD 42:Indexed(45)/Reset/BOLD 46:Indexed(117)/Reset/BOLD 48:Indexed(153)/Reset/BOLD 49:Indexed(147)/Reset/BOLD 52:Indexed(183)/Reset/BOLD 55:Indexed(219)/Reset/BOLD 56:Indexed(218)/Reset/BOLD 62:Indexed(216)/Reset/BOLD 65:Indexed(215)/Reset/BOLD 68:Indexed(214)/Reset/BOLD 72:Indexed(149)/Reset/BOLD 75:Indexed(114)/Reset/BOLD 76:Indexed(79)/Reset/BOLD 78:Indexed(43)/Reset/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Indexed(45)/Reset/BOLD 44:Indexed(81)/Reset/BOLD 45:Indexed(117)/Reset/BOLD 48:Indexed(147)/Reset/BOLD 50:Indexed(183)/Reset/BOLD 53:Indexed(219)/Reset/BOLD 54:Indexed(218)/Reset/BOLD 59:Indexed(217)/Reset/BOLD 61:Indexed(216)/Reset/BOLD 63:Indexed(215)/Reset/BOLD 66:Indexed(214)/Reset/BOLD 67:Indexed(178)/Reset/BOLD 69:Indexed(185)/Reset/BOLD 71:Indexed(149)/Reset/BOLD 73:Indexed(114)/Reset/BOLD 74:Indexed(115)/Reset/BOLD 76:Indexed(43)/Reset/BOLD 77:Indexed(44)/Reset/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Indexed(45)/Reset/BOLD 43:Indexed(117)/Reset/BOLD 45:Indexed(153)/Reset/BOLD 47:Indexed(147)/Reset/BOLD 48:Indexed(183)/Reset/BOLD 54:Indexed(218)/Reset/BOLD 57:Indexed(217)/Reset/BOLD 60:Indexed(216)/Reset/BOLD 63:Indexed(215)/Reset/BOLD 64:Indexed(214)/Reset/BOLD 66:Indexed(184)/Reset/BOLD 70:Indexed(150)/Reset/BOLD 71:Indexed(114)/Reset/BOLD 73:Indexed(79)/Reset/BOLD 75:Indexed(43)/Reset/BOLD 78:Indexed(44)/Reset/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Indexed(45)/Reset/BOLD 41:Indexed(81)/Reset/BOLD 42:Indexed(117)/Reset/BOLD 45:Indexed(147)/Reset/BOLD 48:Indexed(183)/Reset/BOLD 50:Indexed(219)/Reset/BOLD 51:Indexed(218)/Reset/BOLD 55:Indexed(217)/Reset/BOLD 57:Indexed(216)/Reset/BOLD 60:Indexed(215)/Reset/BOLD 63:Indexed(214)/Reset/BOLD 64:Indexed(178)/Reset/BOLD 66:Indexed(185)/Reset/BOLD 67:Indexed(149)/Reset/BOLD 69:Indexed(150)/Reset/BOLD 70:Indexed(114)/Reset/BOLD 73:Indexed(43)/Reset/BOLD 75:Indexed(44)/Reset/BOLD 77:Indexed(45)/Reset/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Indexed(117)/Reset/BOLD 42:Indexed(153)/Reset/BOLD 43:Indexed(147)/Reset/BOLD 45:Indexed(183)/Reset/BOLD 51:Indexed(218)/Reset/BOLD 53:Indexed(217)/Reset/BOLD 56:Indexed(216)/Reset/BOLD 59:Indexed(215)/Reset/BOLD 61:Indexed(214)/Reset/BOLD 62:Indexed(178)/Reset/BOLD 63:Indexed(184)/Reset/BOLD 65:Indexed(185)/Reset/BOLD 66:Indexed(149)/Reset/BOLD 67:Indexed(150)/Reset/BOLD 68:Indexed(114)/Reset/BOLD 71:Indexed(43)/Reset/BOLD 72:Indexed(44)/Reset/BOLD 76:Indexed(45)/Reset/BOLD 79:Indexed(81)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||

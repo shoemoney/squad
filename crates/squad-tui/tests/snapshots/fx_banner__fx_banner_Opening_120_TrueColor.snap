@@ -1,0 +1,212 @@
+---
+source: crates/squad-tui/tests/fx_banner.rs
+expression: frames
+---
+t=0 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 ||
+
+03 ||
+
+04 ||
+
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=120 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 ||
+
+03 ||
+
+04 |                                                            ━|
+ 60:White/Rgb(7, 9, 13)/BOLD
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=280 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 ||
+
+03 ||
+
+04 |                                       ▓ ▓ ▓ ▓ ▓▓▓ ▓  ▓▓ ▓  ▓▓ ▓▓ ▓▓  ▓▓ ▓ ▓  ▓|
+ 39:Rgb(255, 151, 74)/Rgb(7, 9, 13)/BOLD 41:Rgb(247, 163, 35)/Rgb(7, 9, 13)/BOLD 43:Rgb(225, 176, 0)/Rgb(7, 9, 13)/BOLD 45:Rgb(196, 189, 32)/Rgb(7, 9, 13)/BOLD 47:Rgb(161, 200, 73)/Rgb(7, 9, 13)/BOLD 48:Rgb(140, 205, 92)/Rgb(7, 9, 13)/BOLD 49:Rgb(117, 209, 111)/Rgb(7, 9, 13)/BOLD 51:Rgb(55, 214, 149)/Rgb(7, 9, 13)/BOLD 54:Rgb(0, 215, 202)/Rgb(7, 9, 13)/BOLD 55:Rgb(0, 213, 218)/Rgb(7, 9, 13)/BOLD 57:Rgb(0, 208, 246)/Rgb(7, 9, 13)/BOLD 60:Rgb(65, 194, 255)/Rgb(7, 9, 13)/BOLD 61:Rgb(96, 188, 255)/Rgb(7, 9, 13)/BOLD 63:Rgb(141, 177, 255)/Rgb(7, 9, 13)/BOLD 64:Rgb(160, 171, 255)/Rgb(7, 9, 13)/BOLD 66:Rgb(192, 160, 255)/Rgb(7, 9, 13)/BOLD 67:Rgb(207, 155, 255)/Rgb(7, 9, 13)/BOLD 70:Rgb(241, 142, 229)/Rgb(7, 9, 13)/BOLD 71:Rgb(250, 139, 214)/Rgb(7, 9, 13)/BOLD 73:Rgb(255, 136, 182)/Rgb(7, 9, 13)/BOLD 75:Rgb(255, 137, 147)/Rgb(7, 9, 13)/BOLD 78:Rgb(255, 146, 93)/Rgb(7, 9, 13)/BOLD
+05 ||
+
+06 ||
+
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=600 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Rgb(235, 171, 8)/Rgb(7, 9, 13)/BOLD 42:Rgb(223, 177, 0)/Rgb(7, 9, 13)/BOLD 43:Rgb(209, 184, 11)/Rgb(7, 9, 13)/BOLD 46:Rgb(158, 201, 76)/Rgb(7, 9, 13)/BOLD 47:Rgb(137, 206, 95)/Rgb(7, 9, 13)/BOLD 48:Rgb(113, 209, 114)/Rgb(7, 9, 13)/BOLD 49:Rgb(86, 212, 133)/Rgb(7, 9, 13)/BOLD 52:Rgb(0, 215, 187)/Rgb(7, 9, 13)/BOLD 53:Rgb(0, 215, 204)/Rgb(7, 9, 13)/BOLD 54:Rgb(0, 213, 220)/Rgb(7, 9, 13)/BOLD 55:Rgb(0, 210, 235)/Rgb(7, 9, 13)/BOLD 56:Rgb(0, 207, 248)/Rgb(7, 9, 13)/BOLD 58:Rgb(23, 198, 255)/Rgb(7, 9, 13)/BOLD 62:Rgb(144, 176, 255)/Rgb(7, 9, 13)/BOLD 64:Rgb(179, 165, 255)/Rgb(7, 9, 13)/BOLD 65:Rgb(195, 159, 255)/Rgb(7, 9, 13)/BOLD 66:Rgb(209, 154, 255)/Rgb(7, 9, 13)/BOLD 68:Rgb(233, 145, 241)/Rgb(7, 9, 13)/BOLD 72:Rgb(255, 136, 179)/Rgb(7, 9, 13)/BOLD 75:Rgb(255, 139, 126)/Rgb(7, 9, 13)/BOLD 76:Rgb(255, 142, 108)/Rgb(7, 9, 13)/BOLD 77:Rgb(255, 147, 90)/Rgb(7, 9, 13)/BOLD 78:Rgb(255, 152, 71)/Rgb(7, 9, 13)/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Rgb(229, 174, 0)/Rgb(7, 9, 13)/BOLD 42:Rgb(201, 187, 25)/Rgb(7, 9, 13)/BOLD 44:Rgb(167, 199, 67)/Rgb(7, 9, 13)/BOLD 45:Rgb(147, 204, 86)/Rgb(7, 9, 13)/BOLD 48:Rgb(67, 213, 143)/Rgb(7, 9, 13)/BOLD 50:Rgb(0, 216, 179)/Rgb(7, 9, 13)/BOLD 51:Rgb(0, 215, 197)/Rgb(7, 9, 13)/BOLD 53:Rgb(0, 212, 228)/Rgb(7, 9, 13)/BOLD 54:Rgb(0, 209, 242)/Rgb(7, 9, 13)/BOLD 55:Rgb(0, 205, 255)/Rgb(7, 9, 13)/BOLD 56:Rgb(0, 200, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(54, 195, 255)/Rgb(7, 9, 13)/BOLD 59:Rgb(113, 184, 255)/Rgb(7, 9, 13)/BOLD 61:Rgb(154, 173, 255)/Rgb(7, 9, 13)/BOLD 63:Rgb(188, 162, 255)/Rgb(7, 9, 13)/BOLD 64:Rgb(203, 156, 255)/Rgb(7, 9, 13)/BOLD 66:Rgb(228, 147, 246)/Rgb(7, 9, 13)/BOLD 67:Rgb(239, 143, 233)/Rgb(7, 9, 13)/BOLD 69:Rgb(255, 138, 203)/Rgb(7, 9, 13)/BOLD 71:Rgb(255, 136, 170)/Rgb(7, 9, 13)/BOLD 73:Rgb(255, 138, 134)/Rgb(7, 9, 13)/BOLD 74:Rgb(255, 141, 116)/Rgb(7, 9, 13)/BOLD 76:Rgb(255, 149, 80)/Rgb(7, 9, 13)/BOLD 77:Rgb(255, 155, 61)/Rgb(7, 9, 13)/BOLD 78:Rgb(249, 161, 41)/Rgb(7, 9, 13)/BOLD 79:Rgb(240, 168, 19)/Rgb(7, 9, 13)/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Rgb(222, 178, 0)/Rgb(7, 9, 13)/BOLD 41:Rgb(192, 191, 37)/Rgb(7, 9, 13)/BOLD 43:Rgb(156, 202, 78)/Rgb(7, 9, 13)/BOLD 45:Rgb(110, 210, 116)/Rgb(7, 9, 13)/BOLD 47:Rgb(42, 214, 153)/Rgb(7, 9, 13)/BOLD 48:Rgb(0, 215, 172)/Rgb(7, 9, 13)/BOLD 49:Rgb(0, 215, 189)/Rgb(7, 9, 13)/BOLD 51:Rgb(0, 213, 222)/Rgb(7, 9, 13)/BOLD 54:Rgb(0, 202, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(31, 198, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(102, 187, 255)/Rgb(7, 9, 13)/BOLD 60:Rgb(164, 170, 255)/Rgb(7, 9, 13)/BOLD 61:Rgb(181, 164, 255)/Rgb(7, 9, 13)/BOLD 63:Rgb(210, 154, 255)/Rgb(7, 9, 13)/BOLD 64:Rgb(223, 149, 252)/Rgb(7, 9, 13)/BOLD 66:Rgb(244, 142, 225)/Rgb(7, 9, 13)/BOLD 67:Rgb(252, 139, 210)/Rgb(7, 9, 13)/BOLD 70:Rgb(255, 136, 160)/Rgb(7, 9, 13)/BOLD 71:Rgb(255, 137, 142)/Rgb(7, 9, 13)/BOLD 73:Rgb(255, 143, 106)/Rgb(7, 9, 13)/BOLD 75:Rgb(255, 152, 69)/Rgb(7, 9, 13)/BOLD 78:Rgb(234, 171, 5)/Rgb(7, 9, 13)/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Rgb(199, 188, 28)/Rgb(7, 9, 13)/BOLD 41:Rgb(164, 199, 69)/Rgb(7, 9, 13)/BOLD 42:Rgb(144, 204, 89)/Rgb(7, 9, 13)/BOLD 43:Rgb(122, 208, 108)/Rgb(7, 9, 13)/BOLD 45:Rgb(62, 214, 145)/Rgb(7, 9, 13)/BOLD 48:Rgb(0, 215, 199)/Rgb(7, 9, 13)/BOLD 49:Rgb(0, 214, 215)/Rgb(7, 9, 13)/BOLD 50:Rgb(0, 211, 230)/Rgb(7, 9, 13)/BOLD 51:Rgb(0, 208, 244)/Rgb(7, 9, 13)/BOLD 53:Rgb(0, 200, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(59, 195, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(91, 189, 255)/Rgb(7, 9, 13)/BOLD 56:Rgb(116, 184, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(137, 178, 255)/Rgb(7, 9, 13)/BOLD 59:Rgb(174, 167, 255)/Rgb(7, 9, 13)/BOLD 60:Rgb(190, 161, 255)/Rgb(7, 9, 13)/BOLD 63:Rgb(229, 147, 245)/Rgb(7, 9, 13)/BOLD 64:Rgb(240, 143, 232)/Rgb(7, 9, 13)/BOLD 66:Rgb(255, 138, 201)/Rgb(7, 9, 13)/BOLD 67:Rgb(255, 136, 185)/Rgb(7, 9, 13)/BOLD 69:Rgb(255, 136, 150)/Rgb(7, 9, 13)/BOLD 70:Rgb(255, 138, 132)/Rgb(7, 9, 13)/BOLD 73:Rgb(255, 150, 78)/Rgb(7, 9, 13)/BOLD 75:Rgb(248, 162, 39)/Rgb(7, 9, 13)/BOLD 76:Rgb(239, 168, 16)/Rgb(7, 9, 13)/BOLD 77:Rgb(227, 175, 0)/Rgb(7, 9, 13)/BOLD 79:Rgb(199, 188, 28)/Rgb(7, 9, 13)/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Rgb(153, 202, 80)/Rgb(7, 9, 13)/BOLD 41:Rgb(132, 206, 99)/Rgb(7, 9, 13)/BOLD 42:Rgb(108, 210, 118)/Rgb(7, 9, 13)/BOLD 43:Rgb(78, 213, 137)/Rgb(7, 9, 13)/BOLD 44:Rgb(35, 215, 155)/Rgb(7, 9, 13)/BOLD 45:Rgb(0, 215, 174)/Rgb(7, 9, 13)/BOLD 46:Rgb(0, 215, 191)/Rgb(7, 9, 13)/BOLD 47:Rgb(0, 214, 208)/Rgb(7, 9, 13)/BOLD 51:Rgb(0, 202, 255)/Rgb(7, 9, 13)/BOLD 52:Rgb(38, 197, 255)/Rgb(7, 9, 13)/BOLD 53:Rgb(78, 192, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(105, 186, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(128, 181, 255)/Rgb(7, 9, 13)/BOLD 56:Rgb(148, 175, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(166, 169, 255)/Rgb(7, 9, 13)/BOLD 58:Rgb(183, 163, 255)/Rgb(7, 9, 13)/BOLD 59:Rgb(198, 158, 255)/Rgb(7, 9, 13)/BOLD 61:Rgb(224, 149, 250)/Rgb(7, 9, 13)/BOLD 62:Rgb(235, 145, 238)/Rgb(7, 9, 13)/BOLD 63:Rgb(245, 141, 224)/Rgb(7, 9, 13)/BOLD 64:Rgb(253, 139, 208)/Rgb(7, 9, 13)/BOLD 65:Rgb(255, 137, 192)/Rgb(7, 9, 13)/BOLD 66:Rgb(255, 136, 175)/Rgb(7, 9, 13)/BOLD 67:Rgb(255, 136, 158)/Rgb(7, 9, 13)/BOLD 68:Rgb(255, 137, 140)/Rgb(7, 9, 13)/BOLD 69:Rgb(255, 140, 122)/Rgb(7, 9, 13)/BOLD 71:Rgb(255, 148, 86)/Rgb(7, 9, 13)/BOLD 72:Rgb(255, 153, 67)/Rgb(7, 9, 13)/BOLD 73:Rgb(252, 159, 48)/Rgb(7, 9, 13)/BOLD 74:Rgb(243, 165, 27)/Rgb(7, 9, 13)/BOLD 75:Rgb(232, 172, 3)/Rgb(7, 9, 13)/BOLD 76:Rgb(220, 179, 0)/Rgb(7, 9, 13)/BOLD 77:Rgb(206, 185, 17)/Rgb(7, 9, 13)/BOLD 78:Rgb(190, 191, 40)/Rgb(7, 9, 13)/BOLD 79:Rgb(173, 197, 60)/Rgb(7, 9, 13)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=900 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Rgb(177, 196, 56)/Rgb(7, 9, 13)/BOLD 42:Rgb(158, 201, 76)/Rgb(7, 9, 13)/BOLD 43:Rgb(137, 206, 95)/Rgb(7, 9, 13)/BOLD 46:Rgb(48, 214, 151)/Rgb(7, 9, 13)/BOLD 47:Rgb(0, 215, 170)/Rgb(7, 9, 13)/BOLD 48:Rgb(0, 215, 187)/Rgb(7, 9, 13)/BOLD 49:Rgb(0, 215, 204)/Rgb(7, 9, 13)/BOLD 52:Rgb(0, 207, 248)/Rgb(7, 9, 13)/BOLD 53:Rgb(0, 203, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(23, 198, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(71, 193, 255)/Rgb(7, 9, 13)/BOLD 56:Rgb(100, 188, 255)/Rgb(7, 9, 13)/BOLD 58:Rgb(144, 176, 255)/Rgb(7, 9, 13)/BOLD 62:Rgb(209, 154, 255)/Rgb(7, 9, 13)/BOLD 64:Rgb(233, 145, 241)/Rgb(7, 9, 13)/BOLD 65:Rgb(243, 142, 227)/Rgb(7, 9, 13)/BOLD 66:Rgb(251, 139, 212)/Rgb(7, 9, 13)/BOLD 68:Rgb(255, 136, 179)/Rgb(7, 9, 13)/BOLD 72:Rgb(255, 142, 108)/Rgb(7, 9, 13)/BOLD 75:Rgb(254, 158, 52)/Rgb(7, 9, 13)/BOLD 76:Rgb(245, 164, 32)/Rgb(7, 9, 13)/BOLD 77:Rgb(235, 171, 8)/Rgb(7, 9, 13)/BOLD 78:Rgb(223, 177, 0)/Rgb(7, 9, 13)/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Rgb(167, 199, 67)/Rgb(7, 9, 13)/BOLD 42:Rgb(124, 208, 106)/Rgb(7, 9, 13)/BOLD 44:Rgb(67, 213, 143)/Rgb(7, 9, 13)/BOLD 45:Rgb(0, 215, 162)/Rgb(7, 9, 13)/BOLD 48:Rgb(0, 214, 213)/Rgb(7, 9, 13)/BOLD 50:Rgb(0, 209, 242)/Rgb(7, 9, 13)/BOLD 51:Rgb(0, 205, 255)/Rgb(7, 9, 13)/BOLD 53:Rgb(54, 195, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(88, 190, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(113, 184, 255)/Rgb(7, 9, 13)/BOLD 56:Rgb(135, 179, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(154, 173, 255)/Rgb(7, 9, 13)/BOLD 59:Rgb(188, 162, 255)/Rgb(7, 9, 13)/BOLD 61:Rgb(216, 152, 255)/Rgb(7, 9, 13)/BOLD 63:Rgb(239, 143, 233)/Rgb(7, 9, 13)/BOLD 64:Rgb(248, 140, 219)/Rgb(7, 9, 13)/BOLD 66:Rgb(255, 136, 187)/Rgb(7, 9, 13)/BOLD 67:Rgb(255, 136, 170)/Rgb(7, 9, 13)/BOLD 69:Rgb(255, 138, 134)/Rgb(7, 9, 13)/BOLD 71:Rgb(255, 144, 98)/Rgb(7, 9, 13)/BOLD 73:Rgb(255, 155, 61)/Rgb(7, 9, 13)/BOLD 74:Rgb(249, 161, 41)/Rgb(7, 9, 13)/BOLD 76:Rgb(229, 174, 0)/Rgb(7, 9, 13)/BOLD 77:Rgb(216, 181, 1)/Rgb(7, 9, 13)/BOLD 78:Rgb(201, 187, 25)/Rgb(7, 9, 13)/BOLD 79:Rgb(185, 193, 47)/Rgb(7, 9, 13)/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Rgb(156, 202, 78)/Rgb(7, 9, 13)/BOLD 41:Rgb(110, 210, 116)/Rgb(7, 9, 13)/BOLD 43:Rgb(42, 214, 153)/Rgb(7, 9, 13)/BOLD 45:Rgb(0, 215, 189)/Rgb(7, 9, 13)/BOLD 47:Rgb(0, 213, 222)/Rgb(7, 9, 13)/BOLD 48:Rgb(0, 210, 236)/Rgb(7, 9, 13)/BOLD 49:Rgb(0, 207, 249)/Rgb(7, 9, 13)/BOLD 51:Rgb(31, 198, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(126, 181, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(146, 175, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(181, 164, 255)/Rgb(7, 9, 13)/BOLD 60:Rgb(223, 149, 252)/Rgb(7, 9, 13)/BOLD 61:Rgb(234, 145, 239)/Rgb(7, 9, 13)/BOLD 63:Rgb(252, 139, 210)/Rgb(7, 9, 13)/BOLD 64:Rgb(255, 137, 194)/Rgb(7, 9, 13)/BOLD 66:Rgb(255, 136, 160)/Rgb(7, 9, 13)/BOLD 67:Rgb(255, 137, 142)/Rgb(7, 9, 13)/BOLD 70:Rgb(255, 147, 88)/Rgb(7, 9, 13)/BOLD 71:Rgb(255, 152, 69)/Rgb(7, 9, 13)/BOLD 73:Rgb(244, 165, 29)/Rgb(7, 9, 13)/BOLD 75:Rgb(222, 178, 0)/Rgb(7, 9, 13)/BOLD 78:Rgb(175, 196, 58)/Rgb(7, 9, 13)/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Rgb(122, 208, 108)/Rgb(7, 9, 13)/BOLD 41:Rgb(62, 214, 145)/Rgb(7, 9, 13)/BOLD 42:Rgb(0, 215, 164)/Rgb(7, 9, 13)/BOLD 43:Rgb(0, 216, 181)/Rgb(7, 9, 13)/BOLD 45:Rgb(0, 214, 215)/Rgb(7, 9, 13)/BOLD 48:Rgb(0, 204, 255)/Rgb(7, 9, 13)/BOLD 49:Rgb(0, 200, 255)/Rgb(7, 9, 13)/BOLD 50:Rgb(59, 195, 255)/Rgb(7, 9, 13)/BOLD 51:Rgb(91, 189, 255)/Rgb(7, 9, 13)/BOLD 53:Rgb(137, 178, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(157, 172, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(174, 167, 255)/Rgb(7, 9, 13)/BOLD 56:Rgb(190, 161, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(204, 156, 255)/Rgb(7, 9, 13)/BOLD 59:Rgb(229, 147, 245)/Rgb(7, 9, 13)/BOLD 60:Rgb(240, 143, 232)/Rgb(7, 9, 13)/BOLD 63:Rgb(255, 136, 185)/Rgb(7, 9, 13)/BOLD 64:Rgb(255, 136, 168)/Rgb(7, 9, 13)/BOLD 66:Rgb(255, 138, 132)/Rgb(7, 9, 13)/BOLD 67:Rgb(255, 141, 114)/Rgb(7, 9, 13)/BOLD 69:Rgb(255, 150, 78)/Rgb(7, 9, 13)/BOLD 70:Rgb(255, 156, 59)/Rgb(7, 9, 13)/BOLD 73:Rgb(227, 175, 0)/Rgb(7, 9, 13)/BOLD 75:Rgb(199, 188, 28)/Rgb(7, 9, 13)/BOLD 76:Rgb(183, 194, 49)/Rgb(7, 9, 13)/BOLD 77:Rgb(164, 199, 69)/Rgb(7, 9, 13)/BOLD 79:Rgb(122, 208, 108)/Rgb(7, 9, 13)/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Rgb(35, 215, 155)/Rgb(7, 9, 13)/BOLD 41:Rgb(0, 215, 174)/Rgb(7, 9, 13)/BOLD 42:Rgb(0, 215, 191)/Rgb(7, 9, 13)/BOLD 43:Rgb(0, 214, 208)/Rgb(7, 9, 13)/BOLD 44:Rgb(0, 212, 223)/Rgb(7, 9, 13)/BOLD 45:Rgb(0, 210, 238)/Rgb(7, 9, 13)/BOLD 46:Rgb(0, 206, 251)/Rgb(7, 9, 13)/BOLD 47:Rgb(0, 202, 255)/Rgb(7, 9, 13)/BOLD 51:Rgb(128, 181, 255)/Rgb(7, 9, 13)/BOLD 52:Rgb(148, 175, 255)/Rgb(7, 9, 13)/BOLD 53:Rgb(166, 169, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(183, 163, 255)/Rgb(7, 9, 13)/BOLD 55:Rgb(198, 158, 255)/Rgb(7, 9, 13)/BOLD 56:Rgb(212, 153, 255)/Rgb(7, 9, 13)/BOLD 57:Rgb(224, 149, 250)/Rgb(7, 9, 13)/BOLD 58:Rgb(235, 145, 238)/Rgb(7, 9, 13)/BOLD 59:Rgb(245, 141, 224)/Rgb(7, 9, 13)/BOLD 61:Rgb(255, 137, 192)/Rgb(7, 9, 13)/BOLD 62:Rgb(255, 136, 175)/Rgb(7, 9, 13)/BOLD 63:Rgb(255, 136, 158)/Rgb(7, 9, 13)/BOLD 64:Rgb(255, 137, 140)/Rgb(7, 9, 13)/BOLD 65:Rgb(255, 140, 122)/Rgb(7, 9, 13)/BOLD 66:Rgb(255, 143, 104)/Rgb(7, 9, 13)/BOLD 67:Rgb(255, 148, 86)/Rgb(7, 9, 13)/BOLD 68:Rgb(255, 153, 67)/Rgb(7, 9, 13)/BOLD 69:Rgb(252, 159, 48)/Rgb(7, 9, 13)/BOLD 71:Rgb(232, 172, 3)/Rgb(7, 9, 13)/BOLD 72:Rgb(220, 179, 0)/Rgb(7, 9, 13)/BOLD 73:Rgb(206, 185, 17)/Rgb(7, 9, 13)/BOLD 74:Rgb(190, 191, 40)/Rgb(7, 9, 13)/BOLD 75:Rgb(173, 197, 60)/Rgb(7, 9, 13)/BOLD 76:Rgb(153, 202, 80)/Rgb(7, 9, 13)/BOLD 77:Rgb(132, 206, 99)/Rgb(7, 9, 13)/BOLD 78:Rgb(108, 210, 118)/Rgb(7, 9, 13)/BOLD 79:Rgb(78, 213, 137)/Rgb(7, 9, 13)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=1600 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Rgb(0, 212, 225)/Rgb(7, 9, 13)/BOLD 42:Rgb(0, 209, 239)/Rgb(7, 9, 13)/BOLD 43:Rgb(0, 206, 252)/Rgb(7, 9, 13)/BOLD 46:Rgb(81, 191, 255)/Rgb(7, 9, 13)/BOLD 47:Rgb(108, 186, 255)/Rgb(7, 9, 13)/BOLD 48:Rgb(130, 180, 255)/Rgb(7, 9, 13)/BOLD 49:Rgb(150, 174, 255)/Rgb(7, 9, 13)/BOLD 52:Rgb(200, 158, 255)/Rgb(7, 9, 13)/BOLD 53:Rgb(213, 153, 255)/Rgb(7, 9, 13)/BOLD 54:Rgb(225, 148, 249)/Rgb(7, 9, 13)/BOLD 55:Rgb(236, 144, 236)/Rgb(7, 9, 13)/BOLD 56:Rgb(246, 141, 222)/Rgb(7, 9, 13)/BOLD 58:Rgb(255, 136, 190)/Rgb(7, 9, 13)/BOLD 62:Rgb(255, 140, 120)/Rgb(7, 9, 13)/BOLD 64:Rgb(255, 148, 84)/Rgb(7, 9, 13)/BOLD 65:Rgb(255, 154, 65)/Rgb(7, 9, 13)/BOLD 66:Rgb(251, 160, 45)/Rgb(7, 9, 13)/BOLD 68:Rgb(231, 173, 1)/Rgb(7, 9, 13)/BOLD 72:Rgb(171, 198, 62)/Rgb(7, 9, 13)/BOLD 75:Rgb(105, 210, 120)/Rgb(7, 9, 13)/BOLD 76:Rgb(75, 213, 139)/Rgb(7, 9, 13)/BOLD 77:Rgb(27, 215, 158)/Rgb(7, 9, 13)/BOLD 78:Rgb(0, 215, 176)/Rgb(7, 9, 13)/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Rgb(0, 211, 233)/Rgb(7, 9, 13)/BOLD 42:Rgb(0, 203, 255)/Rgb(7, 9, 13)/BOLD 44:Rgb(67, 194, 255)/Rgb(7, 9, 13)/BOLD 45:Rgb(97, 188, 255)/Rgb(7, 9, 13)/BOLD 48:Rgb(161, 171, 255)/Rgb(7, 9, 13)/BOLD 50:Rgb(193, 160, 255)/Rgb(7, 9, 13)/BOLD 51:Rgb(207, 155, 255)/Rgb(7, 9, 13)/BOLD 53:Rgb(232, 146, 242)/Rgb(7, 9, 13)/BOLD 54:Rgb(242, 142, 228)/Rgb(7, 9, 13)/BOLD 55:Rgb(250, 139, 214)/Rgb(7, 9, 13)/BOLD 56:Rgb(255, 137, 198)/Rgb(7, 9, 13)/BOLD 57:Rgb(255, 136, 181)/Rgb(7, 9, 13)/BOLD 59:Rgb(255, 137, 146)/Rgb(7, 9, 13)/BOLD 61:Rgb(255, 142, 110)/Rgb(7, 9, 13)/BOLD 63:Rgb(255, 151, 73)/Rgb(7, 9, 13)/BOLD 64:Rgb(255, 157, 54)/Rgb(7, 9, 13)/BOLD 66:Rgb(236, 170, 11)/Rgb(7, 9, 13)/BOLD 67:Rgb(224, 176, 0)/Rgb(7, 9, 13)/BOLD 69:Rgb(196, 189, 33)/Rgb(7, 9, 13)/BOLD 71:Rgb(160, 200, 73)/Rgb(7, 9, 13)/BOLD 73:Rgb(116, 209, 112)/Rgb(7, 9, 13)/BOLD 74:Rgb(89, 212, 131)/Rgb(7, 9, 13)/BOLD 76:Rgb(0, 215, 168)/Rgb(7, 9, 13)/BOLD 77:Rgb(0, 215, 185)/Rgb(7, 9, 13)/BOLD 78:Rgb(0, 215, 202)/Rgb(7, 9, 13)/BOLD 79:Rgb(0, 213, 218)/Rgb(7, 9, 13)/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Rgb(0, 209, 241)/Rgb(7, 9, 13)/BOLD 41:Rgb(0, 201, 255)/Rgb(7, 9, 13)/BOLD 43:Rgb(85, 191, 255)/Rgb(7, 9, 13)/BOLD 45:Rgb(133, 179, 255)/Rgb(7, 9, 13)/BOLD 47:Rgb(170, 168, 255)/Rgb(7, 9, 13)/BOLD 48:Rgb(186, 162, 255)/Rgb(7, 9, 13)/BOLD 49:Rgb(201, 157, 255)/Rgb(7, 9, 13)/BOLD 51:Rgb(227, 148, 248)/Rgb(7, 9, 13)/BOLD 54:Rgb(255, 138, 205)/Rgb(7, 9, 13)/BOLD 55:Rgb(255, 136, 188)/Rgb(7, 9, 13)/BOLD 57:Rgb(255, 136, 154)/Rgb(7, 9, 13)/BOLD 60:Rgb(255, 144, 100)/Rgb(7, 9, 13)/BOLD 61:Rgb(255, 149, 82)/Rgb(7, 9, 13)/BOLD 63:Rgb(250, 160, 43)/Rgb(7, 9, 13)/BOLD 64:Rgb(241, 167, 22)/Rgb(7, 9, 13)/BOLD 66:Rgb(217, 180, 0)/Rgb(7, 9, 13)/BOLD 67:Rgb(203, 187, 23)/Rgb(7, 9, 13)/BOLD 70:Rgb(149, 203, 84)/Rgb(7, 9, 13)/BOLD 71:Rgb(127, 207, 103)/Rgb(7, 9, 13)/BOLD 73:Rgb(71, 213, 141)/Rgb(7, 9, 13)/BOLD 75:Rgb(0, 216, 178)/Rgb(7, 9, 13)/BOLD 78:Rgb(0, 212, 227)/Rgb(7, 9, 13)/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Rgb(0, 203, 255)/Rgb(7, 9, 13)/BOLD 41:Rgb(71, 193, 255)/Rgb(7, 9, 13)/BOLD 42:Rgb(100, 188, 255)/Rgb(7, 9, 13)/BOLD 43:Rgb(123, 182, 255)/Rgb(7, 9, 13)/BOLD 45:Rgb(162, 170, 255)/Rgb(7, 9, 13)/BOLD 48:Rgb(209, 154, 255)/Rgb(7, 9, 13)/BOLD 49:Rgb(222, 150, 253)/Rgb(7, 9, 13)/BOLD 50:Rgb(233, 145, 241)/Rgb(7, 9, 13)/BOLD 51:Rgb(243, 142, 227)/Rgb(7, 9, 13)/BOLD 53:Rgb(255, 137, 196)/Rgb(7, 9, 13)/BOLD 54:Rgb(255, 136, 179)/Rgb(7, 9, 13)/BOLD 55:Rgb(255, 136, 162)/Rgb(7, 9, 13)/BOLD 56:Rgb(255, 137, 144)/Rgb(7, 9, 13)/BOLD 57:Rgb(255, 139, 126)/Rgb(7, 9, 13)/BOLD 59:Rgb(255, 147, 90)/Rgb(7, 9, 13)/BOLD 60:Rgb(255, 152, 71)/Rgb(7, 9, 13)/BOLD 63:Rgb(235, 171, 8)/Rgb(7, 9, 13)/BOLD 64:Rgb(223, 177, 0)/Rgb(7, 9, 13)/BOLD 66:Rgb(194, 190, 35)/Rgb(7, 9, 13)/BOLD 67:Rgb(177, 196, 56)/Rgb(7, 9, 13)/BOLD 69:Rgb(137, 206, 95)/Rgb(7, 9, 13)/BOLD 70:Rgb(113, 209, 114)/Rgb(7, 9, 13)/BOLD 73:Rgb(0, 215, 170)/Rgb(7, 9, 13)/BOLD 75:Rgb(0, 215, 204)/Rgb(7, 9, 13)/BOLD 76:Rgb(0, 213, 220)/Rgb(7, 9, 13)/BOLD 77:Rgb(0, 210, 235)/Rgb(7, 9, 13)/BOLD 79:Rgb(0, 203, 255)/Rgb(7, 9, 13)/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Rgb(88, 190, 255)/Rgb(7, 9, 13)/BOLD 41:Rgb(113, 184, 255)/Rgb(7, 9, 13)/BOLD 42:Rgb(135, 179, 255)/Rgb(7, 9, 13)/BOLD 43:Rgb(154, 173, 255)/Rgb(7, 9, 13)/BOLD 44:Rgb(172, 167, 255)/Rgb(7, 9, 13)/BOLD 45:Rgb(188, 162, 255)/Rgb(7, 9, 13)/BOLD 46:Rgb(203, 156, 255)/Rgb(7, 9, 13)/BOLD 47:Rgb(216, 152, 255)/Rgb(7, 9, 13)/BOLD 51:Rgb(255, 138, 203)/Rgb(7, 9, 13)/BOLD 52:Rgb(255, 136, 187)/Rgb(7, 9, 13)/BOLD 53:Rgb(255, 136, 170)/Rgb(7, 9, 13)/BOLD 54:Rgb(255, 136, 152)/Rgb(7, 9, 13)/BOLD 55:Rgb(255, 138, 134)/Rgb(7, 9, 13)/BOLD 56:Rgb(255, 141, 116)/Rgb(7, 9, 13)/BOLD 57:Rgb(255, 144, 98)/Rgb(7, 9, 13)/BOLD 58:Rgb(255, 149, 80)/Rgb(7, 9, 13)/BOLD 59:Rgb(255, 155, 61)/Rgb(7, 9, 13)/BOLD 61:Rgb(240, 168, 19)/Rgb(7, 9, 13)/BOLD 62:Rgb(229, 174, 0)/Rgb(7, 9, 13)/BOLD 63:Rgb(216, 181, 1)/Rgb(7, 9, 13)/BOLD 64:Rgb(201, 187, 25)/Rgb(7, 9, 13)/BOLD 65:Rgb(185, 193, 47)/Rgb(7, 9, 13)/BOLD 66:Rgb(167, 199, 67)/Rgb(7, 9, 13)/BOLD 67:Rgb(147, 204, 86)/Rgb(7, 9, 13)/BOLD 68:Rgb(124, 208, 106)/Rgb(7, 9, 13)/BOLD 69:Rgb(99, 211, 125)/Rgb(7, 9, 13)/BOLD 71:Rgb(0, 215, 162)/Rgb(7, 9, 13)/BOLD 72:Rgb(0, 216, 179)/Rgb(7, 9, 13)/BOLD 73:Rgb(0, 215, 197)/Rgb(7, 9, 13)/BOLD 74:Rgb(0, 214, 213)/Rgb(7, 9, 13)/BOLD 75:Rgb(0, 212, 228)/Rgb(7, 9, 13)/BOLD 76:Rgb(0, 209, 242)/Rgb(7, 9, 13)/BOLD 77:Rgb(0, 205, 255)/Rgb(7, 9, 13)/BOLD 78:Rgb(0, 200, 255)/Rgb(7, 9, 13)/BOLD 79:Rgb(54, 195, 255)/Rgb(7, 9, 13)/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
+
+
+t=1900 ms
+00 |  transcript above|
+ 2:Reset/Reset/NONE
+01 ||
+
+02 |                                         ___  ____  _____ _   _ ___ _   _  ____|
+ 41:Rgb(0, 212, 225)/Reset/BOLD 42:Rgb(0, 209, 239)/Reset/BOLD 43:Rgb(0, 206, 252)/Reset/BOLD 46:Rgb(81, 191, 255)/Reset/BOLD 47:Rgb(108, 186, 255)/Reset/BOLD 48:Rgb(130, 180, 255)/Reset/BOLD 49:Rgb(150, 174, 255)/Reset/BOLD 52:Rgb(200, 158, 255)/Reset/BOLD 53:Rgb(213, 153, 255)/Reset/BOLD 54:Rgb(225, 148, 249)/Reset/BOLD 55:Rgb(236, 144, 236)/Reset/BOLD 56:Rgb(246, 141, 222)/Reset/BOLD 58:Rgb(255, 136, 190)/Reset/BOLD 62:Rgb(255, 140, 120)/Reset/BOLD 64:Rgb(255, 148, 84)/Reset/BOLD 65:Rgb(255, 154, 65)/Reset/BOLD 66:Rgb(251, 160, 45)/Reset/BOLD 68:Rgb(231, 173, 1)/Reset/BOLD 72:Rgb(171, 198, 62)/Reset/BOLD 75:Rgb(105, 210, 120)/Reset/BOLD 76:Rgb(75, 213, 139)/Reset/BOLD 77:Rgb(27, 215, 158)/Reset/BOLD 78:Rgb(0, 215, 176)/Reset/BOLD
+03 |                                        / _ \|  _ \| ____| \ | |_ _| \ | |/ ___||
+ 40:Rgb(0, 211, 233)/Reset/BOLD 42:Rgb(0, 203, 255)/Reset/BOLD 44:Rgb(67, 194, 255)/Reset/BOLD 45:Rgb(97, 188, 255)/Reset/BOLD 48:Rgb(161, 171, 255)/Reset/BOLD 50:Rgb(193, 160, 255)/Reset/BOLD 51:Rgb(207, 155, 255)/Reset/BOLD 53:Rgb(232, 146, 242)/Reset/BOLD 54:Rgb(242, 142, 228)/Reset/BOLD 55:Rgb(250, 139, 214)/Reset/BOLD 56:Rgb(255, 137, 198)/Reset/BOLD 57:Rgb(255, 136, 181)/Reset/BOLD 59:Rgb(255, 137, 146)/Reset/BOLD 61:Rgb(255, 142, 110)/Reset/BOLD 63:Rgb(255, 151, 73)/Reset/BOLD 64:Rgb(255, 157, 54)/Reset/BOLD 66:Rgb(236, 170, 11)/Reset/BOLD 67:Rgb(224, 176, 0)/Reset/BOLD 69:Rgb(196, 189, 33)/Reset/BOLD 71:Rgb(160, 200, 73)/Reset/BOLD 73:Rgb(116, 209, 112)/Reset/BOLD 74:Rgb(89, 212, 131)/Reset/BOLD 76:Rgb(0, 215, 168)/Reset/BOLD 77:Rgb(0, 215, 185)/Reset/BOLD 78:Rgb(0, 215, 202)/Reset/BOLD 79:Rgb(0, 213, 218)/Reset/BOLD
+04 |                                       | | | | |_) |  _| |  \| || ||  \| | |  _|
+ 39:Rgb(0, 209, 241)/Reset/BOLD 41:Rgb(0, 201, 255)/Reset/BOLD 43:Rgb(85, 191, 255)/Reset/BOLD 45:Rgb(133, 179, 255)/Reset/BOLD 47:Rgb(170, 168, 255)/Reset/BOLD 48:Rgb(186, 162, 255)/Reset/BOLD 49:Rgb(201, 157, 255)/Reset/BOLD 51:Rgb(227, 148, 248)/Reset/BOLD 54:Rgb(255, 138, 205)/Reset/BOLD 55:Rgb(255, 136, 188)/Reset/BOLD 57:Rgb(255, 136, 154)/Reset/BOLD 60:Rgb(255, 144, 100)/Reset/BOLD 61:Rgb(255, 149, 82)/Reset/BOLD 63:Rgb(250, 160, 43)/Reset/BOLD 64:Rgb(241, 167, 22)/Reset/BOLD 66:Rgb(217, 180, 0)/Reset/BOLD 67:Rgb(203, 187, 23)/Reset/BOLD 70:Rgb(149, 203, 84)/Reset/BOLD 71:Rgb(127, 207, 103)/Reset/BOLD 73:Rgb(71, 213, 141)/Reset/BOLD 75:Rgb(0, 216, 178)/Reset/BOLD 78:Rgb(0, 212, 227)/Reset/BOLD
+05 |                                       | |_| |  __/| |___| |\  || || |\  | |_| ||
+ 39:Rgb(0, 203, 255)/Reset/BOLD 41:Rgb(71, 193, 255)/Reset/BOLD 42:Rgb(100, 188, 255)/Reset/BOLD 43:Rgb(123, 182, 255)/Reset/BOLD 45:Rgb(162, 170, 255)/Reset/BOLD 48:Rgb(209, 154, 255)/Reset/BOLD 49:Rgb(222, 150, 253)/Reset/BOLD 50:Rgb(233, 145, 241)/Reset/BOLD 51:Rgb(243, 142, 227)/Reset/BOLD 53:Rgb(255, 137, 196)/Reset/BOLD 54:Rgb(255, 136, 179)/Reset/BOLD 55:Rgb(255, 136, 162)/Reset/BOLD 56:Rgb(255, 137, 144)/Reset/BOLD 57:Rgb(255, 139, 126)/Reset/BOLD 59:Rgb(255, 147, 90)/Reset/BOLD 60:Rgb(255, 152, 71)/Reset/BOLD 63:Rgb(235, 171, 8)/Reset/BOLD 64:Rgb(223, 177, 0)/Reset/BOLD 66:Rgb(194, 190, 35)/Reset/BOLD 67:Rgb(177, 196, 56)/Reset/BOLD 69:Rgb(137, 206, 95)/Reset/BOLD 70:Rgb(113, 209, 114)/Reset/BOLD 73:Rgb(0, 215, 170)/Reset/BOLD 75:Rgb(0, 215, 204)/Reset/BOLD 76:Rgb(0, 213, 220)/Reset/BOLD 77:Rgb(0, 210, 235)/Reset/BOLD 79:Rgb(0, 203, 255)/Reset/BOLD
+06 |                                        \___/|_|   |_____|_| \_|___|_| \_|\____||
+ 40:Rgb(88, 190, 255)/Reset/BOLD 41:Rgb(113, 184, 255)/Reset/BOLD 42:Rgb(135, 179, 255)/Reset/BOLD 43:Rgb(154, 173, 255)/Reset/BOLD 44:Rgb(172, 167, 255)/Reset/BOLD 45:Rgb(188, 162, 255)/Reset/BOLD 46:Rgb(203, 156, 255)/Reset/BOLD 47:Rgb(216, 152, 255)/Reset/BOLD 51:Rgb(255, 138, 203)/Reset/BOLD 52:Rgb(255, 136, 187)/Reset/BOLD 53:Rgb(255, 136, 170)/Reset/BOLD 54:Rgb(255, 136, 152)/Reset/BOLD 55:Rgb(255, 138, 134)/Reset/BOLD 56:Rgb(255, 141, 116)/Reset/BOLD 57:Rgb(255, 144, 98)/Reset/BOLD 58:Rgb(255, 149, 80)/Reset/BOLD 59:Rgb(255, 155, 61)/Reset/BOLD 61:Rgb(240, 168, 19)/Reset/BOLD 62:Rgb(229, 174, 0)/Reset/BOLD 63:Rgb(216, 181, 1)/Reset/BOLD 64:Rgb(201, 187, 25)/Reset/BOLD 65:Rgb(185, 193, 47)/Reset/BOLD 66:Rgb(167, 199, 67)/Reset/BOLD 67:Rgb(147, 204, 86)/Reset/BOLD 68:Rgb(124, 208, 106)/Reset/BOLD 69:Rgb(99, 211, 125)/Reset/BOLD 71:Rgb(0, 215, 162)/Reset/BOLD 72:Rgb(0, 216, 179)/Reset/BOLD 73:Rgb(0, 215, 197)/Reset/BOLD 74:Rgb(0, 214, 213)/Reset/BOLD 75:Rgb(0, 212, 228)/Reset/BOLD 76:Rgb(0, 209, 242)/Reset/BOLD 77:Rgb(0, 205, 255)/Reset/BOLD 78:Rgb(0, 200, 255)/Reset/BOLD 79:Rgb(54, 195, 255)/Reset/BOLD
+07 ||
+
+08 ||
+
+09 ||
+
+10 ||
+
+11 ||
+
+12 |  protected reply stays put|
+ 2:Reset/Reset/NONE
+13 ||
