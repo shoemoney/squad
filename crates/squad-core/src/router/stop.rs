@@ -167,6 +167,7 @@ pub fn apply(
             tx,
             super::envelope(id, Actor::System, vec![Recipient::Me], event),
         )?;
+        squad_store::accounting::release_unstarted_work(tx, work_id)?;
         tx.execute("UPDATE work SET status='cancelled',runnable=0,lease_fence=lease_fence+1,completed_event_seq=? WHERE work_id=?",params![seq.get(),work_id.to_string()])?;
     }
     super::picks::refresh(tx, group, id)?;

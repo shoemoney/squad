@@ -7,6 +7,12 @@ fn nick(name: &str) -> MemberNick {
 }
 fn fixture() -> (Store, Router) {
     let store = Store::open(":memory:").unwrap();
+    store.call(|db| {
+        for slug in ["test/model", "test/judge"] {
+            db.execute("INSERT INTO catalog VALUES (?,131072,65536,'{\"prompt\":\"0\",\"completion\":\"0\"}','[]','2026-11-25T00:00:00Z')", [slug])?;
+        }
+        Ok(())
+    }).unwrap();
     let roster = vec![nick("alice"), nick("bob")];
     let mut bindings = roster
         .iter()

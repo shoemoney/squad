@@ -30,6 +30,11 @@ fn recover_matching(
         // An attempt row is conservative evidence even if an interrupted older
         // implementation failed to persist its convenience flag.
         db.execute("UPDATE work SET attempt=attempt-CASE WHEN provider_may_have_started=0 AND NOT EXISTS(SELECT 1 FROM attempts WHERE attempts.work_id=work.work_id AND attempts.attempt=work.attempt) THEN 1 ELSE 0 END, status='queued',lease_owner=NULL,lease_until=NULL,lease_fence=lease_fence+1,provider_may_have_started=0,execution_deadline=CASE WHEN kind LIKE 'probe.%' OR kind LIKE 'grill.%' THEN NULL ELSE execution_deadline END WHERE work_id=?", [&id])?;
+        crate::accounting::release_unstarted_work(
+            db,
+            id.parse()
+                .map_err(|_| invalid("Invalid stored work identity"))?,
+        )?;
         recovered.push(
             id.parse()
                 .map_err(|_| invalid("Invalid stored work identity"))?,

@@ -380,6 +380,25 @@ async fn restart_pending_debate_reuses_committed_sources_without_duplicate_calls
 async fn daily_max_refuses_new_calls_and_new_contest_reservations() {
     let mut f = Fixture::new().await;
     f.config.budget.daily_max_usd = 0.000045;
+    // Keep the priced two-attempt reservation below this micro-dollar test cap.
+    let models = f
+        .config
+        .agents
+        .iter()
+        .map(|a| a.model.clone())
+        .chain(std::iter::once(f.config.judge.model.clone()))
+        .map(|id| {
+            serde_json::json!({"id":id,"context_length":1000000,
+            "pricing":{"prompt":"0.000000000001","completion":"0.000000000002"}})
+        })
+        .collect::<Vec<_>>();
+    Mock::given(method("GET"))
+        .and(path("/api/v1/models"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"data":models})))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+
     let room = f.open(OpenMode::Interactive).await;
     room.submit(request(&f.config, "@member0 first")).await;
     f.wait(|| f.count("message.final") == 1).await;

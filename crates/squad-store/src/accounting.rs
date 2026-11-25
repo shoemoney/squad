@@ -210,6 +210,143 @@ fn split_plan_reservation(db: &Connection, grant: &ExecutionGrant, day: &str) ->
     Ok(())
 }
 
+/// Ordinary work has no contest preflight. Reserve its remaining permitted calls
+/// atomically with provider start, using the resolved catalog and full context
+/// ceiling (including the adapter's safety margin). Unknown prices fail closed.
+pub fn start_priced(
+    db: &Connection,
+    grant: &ExecutionGrant,
+    now: DateTime,
+    day: &str,
+    max: i64,
+) -> Result<()> {
+    db.execute_batch("SAVEPOINT priced_start")?;
+    let result = (|| {
+        let started: bool = db.query_row(
+            "SELECT EXISTS(SELECT 1 FROM attempts WHERE work_id=? AND attempt=?)",
+            params![grant.work.work_id.to_string(), grant.work.attempt],
+            |r| r.get(0),
+        )?;
+        let meta: String = db.query_row(
+            "SELECT scheduling_meta FROM work WHERE work_id=?",
+            [grant.work.work_id.to_string()],
+            |r| r.get(0),
+        )?;
+        let meta: serde_json::Value = serde_json::from_str(&meta)?;
+        if !started
+            && meta.get("planId").is_none()
+            && meta.get("attemptReservationMicros").is_none()
+        {
+            reserve_dispatch(db, grant, day, max)?;
+        }
+        start_inner(db, grant, now, day, max)
+    })();
+    if result.is_err() {
+        db.execute_batch("ROLLBACK TO priced_start")?;
+    }
+    db.execute_batch("RELEASE priced_start")?;
+    result
+}
+
+fn reserve_dispatch(db: &Connection, grant: &ExecutionGrant, day: &str, max: i64) -> Result<()> {
+    let unknown = || {
+        StoreError::Domain(
+            ErrorCode::COST_UNKNOWN,
+            "Resolved model pricing is unavailable",
+        )
+    };
+    let row: Option<(i64, Option<u32>, String, String)> = db.query_row(
+        "SELECT context_length,max_output,pricing_json,supported_params_json FROM catalog WHERE slug=?",
+        [grant.binding.model.as_str()], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+    ).optional()?;
+    let (context, published, pricing, supported) = row.ok_or_else(unknown)?;
+    let pricing: serde_json::Value = serde_json::from_str(&pricing)?;
+    let price = |key: &str| {
+        pricing[key]
+            .as_str()
+            .and_then(|s| s.parse::<f64>().ok())
+            .or_else(|| pricing[key].as_f64())
+            .filter(|p| p.is_finite() && *p >= 0.0)
+            .ok_or_else(unknown)
+    };
+    let supported: Vec<String> = serde_json::from_str(&supported)?;
+    let reasoning = if supported.iter().any(|p| p == "reasoning") {
+        match grant.binding.effort {
+            ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
+            ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
+            ReasoningEffort::High => constants::REASONING_HIGH_TOKENS,
+        }
+    } else {
+        0
+    };
+    let visible = grant
+        .work
+        .max_output_tokens
+        .unwrap_or(match grant.work.kind {
+            WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
+            WorkKind::DebateTurn | WorkKind::GrillQuestion | WorkKind::GrillAnswer => {
+                constants::DEBATE_TURN_VISIBLE_TOKENS
+            }
+            WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
+            _ => constants::FINAL_JUDGE_VISIBLE_TOKENS,
+        });
+    // Match the adapter's published output clamping and reasoning reservation.
+    let output = u64::from(
+        visible.min(
+            published
+                .unwrap_or(u32::try_from(context).map_err(|_| unknown())?)
+                .saturating_sub(reasoning),
+        ) + reasoning,
+    );
+    let context = context as u64;
+    let input = context.saturating_sub(output + 1024.max(context.div_ceil(20)));
+    let unit =
+        reservation_micros(input as f64 * price("prompt")? + output as f64 * price("completion")?)
+            .map_err(|_| unknown())?;
+    let limit: u32 = match grant.work.kind {
+        WorkKind::Judge
+        | WorkKind::JudgeTournament
+        | WorkKind::CensusMerge
+        | WorkKind::CensusFinal
+        | WorkKind::CrosscheckGoal
+        | WorkKind::CrosscheckNormalize
+        | WorkKind::CrosscheckRule
+        | WorkKind::SurveyExtract
+        | WorkKind::SurveyReport
+        | WorkKind::ProbeReport => 3,
+        _ => 2,
+    };
+    let remaining = limit.saturating_sub(grant.work.attempt - 1);
+    let pool = format!("dispatch:{}", grant.work.work_id);
+    transfer_unstarted(db, grant.work.work_id, day)?;
+    let prior: Option<i64> = db
+        .query_row(
+            "SELECT amount_micros FROM reservations WHERE reservation_id=?",
+            [&pool],
+            |r| r.get(0),
+        )
+        .optional()?;
+    let needed = unit.checked_mul(i64::from(remaining)).ok_or_else(unknown)?;
+    if let Some(prior) = prior {
+        // Reprice remaining calls after restart or catalog refresh. Started shares
+        // retain their original amounts and billing day.
+        db.execute(
+            "UPDATE spend_daily SET reserved_micros=reserved_micros-? WHERE day=?",
+            params![prior, day],
+        )?;
+        db.execute("DELETE FROM reservations WHERE reservation_id=?", [&pool])?;
+    }
+    reserve(db, &pool, Some(grant.work.work_id), day, needed, max)?;
+    db.execute(
+        "UPDATE reservations SET amount_micros=?,amount_usd=? WHERE reservation_id=?",
+        params![needed - unit, (needed - unit) as f64 / 1e6, pool],
+    )?;
+    db.execute("INSERT INTO reservations(reservation_id,epoch,work_id,attempt,unresolved,amount_usd,day,amount_micros) VALUES (?,?,?,?,1,?,?,?)",
+        params![format!("attempt:{}:{}",grant.work.work_id,grant.work.attempt),grant.epoch as i64,
+            grant.work.work_id.to_string(),grant.work.attempt,unit as f64/1e6,day,unit])?;
+    Ok(())
+}
+
 /// This must commit before calling the provider. A crash after this point is an unknown call.
 pub fn start(
     db: &Connection,
@@ -248,7 +385,7 @@ fn start_inner(
     ensure_day(db, day)?;
     db.execute("INSERT INTO attempts(work_id,attempt,epoch,target,context_id,model,day,started_at,outcome,unresolved,debate_id,case_id,contest_id) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'unknown',1,?9,?10,?11)",params![grant.work.work_id.to_string(),grant.work.attempt,grant.epoch as i64,grant.work.target.to_string(),grant.work.context_id.0,grant.binding.model.as_str(),day,now.to_rfc3339(),grant.work.debate_id.map(|id|id.to_string()),grant.work.case_id.map(|id|id.to_string()),grant.work.contest_id.map(|id|id.to_string())])?;
     db.execute(
-        "UPDATE reservations SET attempt=?1,unresolved=1 WHERE work_id=?2 AND attempt IS NULL",
+        "UPDATE reservations SET attempt=?1,unresolved=1 WHERE work_id=?2 AND attempt IS NULL AND reservation_id NOT LIKE 'dispatch:%'",
         params![grant.work.attempt, grant.work.work_id.to_string()],
     )?;
     db.execute(
