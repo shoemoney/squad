@@ -34,8 +34,8 @@
   - [ ] M4.P1.L2.T1 — Declare Ratatui 0.30.x, crossterm, tokio, Markdown, highlighting, and Unicode dependencies in `crates/squad-tui/Cargo.toml`.
   - [ ] M4.P1.L2.T2 — Implement `App` in `crates/squad-tui/src/app.rs` and the single `tokio::select!` loop in `crates/squad-tui/src/event_loop.rs`, prioritizing terminal input, draining at most 256 feed items per iteration, and arming the frame timer from `FxManager::next_wake()` and pending UI deadlines, capped at 60 Hz and disarmed when idle.
   - [ ] M4.P1.L2.T3 — Implement pure render functions and both viewport geometries in `crates/squad-tui/src/ui.rs` and `crates/squad-tui/src/layout.rs`.
-  - [ ] M4.P1.L2.T4 — Implement terminal setup, capability queries, synchronized-output closure, and cleanup on exit or failure in `crates/squad-tui/src/terminal.rs`.
-  - [ ] M4.P1.L2.T5 — Implement missing-key, room-locked, and terminal-too-small presentation in `crates/squad-tui/src/screens.rs`.
+  - [x] M4.P1.L2.T4 — Implement terminal setup, capability queries, synchronized-output closure, and cleanup on exit or failure in `crates/squad-tui/src/terminal.rs`.
+  - [x] M4.P1.L2.T5 — Implement missing-key, room-locked, and terminal-too-small presentation in `crates/squad-tui/src/screens.rs`.
   - [ ] M4.P1.L2.T6 — Expose the post-render effects pass and effects manager hook in `crates/squad-tui/src/event_loop.rs` and `crates/squad-tui/src/ui.rs`, following TUI effects and motion while keeping static rendering complete and correct with effects off.
 
 - **M4.P1.L3 — Spike and implement grapheme-aware input**

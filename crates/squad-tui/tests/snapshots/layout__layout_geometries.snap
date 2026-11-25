@@ -1,0 +1,325 @@
+---
+source: crates/squad-tui/tests/layout.rs
+expression: "snapshot.join(\"\\n\\n\")"
+---
+80x24: ViewportLayout {
+    viewport: Narrow,
+    status: Rect {
+        x: 0,
+        y: 0,
+        width: 80,
+        height: 1,
+    },
+    spend: Rect {
+        x: 0,
+        y: 1,
+        width: 80,
+        height: 1,
+    },
+    participants: Rect {
+        x: 0,
+        y: 2,
+        width: 16,
+        height: 17,
+    },
+    divider: Rect {
+        x: 16,
+        y: 2,
+        width: 1,
+        height: 17,
+    },
+    transcript: Rect {
+        x: 17,
+        y: 2,
+        width: 63,
+        height: 17,
+    },
+    input: Rect {
+        x: 0,
+        y: 19,
+        width: 80,
+        height: 4,
+    },
+    help: Rect {
+        x: 0,
+        y: 23,
+        width: 80,
+        height: 1,
+    },
+}
+
+120x36: ViewportLayout {
+    viewport: Wide,
+    status: Rect {
+        x: 0,
+        y: 0,
+        width: 120,
+        height: 1,
+    },
+    spend: Rect {
+        x: 0,
+        y: 1,
+        width: 120,
+        height: 1,
+    },
+    participants: Rect {
+        x: 0,
+        y: 2,
+        width: 20,
+        height: 29,
+    },
+    divider: Rect {
+        x: 20,
+        y: 2,
+        width: 1,
+        height: 29,
+    },
+    transcript: Rect {
+        x: 21,
+        y: 2,
+        width: 99,
+        height: 29,
+    },
+    input: Rect {
+        x: 0,
+        y: 31,
+        width: 120,
+        height: 4,
+    },
+    help: Rect {
+        x: 0,
+        y: 35,
+        width: 120,
+        height: 1,
+    },
+}
+
+120x40: ViewportLayout {
+    viewport: Wide,
+    status: Rect {
+        x: 0,
+        y: 0,
+        width: 120,
+        height: 1,
+    },
+    spend: Rect {
+        x: 0,
+        y: 1,
+        width: 120,
+        height: 1,
+    },
+    participants: Rect {
+        x: 0,
+        y: 2,
+        width: 20,
+        height: 33,
+    },
+    divider: Rect {
+        x: 20,
+        y: 2,
+        width: 1,
+        height: 33,
+    },
+    transcript: Rect {
+        x: 21,
+        y: 2,
+        width: 99,
+        height: 33,
+    },
+    input: Rect {
+        x: 0,
+        y: 35,
+        width: 120,
+        height: 4,
+    },
+    help: Rect {
+        x: 0,
+        y: 39,
+        width: 120,
+        height: 1,
+    },
+}
+
+119x24: ViewportLayout {
+    viewport: Narrow,
+    status: Rect {
+        x: 0,
+        y: 0,
+        width: 119,
+        height: 1,
+    },
+    spend: Rect {
+        x: 0,
+        y: 1,
+        width: 119,
+        height: 1,
+    },
+    participants: Rect {
+        x: 0,
+        y: 2,
+        width: 16,
+        height: 17,
+    },
+    divider: Rect {
+        x: 16,
+        y: 2,
+        width: 1,
+        height: 17,
+    },
+    transcript: Rect {
+        x: 17,
+        y: 2,
+        width: 102,
+        height: 17,
+    },
+    input: Rect {
+        x: 0,
+        y: 19,
+        width: 119,
+        height: 4,
+    },
+    help: Rect {
+        x: 0,
+        y: 23,
+        width: 119,
+        height: 1,
+    },
+}
+
+79x24: ViewportLayout {
+    viewport: TooSmall,
+    status: Rect {
+        x: 0,
+        y: 0,
+        width: 79,
+        height: 1,
+    },
+    spend: Rect {
+        x: 0,
+        y: 1,
+        width: 79,
+        height: 1,
+    },
+    participants: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    divider: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    transcript: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    input: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    help: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+}
+
+80x23: ViewportLayout {
+    viewport: TooSmall,
+    status: Rect {
+        x: 0,
+        y: 0,
+        width: 80,
+        height: 1,
+    },
+    spend: Rect {
+        x: 0,
+        y: 1,
+        width: 80,
+        height: 1,
+    },
+    participants: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    divider: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    transcript: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    input: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    help: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+}
+
+0x0: ViewportLayout {
+    viewport: TooSmall,
+    status: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    spend: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    participants: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    divider: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    transcript: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    input: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+    help: Rect {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    },
+}
