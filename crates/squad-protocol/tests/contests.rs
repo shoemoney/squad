@@ -161,3 +161,59 @@ fn request_serialization_preserves_variant_and_field_spelling() {
         json!({"ContestPick":{"requestId":ID,"contestId":ID,"nicks":["a","b"]}})
     );
 }
+
+#[test]
+fn shared_parser_api_maps_modes_picks_and_all_export_scopes() {
+    use squad_protocol::parser::{
+        ParseContext, PendingPick, QuestionFirstMode, SubmissionMeta, parse,
+    };
+    let mut ctx = ParseContext {
+        roster: ["a", "b", "c", "d"].map(|n| Nick::new(n).unwrap()).to_vec(),
+        ..Default::default()
+    };
+    let meta = SubmissionMeta::default();
+    for raw in [
+        "@a @b $debate Fresh topic",
+        "@all $debate Pick after answers",
+        "@all $tournament Design a CLI",
+        "@all $grill Design a plan",
+        "@all $census Pasted plan",
+        "@all $crosscheck Pasted plan",
+        "@all $survey Pick an option",
+        "@all $probe Inspect logs; database ruled out",
+    ] {
+        let parsed = parse(raw, &meta, &ctx).unwrap();
+        let expected = parsed.clone();
+        let req = Request::from_parsed_with_context(ID.parse().unwrap(), parsed, &meta, &ctx, true)
+            .unwrap();
+        assert!(
+            matches!(req, Request::UserMessage { parsed, input, preconfirmed:true } if parsed == expected && input.text.as_str() == raw)
+        );
+    }
+    ctx.pending_pick = Some(PendingPick {
+        contest_id: ID.parse().unwrap(),
+        mode: QuestionFirstMode::Debate,
+        eligible: ctx.roster.clone(),
+    });
+    let parsed = parse("@a @b", &meta, &ctx).unwrap();
+    assert!(
+        matches!(Request::from_parsed_with_context(ID.parse().unwrap(), parsed, &meta, &ctx, false).unwrap(), Request::ContestPick { nicks, .. } if nicks.len() == 2)
+    );
+    for scope in [
+        "room",
+        "debate",
+        "grill",
+        "tournament",
+        "census",
+        "crosscheck",
+        "survey",
+        "probe",
+    ] {
+        let parsed = parse(&format!("/export {scope}"), &meta, &ctx).unwrap();
+        assert!(matches!(
+            Request::from_parsed_with_context(ID.parse().unwrap(), parsed, &meta, &ctx, false)
+                .unwrap(),
+            Request::Export { id: None, .. }
+        ));
+    }
+}

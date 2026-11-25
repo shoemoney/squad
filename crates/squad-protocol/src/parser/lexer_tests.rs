@@ -1,3 +1,4 @@
+use super::parse_fixture as parse;
 use super::{
     lexer::{TokenKind, tokenize},
     parser_tests::{context, event},

@@ -193,6 +193,65 @@ pub enum InternalResult {
 }
 
 impl Request {
+    /// Frontends use this owner for snapshot-bound controls as well as ordinary input.
+    pub fn from_parsed_with_context(
+        request_id: EventId,
+        parsed: ParsedInput,
+        meta: &crate::parser::SubmissionMeta,
+        ctx: &crate::parser::ParseContext,
+        preconfirmed: bool,
+    ) -> Result<Self, crate::parser::ParseError> {
+        use crate::parser::{SlashAction, Span, errors::Rule};
+        crate::parser::validate_control(&parsed, meta, ctx)?;
+        let span = Span {
+            start: 0,
+            end: parsed.raw().len(),
+        };
+        match &parsed {
+            ParsedInput::Slash {
+                action: SlashAction::Continue { plan },
+                ..
+            } => {
+                let (contest_id, expected_state_version) = crate::parser::waiting_census(ctx)
+                    .ok_or_else(|| Rule::CensusNotWaiting.error(span.clone(), &[]))?;
+                Ok(Self::CensusContinue {
+                    request_id,
+                    contest_id,
+                    expected_state_version,
+                    plan_event_id: crate::parser::continuation_plan(meta, ctx),
+                    replacement_text: plan.as_ref().map(Text::new).transpose().map_err(|_| {
+                        Rule::Usage.error(span, &[("usage", "/continue [\"<plan>\"]")])
+                    })?,
+                })
+            }
+            ParsedInput::Slash {
+                action: SlashAction::Accept { cell_ids, reason },
+                ..
+            } => {
+                let record = crate::parser::complete_crosscheck(ctx)
+                    .ok_or_else(|| Rule::NoCompleteCrosscheck.error(span.clone(), &[]))?;
+                Ok(Self::CrosscheckAccept {
+                    request_id,
+                    contest_id: record.contest_id.expect("validated complete target"),
+                    expected_state_version: record.state_version.expect("validated state version"),
+                    plan_event_id: record.plan_event_id.expect("validated plan"),
+                    grid_event_id: record.grid_event_id.expect("validated grid"),
+                    cell_ids: cell_ids.clone(),
+                    reason: Text::new(reason).map_err(|_| {
+                        Rule::Usage.error(span, &[("usage", "/accept <cellId…> -- <reason>")])
+                    })?,
+                })
+            }
+            _ => Self::from_parsed(request_id, parsed, meta, preconfirmed).map_err(|error| {
+                crate::parser::ParseError {
+                    code: ErrorCode::INVALID_COMMAND,
+                    message: error.message,
+                    span,
+                }
+            }),
+        }
+    }
+
     /// Frontend mapping preserves the successful AST and complete atomic update vectors.
     pub fn from_parsed(
         request_id: EventId,
@@ -213,38 +272,41 @@ impl Request {
                 contest_id: *contest_id,
                 nicks: nicks.clone(),
             },
-            ParsedInput::Slash { action, .. } => match action {
-                SlashAction::Set { variable, value } => Self::SetVars {
-                    request_id,
-                    updates: vec![VariableUpdate {
-                        name: variable.clone(),
-                        value: *value,
-                    }],
-                },
-                SlashAction::Stop { nick } => Self::Stop {
-                    request_id,
-                    target: nick.clone(),
-                },
-                SlashAction::Judge { debate_id } => Self::Judge {
-                    request_id,
-                    debate_id: *debate_id,
-                },
-                SlashAction::Regen { message_id } => Self::Regen {
-                    request_id,
-                    message_id: *message_id,
-                },
-                SlashAction::Clear => Self::Clear { request_id },
-                SlashAction::Who => Self::Who,
-                SlashAction::Help => Self::Help,
-                SlashAction::Export { scope, id } => Self::Export {
-                    scope: scope.clone(),
-                    id: id.as_deref().map(str::parse).transpose().map_err(|e| {
-                        crate::validation::ValidationError {
-                            message: format!("invalid export ID: {e}"),
-                        }
-                    })?,
-                },
-            },
+            ParsedInput::Slash { action, .. } => {
+                match action {
+                    SlashAction::Continue { .. } | SlashAction::Accept { .. } => {
+                        return Err(crate::validation::ValidationError {
+                        message: "continuation and acceptance require Request::from_parsed_with_context".into(),
+                    });
+                    }
+                    SlashAction::Set { variable, value } => Self::SetVars {
+                        request_id,
+                        updates: vec![VariableUpdate {
+                            name: variable.clone(),
+                            value: *value,
+                        }],
+                    },
+                    SlashAction::Stop { nick } => Self::Stop {
+                        request_id,
+                        target: nick.clone(),
+                    },
+                    SlashAction::Judge { debate_id } => Self::Judge {
+                        request_id,
+                        debate_id: *debate_id,
+                    },
+                    SlashAction::Regen { message_id } => Self::Regen {
+                        request_id,
+                        message_id: *message_id,
+                    },
+                    SlashAction::Clear => Self::Clear { request_id },
+                    SlashAction::Who => Self::Who,
+                    SlashAction::Help => Self::Help,
+                    SlashAction::Export { scope, id } => Self::Export {
+                        scope: scope.clone(),
+                        id: *id,
+                    },
+                }
+            }
             _ => Self::UserMessage {
                 input: UserMessageInput {
                     message_id: request_id

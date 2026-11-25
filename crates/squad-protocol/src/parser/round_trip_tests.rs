@@ -1,4 +1,7 @@
 use super::{
+    ParserSnapshot as ParseContext, SourceSummary as RecordSummary, parse_fixture as parse,
+};
+use super::{
     lexer::tokenize,
     parser_tests::{context, event, message, pending, reply},
     *,
@@ -76,6 +79,18 @@ fn format_valid(ast: &ParsedInput, ctx: &ParseContext) -> String {
                     "/export {}{}",
                     serde_json::to_value(scope).unwrap().as_str().unwrap(),
                     id.as_ref().map_or(String::new(), |id| format!(" {id}"))
+                ),
+                SlashAction::Continue { plan } => match plan {
+                    Some(plan) => format!("/continue {}", serde_json::to_string(plan).unwrap()),
+                    None => "/continue".into(),
+                },
+                SlashAction::Accept { cell_ids, reason } => format!(
+                    "/accept {} -- {reason}",
+                    cell_ids
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(" ")
                 ),
                 SlashAction::Clear => "/clear".into(),
                 SlashAction::Who => "/who".into(),

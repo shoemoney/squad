@@ -1,76 +1,71 @@
 # Parser API and M1.P2 implementation notes
 
-`parser::parse(raw, &ParseContext) -> Result<ParsedInput, ParseError>` is the shared
-entry point. Context supplies the configured roster, effective room variables,
-submission metadata, pending pick, record summaries, one latest parallel-answer
-batch, and active contest kind. It performs no I/O or state changes.
+`parser::parse(raw, &SubmissionMeta, &ParseContext) -> ParseResult` is the shared,
+deterministic frontend entry point. It performs no I/O or state changes. Context
+uses the protocol's roster, `BTreeMap<VariableName, u8>`, pending pick, full
+`RecordSummary` values and optional `ContestState`. Missing variable entries use
+defaults 10, 2 and 2; callers supply effective stored/environment values.
+`SubmissionMetadata` remains an alias of `SubmissionMeta` for existing consumers.
 
-`parser::validate_context(&parsed, &authoritative_context)` repeats roster,
-reference, source, pick, and occupied-room checks and returns a fresh validated
-AST. Rejected calls cannot partially change the caller's AST or snapshots.
-`ParsedInput::contest_pick_request(request_id)` binds a pick to the shared
-`Request::ContestPick` variant. The bus milestone will extend `requests.rs` with
-the other request variants; this parser implementation does not implement a bus.
+`parser::validate_context(&parsed, &meta, &authoritative_context)` repeats reference,
+source, pick and occupied-room validation. It returns a fresh AST and cannot
+partially mutate the caller's snapshots. Internal `ParserSnapshot` and
+`SourceSummary` are private implementation details used by the scanner and old
+fixtures; they are not alternate public protocol contracts. All original parser
+fixtures pass through the public entry point using a test-only snapshot adapter.
 
-`resolve_recipients` handles lexical selectors. All nick creation and serde
-validation reuse `config::Nick::new`. `SubmissionMetadata` is a separate serde
-value using camelCase (`replyTo`); it is carried in `ParseContext` for parsing.
+`Request::from_parsed_with_context` owns frontend AST-to-request conversion,
+including waiting census and completed crosscheck binding. It delegates existing
+context-free mappings to `Request::from_parsed`, which retains compatibility for
+those inputs and rejects controls requiring a snapshot. There is no independent
+pick-to-request helper. Assignment-only `SetVars` vectors and inline conversational
+updates remain intact for the router's atomic commit. This parser never commits
+variables or performs a contest transition.
 
-RoomVariables contains effective values: the caller applies stored-value versus
-environment-seed precedence before supplying it. Defaults are 10, 2, and 2.
-Record eligibility is supplied by the record owner; the parser never reads source
-text, chooses execution roles, assembles cases, estimates calls or spends money.
+`/continue` decodes one JSON string without expansion, or uses one eligible quote,
+or keeps the current plan. It binds the waiting census ID and state version.
+M1's generic state has no admitted-pass counter; checking the remaining pass
+limit, draining work and reacquiring holds require the M5 census execution state.
+`/accept` preserves the reason after argument-separating whitespace, including
+internal/trailing whitespace, and binds the latest retained COMPLETE crosscheck's
+plan, grid, cells and version. Context records use durable kinds such as
+`user.message`, `message.final`, `grill.plan` and `crosscheck.state`. They are ordered
+by numeric sequence rather than input vector position. Superseded or ineligible
+sources cannot supply plans, answers or acceptance targets.
 
-## Specification choices
+Survey reuse selects one latest eligible parallel-answer question from supplied
+human-message and final-reply summaries. It never combines answers to different
+questions. The router freezes the selected batch and revalidates all mutable
+sources and state versions before acceptance.
 
-1. A single backslash protects the next sigil, backtick, or backslash as defined
-   by the grammar. Decoded text is never scanned again.
-2. Example IDs `d1`, `m1`, `t1`, `c1`, and `p1` are explicitly described as symbolic
-   valid identifiers. Fixtures substitute deterministic UUIDv7 values. Production
-   slash IDs and typed record IDs require UUIDv7, following the shared protocol.
-3. The snapshot owner supplies pick eligibility in roster order; diagnostics print
-   that supplied order unchanged. Fixtures use claude, gemini, grok.
-4. Explicit solution selections match distinct debaters by recorded authorship,
-   independent of attachment order. The spec does not bind selection array indices
-   to debater indices. Missing or invalid records report the first debater still
-   lacking a valid selection; duplicate-author selections cannot supply both sides.
-5. Question-first `replyTo` rejection uses the specific collected-answers error
-   for either mode, before the general non-debate selection prohibition. The
-   examples cover question-first debate; the prose explicitly covers both modes.
-6. A pending pick implies an occupied contest even if `active_contest` is omitted
-   from the supplied snapshot. It does not block ordinary messages or controls.
-7. Stale picks use `CONTEST_PICK_INVALID` and the shared diagnostic
-   `The pending pick is no longer available.`
-8. A second `$verb`, including an unknown second verb, reports the multiple-command
-   error. A second `@all` reports the recipient-combination error.
-9. Token removal collapses whitespace only when both sides have whitespace.
-   Protected text stays byte-identical, and a fence-closing newline is retained.
-10. `@judge` overrides recipient-combination errors only; other recipient errors
-    compete in token order.
-11. `/export room` accepts no ID: there is a single persistent room. Other export
-    scopes accept an optional UUIDv7 ID.
-12. Grill selector/count errors use `GRILL_PARTICIPANTS_REQUIRED`. A census source
-    conflict is an argument failure and uses `INVALID_COMMAND`.
-13. Survey answer batches carry answer IDs. Authoritative validation checks each
-    usable answer's eligibility, authorship, direction, and shared question ID.
+## Verification
 
-## Verification coverage
+The 166 existing `examples.json` cases and their complete AST/error snapshots are
+unchanged. Symbolic example identifiers are replaced by deterministic UUIDv7
+values in fixtures. Export IDs now use `ContestId` directly in the AST; their JSON
+representation is unchanged. Cell IDs require UUIDv4.
 
-All 162 original example-table rows plus four review regressions have explicit AST or exact-error expectations in
-`examples.json`; symbolic IDs are the only input substitutions.
-Accepted insta snapshots contain every example's complete `Result`, AST,
-attachment order, update array, error code, message, and span. Additional fixtures
-cover lexical boundaries, protected code, byte limits, slash arguments,
-precedence, all decision-table boundaries, every active contest kind, stale
-sources and picks, and shared request conversion.
+`validation_strings.json` and `validation_codes.json` independently freeze every
+Rule's exact text and canonical ErrorCode, including the different ordinary and
+survey codes for the same missing-recipient string. Busy errors select their code
+from the requested mode and print the currently active kind.
 
-Three proptests cover arbitrary Unicode input, syntax-heavy fragment input, and
-parse/format/parse semantic round trips. The formatter receives unchanged
-context and metadata and verifies each parse's own raw input. All 43 generator
-branches also run deterministically, covering all modes, source forms, picks,
-variables, export scopes, and slash actions.
+Tests cover all seven modes, both pick kinds, quoting, standalone judging,
+explicit solution selections, source eligibility, all eight exports, atomic
+three-variable staging, Unicode spans, lexical precedence and contextual controls.
+The original generated round trips use unchanged context and metadata; additional
+properties preserve arbitrary literal continuation/acceptance text. Request tests
+exercise the public parser boundary and shared mapping without a store or engine.
 
-Only parser-needed shared identifiers, the canonical complete ErrorCode enum,
-ContestKind, and the ContestPick request variant are added here. Full bus request,
-envelope, store, case execution, spending admission, and contest-engine registries
-belong to other milestones. No parser task requires those execution paths.
+## Existing grammar decisions
+
+- Protected text and decoded escapes are never scanned again.
+- Pick eligibility diagnostics preserve the supplied roster order. Stale picks
+  use `CONTEST_PICK_INVALID` and `The pending pick is no longer available.`
+- Explicit solution selections bind by recorded authorship, not array position.
+- Question-first solution selections use the collected-answers error for both modes.
+- Pending picks occupy the contest claim while ordinary messages and controls remain legal.
+- Token removal collapses whitespace only when whitespace exists on both sides.
+- Standalone `@judge` overrides recipient-combination errors; other recipient errors
+  compete by their token positions.
+- `/export room` accepts no ID; the other scopes accept an optional UUIDv7 ID.

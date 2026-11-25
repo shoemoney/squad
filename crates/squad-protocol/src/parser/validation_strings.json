@@ -62,5 +62,9 @@
   "@{nick} has no plan for $census yet. Ask it something first.",
   "@{nick} has no plan for $crosscheck yet. Ask it something first.",
   "No parallel answers are available for $survey. Add a question after $survey.",
-  "Add an observation, what is ruled out, and what can be inspected after $probe."
+  "Add an observation, what is ruled out, and what can be inspected after $probe.",
+  "No census is waiting for a plan.",
+  "Select exactly one member reply or grill plan version for /continue.",
+  "No complete crosscheck is available for acceptance.",
+  "Crosscheck acceptance is stale. Refresh the coverage ledger."
 ]

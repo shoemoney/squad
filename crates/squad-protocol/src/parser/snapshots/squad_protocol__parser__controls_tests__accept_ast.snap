@@ -1,0 +1,15 @@
+---
+source: crates/squad-protocol/src/parser/controls_tests.rs
+expression: parsed
+---
+{
+  "kind": "slash",
+  "raw": "/accept 550e8400-e29b-41d4-a716-446655440000 -- Risk accepted:  @all $ROUNDS=0\nkeep  spacing  ",
+  "action": {
+    "name": "accept",
+    "cellIds": [
+      "550e8400-e29b-41d4-a716-446655440000"
+    ],
+    "reason": "Risk accepted:  @all $ROUNDS=0\nkeep  spacing  "
+  }
+}
