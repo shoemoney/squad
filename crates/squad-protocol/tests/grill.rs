@@ -73,3 +73,42 @@ fn unknown_fields_are_rejected_before_deserialization() {
     value["secret"] = serde_json::json!("not authorized");
     assert!(validation::decode::<GrillSetup>(&value).is_err());
 }
+
+#[test]
+fn grill_work_requires_fresh_context_matching_prompt_and_no_judge() {
+    let contest = ContestId::new();
+    let step = StepId::new();
+    let target = Nick::new("alpha").unwrap();
+    let mut work = Work {
+        work_id: WorkId::new(),
+        message_id: MessageId::new(),
+        in_reply_to_message_id: None,
+        kind: WorkKind::GrillQuestion,
+        target: Target::Member(target.clone()),
+        context_id: ContextId(format!("contest:{contest}:{step}:{target}")),
+        trigger_event_id: EventId::new(),
+        history_through: HistoryPosition::new(1).unwrap(),
+        attempt: 1,
+        debate_id: None,
+        round: Some(1),
+        replay: None,
+        case_id: None,
+        prompt_ref: Some(PromptRef {
+            pack_version: Text::new("fixture").unwrap(),
+            template_id: Text::new("grill.question").unwrap(),
+            template_hash: Text::new("hash").unwrap(),
+        }),
+        max_output_tokens: Some(2048),
+        contest_id: Some(contest),
+        step_id: Some(step),
+    };
+    assert!(work.validate().is_ok());
+    work.context_id = ContextId(target.to_string());
+    assert!(work.validate().is_err());
+    work.context_id = ContextId(format!("contest:{contest}:{step}:{target}"));
+    work.attempt = 3;
+    assert!(work.validate().is_err());
+    work.attempt = 1;
+    work.prompt_ref.as_mut().unwrap().template_id = Text::new("judge.round").unwrap();
+    assert!(work.validate().is_err());
+}

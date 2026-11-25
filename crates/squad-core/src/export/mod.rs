@@ -512,6 +512,107 @@ pub fn render(
                     render_artifact(&mut out, artifact);
                 }
             }
+            EnvelopePayload::GrillSetup(v) => {
+                banner(&mut out, Banner::Grill);
+                heading(
+                    &mut out,
+                    &format!("Grill {} · leader @{}", v.contest_id, v.leader),
+                );
+                paragraph(
+                    &mut out,
+                    &format!(
+                        "Shared floor: {}",
+                        v.participants()
+                            .iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                );
+                paragraph(&mut out, &v.focus);
+            }
+            EnvelopePayload::GrillState(v) => {
+                heading(
+                    &mut out,
+                    &format!("Grill round {} · {:?}", v.round, v.state),
+                );
+                if let Some(reason) = &v.terminal_reason {
+                    paragraph(&mut out, reason);
+                }
+            }
+            EnvelopePayload::GrillPlan(v) => block(
+                &mut out,
+                &format!("Plan v{} · round {}", v.version, v.round),
+                &v.text,
+            ),
+            EnvelopePayload::GrillQuestion(v) => {
+                heading(
+                    &mut out,
+                    &format!(
+                        "Round {} · @{} asks @{} · {}",
+                        v.round, v.griller, v.leader, v.angle
+                    ),
+                );
+                for (i, q) in v.questions.iter().enumerate() {
+                    block(&mut out, &format!("Question {}", i + 1), q);
+                }
+            }
+            EnvelopePayload::GrillAnswer(v) => {
+                heading(
+                    &mut out,
+                    &format!("@{} answers · {}", v.leader, v.question_event_id),
+                );
+                for answer in &v.answers {
+                    block(
+                        &mut out,
+                        &format!("Answer {}", answer.question_index + 1),
+                        &answer.answer,
+                    );
+                    block(&mut out, "Plan changes", &answer.plan_changes);
+                }
+            }
+            EnvelopePayload::GrillPass(v) => heading(
+                &mut out,
+                &format!(
+                    "Round {} · @{} · {}",
+                    v.round,
+                    v.griller,
+                    match v.reason {
+                        squad_protocol::GrillPassReason::Pass => "PASS",
+                        squad_protocol::GrillPassReason::Timeout => "SKIPPED (timeout)",
+                        squad_protocol::GrillPassReason::Error => "SKIPPED (error)",
+                    }
+                ),
+            ),
+            EnvelopePayload::GrillComplete(v) => {
+                heading(
+                    &mut out,
+                    &format!(
+                        "FINAL PLAN v{} · {}",
+                        v.final_plan_version, v.final_plan_event_id
+                    ),
+                );
+                if let Some(plan) = events.iter().find_map(|e| match &e.content {
+                    EnvelopePayload::GrillPlan(p) if e.base.id == v.final_plan_event_id => Some(p),
+                    _ => None,
+                }) {
+                    paragraph(&mut out, &plan.text);
+                }
+                heading(&mut out, "Complete attributed question-and-answer appendix");
+                for item in &v.appendix {
+                    block(
+                        &mut out,
+                        &format!("@{} · question {}", item.griller, item.question_index + 1),
+                        &item.question,
+                    );
+                    if let Some(answer) = &item.answer {
+                        block(&mut out, "Answer", answer);
+                    }
+                    if let Some(changes) = &item.plan_changes {
+                        block(&mut out, "Plan changes", changes);
+                    }
+                }
+            }
             EnvelopePayload::SystemNotice(s) => block(&mut out, "Notice", s.text.as_str()),
             _ => {} // Explicit allowlist: private records and generic JSON never render.
         }
@@ -520,6 +621,13 @@ pub fn render(
 }
 fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
     Some(match p {
+        EnvelopePayload::GrillSetup(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillState(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillQuestion(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillAnswer(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillPass(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillPlan(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillComplete(s) => (s.contest_id, ContestKind::Grill),
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),

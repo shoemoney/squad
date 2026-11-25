@@ -226,6 +226,7 @@ pub struct ContestTransitionSubmission {
     rename_all_fields = "camelCase"
 )]
 pub enum ContestTransition {
+    Grill(GrillTransition),
     Debate(DebateTransition),
 }
 impl ContestKind {
@@ -253,7 +254,11 @@ impl ContestTransitionSubmission {
             self.kind == ContestKind::Debate,
             "transition kind does not match debate",
         )?;
-        let ContestTransition::Debate(transition) = self.transition;
+        let ContestTransition::Debate(transition) = self.transition else {
+            return Err(crate::validation::ValidationError {
+                message: "transition kind mismatch".into(),
+            });
+        };
         Ok((self.contest_id, self.expected_state_version, transition))
     }
 }

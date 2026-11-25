@@ -150,6 +150,19 @@ pub enum GrillTransition {
     LeaderFailed,
 }
 impl GrillStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Preflight => "PREFLIGHT",
+            Self::WaitingForParticipants => "WAITING_FOR_PARTICIPANTS",
+            Self::Questioning => "QUESTIONING",
+            Self::Answering => "ANSWERING",
+            Self::Rebuilding => "REBUILDING",
+            Self::Complete => "COMPLETE",
+            Self::Stopped => "STOPPED",
+            Self::Failed => "FAILED",
+        }
+    }
+
     pub fn is_terminal(&self) -> bool {
         matches!(self, Self::Complete | Self::Stopped | Self::Failed)
     }

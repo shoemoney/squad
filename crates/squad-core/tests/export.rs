@@ -1,4 +1,5 @@
 use serde_json::{Value, json};
+use squad_core::export::GrillQuestion;
 use squad_core::{banner::Banner, export::*};
 use squad_protocol::*;
 
@@ -365,4 +366,71 @@ fn standalone_case_exports_only_public_question_sources_and_ruling() {
     assert!(output.contains("Source · alpha"));
     assert!(output.contains("Use the index"));
     assert!(!output.contains(&uuid(93)));
+}
+
+#[test]
+fn typed_grill_export_retains_versions_and_attributed_appendix() {
+    let snapshot = ExportSnapshot {
+        events: vec![
+            event(
+                1,
+                "grill.setup",
+                json!({"contestId":CONTEST,"leader":"alpha","grillers":["beta"],"sourceMessageId":uuid(70),"initialPlan":"Original plan","focus":"Costs","totalRounds":2}),
+            ),
+            event(
+                2,
+                "grill.plan",
+                json!({"contestId":CONTEST,"leader":"alpha","round":0,"version":1,"text":"Original plan"}),
+            ),
+            event(
+                3,
+                "grill.question",
+                json!({"contestId":CONTEST,"round":1,"turn":0,"griller":"beta","leader":"alpha","planVersion":1,"angle":"cost","questions":["Who pays?"]}),
+            ),
+            event(
+                4,
+                "grill.answer",
+                json!({"contestId":CONTEST,"round":1,"turn":0,"leader":"alpha","questionEventId":uuid(3),"answers":[{"questionIndex":0,"answer":"Users pay","planChanges":"Add pricing"}]}),
+            ),
+            event(
+                5,
+                "grill.plan",
+                json!({"contestId":CONTEST,"leader":"alpha","round":1,"version":2,"text":"Updated plan with pricing"}),
+            ),
+            event(
+                6,
+                "grill.complete",
+                json!({"contestId":CONTEST,"finalPlanEventId":uuid(5),"finalPlanVersion":2,"appendix":[{"questionEventId":uuid(3),"questionIndex":0,"griller":"beta","question":"Who pays?","answer":"Users pay","planChanges":"Add pricing"}]}),
+            ),
+        ],
+        ..Default::default()
+    };
+    let text = render(
+        &snapshot,
+        ExportScope::Grill,
+        Some(CONTEST.parse().unwrap()),
+    )
+    .unwrap();
+    for expected in [
+        "Plan v1",
+        "Plan v2",
+        "Original plan",
+        "Updated plan with pricing",
+        "@beta",
+        "Who pays?",
+        "Users pay",
+        "Add pricing",
+        "FINAL PLAN",
+    ] {
+        assert!(text.contains(expected), "{expected}");
+    }
+    assert!(!text.contains("winner"));
+    assert!(
+        render(
+            &snapshot,
+            ExportScope::Debate,
+            Some(CONTEST.parse().unwrap())
+        )
+        .is_err()
+    );
 }

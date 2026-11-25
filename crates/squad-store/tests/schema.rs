@@ -43,12 +43,16 @@ fn initial_schema_is_atomic_complete_and_reopenable() {
         "catalog",
         "models",
         "superseded",
+        "grill_plans",
+        "grill_turns",
     ] {
         assert!(names.iter().any(|n| n == table), "{table}");
     }
-    assert!(!names.iter().any(|n| n.starts_with("census_")
-        || n.starts_with("tournament_")
-        || n.starts_with("grill_")));
+    assert!(
+        !names
+            .iter()
+            .any(|n| n.starts_with("census_") || n.starts_with("tournament_"))
+    );
     assert_eq!(
         db.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
             .unwrap(),

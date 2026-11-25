@@ -95,6 +95,30 @@ impl Work {
                         && self.attempt <= 2,
                     "invalid grill work",
                 )?;
+                let Target::Member(nick) = &self.target else {
+                    unreachable!("checked member")
+                };
+                ensure(
+                    self.context_id.0
+                        == format!(
+                            "contest:{}:{}:{}",
+                            self.contest_id.expect("checked contest"),
+                            self.step_id.expect("checked step"),
+                            nick
+                        ),
+                    "grill requires fresh step context",
+                )?;
+                let template = match self.kind {
+                    WorkKind::GrillQuestion => "grill.question",
+                    WorkKind::GrillAnswer => "grill.answer",
+                    _ => "grill.rebuild",
+                };
+                ensure(
+                    self.prompt_ref.as_ref().is_some_and(|p| {
+                        p.template_id.as_str().trim_end_matches(".md") == template
+                    }),
+                    "grill prompt mismatch",
+                )?;
             }
             WorkKind::Reply => {
                 ensure(

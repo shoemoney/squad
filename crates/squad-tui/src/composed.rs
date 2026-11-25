@@ -269,6 +269,17 @@ impl Composed {
                 model.widget_rows = rows(&scratch, geometry.content_height);
                 models.push(model);
             }
+            for (id, view) in &session.grills {
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                let area = scratch.area;
+                widgets::grill::render(view, area, &mut scratch, palette);
+                let height = (0..area.height)
+                    .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                    .map_or(0, |y| usize::from(y) + 1);
+                let mut model = TranscriptMessage::new(identity(id), "GRILL", "");
+                model.widget_rows = rows(&scratch, height);
+                models.push(model);
+            }
             for (id, contest) in &session.contests {
                 if let Some(ContestState::Generic(state)) = &contest.state {
                     let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 128));

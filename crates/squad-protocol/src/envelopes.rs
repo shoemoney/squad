@@ -663,8 +663,14 @@ fn validate_envelope(
         EnvelopePayload::Error(error) => validate_error(error)?,
         EnvelopePayload::GrillSetup(v) => v.validate()?,
         EnvelopePayload::GrillState(v) => v.validate()?,
-        EnvelopePayload::GrillQuestion(v) => v.validate()?,
-        EnvelopePayload::GrillPlan(v) => v.validate(constants::PLAN_WORDS)?,
+        EnvelopePayload::GrillQuestion(v) => {
+            v.validate()?;
+            ensure(
+                base.sender == Actor::Member(v.griller.clone()),
+                "grill question author mismatch",
+            )?;
+        }
+        EnvelopePayload::GrillPlan(v) => v.validate(u32::MAX)?,
         EnvelopePayload::GrillAnswer(v) => ensure(
             !v.answers.is_empty() && v.answers.len() <= 3,
             "invalid grill answer",
@@ -787,7 +793,11 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            submission.kind == ContestKind::Debate,
+            matches!(
+                (&submission.kind, &submission.transition),
+                (ContestKind::Debate, ContestTransition::Debate(_))
+                    | (ContestKind::Grill, ContestTransition::Grill(_))
+            ),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {
