@@ -1,0 +1,15 @@
+---
+source: crates/squad-tui/tests/screens.rs
+expression: buffer
+---
+Buffer {
+    area: Rect { x: 0, y: 0, width: 12, height: 3 },
+    content: [
+        "$3.42 /     ",
+        "$20.00 |    ",
+        "Pending     ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}

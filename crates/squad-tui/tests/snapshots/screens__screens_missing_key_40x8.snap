@@ -1,0 +1,20 @@
+---
+source: crates/squad-tui/tests/screens.rs
+expression: buffer
+---
+Buffer {
+    area: Rect { x: 0, y: 0, width: 40, height: 8 },
+    content: [
+        "Squad — missing API key                 ",
+        "                                        ",
+        "OPENROUTER_API_KEY is required. Add it  ",
+        "to .env or the process environment.     ",
+        "                                        ",
+        "Selected .env: /tmp/squad/.env          ",
+        "Run squad doctor to check configuration.",
+        "                                        ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
