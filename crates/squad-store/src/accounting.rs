@@ -77,10 +77,38 @@ pub fn admit(db: &Connection, day: &str, additional: i64, max: i64) -> Result<()
     {
         return Err(StoreError::Domain(
             ErrorCode::DAILY_MAX_REACHED,
-            "Daily spending limit reached",
+            interned(daily_max_text(max, Some((spend.spent_micros, additional)))),
         ));
     }
     Ok(())
+}
+/// The refusal every daily-cap rejection starts with (PRD 02, 04, 05, 10), then,
+/// when known, what was spent and what the request needed (micro-dollars).
+pub fn daily_max_text(max_micros: i64, spent_and_required: Option<(i64, i64)>) -> String {
+    let mut text = format!(
+        "Daily max of ${:.2} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.",
+        max_micros as f64 / 1e6
+    );
+    if let Some((spent, required)) = spent_and_required {
+        text.push_str(&format!(
+            " (Spent ${:.6} today; this request needs up to ${:.6} reserved.)",
+            spent as f64 / 1e6,
+            required as f64 / 1e6
+        ));
+    }
+    text
+}
+/// `StoreError::Domain` holds a `&'static str`; refusals repeat the same few
+/// texts, so each distinct one is kept once instead of being rebuilt per error.
+fn interned(text: String) -> &'static str {
+    static SEEN: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+    let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(known) = seen.iter().find(|known| **known == text) {
+        return known;
+    }
+    let leaked: &'static str = Box::leak(text.into_boxed_str());
+    seen.push(leaked);
+    leaked
 }
 pub fn reserve(
     db: &Connection,

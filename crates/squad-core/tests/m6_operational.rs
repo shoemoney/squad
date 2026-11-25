@@ -100,7 +100,7 @@ async fn real_room_daily_max_exact_message_restart_and_raised_max() {
     f.wait(|| f.scalar("SELECT COUNT(*) FROM work WHERE status='failed'") == 1)
         .await;
     let events = room.events_after(None, 500).await.unwrap();
-    assert!(events.iter().any(|e|matches!(&e.content,EnvelopePayload::WorkState(WorkStateEvent {error:Some(error),..}) if error.code==ErrorCode::DAILY_MAX_REACHED && error.text.as_str()=="Daily max of $0.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.")));
+    assert!(events.iter().any(|e|matches!(&e.content,EnvelopePayload::WorkState(WorkStateEvent {error:Some(error),..}) if error.code==ErrorCode::DAILY_MAX_REACHED && error.text.as_str().starts_with("Daily max of $0.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow."))));
     assert_eq!(f.fake.captured_bodies().await.len(), 1);
     room.shutdown().await.unwrap();
     f.config.budget.daily_max_usd = 1.;

@@ -550,7 +550,7 @@ async fn daily_max_refuses_survey_before_any_provider_call() {
     };
     let text = error.text.as_str();
     assert!(
-        text.starts_with("Daily budget admission refused: spent $0.000000 of $"),
+        text.starts_with("Daily max of $") && text.contains(" reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $0.000000 today; this request needs up to $"),
         "{text}"
     );
     assert!(

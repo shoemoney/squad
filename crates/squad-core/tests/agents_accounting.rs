@@ -194,9 +194,12 @@ async fn local_day_rollover_shared_totals_and_raised_limit_use_the_configured_me
         panic!("refused")
     };
     assert_eq!(error.code, ErrorCode::DAILY_MAX_REACHED);
-    assert_eq!(
-        error.text.as_str(),
-        "Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow."
+    assert!(
+        error.text.as_str().starts_with(
+            "Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $"
+        ),
+        "{}",
+        error.text.as_str()
     );
     let bindings = f
         .config

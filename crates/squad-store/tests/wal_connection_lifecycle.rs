@@ -112,3 +112,21 @@ fn reopening_a_current_schema_writes_nothing() {
         .unwrap();
     assert_eq!(before, after);
 }
+
+#[test]
+fn close_removes_wal_files_before_returning() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("squad.db");
+    let store = squad_store::Store::open(&path).unwrap();
+    let clone = store.clone();
+    store
+        .call(|db| Ok(db.execute("UPDATE vars SET value=value+1 WHERE name='ROUNDS'", [])?))
+        .unwrap();
+    store.close();
+    let names = std::fs::read_dir(dir.path())
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(names, ["squad.db"], "{names:?}");
+    assert!(clone.call(|_| Ok(())).is_err());
+}

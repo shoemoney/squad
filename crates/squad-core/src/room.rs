@@ -610,6 +610,7 @@ impl RoomHandle {
                 db.execute_batch("PRAGMA wal_checkpoint(PASSIVE)")?;
                 Ok(())
             });
+            store.close();
             drop(store);
             drop(_lock);
             result?;

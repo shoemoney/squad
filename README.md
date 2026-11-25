@@ -431,7 +431,7 @@ Terminal requirements:
 | `Unknown OpenRouter model in SQUAD_MODEL_<NICK>: <slug>.` | Check the slug in OpenRouter, or use a `~` alias. |
 | `Room main is already open in another squad process (pid N).` | Another Squad is using the room. Close it. `squad export` still works while the room is open. |
 | `Data directory is not writable: <path>.` | Fix the permissions, or point `SQUAD_DATA_DIR` or `--data-dir` somewhere writable. |
-| `Daily budget admission refused: ...` | Today's spend plus the reservation would pass `SQUAD_DAILY_MAX_USD`. Use a cheaper setting, or raise the cap. |
+| `Daily max of $X reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $S today; this request needs up to $Z reserved.)` | Today's spend plus the reservation would pass `SQUAD_DAILY_MAX_USD`. Use a cheaper setting, or raise the cap. |
 | `Confirmation required. Re-run with --yes in noninteractive mode.` | Add `--yes`, or run the command in a terminal. |
 | `Cannot read environment file: <path>.` | Check the file exists and is readable. |
 | `Terminal too small: WxH. Required: 80×24.` | Resize the terminal window. |
@@ -1219,11 +1219,9 @@ Squad reads the cap when it starts, so restart Squad after you change it.
 
 | Where | Message |
 |-------|---------|
-| Debate preflight | `Daily max of $<your max> reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.` |
-| Contest preflight (census, crosscheck, survey, probe, tournament, grill) | `Daily budget admission refused: spent $X of $Y today; this request needs up to $Z reserved. Existing reservations also count toward the cap. Use cheaper model/settings or adjust SQUAD_DAILY_MAX_USD.` |
-| Ordinary reply, or a contest call that is not yet sent | `DAILY_MAX_REACHED` with `Daily max of $X reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.` |
+| Any refusal: debate preflight, contest preflight and confirm (census, crosscheck, survey, probe, tournament, grill), ordinary reply, executor start | `DAILY_MAX_REACHED` with `Daily max of $X reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.` followed, when the amounts are known, by ` (Spent $S today; this request needs up to $Z reserved.)` |
 
-In the contest message, `$X` is what you have spent, `$Y` is the cap, and `$Z` is what this request needs reserved.
+`$X` is the cap, `$S` is what you have spent today, and `$Z` is what this request needs reserved. Existing reservations also count toward the cap.
 
 **In-flight calls finish.** A call that has already started runs to completion, and its cost is counted when it is reported. Only queued calls that have not been sent yet are refused.
 

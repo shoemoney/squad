@@ -79,12 +79,7 @@ pub fn error(code: ErrorCode, text: impl Into<String>) -> ErrorPayload {
 /// Text for a daily-cap refusal that names what was spent, the cap and the
 /// reservation the request would have needed (all in micro-dollars).
 pub fn daily_cap_text(spent_micros: i64, max_micros: i64, required_micros: i64) -> String {
-    format!(
-        "Daily budget admission refused: spent ${:.6} of ${:.6} today; this request needs up to ${:.6} reserved. Existing reservations also count toward the cap. Use cheaper model/settings or adjust SQUAD_DAILY_MAX_USD.",
-        spent_micros as f64 / 1e6,
-        max_micros as f64 / 1e6,
-        required_micros as f64 / 1e6,
-    )
+    squad_store::accounting::daily_max_text(max_micros, Some((spent_micros, required_micros)))
 }
 /// Build the admission rejection for `required_micros`, reading today's spend.
 pub fn daily_cap_error(

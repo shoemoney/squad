@@ -456,7 +456,7 @@ fn reservation_diagnostic(
     fallback: &str,
 ) -> String {
     // Core admission rejections already carry spent, cap and required reservation.
-    if fallback.starts_with("Daily budget admission refused:") {
+    if fallback.starts_with("Daily max of $") && fallback.contains("(Spent $") {
         return fallback.to_owned();
     }
     let spend = &state["dailySpend"];
@@ -464,16 +464,18 @@ fn reservation_diagnostic(
     else {
         return fallback.to_owned();
     };
-    let required = requested.map_or_else(
-        || {
-            "this request's conservative reservation will not fit (required amount unavailable)"
-                .to_owned()
-        },
-        |amount| format!("this request needs up to ${amount:.6} reserved"),
-    );
-    format!(
-        "Daily budget admission refused: spent ${spent:.6} of ${limit:.6}; {required}. Existing reservations also count toward the cap. Use cheaper model/settings or adjust SQUAD_DAILY_MAX_USD."
-    )
+    let max_micros = (limit * 1e6).round() as i64;
+    let spent_micros = (spent * 1e6).round() as i64;
+    match requested {
+        Some(amount) => squad_store::accounting::daily_max_text(
+            max_micros,
+            Some((spent_micros, (amount * 1e6).round() as i64)),
+        ),
+        None => format!(
+            "{} (Spent ${spent:.6} today; this request's conservative reservation will not fit.)",
+            squad_store::accounting::daily_max_text(max_micros, None)
+        ),
+    }
 }
 
 #[cfg(test)]
@@ -485,6 +487,6 @@ mod diagnostic_tests {
             Some(3.0),
             "DAILY_MAX_REACHED",
         );
-        insta::assert_snapshot!(text, @"Daily budget admission refused: spent $0.180000 of $2.500000; this request needs up to $3.000000 reserved. Existing reservations also count toward the cap. Use cheaper model/settings or adjust SQUAD_DAILY_MAX_USD.");
+        insta::assert_snapshot!(text, @"Daily max of $2.50 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $0.180000 today; this request needs up to $3.000000 reserved.)");
     }
 }

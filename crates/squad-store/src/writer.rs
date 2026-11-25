@@ -26,9 +26,13 @@ impl From<StoreError> for RoomOpenError {
     }
 }
 type Job = Box<dyn FnOnce(&mut Connection) + Send>;
+enum Message {
+    Job(Job),
+    Close(mpsc::SyncSender<()>),
+}
 #[derive(Clone)]
 pub struct Store {
-    sender: Arc<mpsc::Sender<Job>>,
+    sender: Arc<mpsc::Sender<Message>>,
     vacuum_pending: Arc<AtomicBool>,
 }
 impl Store {
@@ -46,23 +50,36 @@ impl Store {
         let mut connection = crate::open(path)?;
         crate::schema::migrate(&mut connection)?;
         connection.execute_batch("INSERT OR IGNORE INTO room_meta VALUES ('main',2,1,1,1,NULL); INSERT OR IGNORE INTO vars(name,value) VALUES ('ROUNDS',10),('GRILL_ROUNDS',2),('CENSUS_PASSES',2);")?;
-        let (sender, receiver) = mpsc::channel::<Job>();
+        let (sender, receiver) = mpsc::channel::<Message>();
         let vacuum_pending = Arc::new(AtomicBool::new(false));
         let retry_vacuum = vacuum_pending.clone();
         std::thread::Builder::new()
             .name("squad-writer".into())
             .spawn(move || {
                 let room_lock = lock;
-                while let Ok(job) = receiver.recv() {
-                    if retry_vacuum.load(Ordering::Acquire)
-                        && connection.execute_batch("VACUUM").is_ok()
-                    {
-                        retry_vacuum.store(false, Ordering::Release);
+                let mut closed_by = None;
+                while let Ok(message) = receiver.recv() {
+                    match message {
+                        Message::Job(job) => {
+                            if retry_vacuum.load(Ordering::Acquire)
+                                && connection.execute_batch("VACUUM").is_ok()
+                            {
+                                retry_vacuum.store(false, Ordering::Release);
+                            }
+                            job(&mut connection);
+                        }
+                        Message::Close(ack) => {
+                            closed_by = Some(ack);
+                            break;
+                        }
                     }
-                    job(&mut connection);
                 }
+                // Closing the last connection checkpoints and removes the -wal file.
                 drop(connection);
                 drop(room_lock);
+                if let Some(ack) = closed_by {
+                    let _ = ack.send(());
+                }
             })
             .map_err(|_| StoreError::Unavailable)?;
         Ok(Self {
@@ -82,15 +99,23 @@ impl Store {
             Ok(())
         })
     }
+    /// Run queued jobs, close SQLite so no `-wal`/`-shm` file is left behind, release
+    /// the room lock, then return. Later calls on any clone fail as unavailable.
+    pub fn close(&self) {
+        let (ack, done) = mpsc::sync_channel(1);
+        if self.sender.send(Message::Close(ack)).is_ok() {
+            let _ = done.recv();
+        }
+    }
     pub fn call<T: Send + 'static>(
         &self,
         job: impl FnOnce(&mut Connection) -> Result<T> + Send + 'static,
     ) -> Result<T> {
         let (sender, receiver) = mpsc::sync_channel(1);
         self.sender
-            .send(Box::new(move |connection| {
+            .send(Message::Job(Box::new(move |connection| {
                 let _ = sender.send(job(connection));
-            }))
+            })))
             .map_err(|_| StoreError::Unavailable)?;
         receiver.recv().map_err(|_| StoreError::Unavailable)?
     }
