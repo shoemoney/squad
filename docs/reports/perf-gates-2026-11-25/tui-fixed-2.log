@@ -1,0 +1,15 @@
+2026-11-25T03:40:12.520347-06:00
+ 03:40:12 up 6 days, 12:48,  1 user,  load average: 0.13, 0.32, 1.63
+    Finished `bench` profile [optimized] target(s) in 0.17s
+     Running benches/composed_streams.rs (target/release/deps/composed_streams-983c0f08092b3553)
+140x42 startup_ms=1064.847
+140x42: elapsed=300.003s frames=18001 deltas=144012 draw_p95_ms=3.656 draw_p99_ms=4.540 key_p95_ms=17.310 cpu_one_core_pct=9.443 VmHWM:	  255212 kB, VmRSS:	  255212 kB gate=PASS
+140x42: reducer_plus_draw_p95_ms=3.718 reducer_plus_draw_p99_ms=4.983 load_start=0.13 0.32 1.63 1/1039 1852123 load_end=0.27 0.23 1.21 1/1033 1854721
+80x24 startup_ms=1161.956
+80x24: elapsed=300.004s frames=18001 deltas=144012 draw_p95_ms=3.420 draw_p99_ms=4.318 key_p95_ms=17.425 cpu_one_core_pct=9.050 VmHWM:	  254496 kB, VmRSS:	  249948 kB gate=PASS
+80x24: reducer_plus_draw_p95_ms=3.484 reducer_plus_draw_p99_ms=4.782 load_start=0.33 0.24 1.21 1/1033 1854919 load_end=0.12 0.17 0.90 1/1034 1857418
+200x60 startup_ms=1160.252
+200x60: elapsed=300.004s frames=18001 deltas=144012 draw_p95_ms=4.043 draw_p99_ms=4.768 key_p95_ms=17.635 cpu_one_core_pct=10.983 VmHWM:	  261104 kB, VmRSS:	  261104 kB gate=PASS
+200x60: reducer_plus_draw_p95_ms=4.100 reducer_plus_draw_p99_ms=5.229 load_start=0.12 0.17 0.90 1/1034 1857625 load_end=0.05 0.12 0.68 1/1044 1860552
+EXIT_STATUS=0
+ 03:55:16 up 6 days, 13:03,  1 user,  load average: 0.05, 0.12, 0.68

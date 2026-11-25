@@ -46,7 +46,7 @@ Reducer-plus-draw timing additionally includes the current frame's feed/input
 work. Key latency is wall time from scheduled input to its visible frame; CPU
 uses process user+system ticks as in the spike below. These are separate metrics.
 
-Quiet-host gate command (still pending after this integration wave):
+Quiet-host gate command:
 
 ```sh
 cargo bench -p squad-tui --bench composed_streams
@@ -56,6 +56,34 @@ The default is 300 seconds per viewport with gate assertions enabled. For a
 measurement-only smoke, `COMPOSED_SECS=10 COMPOSED_ENFORCE=0` retains and prints
 failures without terminating before the remaining viewports. It does not convert
 a failed gate into a pass.
+
+### Quiet-host release rerun (2026-11-25)
+
+Dev3 (AMD Ryzen 9 8945HX, 32 logical CPUs, Linux x86_64, Rust 1.99.1),
+optimized Cargo bench profile, headless TestBackend, truecolor and full effects.
+Three complete runs used the default 300 seconds **per viewport**, sequentially,
+with gate assertions enabled. All cells are **min / median / max** across runs.
+
+| Viewport | Draw p95 ms (≤8) | Draw p99 ms (≤16.7) | Key p95 ms (≤50) | CPU % of one core (≤25) | Result |
+|---|---:|---:|---:|---:|---|
+| 140x42 | 3.656 / 3.798 / 3.947 | 4.540 / 4.641 / 4.734 | 17.310 / 17.598 / 17.735 | 9.443 / 10.337 / 10.757 | PASS 3/3 |
+| 80x24 | 3.408 / 3.420 / 3.671 | 4.254 / 4.318 / 4.428 | 17.337 / 17.425 / 17.486 | 8.867 / 9.050 / 9.890 | PASS 3/3 |
+| 200x60 | 4.043 / 4.124 / 4.132 | 4.768 / 4.928 / 4.992 | 17.635 / 17.822 / 18.000 | 10.983 / 11.750 / 11.877 | PASS 3/3 |
+
+The runner waited for one-minute load below 2 after compilation and a separate
+workspace build. The first TUI invocation started at 0.61/3.04/4.02 (1/5/15-minute
+load); the benchmark's first steady window started at 0.64/3.00/4.00. Per-window
+start/end loads, 30-second samples, memory and raw output are retained in
+[the M6 performance evidence](../../docs/performance.md). This is shared-host
+Linux headless evidence, not a physical-terminal or macOS result, a 30-minute
+sustained test, or the separate 200x60 all-catalogue 6-ms effects gate.
+
+Three original attempts failed before timing because the benchmark checked the
+editor title's cell. The harness now derives the input cell from current layout,
+checks every typed character, and resizes compact width between 80/81 instead of
+entering the unsupported 79-column screen. A six-second resize smoke passed at
+all three sizes before these full runs. Thresholds and production code are
+unchanged; failed attempt logs are retained alongside the successful runs.
 
 ### Loaded-host measurements; not release acceptance
 
@@ -75,8 +103,8 @@ Each completed smoke window processed 4,812 deltas. Startup was 1,192.285 ms and
 1,213.207 ms respectively, including the virtual-clock demo fixture, 10,000-message
 cache fill and first draw. These short loaded-host observations do **not** replace
 the five-minute quiet-host exit gate, the 200x60 6 ms effects gate, a real terminal
-measurement, or macOS verification. The orchestrator will rerun the quiet-host
-gate after the wave finishes and update these results.
+measurement, or macOS verification. The quiet-host release follow-up is recorded
+above; these older observations remain historical evidence.
 
 Retained failed development smokes: before artifact-cache optimization, the
 140x42 10.022 s / 331-frame run measured **reducer-plus-draw** p95/p99

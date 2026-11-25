@@ -1,0 +1,22 @@
+2026-11-25T03:23:59.729471-06:00
+ 03:23:59 up 6 days, 12:32,  1 user,  load average: 1.46, 3.72, 4.29
+    Finished `release` profile [optimized] target(s) in 0.10s
+     Running tests/m6_operational.rs (target/release/deps/m6_operational-6a1eab9d4f14e1e2)
+
+running 1 test
+
+thread 'ordinary_missing_cost_must_retain_a_positive_priced_reservation' (1842326) panicked at crates/squad-core/tests/m6_operational.rs:261:5:
+assertion failed: state.daily_spend.reserved_usd > 0.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test ordinary_missing_cost_must_retain_a_positive_priced_reservation ... FAILED
+
+failures:
+
+failures:
+    ordinary_missing_cost_must_retain_a_positive_priced_reservation
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.05s
+
+error: test failed, to rerun pass `-p squad-core --test m6_operational`
+EXIT_STATUS=101
+ 03:23:59 up 6 days, 12:32,  1 user,  load average: 1.46, 3.72, 4.29

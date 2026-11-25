@@ -227,6 +227,9 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
         if elapsed >= Duration::from_secs(resize * 5) {
             let current = if resize.is_multiple_of(2) {
                 width
+            } else if width == squad_tui::layout::MIN_WIDTH {
+                // Keep the compact viewport interactive during resize stress.
+                width + 1
             } else {
                 width - 1
             };
@@ -254,11 +257,14 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
         app.expire(now);
         let draw_start = Instant::now();
         let completed = terminal.draw(|f| ui::render(&mut app, f, now)).unwrap();
-        let input_y = height - 5;
-        if !app.input.text().is_empty() {
+        let area = completed.buffer.area;
+        let geometry =
+            squad_tui::layout::with_input_rows(area, app.input.desired_height(area.width));
+        for (column, character) in app.input.text().chars().enumerate() {
             assert_eq!(
-                completed.buffer[(2, input_y)].symbol(),
-                "a",
+                completed.buffer[(geometry.input.x + 2 + column as u16, geometry.input.y + 1)]
+                    .symbol(),
+                character.to_string(),
                 "typed text must reach the actual editor"
             );
         }

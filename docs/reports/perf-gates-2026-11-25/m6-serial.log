@@ -1,0 +1,10 @@
+
+running 8 tests
+test credentials_and_provider_reasoning_never_reach_feed_export_debug_or_sqlite ... FAILED
+test exhausted_member_does_not_block_other_member_or_persist_provisional_text ... ok
+test missing_cost_unknown_count_and_current_reservations_survive_restart ... ok
+test no_wait_and_receipt_replay_resume_once_on_interactive_restart ... ok
+test ordinary_missing_cost_must_retain_a_positive_priced_reservation ... ignored, ordinary dispatch currently starts without creating a priced reservation
+test provider_retries_replace_partial_output_and_reconcile_each_paid_attempt ... ok
+test real_room_daily_max_exact_message_restart_and_raised_max ... ok
+test targeted_stop_preserves_other_inflight_work_and_blocks_late_result ...
