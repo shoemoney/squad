@@ -328,9 +328,11 @@ pub fn prepare(
         state.status = CensusStatus::Failed;
         state.terminal_reason = Some(Text::new("daily_max_reached").expect("reason"));
         state.state_version += 1;
-        let mut error = super::error(
-            ErrorCode::DAILY_MAX_REACHED,
-            "Daily max reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.",
+        let mut error = super::daily_cap_error(
+            tx,
+            &chrono::Local::now().format("%Y-%m-%d").to_string(),
+            (reserved * 1e6).ceil() as i64,
+            max,
         );
         error.contest_id = Some(contest);
         push(

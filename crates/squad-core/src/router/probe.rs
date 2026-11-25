@@ -181,13 +181,7 @@ pub fn prepare(
     {
         return Ok(RequestResult::Rejected {
             request_id: id,
-            error: error(
-                ErrorCode::DAILY_MAX_REACHED,
-                format!(
-                    "Daily max of ${:.2} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.",
-                    max as f64 / 1e6
-                ),
-            ),
+            error: super::daily_cap_error(tx, &day, reserve, max),
         });
     }
     squad_store::accounting::admit(tx, &day, reserve, max)?;

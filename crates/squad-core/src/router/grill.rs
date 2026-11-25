@@ -253,7 +253,7 @@ pub fn prepare(
         Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
             return Ok(RequestResult::Rejected {
                 request_id: id,
-                error: daily_error(max),
+                error: super::daily_cap_error(tx, &day, amount, max),
             });
         }
         Err(e) => return Err(e),

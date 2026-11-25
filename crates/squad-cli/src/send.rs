@@ -436,6 +436,10 @@ fn reservation_diagnostic(
     requested: Option<f64>,
     fallback: &str,
 ) -> String {
+    // Core admission rejections already carry spent, cap and required reservation.
+    if fallback.starts_with("Daily budget admission refused:") {
+        return fallback.to_owned();
+    }
     let spend = &state["dailySpend"];
     let (Some(spent), Some(limit)) = (spend["spentUsd"].as_f64(), spend["limitUsd"].as_f64())
     else {

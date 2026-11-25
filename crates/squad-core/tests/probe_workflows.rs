@@ -795,6 +795,18 @@ async fn daily_max_refuses_before_dispatch() {
         .db()
         .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get(0))
         .unwrap();
+    let RequestResult::Rejected { error, .. } = &result else {
+        unreachable!()
+    };
+    let text = error.text.as_str();
+    assert!(
+        text.starts_with("Daily budget admission refused: spent $0.000000 of $"),
+        "{text}"
+    );
+    assert!(
+        text.contains("today; this request needs up to $") && text.contains("reserved"),
+        "{text}"
+    );
     assert_eq!(calls, 0);
     room.shutdown().await.unwrap();
 }

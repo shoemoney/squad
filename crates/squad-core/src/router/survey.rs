@@ -138,7 +138,16 @@ pub fn admit(
         .checked_mul(i64::from(attempts))
         .ok_or_else(invalid)?;
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-    squad_store::accounting::admit(tx, &day, reserved, max)?;
+    match squad_store::accounting::admit(tx, &day, reserved, max) {
+        Ok(()) => {}
+        Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
+            return Ok(RequestResult::Rejected {
+                request_id: id,
+                error: super::daily_cap_error(tx, &day, reserved, max),
+            });
+        }
+        Err(error) => return Err(error),
+    }
     let plan = ContestPreflight {
         contest_id: contest,
         kind: ContestKind::Survey,

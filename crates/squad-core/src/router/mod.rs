@@ -75,6 +75,31 @@ pub fn error(code: ErrorCode, text: impl Into<String>) -> ErrorPayload {
         provider_message: None,
     }
 }
+/// Text for a daily-cap refusal that names what was spent, the cap and the
+/// reservation the request would have needed (all in micro-dollars).
+pub fn daily_cap_text(spent_micros: i64, max_micros: i64, required_micros: i64) -> String {
+    format!(
+        "Daily budget admission refused: spent ${:.6} of ${:.6} today; this request needs up to ${:.6} reserved. Existing reservations also count toward the cap. Use cheaper model/settings or adjust SQUAD_DAILY_MAX_USD.",
+        spent_micros as f64 / 1e6,
+        max_micros as f64 / 1e6,
+        required_micros as f64 / 1e6,
+    )
+}
+/// Build the admission rejection for `required_micros`, reading today's spend.
+pub fn daily_cap_error(
+    db: &rusqlite::Connection,
+    day: &str,
+    required_micros: i64,
+    max_micros: i64,
+) -> ErrorPayload {
+    let spent = squad_store::accounting::daily(db, day)
+        .map(|spend| spend.spent_micros)
+        .unwrap_or_default();
+    error(
+        ErrorCode::DAILY_MAX_REACHED,
+        daily_cap_text(spent, max_micros, required_micros),
+    )
+}
 pub fn rejected(id: EventId, err: StoreError) -> RequestResult {
     let code = match &err {
         StoreError::Domain(code, _) => *code,

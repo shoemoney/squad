@@ -147,6 +147,12 @@ pub fn prepare(
     let reserve = squad_store::accounting::reservation_micros(reserved).map_err(|_| invalid())?;
     match squad_store::accounting::admit(tx, &day, reserve, daily_max) {
         Ok(()) => {}
+        Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
+            return Ok(RequestResult::Rejected {
+                request_id: id,
+                error: super::daily_cap_error(tx, &day, reserve, daily_max),
+            });
+        }
         Err(StoreError::Domain(code, text)) => {
             return Ok(RequestResult::Rejected {
                 request_id: id,

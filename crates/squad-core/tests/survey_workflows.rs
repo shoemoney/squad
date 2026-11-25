@@ -544,6 +544,18 @@ async fn daily_max_refuses_survey_before_any_provider_call() {
         ),
         "{result:?}"
     );
+    let RequestResult::Rejected { error, .. } = &result else {
+        unreachable!()
+    };
+    let text = error.text.as_str();
+    assert!(
+        text.starts_with("Daily budget admission refused: spent $0.000000 of $"),
+        "{text}"
+    );
+    assert!(
+        text.contains("today; this request needs up to $") && text.contains("reserved"),
+        "{text}"
+    );
     assert!(f.fake.captured_bodies().await.is_empty());
     f.assert_ledger();
     room.shutdown().await.unwrap();

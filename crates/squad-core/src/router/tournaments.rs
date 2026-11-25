@@ -323,6 +323,11 @@ pub fn prepare(
     if let Err(StoreError::Domain(code, message)) =
         squad_store::accounting::admit(tx, &day, (reserve * 1e6).ceil() as i64, max)
     {
+        let rejection = if code == ErrorCode::DAILY_MAX_REACHED {
+            super::daily_cap_error(tx, &day, (reserve * 1e6).ceil() as i64, max)
+        } else {
+            error(code, message)
+        };
         emit(
             tx,
             group,
@@ -333,7 +338,7 @@ pub fn prepare(
                 plan_id: plan.base.plan_id,
                 status: PreflightStatus::Rejected,
                 confirmation: None,
-                error: Some(error(code, message)),
+                error: Some(rejection.clone()),
             }),
         )?;
         state.state = TournamentStatus::Failed;
@@ -342,7 +347,7 @@ pub fn prepare(
         save(tx, group, id, &state, Some(0))?;
         return Ok(RequestResult::Rejected {
             request_id: id,
-            error: error(code, message),
+            error: rejection,
         });
     }
     if plan.base.confirmation_required && !preconfirmed {
