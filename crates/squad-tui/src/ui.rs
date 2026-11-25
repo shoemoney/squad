@@ -244,8 +244,16 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     {
         frame.set_cursor_position((x, y));
     }
+    app.session.transcript.sync_activity();
+    let new_activity = app.session.transcript.new_activity();
     let footer = if !app.session.transcript.follow && app.stop_confirmation.is_none() {
-        "↓ back to live · End   |   PgUp/PgDn Scroll · F7 Scores · F6 Focus".into()
+        if new_activity > 0 {
+            format!(
+                "↓ {new_activity} new · back to live · End   |   PgUp/PgDn Scroll · F7 Scores · F6 Focus"
+            )
+        } else {
+            "↓ back to live · End   |   PgUp/PgDn Scroll · F7 Scores · F6 Focus".into()
+        }
     } else if app.awaiting_ack {
         format!(
             "Waiting for acknowledgement… {}",

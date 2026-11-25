@@ -92,13 +92,15 @@ impl Composed {
         self.signature = None;
         self.artifact_signature = None;
     }
-    pub fn scroll(&mut self, delta: isize) {
-        let top = self.top.saturating_add_signed(delta).min(
-            self.transcript
-                .total_rows()
-                .saturating_sub(usize::from(self.viewport.height)),
-        );
+    /// Moves the viewport by `delta` rows and returns true when it reached the live bottom.
+    pub fn scroll(&mut self, delta: isize) -> bool {
+        let bottom = self
+            .transcript
+            .total_rows()
+            .saturating_sub(usize::from(self.viewport.height));
+        let top = self.top.saturating_add_signed(delta).min(bottom);
         self.anchor = self.transcript.anchor_at(top);
+        top >= bottom
     }
     pub fn prepare(&mut self, session: &Session, width: u16, palette: &Palette) {
         if self.epoch != session.presentation_epoch {

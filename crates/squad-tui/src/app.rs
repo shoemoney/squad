@@ -323,6 +323,7 @@ impl App {
             self.dirty = true;
         }
         self.dirty |= self.session.transcript.flush(now);
+        self.session.transcript.sync_activity();
     }
     pub fn ui_deadline(&self) -> Option<Duration> {
         [
@@ -363,8 +364,7 @@ impl App {
                                 .saturating_sub(usize::from(self.composed.roster_area.height)),
                         );
                 } else {
-                    self.composed.scroll(delta);
-                    self.session.transcript.follow = false;
+                    self.scroll_transcript(delta);
                 }
                 self.dirty = true;
                 return;
@@ -460,19 +460,11 @@ impl App {
                         return;
                     }
                     KeyCode::PageUp | KeyCode::PageDown => {
-                        self.composed.scroll(if key.code == KeyCode::PageUp {
-                            -(isize::try_from(self.composed.viewport.height).unwrap_or(1))
-                        } else {
-                            isize::try_from(self.composed.viewport.height).unwrap_or(1)
-                        });
-                        self.session.transcript.follow = false;
-                        self.dirty = true;
+                        self.page(key.code == KeyCode::PageUp);
                         return;
                     }
                     KeyCode::End => {
-                        self.session.transcript.follow = true;
-                        self.composed.anchor = None;
-                        self.dirty = true;
+                        self.resume_live();
                         return;
                     }
                     KeyCode::F(6) => {
@@ -568,6 +560,34 @@ impl App {
                 self.edit(action);
             }
         }
+    }
+    /// Scrolls by rows, anchored to source; reaching the bottom resumes live following.
+    pub fn scroll_transcript(&mut self, delta: isize) {
+        if self.session.transcript.follow {
+            self.session.transcript.sync_activity();
+            // Leave the live edge from where the bottom currently is.
+            self.composed.top = self.composed.transcript.total_rows().saturating_sub(usize::from(
+                self.composed.viewport.height,
+            ));
+        }
+        if self.composed.scroll(delta) && delta > 0 {
+            self.resume_live();
+            return;
+        }
+        self.session.transcript.follow = false;
+        self.dirty = true;
+    }
+    /// One viewport page up or down (one row of overlap kept for orientation).
+    pub fn page(&mut self, up: bool) {
+        let rows = isize::try_from(self.composed.viewport.height.saturating_sub(1).max(1))
+            .unwrap_or(1);
+        self.scroll_transcript(if up { -rows } else { rows });
+    }
+    /// End key or paging back to the bottom: follow again and clear the new-activity count.
+    pub fn resume_live(&mut self) {
+        self.session.transcript.resume_follow();
+        self.composed.anchor = None;
+        self.dirty = true;
     }
     pub fn refresh_preview(&mut self) {
         self.preview = validation::validate(
