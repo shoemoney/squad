@@ -48,9 +48,9 @@
   - [ ] M2.P1.L2.T6 — Test that every completion uses the pinned concrete slug and every attempt records its response model, with mismatch warnings exposed through diagnostics, in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
 
 - **M2.P1.L3 — Provide a fake OpenRouter service**
-  - [ ] M2.P1.L3.T1 — Implement deterministic catalog and streaming fixtures with wiremock in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
-  - [ ] M2.P1.L3.T2 — Add alias-probe responses, generation lookups, and captured request bodies in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
-  - [ ] M2.P1.L3.T3 — Add malformed, delayed, disconnected, structured-judge, and free-form-case fixtures in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
+  - [x] M2.P1.L3.T1 — Implement deterministic catalog and streaming fixtures with wiremock in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
+  - [x] M2.P1.L3.T2 — Add alias-probe responses, generation lookups, and captured request bodies in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
+  - [x] M2.P1.L3.T3 — Add malformed, delayed, disconnected, structured-judge, and free-form-case fixtures in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
   - [ ] M2.P1.L3.T4 — Add valid, tied, malformed, delayed, and failed round-score responses in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
   - [ ] M2.P1.L3.T5 — Add blind tournament rankings, repair outputs, grill questions, exact passes, answers, and rebuilds in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
   - [ ] M2.P1.L3.T6 — Add missing-cost, billed-failure, billed-cancellation, delayed-cost, and response-model-mismatch fixtures in crate `squad-agents`, file `crates/squad-agents/tests/support/fake_openrouter.rs`.
@@ -163,15 +163,15 @@
 ## Phase M2.P3 — OpenRouter execution
 
 - **M2.P3.L1 — Stream and submit responses**
-  - [ ] M2.P3.L1.T1 — Implement `reqwest` streaming requests and fragmented SSE parsing in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
+  - [x] M2.P3.L1.T1 — Implement `reqwest` streaming requests and fragmented SSE parsing in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
   - [ ] M2.P3.L1.T2 — Submit canonical attempt-scoped deltas through ingress in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
   - [ ] M2.P3.L1.T3 — Submit ordinary `agent.reply` results and await router acknowledgement in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P3.L1.T4 — Test finish reasons, terminal usage, duplicate result submissions, and reasoning-text exclusion in crate `squad-agents`, file `crates/squad-agents/tests/agents_openrouter.rs`.
-  - [ ] M2.P3.L1.T5 — Send resolved concrete slugs, capability-gated reasoning parameters, explicit reasoning budgets, and complete output reservations, and capture response model identity, in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
+  - [x] M2.P3.L1.T5 — Send resolved concrete slugs, capability-gated reasoning parameters, explicit reasoning budgets, and complete output reservations, and capture response model identity, in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
   - [ ] M2.P3.L1.T6 — Submit each new-mode artifact through its owning typed result and validation path without treating partial deltas as committed output in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
 
 - **M2.P3.L2 — Bound failures and cancellation**
-  - [ ] M2.P3.L2.T1 — Implement constant ordinary deadlines, one automatic retry, jitter, and `Retry-After` in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
+  - [x] M2.P3.L2.T1 — Implement constant ordinary deadlines, one automatic retry, jitter, and `Retry-After` in crate `squad-agents`, file `crates/squad-agents/src/openrouter.rs`.
   - [ ] M2.P3.L2.T2 — Use `CancellationToken` to stop active HTTP requests, response streams, retry timers, and queued work in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P3.L2.T3 — Test higher-attempt replacement after partial output and the absence of hidden debate retries in crate `squad-agents`, file `crates/squad-agents/tests/agents_openrouter.rs`.
   - [ ] M2.P3.L2.T4 — Test cancellation versus result acceptance and rejection of stale attempts in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
