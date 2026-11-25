@@ -136,7 +136,7 @@ fn judges_have_task_specific_effort_and_visible_caps() {
         .unwrap()
         .body()
         .unwrap();
-    assert_eq!(round["reasoning"]["effort"], "low");
+    assert_eq!(round["reasoning"]["max_tokens"], 1024);
     assert_eq!(round["max_tokens"], 512 + 1024);
     for kind in [
         TaskKind::CensusJudge,
@@ -145,8 +145,8 @@ fn judges_have_task_specific_effort_and_visible_caps() {
         TaskKind::ProbeJudge,
     ] {
         let body = r.request(None, &m, kind).unwrap().body().unwrap();
-        assert_eq!(body["reasoning"]["effort"], "medium");
         assert_eq!(body["reasoning"]["max_tokens"], 4096);
+        assert!(body["reasoning"].get("effort").is_none());
         assert_eq!(body["max_tokens"], 8192);
         assert!(
             r.request(None, &model(false, 4096), kind)
@@ -161,7 +161,7 @@ fn judges_have_task_specific_effort_and_visible_caps() {
         r.request(None, &m, TaskKind::Judge)
             .unwrap()
             .body()
-            .unwrap()["reasoning"]["effort"],
-        "high"
+            .unwrap()["reasoning"]["max_tokens"],
+        8192
     );
 }

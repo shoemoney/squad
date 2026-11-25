@@ -94,7 +94,7 @@ impl ChatRequest {
         if !self.supports_reasoning && self.reasoning_explicit {
             return Err(TransportError::UnsupportedReasoning);
         }
-        let (effort, reservation) = self.reasoning_effort.reservation();
+        let (_, reservation) = self.reasoning_effort.reservation();
         let reservation = if self.supports_reasoning {
             reservation
         } else {
@@ -113,7 +113,9 @@ impl ChatRequest {
             "stream": true, "stream_options": {"include_usage": true},
             "max_tokens": visible + reservation});
         if self.supports_reasoning {
-            body["reasoning"] = json!({"effort": effort, "max_tokens": reservation});
+            // OpenRouter rejects effort together with a token budget. Keep the
+            // explicit budget so provider limits match admission reservations.
+            body["reasoning"] = json!({"max_tokens": reservation});
         }
         if let Some(format) = &self.response_format {
             body["response_format"] = format.clone();

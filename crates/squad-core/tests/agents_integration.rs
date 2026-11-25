@@ -128,7 +128,7 @@ async fn final_verdict_uses_frozen_case_bundle_and_its_own_provider_charge() {
     let captured = f.fake.captured_bodies().await;
     assert_eq!(captured.len(), 1);
     assert_eq!(captured[0]["messages"].as_array().unwrap().len(), 2);
-    assert_eq!(captured[0]["reasoning"]["effort"], "high");
+    assert_eq!(captured[0]["reasoning"]["max_tokens"], 8192);
     assert!(!captured[0].to_string().contains("PERSONA_"));
     let verdicts = f
         .store

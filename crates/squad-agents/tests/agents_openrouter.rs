@@ -71,10 +71,7 @@ async fn finish_reasons_terminal_usage_identity_and_reasoning_exclusion() {
         let bodies = fake.captured_bodies().await;
         assert_eq!(bodies[0]["model"], fake::MODEL);
         assert_eq!(bodies[0]["max_tokens"], 6144);
-        assert_eq!(
-            bodies[0]["reasoning"],
-            json!({"effort": "medium", "max_tokens": 4096})
-        );
+        assert_eq!(bodies[0]["reasoning"], json!({"max_tokens": 4096}));
         assert_eq!(bodies[0]["stream_options"]["include_usage"], true);
     }
 }
@@ -509,4 +506,40 @@ async fn named_error_events_and_ordinary_terminal_errors_are_not_retried() {
         assert!(!complete(&events, 1));
         assert!(!format!("{events:?}").contains("sentinel-key-never-log"));
     }
+}
+
+#[tokio::test]
+async fn reasoning_budget_obeys_openrouter_mutually_exclusive_fields() {
+    use wiremock::{
+        Mock, Request,
+        matchers::{method, path},
+    };
+
+    let fake = fake::FakeOpenRouter::start().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .respond_with(|request: &Request| {
+            let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
+            let reasoning = &body["reasoning"];
+            if reasoning.get("effort").is_some() && reasoning.get("max_tokens").is_some() {
+                ResponseTemplate::new(400).set_body_json(json!({"error": {
+                    "code": 400,
+                    "message": "Only one of reasoning.effort and reasoning.max_tokens can be specified"
+                }}))
+            } else {
+                fake::streaming("OK", "stop")
+            }
+        })
+        .expect(1)
+        .mount(&fake.server)
+        .await;
+    let events = client(&fake)
+        .stream(request(), CancellationToken::new())
+        .collect::<Vec<_>>()
+        .await;
+    assert!(complete(&events, 1), "{events:?}");
+    assert_eq!(visible(&events, 1), "OK");
+    let bodies = fake.captured_bodies().await;
+    assert_eq!(bodies[0]["reasoning"], json!({"max_tokens": 4096}));
+    assert_eq!(bodies[0]["max_tokens"], 6144);
 }

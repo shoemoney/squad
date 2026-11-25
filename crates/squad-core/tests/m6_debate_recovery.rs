@@ -102,7 +102,7 @@ async fn recovered_admitted_debate_accounts_scores_once_with_low_reasoning_ceili
         .collect();
     assert_eq!(scores.len(), 1);
     assert_eq!(scores[0]["reasoning"]["max_tokens"], 1024);
-    assert_eq!(scores[0]["reasoning"]["effort"], "low");
+    assert!(scores[0]["reasoning"].get("effort").is_none());
     assert_eq!(scores[0]["max_tokens"], 1536);
     room.shutdown().await.unwrap();
     let room = f.open(OpenMode::Interactive).await;
