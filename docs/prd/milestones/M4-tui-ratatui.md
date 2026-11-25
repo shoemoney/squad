@@ -295,9 +295,9 @@
   - [x] M4.P5.L4.T1 — `squad-tui/tests/fx_support/mod.rs`: `render_at(cues, t)` helper over `TestBackend` and `ManualClock`.
   - [x] M4.P5.L4.T2 — `squad-tui/tests/fx_invariants.rs`: end-state equals `off` render; protected rects keep glyphs; replay of 1,000 events yields zero effects.
 - **M4.P5.L5 — Chrome and participants effects**
-  - [ ] M4.P5.L5.T1 — `squad-tui/src/fx/chrome.rs`: logo reveal, roster resolve from the resolved state at first draw, border breath, quit power-down on TUI quit actions, resize hard cut; snapshots.
-  - [ ] M4.P5.L5.T2 — `squad-tui/src/fx/status.rs`: orbit glyph, throughput bar from real token rate, backoff ring, pip stack; snapshots.
-  - [ ] M4.P5.L5.T3 — `squad-tui/src/fx/meter.rs`: cost odometer, daily-spend heat states at 75/90/100%, record tick; snapshots.
+  - [x] M4.P5.L5.T1 — `squad-tui/src/fx/chrome.rs`: logo reveal, roster resolve from the resolved state at first draw, border breath, quit power-down on TUI quit actions, resize hard cut; snapshots.
+  - [x] M4.P5.L5.T2 — `squad-tui/src/fx/status.rs`: orbit glyph, throughput bar from real token rate, backoff ring, pip stack; snapshots.
+  - [x] M4.P5.L5.T3 — `squad-tui/src/fx/meter.rs`: cost odometer, daily-spend heat states at 75/90/100%, record tick; snapshots.
 - **M4.P5.L6 — Transcript effects**
   - [ ] M4.P5.L6.T1 — `squad-tui/src/fx/bubble.rs`: rail drop, comet cursor, seal, rail fracture; snapshots at four timestamps each.
   - [ ] M4.P5.L6.T2 — `squad-tui/src/fx/dispatch.rs`: launch streak, spoke burst with narrow fallback, quote lasso.
@@ -315,8 +315,8 @@
   - [ ] M4.P5.L9.T2 — `squad-tui/tests/fx_verdict.rs`: snapshots at each storyboard timestamp, an equal-round-tally case, and the `lite` and narrow variants.
   - [ ] M4.P5.L9.T3 — `squad-tui/examples/fx_reel.rs`: scripted demo that plays launch, a three-round debate and a verdict from canned data, for recording.
 - **M4.P5.L10 — Daily spend effects**
-  - [ ] M4.P5.L10.T1 — `squad-tui/src/fx/meter.rs`: animate authoritative daily spend and pending reservations; preserve unknown-cost `~` and the always-visible spend/max labels; apply heat thresholds to actual spend.
-  - [ ] M4.P5.L10.T2 — `squad-tui/tests/fx_meter.rs`: snapshots and state-change tests for 75/90/100%, pending-to-actual replacement, unknown costs, local-day rollover and a raised max, including `lite`, `off` and `NO_COLOR`.
+  - [x] M4.P5.L10.T1 — `squad-tui/src/fx/meter.rs`: animate authoritative daily spend and pending reservations; preserve unknown-cost `~` and the always-visible spend/max labels; apply heat thresholds to actual spend.
+  - [x] M4.P5.L10.T2 — `squad-tui/tests/fx_meter.rs`: snapshots and state-change tests for 75/90/100%, pending-to-actual replacement, unknown costs, local-day rollover and a raised max, including `lite`, `off` and `NO_COLOR`.
 - **M4.P5.L11 — Tournament effects**
   - [ ] M4.P5.L11.T1 — `squad-tui/src/fx/tournament.rs`: reveal accepted rankings bottom-up in fixed row positions, stamp the committed elimination and retain the eliminated-row marker through the tournament.
   - [ ] M4.P5.L11.T2 — `squad-tui/src/fx/tournament.rs` and `squad-tui/src/fx/verdict.rs`: reuse the celebration for `CHAMPION`, with one trophy tick and no debate W-L tick.
