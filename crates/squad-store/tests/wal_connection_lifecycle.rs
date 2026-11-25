@@ -62,3 +62,53 @@ fn concurrent_wal_open_and_close_completes() {
         std::thread::sleep(Duration::from_millis(10));
     }
 }
+
+/// Opening a second store must queue behind a live writer instead of failing.
+/// SQLite never runs the busy handler for a read transaction upgrading to a
+/// write, so a migration that reads before it writes fails at once with
+/// `SQLITE_BUSY` whenever the room writer is mid-commit.
+#[test]
+fn second_store_open_waits_for_the_active_writer() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("busy.db");
+    let _owner = squad_store::Store::open(&path).unwrap();
+    let writer = rusqlite::Connection::open(&path).unwrap();
+    writer
+        .execute_batch("BEGIN IMMEDIATE; UPDATE vars SET value=value WHERE name='ROUNDS';")
+        .unwrap();
+    let release = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(300));
+        writer.execute_batch("COMMIT").unwrap();
+    });
+    let second = squad_store::Store::open(&path);
+    release.join().unwrap();
+    let second = second.unwrap();
+    let rounds: i64 = second
+        .call(|db| {
+            Ok(
+                db.query_row("SELECT value FROM vars WHERE name='ROUNDS'", [], |r| {
+                    r.get(0)
+                })?,
+            )
+        })
+        .unwrap();
+    assert_eq!(rounds, 10);
+}
+
+/// Reopening a current database must not rewrite its header on every open.
+#[test]
+fn reopening_a_current_schema_writes_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("current.db");
+    let mut db = squad_store::open(&path).unwrap();
+    squad_store::schema::migrate(&mut db).unwrap();
+    let before: i64 = db
+        .query_row("PRAGMA data_version", [], |r| r.get(0))
+        .unwrap();
+    let mut other = squad_store::open(&path).unwrap();
+    squad_store::schema::migrate(&mut other).unwrap();
+    let after: i64 = db
+        .query_row("PRAGMA data_version", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(before, after);
+}

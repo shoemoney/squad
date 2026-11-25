@@ -875,8 +875,23 @@ async fn expired_attempts_retry_then_record_timeout_without_late_acceptance() {
     seed(&f, &room).await;
     send(&f, &room, "@member0 $grill $GRILL_ROUNDS=1").await;
     for attempt in 1..=2 {
-        f.wait(||f.db().query_row("SELECT EXISTS(SELECT 1 FROM work WHERE kind='grill.question' AND target='member1' AND status='running' AND attempt=?)",[attempt],|r|r.get::<_,bool>(0)).unwrap()).await;
-        f.db().execute("UPDATE work SET execution_deadline=? WHERE kind='grill.question' AND target='member1'",[(chrono::Utc::now()-chrono::Duration::milliseconds(1)).to_rfc3339()]).unwrap();
+        // A claimed attempt is not in flight until its provider start is
+        // durable: recovery refunds an unstarted attempt instead of recording
+        // a timeout. Expire only the started attempt, in one statement, so the
+        // row cannot change between the check and the backdating.
+        f.wait(|| {
+            f.db()
+                .execute(
+                    "UPDATE work SET execution_deadline=?1 WHERE kind='grill.question' AND target='member1' AND status='running' AND attempt=?2 AND provider_may_have_started=1",
+                    rusqlite::params![
+                        (chrono::Utc::now() - chrono::Duration::milliseconds(1)).to_rfc3339(),
+                        attempt
+                    ],
+                )
+                .unwrap()
+                == 1
+        })
+        .await;
     }
     f.wait(|| terminal(&f)).await;
     assert_eq!(calls(&f, "grill.question"), 3);
