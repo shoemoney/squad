@@ -134,3 +134,140 @@ fn topic_mismatch_explains_shared_question_in_human_and_json_errors() {
         assert!(text.contains("wait for both replies"));
     }
 }
+
+// ---- M3.P3.L5.T5 / T7: shared-schema state snapshots ----
+
+fn seeded(
+    state_rows: &[(&str, serde_json::Value, bool)],
+    day: &str,
+    max: i64,
+) -> serde_json::Value {
+    let temp = tempfile::tempdir().unwrap();
+    let db = database(temp.path(), vec![]);
+    db.execute(
+        "INSERT OR REPLACE INTO vars(name,value) VALUES ('ROUNDS',10),('GRILL_ROUNDS',2),('CENSUS_PASSES',2)",
+        [],
+    )
+    .unwrap();
+    db.execute(
+        "INSERT INTO scores(nick,wins,losses,trophies) VALUES ('alpha',3,1,2),('beta',1,3,0)",
+        [],
+    )
+    .unwrap();
+    db.execute(
+        "INSERT INTO spend_daily VALUES ('2026-11-24',4500000,1500000,2)",
+        [],
+    )
+    .unwrap();
+    for (kind, state, active) in state_rows {
+        db.execute(
+            "INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES (?,?,1,?,?,?)",
+            rusqlite::params![
+                state["contestId"].as_str().or_else(|| state["debateId"].as_str()).unwrap(),
+                kind,
+                state["stateVersion"].as_i64().unwrap_or(1),
+                state.to_string(),
+                active
+            ],
+        )
+        .unwrap();
+    }
+    let roster = ["alpha".parse().unwrap(), "beta".parse().unwrap()];
+    let state = squad_core::state::snapshot(&db, &roster, &Default::default(), day, max).unwrap();
+    let mut value = serde_json::to_value(state).unwrap();
+    // Presence timestamps are wall-clock observations; everything else is committed state.
+    for participant in value["participants"].as_array_mut().unwrap() {
+        participant["observedAt"] = json!("<observed>");
+    }
+    value
+}
+
+#[test]
+fn daily_spend_and_trophies_snapshot_uses_the_shared_camel_case_schema() {
+    let value = seeded(&[], "2026-11-24", 20_000_000);
+    insta::assert_snapshot!(
+        "state_daily_spend_and_trophies",
+        serde_json::to_string_pretty(&value).unwrap()
+    );
+    // The unknown-cost call count stays visible and is never folded into zero.
+    assert_eq!(value["dailySpend"]["unknownCalls"], 2);
+    assert_eq!(value["dailySpend"]["hasUnreconciledCharges"], true);
+    // A different local day starts from its own ledger row.
+    let next = seeded(&[], "2026-11-25", 35_000_000);
+    assert_eq!(next["dailySpend"]["spentUsd"], 0.0);
+    assert_eq!(next["dailySpend"]["limitUsd"], 35.0);
+}
+
+#[test]
+fn active_contest_and_pending_pick_snapshots_cover_every_contest_family() {
+    let u = |n: u32| format!("01900000-0000-7000-8000-{n:012x}");
+    let cases = [
+        (
+            "tournament",
+            json!({"contestId":u(1),"state":"ANSWERING","stateVersion":2,"round":1,"replay":0,"survivors":["alpha","beta"],"eliminated":[],"terminalReason":null}),
+        ),
+        (
+            "grill",
+            json!({"contestId":u(2),"state":"QUESTIONING","stateVersion":2,"round":1,"totalRounds":3,"leader":"alpha","grillerOrder":["beta"],"turn":1,"planVersion":1,"questionsAsked":1,"passed":0,"terminalReason":null}),
+        ),
+        (
+            "census",
+            json!({"contestId":u(3),"stateVersion":3,"status":"HUNTING","pass":2,"planVersion":1,"stepId":u(30),"artifactEventIds":[u(31)],"unfinishedWorkIds":[],"terminalReason":null}),
+        ),
+        (
+            "crosscheck",
+            json!({"contestId":u(4),"planId":u(40),"planVersion":1,"gridVersion":2,"stateVersion":4,"status":"REVIEWING","stepId":u(41),"terminalReason":null}),
+        ),
+        (
+            "survey",
+            json!({"contestId":u(5),"state":"VOTING","stateVersion":3,"stepId":u(50),"artifactEventIds":[u(51)],"terminalReason":null}),
+        ),
+        (
+            "probe",
+            json!({"contestId":u(6),"state":"PROPOSING","stateVersion":2,"stepId":u(60),"artifactEventIds":[],"skippedWorkIds":[],"skippedMembers":["beta"],"terminalReason":null}),
+        ),
+        (
+            "grill",
+            json!({"contestId":u(7),"kind":"grill","state":"AWAITING_PICK","stateVersion":2,"questionMessageId":u(70),"addressed":["alpha","beta"],"answers":[{"nick":"alpha","messageId":u(71),"text":"frozen answer"}],"requiredPicks":1}),
+        ),
+    ];
+    for (index, (kind, state)) in cases.into_iter().enumerate() {
+        let value = seeded(&[(kind, state, true)], "2026-11-24", 20_000_000);
+        assert!(!value["activeContest"].is_null(), "{kind}");
+        let name = if index == 6 {
+            "state_pending_pick".to_owned()
+        } else {
+            format!("state_active_{kind}")
+        };
+        insta::assert_snapshot!(
+            name,
+            serde_json::to_string_pretty(&value["activeContest"]).unwrap()
+        );
+    }
+}
+
+#[test]
+fn state_json_never_contains_snake_case_wire_names_or_hidden_context() {
+    let value = seeded(&[], "2026-11-24", 20_000_000);
+    let text = value.to_string();
+    for forbidden in [
+        "daily_spend",
+        "active_contest",
+        "pending_preflights",
+        "label_map",
+        "labelMap",
+        "prompt",
+    ] {
+        assert!(!text.contains(forbidden), "{forbidden}");
+    }
+    for required in [
+        "dailySpend",
+        "activeContest",
+        "pendingPreflights",
+        "scoreboard",
+        "trophies",
+        "vars",
+    ] {
+        assert!(value.get(required).is_some(), "{required}");
+    }
+}

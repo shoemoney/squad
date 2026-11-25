@@ -31,6 +31,8 @@ pub struct State {
 }
 pub struct FakeRoom {
     pub requests: RefCell<Vec<Request>>,
+    /// Requests that arrived through the commit-only (`--no-wait`) path.
+    pub commit_only: RefCell<Vec<Request>>,
     pub results: RefCell<VecDeque<RequestResult>>,
     pub events: RefCell<Vec<CommittedEnvelope>>,
     pub emitted: RefCell<Vec<CommittedEnvelope>>,
@@ -44,6 +46,7 @@ impl Default for FakeRoom {
     fn default() -> Self {
         Self {
             requests: RefCell::default(),
+            commit_only: RefCell::default(),
             results: RefCell::default(),
             events: RefCell::default(),
             emitted: RefCell::default(),
@@ -73,6 +76,10 @@ impl RoomApi for FakeRoom {
                 event_ids: vec![ID.parse().unwrap()],
                 cursor: Some(Cursor::new(1).unwrap()),
             })
+    }
+    async fn submit_commit_only(&self, request: Request) -> RequestResult {
+        self.commit_only.borrow_mut().push(request.clone());
+        self.submit(request).await
     }
     fn subscribe(&self) -> broadcast::Receiver<FeedItem> {
         self.feed.subscribe()

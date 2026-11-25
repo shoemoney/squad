@@ -16,7 +16,7 @@ insta = { version = "1", features = ["json"] }
 proptest = "1"
 clap = { version = "4", features = ["derive"] }
 crossterm = "0.29"
-serde_json = "1"
+serde_json = { version = "1", features = ["float_roundtrip"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["registry"] }
 tempfile = "3"

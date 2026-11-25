@@ -144,3 +144,151 @@ async fn default_client_is_configured_and_unknown_rooms_fail_before_network() {
     assert!(matches!(result,Err(error) if error.code==ErrorCode::ROOM_NOT_FOUND));
     assert!(!config(root.path()).data_dir.exists());
 }
+
+// ---- M3.P1.L1.T7: lifecycle coverage for census, crosscheck, survey and probe ----
+
+const NEW_MODES: [(&str, ContestKind); 4] = [
+    (
+        "@all $census Build a database service.",
+        ContestKind::Census,
+    ),
+    (
+        "@all $crosscheck Maintain service.\n--\nKeep service available.",
+        ContestKind::Crosscheck,
+    ),
+    ("@all $survey Which checks help?", ContestKind::Survey),
+    (
+        "@all $probe Intermittent noise, fan ruled out, inspect indicator only",
+        ContestKind::Probe,
+    ),
+];
+
+fn pending(result: &RequestResult) -> (&PendingPreflight, Cursor) {
+    match result {
+        RequestResult::PendingConfirmation {
+            preflight, cursor, ..
+        } => (preflight, *cursor),
+        other => panic!("expected a pending confirmation, got {other:?}"),
+    }
+}
+
+fn contest_plan(preflight: &PendingPreflight) -> &ContestPreflight {
+    match preflight {
+        PendingPreflight::Contest(plan) => plan,
+        other => panic!("expected a contest preflight, got {other:?}"),
+    }
+}
+
+fn work_counts(launcher: &Launcher) -> (i64, i64) {
+    store(launcher)
+        .call(|db| {
+            Ok((
+                db.query_row("SELECT COUNT(*) FROM work", [], |r| r.get(0))?,
+                db.query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get(0))?,
+            ))
+        })
+        .unwrap()
+}
+
+#[tokio::test]
+async fn new_mode_preflights_recover_without_waking_work_in_one_shot_opens() {
+    for (text, kind) in NEW_MODES {
+        let root = tempfile::tempdir().unwrap();
+        let first = Launcher::default();
+        let (room, _) = open4(root.path(), &first, OpenMode::OneShot).await;
+        let id = EventId::new();
+        let request = message4(text, id);
+        let result = room.submit(request.clone()).await;
+        let (preflight, cursor) = pending(&result);
+        let plan = contest_plan(preflight).clone();
+        assert_eq!(plan.kind, kind, "{text}");
+        assert!(plan.confirmation_required);
+        assert!(cursor.get() > 0);
+        // An unconfirmed preflight admits no work and never wakes the runtime.
+        assert!(first.wakes.lock().unwrap().is_empty(), "{kind:?}");
+        assert_eq!(work_counts(&first), (0, 0), "{kind:?}");
+        // The same receipt replays to the same pending confirmation.
+        assert_eq!(room.submit(request.clone()).await, result, "{kind:?}");
+        let before = room.state().await;
+        assert_eq!(before.pending_preflights.len(), 1);
+        room.shutdown().await.unwrap();
+        let next = Launcher::default();
+        let (room, _) = open4(root.path(), &next, OpenMode::OneShot).await;
+        assert!(next.wakes.lock().unwrap().is_empty(), "{kind:?}");
+        let after = room.state().await;
+        assert_eq!(after.pending_preflights, before.pending_preflights);
+        assert_eq!(after.active_contest, before.active_contest);
+        assert_eq!(room.submit(request).await, result, "{kind:?}");
+        assert_eq!(work_counts(&next), (0, 0));
+        room.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn new_mode_confirmation_is_commit_only_without_provider_attempts() {
+    for (text, kind) in NEW_MODES {
+        let root = tempfile::tempdir().unwrap();
+        let launcher = Launcher::default();
+        let (room, server) = open4(root.path(), &launcher, OpenMode::OneShot).await;
+        let result = room.submit(message4(text, EventId::new())).await;
+        let plan = contest_plan(pending(&result).0).clone();
+        let catalog_calls = server.received_requests().await.unwrap().len();
+        let confirm = Request::ContestConfirm {
+            request_id: EventId::new(),
+            contest_id: plan.contest_id,
+            plan_id: plan.plan_id,
+        };
+        let receipt = room.submit_commit_only(confirm.clone()).await;
+        accepted(receipt.clone());
+        assert!(launcher.wakes.lock().unwrap().is_empty(), "{kind:?}");
+        let (work, attempts) = work_counts(&launcher);
+        assert!(work > 0, "{kind:?} admitted no work");
+        assert_eq!(attempts, 0, "{kind:?}");
+        assert_eq!(
+            server.received_requests().await.unwrap().len(),
+            catalog_calls,
+            "commit-only confirmation never calls the provider"
+        );
+        assert!(room.state().await.pending_preflights.is_empty());
+        // Receipt replay is idempotent and admits nothing more.
+        assert_eq!(room.submit_commit_only(confirm).await, receipt);
+        assert_eq!(work_counts(&launcher).0, work);
+        room.shutdown().await.unwrap();
+        // A restarted one-shot open preserves the committed contest and work without waking it.
+        let next = Launcher::default();
+        let (room, _) = open4(root.path(), &next, OpenMode::OneShot).await;
+        assert!(next.wakes.lock().unwrap().is_empty(), "{kind:?}");
+        assert_eq!(work_counts(&next).0, work);
+        assert!(room.state().await.active_contest.is_some(), "{kind:?}");
+        room.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn stopping_a_new_mode_preflight_cancels_it_and_a_second_stop_is_rejected() {
+    for (text, kind) in NEW_MODES {
+        let root = tempfile::tempdir().unwrap();
+        let launcher = Launcher::default();
+        let (room, _) = open4(root.path(), &launcher, OpenMode::OneShot).await;
+        room.submit(message4(text, EventId::new())).await;
+        accepted(
+            room.submit(Request::Stop {
+                request_id: EventId::new(),
+                target: None,
+            })
+            .await,
+        );
+        let state = room.state().await;
+        assert!(state.pending_preflights.is_empty(), "{kind:?}");
+        assert!(state.active_contest.is_none(), "{kind:?}");
+        assert!(launcher.wakes.lock().unwrap().is_empty());
+        assert!(
+            matches!(
+                room.submit(Request::Stop { request_id: EventId::new(), target: None }).await,
+                RequestResult::Rejected { error, .. } if error.code == ErrorCode::NOTHING_TO_STOP
+            ),
+            "{kind:?}"
+        );
+        room.shutdown().await.unwrap();
+    }
+}

@@ -437,6 +437,8 @@ impl Router {
             let request:Request=serde_json::from_value(admission["request"].clone())?;
             let Request::UserMessage{input,parsed:ParsedInput::Debate{instruction,..},..}=request else{return Err(policy(ErrorCode::INVALID_COMMAND))};
             let events:Vec<CommittedEnvelope>=serde_json::from_value(admission["sources"].clone())?;
+            // Selections name committed events; a reply's solution identity is its generation message id.
+            let selected_ids:BTreeMap<EventId,MessageId>=events.iter().filter_map(|e|if let EnvelopePayload::MessageFinal(m)=&e.content{Some((e.base.id,m.completed.generation.message_id))}else{None}).collect();
             let mut replies=Vec::new();
             for e in events {
                 if let EnvelopePayload::MessageFinal(m)=e.content {
@@ -445,7 +447,7 @@ impl Router {
                     replies.push(super::sources::SourceReply{solution:DebateSolution{nick,message_id:m.completed.generation.message_id,text:m.content},topic_message_id:m.in_reply_to_message_id,topic,accepted_order:e.commit.seq.get() as u64,completed:true,superseded:false,ordinary_to_human:true});
                 }
             }
-            let explicit:Vec<MessageId>=input.reply_to.unwrap_or_default().into_iter().map(MessageId::from_event).collect();
+            let explicit:Vec<MessageId>=input.reply_to.unwrap_or_default().into_iter().map(|id|selected_ids.get(&id).copied().unwrap_or_else(||MessageId::from_event(id))).collect();
             let mut sources=super::sources::select(&state.debaters,&replies,&explicit,u64::MAX,input.message_id,&instruction).map_err(policy)?;
             if prior.is_some() {sources.solutions=Some(retained.ok_or(policy(ErrorCode::DEBATE_SOURCE_MISSING))?.solutions);}
             let judge_requested=state.judge_requested || prior.is_some();

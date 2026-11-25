@@ -1,0 +1,26 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: "serde_json::to_string_pretty(&value[\"activeContest\"]).unwrap()"
+---
+{
+  "kind": "selection",
+  "state": {
+    "addressed": [
+      "alpha",
+      "beta"
+    ],
+    "answers": [
+      {
+        "messageId": "01900000-0000-7000-8000-000000000047",
+        "nick": "alpha",
+        "text": "frozen answer"
+      }
+    ],
+    "contestId": "01900000-0000-7000-8000-000000000007",
+    "kind": "grill",
+    "questionMessageId": "01900000-0000-7000-8000-000000000046",
+    "requiredPicks": 1,
+    "state": "AWAITING_PICK",
+    "stateVersion": 2
+  }
+}

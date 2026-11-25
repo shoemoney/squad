@@ -189,6 +189,11 @@ impl WorkReader for ScopedReaders {
                 let (material, state): (String, String) = db.query_row("SELECT material_json,state_json FROM cases WHERE case_id=? AND epoch=(SELECT epoch FROM room_meta)", [case.to_string()], |r| Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::NotFound)?;
                 values.insert("case_material_json".into(), material);
                 values.insert("case_state_json".into(), state);
+                // A follow-up carries its own frozen invocation, distinct from the case's original one.
+                let followup: Option<String> = db.query_row("SELECT json_extract(e.payload,'$.judgeInvocationId') FROM case_events c JOIN events e ON c.event_seq=e.seq WHERE c.case_id=? AND e.kind='case.followup' AND json_extract(e.payload,'$.workId')=?",rusqlite::params![case.to_string(),work.work_id.to_string()],|r|r.get(0)).map(Some).or_else(|e| if matches!(e, rusqlite::Error::QueryReturnedNoRows) { Ok(None) } else { Err(e) }).map_err(|_|ReaderError::NotRunnable)?;
+                if let Some(invocation) = followup {
+                    values.insert("case_followup_invocation".into(), invocation);
+                }
             }
             if work.kind==WorkKind::Reply && work.round.is_some() {
                 let s=crate::tournaments::validate_execution(db,&work).map_err(map_error)?;

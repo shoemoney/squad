@@ -1,0 +1,19 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: "serde_json::to_string_pretty(&value[\"activeContest\"]).unwrap()"
+---
+{
+  "kind": "probe",
+  "state": {
+    "artifactEventIds": [],
+    "contestId": "01900000-0000-7000-8000-000000000006",
+    "skippedMembers": [
+      "beta"
+    ],
+    "skippedWorkIds": [],
+    "state": "PROPOSING",
+    "stateVersion": 2,
+    "stepId": "01900000-0000-7000-8000-00000000003c",
+    "terminalReason": null
+  }
+}

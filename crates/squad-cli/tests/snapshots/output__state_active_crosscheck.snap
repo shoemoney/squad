@@ -1,0 +1,16 @@
+---
+source: crates/squad-cli/tests/output.rs
+expression: "serde_json::to_string_pretty(&value[\"activeContest\"]).unwrap()"
+---
+{
+  "kind": "generic",
+  "state": {
+    "artifactEventIds": [],
+    "contestId": "01900000-0000-7000-8000-000000000004",
+    "kind": "crosscheck",
+    "stateVersion": 4,
+    "status": "REVIEWING",
+    "stepId": "01900000-0000-7000-8000-000000000029",
+    "terminalReason": null
+  }
+}
