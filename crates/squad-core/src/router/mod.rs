@@ -9,6 +9,7 @@ pub mod ephemeral;
 pub mod executor;
 pub mod picks;
 pub mod preflight;
+pub mod probe;
 pub mod recovery;
 pub mod references;
 pub mod regen;
@@ -134,6 +135,9 @@ impl Router {
                 if let EnvelopePayload::DebateState(s) = &event.content {
                     scope.insert(s.debate_id);
                 }
+                if let EnvelopePayload::ProbeState(s) = &event.content {
+                    scope.insert(s.contest_id);
+                }
             }
         }
         let initial = outcome.events.len();
@@ -244,6 +248,9 @@ impl Router {
         let bindings = self.bindings.clone();
         let clear = matches!(request, Request::Clear { .. });
         let defaults = self.variable_defaults;
+        let max = self.daily_max;
+        let threshold = self.confirmation_threshold;
+        let engine_config = self.engine_config.clone();
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
             match request {
                 Request::UserMessage {input,parsed,preconfirmed}=> {
@@ -252,6 +259,10 @@ impl Router {
                     let authoritative=match parse(input.text.as_str(),&meta,&ctx) {Ok(parsed)=>parsed,Err(e)=>return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)})};
                     if authoritative!=parsed {return Err(StoreError::Domain(ErrorCode::INVALID_COMMAND,"Parsed input does not match authoritative state"));}
                     if matches!(parsed,ParsedInput::QuestionFirst {..}) {picks::collect(tx,group,id,input,parsed,&bindings)?;return Ok(group.accepted(id));}
+                    if let ParsedInput::Probe {input:conversation,participants,brief}=&parsed {
+                        variables::apply(tx,group,id,&conversation.variable_updates)?;
+                        return probe::prepare(tx,group,id,input,participants.clone(),brief.clone(),&bindings,max,threshold,preconfirmed,engine_config.as_ref());
+                    }
                     if let ParsedInput::Debate {input:conversation,..}=&parsed {
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
                         let request=Request::UserMessage {input,parsed,preconfirmed};
@@ -287,7 +298,7 @@ impl Router {
                             group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::Error(failure)))?;
                             continue;
                         }
-                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING') AND EXISTS(SELECT 1 FROM json_each(json_extract(state_json,'$.debaters')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?;
+                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND ((kind='probe' AND json_extract(state_json,'$.state')<>'PREFLIGHT' AND EXISTS(SELECT 1 FROM probe_roles WHERE probe_roles.contest_id=contests.contest_id AND nick=?1 AND role<>'sitting_out')) OR (json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING') AND EXISTS(SELECT 1 FROM json_each(json_extract(state_json,'$.debaters')) WHERE value=?1)))",[nick.as_str()],|r|r.get(0)).optional()?;
                         let held=held.map(|id|id.parse().map_err(|_|StoreError::Unavailable)).transpose()?;
                         let projection=squad_store::history::attributed(&event,ContextId(nick.to_string()),"ordinary.input",HistoryRole::User,None,content.clone());
                         if let Some(contest)=held {squad_store::history::defer(tx,contest,&projection)?;}else{squad_store::history::project(tx,&projection)?;}
@@ -295,6 +306,8 @@ impl Router {
                         squad_store::work::insert(tx,&work,&bindings[nick.as_str()],held)?;
                     }
                 }
+                Request::ContestConfirm {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,false,max),
+                Request::ContestCancel {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,true,max),
                 Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,false),
                 Request::DebateCancel {debate_id,plan_id,..}|Request::ContestCancel {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,true),
                 Request::ContestPick {contest_id,nicks,..}=>{
@@ -438,6 +451,7 @@ impl Router {
                         group.accepted_at,
                     )?;
                     authorization::output(&work, &owner, &output)?;
+                    if work.kind.is_probe() {squad_store::probe::validate_output(tx,&work,&output)?;}
                     squad_store::cases::validate_invocation(tx,&work,&output)?;
                     if let EnvelopePayload::AgentReply(reply) = output {
                         output = EnvelopePayload::MessageFinal(reply);
@@ -523,6 +537,7 @@ impl Router {
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
+                        EnvelopePayload::ProbeExplanation(_) | EnvelopePayload::ProbeCheck(_) | EnvelopePayload::ProbePrediction(_) | EnvelopePayload::ProbeReport(_) => squad_store::probe::accept(tx,&work,&output,seq)?,
                         EnvelopePayload::ContestArtifact(artifact)=>squad_store::contest_steps::artifact(tx,artifact,seq)?,
                         _ => return Err(authorization::forbidden()),
                     }
@@ -816,7 +831,13 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             }
             ctx.active_contest = Some(ContestState::Selection(state));
         } else {
-            ctx.active_contest = Some(ContestState::Debate(serde_json::from_str(&raw)?));
+            ctx.active_contest = Some(
+                if let Ok(probe) = serde_json::from_str::<ProbeState>(&raw) {
+                    ContestState::Probe(probe)
+                } else {
+                    ContestState::Debate(serde_json::from_str(&raw)?)
+                },
+            );
         }
     }
     Ok(ctx)

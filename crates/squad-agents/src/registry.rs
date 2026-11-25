@@ -69,6 +69,10 @@ impl<'a> Registry<'a> {
         }
         let (kind, deadline) = match grant.work.kind {
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
+            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => {
+                (TaskKind::Plan, DeadlineClass::DebateTurn)
+            }
+            WorkKind::ProbeReport => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),
             WorkKind::JudgeRound => (TaskKind::RoundJudge, DeadlineClass::RoundJudge),

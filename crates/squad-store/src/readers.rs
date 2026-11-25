@@ -110,6 +110,13 @@ impl WorkReader for ScopedReaders {
             let mut values = std::collections::BTreeMap::new();
             if work.kind.is_probe() {
                 values.insert("mode_data_json".into(), crate::probe::input(db,&work).map_err(map_error)?.to_string());
+                let raw:String=db.query_row("SELECT plan_json FROM contests WHERE contest_id=?",[work.contest_id.ok_or(ReaderError::NotRunnable)?.to_string()],|r|r.get(0)).map_err(|_|ReaderError::NotFound)?;
+                let plan:ProbePreflight=serde_json::from_str(&raw).map_err(|_|ReaderError::NotRunnable)?;
+                // Only the selected composition and public word limits cross the capability.
+                let id=work.kind.probe_composition().ok_or(ReaderError::NotRunnable)?;
+                values.insert("probe_prompt_json".into(),plan.base.settings["prompts"][id].to_string());
+                values.insert("room_words".into(),plan.base.settings["roomWords"].to_string());
+                values.insert("plan_words".into(),plan.base.settings["planWords"].to_string());
                 return Ok(values);
             }
             if let Some(case) = work.case_id {

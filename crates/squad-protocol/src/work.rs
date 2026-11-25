@@ -86,9 +86,27 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
-            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict | WorkKind::ProbeReport => {
-                ensure(self.contest_id.is_some() && self.step_id.is_some() && self.debate_id.is_none() && self.round.is_none(), "probe requires contest and step")?;
-                ensure(if self.kind == WorkKind::ProbeReport {self.target==Target::Judge && self.attempt<=3} else {matches!(self.target, Target::Member(_)) && self.case_id.is_none() && self.attempt<=2}, "invalid probe owner or attempt")?;
+            WorkKind::ProbeExplain
+            | WorkKind::ProbeCheck
+            | WorkKind::ProbePredict
+            | WorkKind::ProbeReport => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.round.is_none(),
+                    "probe requires contest and step",
+                )?;
+                ensure(
+                    if self.kind == WorkKind::ProbeReport {
+                        self.target == Target::Judge && self.attempt <= 3
+                    } else {
+                        matches!(self.target, Target::Member(_))
+                            && self.case_id.is_none()
+                            && self.attempt <= 2
+                    },
+                    "invalid probe owner or attempt",
+                )?;
             }
             WorkKind::Reply => {
                 ensure(
@@ -155,7 +173,9 @@ impl Work {
             }
         }
         let ceiling = match self.kind {
-            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => constants::DEBATE_TURN_VISIBLE_TOKENS,
+            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => {
+                constants::DEBATE_TURN_VISIBLE_TOKENS
+            }
             WorkKind::ProbeReport => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
@@ -189,5 +209,23 @@ impl Work {
                 && self.round.is_none_or(|r| r <= total_rounds),
             "round exceeds admitted rounds",
         )
+    }
+}
+
+impl WorkKind {
+    pub fn is_probe(&self) -> bool {
+        matches!(
+            self,
+            Self::ProbeExplain | Self::ProbeCheck | Self::ProbePredict | Self::ProbeReport
+        )
+    }
+    pub fn probe_composition(&self) -> Option<&'static str> {
+        match self {
+            Self::ProbeExplain => Some("probe.explain"),
+            Self::ProbeCheck => Some("probe.check"),
+            Self::ProbePredict => Some("probe.predict"),
+            Self::ProbeReport => Some("probe.report"),
+            _ => None,
+        }
     }
 }

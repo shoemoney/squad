@@ -2,6 +2,7 @@
 pub mod contexts;
 mod judge;
 mod member;
+mod probe;
 use crate::{bus::InProcessBus, prompts::PromptPack};
 use squad_agents::{openrouter::OpenRouterClient, resolver::ResolutionSnapshot};
 use squad_protocol::*;

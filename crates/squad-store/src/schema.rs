@@ -10,15 +10,23 @@ pub fn configure(connection: &Connection) -> rusqlite::Result<()> {
 pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
     configure(connection)?;
     let version: i64 = connection.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    if !matches!(version, 0 | 1 | 10) { return Err(rusqlite::Error::InvalidQuery); }
-    if version == 10 { return Ok(()); }
+    if !matches!(version, 0 | 1 | 10) {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
+    if version == 10 {
+        return Ok(());
+    }
     connection.pragma_update(None, "foreign_keys", false)?;
     let result = (|| {
         let tx = connection.transaction()?;
-        if version == 0 { tx.execute_batch(INITIAL)?; }
+        if version == 0 {
+            tx.execute_batch(INITIAL)?;
+        }
         tx.execute_batch(include_str!("../migrations/0010_probe.sql"))?;
         let violations: bool = tx.prepare("PRAGMA foreign_key_check")?.exists([])?;
-        if violations { return Err(rusqlite::Error::InvalidQuery); }
+        if violations {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
         tx.pragma_update(None, "user_version", 10)?;
         tx.commit()
     })();

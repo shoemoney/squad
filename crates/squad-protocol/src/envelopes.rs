@@ -413,6 +413,7 @@ pub struct BudgetStateEvent {
 // Keep the shared by-value API specified by section 02.
 #[allow(clippy::large_enum_variant)]
 pub enum CaseMaterial {
+    Probe(ProbeCaseMaterial),
     Standalone {
         messages: Vec<ResolvedQuote>,
         question: Text,
@@ -729,6 +730,10 @@ fn validate_envelope(
         EnvelopePayload::CaseOpened(case) => {
             same_contest(case.debate_id, case.contest_id)?;
             match &case.material {
+                CaseMaterial::Probe(_) => ensure(
+                    case.contest_id.is_some() && case.debate_id.is_none(),
+                    "invalid probe case",
+                )?,
                 CaseMaterial::Standalone { messages, .. } => ensure(
                     !messages.is_empty() && messages.len() <= 12 && case.debate_id.is_none(),
                     "invalid standalone case",
@@ -760,8 +765,35 @@ fn validate_envelope(
         EnvelopePayload::ProbeSetup(v) => v.validate()?,
         EnvelopePayload::ProbeState(v) => v.validate()?,
         EnvelopePayload::ProbePreflight(v) => v.validate()?,
-        EnvelopePayload::ProbeCheck(v) => v.data.validate()?,
-        EnvelopePayload::ProbeExplanation(_) | EnvelopePayload::ProbePrediction(_) | EnvelopePayload::ProbeReport(_) => {},
+        EnvelopePayload::ProbeCheck(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+            v.data.validate()?;
+        }
+        EnvelopePayload::ProbeExplanation(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+        }
+        EnvelopePayload::ProbePrediction(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+        }
+        EnvelopePayload::ProbeReport(v) => {
+            ensure(
+                human_only && base.sender == Actor::Judge,
+                "probe report must be judge-to-human",
+            )?;
+            generation(&v.completed.generation)?;
+        }
         EnvelopePayload::ContestState(state) => match state {
             ContestState::Probe(state) => state.validate()?,
             ContestState::Debate(state) => state.validate()?,
@@ -781,7 +813,11 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            matches!((&submission.kind,&submission.transition), (ContestKind::Debate,ContestTransition::Debate(_)) | (ContestKind::Probe,ContestTransition::Probe(_))),
+            matches!(
+                (&submission.kind, &submission.transition),
+                (ContestKind::Debate, ContestTransition::Debate(_))
+                    | (ContestKind::Probe, ContestTransition::Probe(_))
+            ),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {

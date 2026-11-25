@@ -33,6 +33,18 @@ impl JudgeAttemptRunner for Runner {
         cancel: CancellationToken,
     ) -> JudgeExecutionFuture<'a> {
         Box::pin(async move {
+            if grant.work.kind == WorkKind::ProbeReport {
+                return super::probe::execute(
+                    context,
+                    grant,
+                    cancel,
+                    &self.config,
+                    &self.pack,
+                    &self.models,
+                    &self.client,
+                )
+                .await;
+            }
             let prepared = self.prepare(context, &mut grant).await;
             let (request, debaters, tally, invocation, rubric) = match prepared {
                 Ok(prepared) => prepared,
@@ -230,6 +242,7 @@ impl Runner {
             )
         } else {
             match &material {
+                CaseMaterial::Probe(_) => return Err(ReaderError::NotRunnable),
                 CaseMaterial::Standalone { messages, question } => self.pack.judge_inputs(
                     &self.config,
                     &grant.work,

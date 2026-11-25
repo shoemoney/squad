@@ -17,11 +17,10 @@ pub mod constants;
 pub mod cursor;
 pub mod debate;
 pub mod envelopes;
+pub mod probe;
 pub mod validation;
 pub mod verdict;
 pub mod work;
-pub mod probe;
-pub use probe::*;
 pub use capabilities::*;
 pub use contest::*;
 pub use cursor::*;
@@ -32,6 +31,7 @@ pub use parser::{
     ExportScope, ParseContext, ParsedInput, RecordSummary, SubmissionMeta, VariableName,
     VariableUpdate, parse,
 };
+pub use probe::*;
 pub use requests::*;
 pub use work::*;
 pub type MemberNick = Nick;

@@ -106,6 +106,20 @@ impl squad_agents::worker::WorkExecutor for Executor {
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
         Box::pin(async move {
+            if grant.work.kind.is_probe() {
+                let pack = PromptPack::from_override_dir(self.config.prompts.directory.as_deref())
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                return super::probe::execute(
+                    context,
+                    grant,
+                    cancel,
+                    &self.config,
+                    &pack,
+                    &self.models,
+                    &self.client,
+                )
+                .await;
+            }
             let Some(model) = self.models.get(grant.binding.model.as_str()) else {
                 return squad_agents::agents::failed(context, &grant, ErrorCode::MODEL_UNAVAILABLE)
                     .await;

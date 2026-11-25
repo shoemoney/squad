@@ -35,6 +35,18 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
         return Err(forbidden());
     }
     let generation = match payload {
+        EnvelopePayload::ProbeExplanation(v) if work.kind == WorkKind::ProbeExplain => {
+            &v.completed.generation
+        }
+        EnvelopePayload::ProbeCheck(v) if work.kind == WorkKind::ProbeCheck => {
+            &v.completed.generation
+        }
+        EnvelopePayload::ProbePrediction(v) if work.kind == WorkKind::ProbePredict => {
+            &v.completed.generation
+        }
+        EnvelopePayload::ProbeReport(v) if work.kind == WorkKind::ProbeReport => {
+            &v.completed.generation
+        }
         EnvelopePayload::AgentReply(reply) | EnvelopePayload::MessageFinal(reply)
             if work.kind == WorkKind::Reply =>
         {

@@ -310,3 +310,22 @@ impl PromptPack {
         Ok((system, user))
     }
 }
+
+impl PromptPack {
+    /// Render the effective source frozen at admission, including across restart.
+    pub fn render_frozen_composition(
+        &self,
+        id: &str,
+        system: &str,
+        user: &str,
+        inputs: &Inputs,
+    ) -> Result<RenderedComposition, PromptError> {
+        validate_inputs(id, &format!("{system}\n{user}"), inputs)?;
+        Ok(RenderedComposition {
+            system: render_text(id, system, inputs)?,
+            user: render_text(id, user, inputs)?,
+            provider_user_name: "squad".into(),
+            step: id.into(),
+        })
+    }
+}

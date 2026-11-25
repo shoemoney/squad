@@ -5,7 +5,7 @@ use crate::{
 use rusqlite::{Connection, OptionalExtension, params};
 use squad_protocol::*;
 pub fn save(db: &Connection, id: WorkId, case: CaseId, data: &JudgeRepairData) -> Result<()> {
-    let valid:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE work_id=? AND case_id=? AND attempt=? AND kind IN ('judge','judge.round'))",params![id.to_string(),case.to_string(),data.attempt],|r|r.get(0))?;
+    let valid:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE work_id=? AND case_id=? AND attempt=? AND kind IN ('judge','judge.round','probe.report'))",params![id.to_string(),case.to_string(),data.attempt],|r|r.get(0))?;
     if !valid {
         return Err(invalid("Repair does not belong to case work"));
     }

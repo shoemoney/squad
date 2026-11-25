@@ -54,7 +54,13 @@ impl Router {
                     InternalRequest::Transition {
                         envelope_id,
                         submission,
-                    } => super::debates::transition(tx, group, envelope_id, submission)?,
+                    } => {
+                        if submission.kind == ContestKind::Probe {
+                            super::probe::transition(tx, group, envelope_id, submission)?;
+                        } else {
+                            super::debates::transition(tx, group, envelope_id, submission)?;
+                        }
+                    }
                     InternalRequest::Produce { envelope } => {
                         if let EnvelopePayload::DebatePreflight(plan) = envelope.content {
                             return super::preflight::propose(tx, group, id, plan, max, threshold);
@@ -304,6 +310,9 @@ fn barrier(
     commit: BarrierCommit,
     bindings: &std::collections::BTreeMap<String, ExecutorBinding>,
 ) -> Result<()> {
+    if squad_store::schema::validate_contest_kind(tx, commit.contest_id, ContestKind::Probe)? {
+        return super::probe::barrier(tx, group, commit.barrier_event.base.correlation_id, commit);
+    }
     let state = squad_store::contests::debate(tx, commit.contest_id)?;
     if state.state_version != commit.expected_state_version
         || state.state.is_terminal()
@@ -405,6 +414,16 @@ impl Router {
             "contest-engine".into(),
             digest,
             move |tx, group| {
+                if squad_store::schema::validate_contest_kind(
+                    tx,
+                    step.contest_id,
+                    ContestKind::Probe,
+                )? {
+                    if !projections.is_empty() || !private_maps.is_empty() {
+                        return Err(super::authorization::forbidden());
+                    }
+                    return super::probe::allocate(tx, group, request_id, step, work, &bindings);
+                }
                 let state = squad_store::contests::debate(tx, step.contest_id)?;
                 if state.state.is_terminal()
                     || (!work.is_empty()
