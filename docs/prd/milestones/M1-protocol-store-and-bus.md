@@ -166,7 +166,7 @@
   - [x] M1.P3.L4.T2 — Implement case creation, scoped case-history writes and follow-up associations in crate `squad-store`, file `crates/squad-store/src/cases.rs`.
   - [x] M1.P3.L4.T3 — Commit verdict-linked scoreboard changes once per accepted verdict in crate `squad-core`, file `crates/squad-core/src/router/verdict.rs`.
   - [x] M1.P3.L4.T4 — Implement idempotent attempt-ledger, reservation and daily spending projection writes in crate `squad-store`, file `crates/squad-store/src/accounting.rs`.
-  - [ ] M1.P3.L4.T5 — Implement `/clear` fencing, content deletion, variable reset and scoreboard reset while preserving daily accounting in crate `squad-core`, file `crates/squad-core/src/router/clear.rs`.
+  - [x] M1.P3.L4.T5 — Implement `/clear` fencing, content deletion, variable reset and scoreboard reset while preserving daily accounting in crate `squad-core`, file `crates/squad-core/src/router/clear.rs`.
   - [ ] M1.P3.L4.T6 — Expose consistent room and contest read boundaries for M3 markdown export in crate `squad-store`, file `crates/squad-store/src/export.rs`.
   - [x] M1.P3.L4.T7 — Compute final `roundTally`, validate required override justification and project per-round outcomes with the verdict announcement without changing win-loss accounting for round scores in crate `squad-core`, file `crates/squad-core/src/router/verdict.rs` and file `crates/squad-core/tests/router_verdict.rs`.
   - [ ] M1.P3.L4.T8 — Support the accumulating debate judge case and fresh explicit-judge cases containing retained round scores without duplicate source projections in crate `squad-store`, file `crates/squad-store/src/cases.rs`.
