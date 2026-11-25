@@ -1,6 +1,4 @@
-use crossterm::event::{
-    Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind,
-};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
 use ratatui::{Terminal, backend::TestBackend};
 use squad_protocol::*;
 use squad_tui::{app::App, fx::TerminalCaps, ui};
@@ -25,7 +23,13 @@ pub fn draw(app: &mut App) -> String {
         .unwrap();
     let b = terminal.backend().buffer();
     (0..30)
-        .map(|y| (0..100).map(|x| b[(x, y)].symbol()).collect::<String>().trim_end().to_owned())
+        .map(|y| {
+            (0..100)
+                .map(|x| b[(x, y)].symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_owned()
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -106,7 +110,10 @@ fn pages_are_about_one_viewport_and_never_scroll_past_the_top() {
     draw(&mut app);
     let moved = start as isize - app.composed.top as isize;
     // Source anchors snap to block boundaries, so allow a row or two of slack.
-    assert!((height - 3..=height).contains(&moved), "moved {moved} of {height}");
+    assert!(
+        (height - 3..=height).contains(&moved),
+        "moved {moved} of {height}"
+    );
     for _ in 0..60 {
         app.handle(key(KeyCode::PageUp), Duration::ZERO);
         draw(&mut app);

@@ -38,9 +38,16 @@ fn effects_off_layout_is_static_and_the_post_hook_is_inert() {
     for size in [(80, 24), (120, 40), (40, 12)] {
         let mut app = app("off", size);
         let first = frame(&mut app, size, Duration::ZERO);
-        assert_eq!(app.fx.active_count(), 0, "no effect is armed with SQUAD_FX=off");
+        assert_eq!(
+            app.fx.active_count(),
+            0,
+            "no effect is armed with SQUAD_FX=off"
+        );
         let later = frame(&mut app, size, Duration::from_millis(700));
-        assert_eq!(first, later, "static layout is identical frame to frame at {size:?}");
+        assert_eq!(
+            first, later,
+            "static layout is identical frame to frame at {size:?}"
+        );
         assert_eq!(app.fx.active_count(), 0);
         insta::assert_snapshot!(
             format!("render_budget_static_{}x{}", size.0, size.1),
@@ -77,6 +84,9 @@ fn a_frame_stays_inside_the_terminal_and_redraws_are_deterministic_at_every_size
     for size in [(80, 24), (100, 30), (140, 42), (60, 20)] {
         let mut a = app("off", size);
         let mut b = app("off", size);
-        assert_eq!(frame(&mut a, size, Duration::ZERO), frame(&mut b, size, Duration::ZERO));
+        assert_eq!(
+            frame(&mut a, size, Duration::ZERO),
+            frame(&mut b, size, Duration::ZERO)
+        );
     }
 }

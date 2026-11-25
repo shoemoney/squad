@@ -57,10 +57,7 @@ fn completion_popup_snapshots_for_members_and_variables_at_both_viewports() {
             for item in app.completion.items.iter().take(6) {
                 assert!(screen.contains(item.as_str()), "{item} visible\n{screen}");
             }
-            insta::assert_snapshot!(
-                format!("completion_{name}_{}x{}", size.0, size.1),
-                screen
-            );
+            insta::assert_snapshot!(format!("completion_{name}_{}x{}", size.0, size.1), screen);
         }
     }
 }

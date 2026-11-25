@@ -31,7 +31,13 @@ fn draw(app: &mut App) -> String {
         .unwrap();
     let b = terminal.backend().buffer();
     (0..30)
-        .map(|y| (0..100).map(|x| b[(x, y)].symbol()).collect::<String>().trim_end().to_owned())
+        .map(|y| {
+            (0..100)
+                .map(|x| b[(x, y)].symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_owned()
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -72,7 +78,10 @@ fn record(seq: i64, text: &str) -> parser::RecordSummary {
 #[test]
 fn ctrl_f_searches_navigates_wraps_and_reveals_matches() {
     let mut app = seeded();
-    app.handle(key(KeyCode::Char('f'), KeyModifiers::CONTROL), Duration::ZERO);
+    app.handle(
+        key(KeyCode::Char('f'), KeyModifiers::CONTROL),
+        Duration::ZERO,
+    );
     assert!(app.search_open);
     typed(&mut app, "needle");
     assert_eq!(app.search.matches.len(), 3);
@@ -102,9 +111,17 @@ fn ctrl_f_searches_navigates_wraps_and_reveals_matches() {
 #[test]
 fn search_ignores_streaming_text_and_typing_stays_out_of_the_draft() {
     let mut app = seeded();
-    app.session.transcript.cards.get_mut(&mid(5)).unwrap().complete = false;
+    app.session
+        .transcript
+        .cards
+        .get_mut(&mid(5))
+        .unwrap()
+        .complete = false;
     app.session.transcript.cards.get_mut(&mid(5)).unwrap().text = "needle streaming".into();
-    app.handle(key(KeyCode::Char('f'), KeyModifiers::CONTROL), Duration::ZERO);
+    app.handle(
+        key(KeyCode::Char('f'), KeyModifiers::CONTROL),
+        Duration::ZERO,
+    );
     typed(&mut app, "needle");
     assert_eq!(app.search.matches.len(), 3);
     assert!(app.input.text().is_empty());
@@ -115,12 +132,18 @@ fn ctrl_y_copies_focused_and_selected_messages_with_unconfirmed_feedback() {
     let mut app = app();
     let (a, b) = (record(1, "first\x1b[31m body"), record(2, "second body"));
     app.session.snapshot.context.records = vec![b, a];
-    app.handle(key(KeyCode::Char('y'), KeyModifiers::CONTROL), Duration::ZERO);
+    app.handle(
+        key(KeyCode::Char('y'), KeyModifiers::CONTROL),
+        Duration::ZERO,
+    );
     assert!(app.pending_copy.is_none());
     assert!(app.notice.as_deref().unwrap().contains("Nothing selected"));
     app.handle(key(KeyCode::F(6), KeyModifiers::NONE), Duration::ZERO);
     app.handle(key(KeyCode::Down, KeyModifiers::NONE), Duration::ZERO);
-    app.handle(key(KeyCode::Char('y'), KeyModifiers::CONTROL), Duration::ZERO);
+    app.handle(
+        key(KeyCode::Char('y'), KeyModifiers::CONTROL),
+        Duration::ZERO,
+    );
     let request = app.take_copy().expect("copy request");
     assert!(request.sequence.starts_with("\x1b]52;c;"));
     assert!(request.sequence.ends_with('\x07'));
@@ -129,7 +152,10 @@ fn ctrl_y_copies_focused_and_selected_messages_with_unconfirmed_feedback() {
     app.handle(key(KeyCode::Char(' '), KeyModifiers::NONE), Duration::ZERO);
     app.handle(key(KeyCode::Down, KeyModifiers::NONE), Duration::ZERO);
     app.handle(key(KeyCode::Char(' '), KeyModifiers::NONE), Duration::ZERO);
-    app.handle(key(KeyCode::Char('y'), KeyModifiers::CONTROL), Duration::ZERO);
+    app.handle(
+        key(KeyCode::Char('y'), KeyModifiers::CONTROL),
+        Duration::ZERO,
+    );
     let both = app.take_copy().unwrap().sequence;
     assert!(both.len() > request.sequence.len(), "two messages copied");
 }
@@ -141,7 +167,10 @@ fn unavailable_clipboard_points_at_export() {
     app.session.snapshot.context.records = vec![record(1, "only")];
     app.handle(key(KeyCode::F(6), KeyModifiers::NONE), Duration::ZERO);
     app.handle(key(KeyCode::Down, KeyModifiers::NONE), Duration::ZERO);
-    app.handle(key(KeyCode::Char('y'), KeyModifiers::CONTROL), Duration::ZERO);
+    app.handle(
+        key(KeyCode::Char('y'), KeyModifiers::CONTROL),
+        Duration::ZERO,
+    );
     assert!(app.pending_copy.is_none());
     assert!(app.notice.as_deref().unwrap().contains("/export"));
 }

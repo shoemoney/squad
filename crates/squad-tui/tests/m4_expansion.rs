@@ -28,7 +28,13 @@ fn draw(app: &mut App) -> String {
         .unwrap();
     let b = terminal.backend().buffer();
     (0..40)
-        .map(|y| (0..100).map(|x| b[(x, y)].symbol()).collect::<String>().trim_end().to_owned())
+        .map(|y| {
+            (0..100)
+                .map(|x| b[(x, y)].symbol())
+                .collect::<String>()
+                .trim_end()
+                .to_owned()
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -74,7 +80,12 @@ fn tournament_rankings_expand_through_the_presentation_cache() {
     let expanded = draw(&mut app);
     assert!(expanded.contains("Sharp and well argued"), "{expanded}");
     assert!(app.composed.transcript.total_rows() > rows);
-    let key = &app.composed.transcript.message(identity(id)).unwrap().presentation;
+    let key = &app
+        .composed
+        .transcript
+        .message(identity(id))
+        .unwrap()
+        .presentation;
     assert!(key.rankings_expanded && key.expanded);
     assert!(app.composed.anchor.is_some(), "toggle keeps an anchor");
     f7(&mut app);
@@ -107,8 +118,16 @@ fn grill_plans_and_appendix_expand_through_the_presentation_cache() {
         }]),
     }];
     view.plans = vec![
-        PlanVersion { version: 1, text: "OLD PLAN TEXT".into(), expanded: None },
-        PlanVersion { version: 2, text: "NEW PLAN TEXT".into(), expanded: None },
+        PlanVersion {
+            version: 1,
+            text: "OLD PLAN TEXT".into(),
+            expanded: None,
+        },
+        PlanVersion {
+            version: 2,
+            text: "NEW PLAN TEXT".into(),
+            expanded: None,
+        },
     ];
     app.session.grills.insert(id, view);
     let collapsed = draw(&mut app);
@@ -117,6 +136,11 @@ fn grill_plans_and_appendix_expand_through_the_presentation_cache() {
     f7(&mut app);
     let expanded = draw(&mut app);
     assert!(expanded.contains("OLD PLAN TEXT"), "{expanded}");
-    let key = &app.composed.transcript.message(identity(id)).unwrap().presentation;
+    let key = &app
+        .composed
+        .transcript
+        .message(identity(id))
+        .unwrap()
+        .presentation;
     assert!(key.appendix_expanded && key.rankings_expanded);
 }

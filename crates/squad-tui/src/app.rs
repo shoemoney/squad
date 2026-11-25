@@ -315,7 +315,7 @@ impl App {
                 collapsed: false,
             })
             .collect();
-        let before = self.session.snapshot.cursor.clone();
+        let before = self.session.snapshot.cursor;
         self.search.refresh(&documents, false, before);
         self.reveal_current_match();
         self.dirty = true;
@@ -341,9 +341,7 @@ impl App {
     fn search_key(&mut self, key: &crossterm::event::KeyEvent) -> bool {
         match key.code {
             KeyCode::Esc => self.close_search(),
-            KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => {
-                self.search_next(true)
-            }
+            KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => self.search_next(true),
             KeyCode::Enter | KeyCode::Down => self.search_next(false),
             KeyCode::Up => self.search_next(true),
             KeyCode::Backspace => {
@@ -702,9 +700,11 @@ impl App {
         if self.session.transcript.follow {
             self.session.transcript.sync_activity();
             // Leave the live edge from where the bottom currently is.
-            self.composed.top = self.composed.transcript.total_rows().saturating_sub(usize::from(
-                self.composed.viewport.height,
-            ));
+            self.composed.top = self
+                .composed
+                .transcript
+                .total_rows()
+                .saturating_sub(usize::from(self.composed.viewport.height));
         }
         if self.composed.scroll(delta) && delta > 0 {
             self.resume_live();
@@ -715,8 +715,8 @@ impl App {
     }
     /// One viewport page up or down (one row of overlap kept for orientation).
     pub fn page(&mut self, up: bool) {
-        let rows = isize::try_from(self.composed.viewport.height.saturating_sub(1).max(1))
-            .unwrap_or(1);
+        let rows =
+            isize::try_from(self.composed.viewport.height.saturating_sub(1).max(1)).unwrap_or(1);
         self.scroll_transcript(if up { -rows } else { rows });
     }
     /// End key or paging back to the bottom: follow again and clear the new-activity count.

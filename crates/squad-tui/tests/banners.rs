@@ -19,8 +19,14 @@ fn every_banner() -> Vec<Banner> {
         Banner::FinalRound,
         Banner::Verdict,
         Banner::Tournament,
-        Banner::TournamentRound { round: 1, remaining: 8 },
-        Banner::TournamentRound { round: 3, remaining: 2 },
+        Banner::TournamentRound {
+            round: 1,
+            remaining: 8,
+        },
+        Banner::TournamentRound {
+            round: 3,
+            remaining: 2,
+        },
         Banner::Final,
         Banner::Champion,
         Banner::Grill,
@@ -36,7 +42,12 @@ fn every_banner() -> Vec<Banner> {
     ]
 }
 fn new_banners() -> [Banner; 4] {
-    [Banner::Census, Banner::Crosscheck, Banner::Survey, Banner::Probe]
+    [
+        Banner::Census,
+        Banner::Crosscheck,
+        Banner::Survey,
+        Banner::Probe,
+    ]
 }
 fn paint(banners: &[Banner], mode: BannerMode, width: u16, palette: &Palette) -> String {
     let mut cache = BannerCache::default();
@@ -47,7 +58,11 @@ fn paint(banners: &[Banner], mode: BannerMode, width: u16, palette: &Palette) ->
         let mut buf = Buffer::empty(Rect::new(0, 0, width, height));
         let rects = render_art(&art, buf.area, &mut buf, palette);
         assert_eq!(rects.height, art.height());
-        out.push_str(&format!("── {kind:?} · {:?} · {} rows\n", art.style, art.height()));
+        out.push_str(&format!(
+            "── {kind:?} · {:?} · {} rows\n",
+            art.style,
+            art.height()
+        ));
         for y in 0..height {
             let line = (0..width).map(|x| buf[(x, y)].symbol()).collect::<String>();
             assert!(line.width() <= usize::from(width));
@@ -79,8 +94,7 @@ fn four_new_banners_and_step_dividers_snapshot_with_default_and_compact_fonts() 
             let text = paint(&new_banners(), mode, width, &palette);
             for banner in new_banners() {
                 assert!(
-                    text.to_uppercase().contains(&banner.text())
-                        || mode != BannerMode::Off,
+                    text.to_uppercase().contains(&banner.text()) || mode != BannerMode::Off,
                     "{banner:?} label kept in {name} at {width}"
                 );
             }
@@ -90,7 +104,10 @@ fn four_new_banners_and_step_dividers_snapshot_with_default_and_compact_fonts() 
         let steps = [
             Banner::Round(1),
             Banner::FinalRound,
-            Banner::TournamentRound { round: 2, remaining: 4 },
+            Banner::TournamentRound {
+                round: 2,
+                remaining: 4,
+            },
             Banner::GrillRound(3),
         ];
         insta::assert_snapshot!(
@@ -106,7 +123,10 @@ fn forty_columns_never_overflow_and_fall_back_to_one_line_labels() {
     for kind in every_banner() {
         for (mode, _) in MODES {
             let art = cache.get(&kind.text(), mode, 40);
-            assert!(art.lines.iter().all(|l| l.width() <= 40), "{kind:?} {mode:?}");
+            assert!(
+                art.lines.iter().all(|l| l.width() <= 40),
+                "{kind:?} {mode:?}"
+            );
             assert!(art.height() >= 1);
         }
         let off = cache.get(&kind.text(), BannerMode::Off, 40);
@@ -135,7 +155,10 @@ fn replay_hits_the_cache_and_resize_reflows_heights() {
     let mut cache = BannerCache::default();
     let first = cache.get("CENSUS", BannerMode::On, 120);
     let again = cache.get("CENSUS", BannerMode::On, 120);
-    assert!(std::sync::Arc::ptr_eq(&first, &again), "replay reuses the render");
+    assert!(
+        std::sync::Arc::ptr_eq(&first, &again),
+        "replay reuses the render"
+    );
     assert_eq!(cache.len(), 1);
     let view = BannerView::new(Banner::Census, BannerMode::On);
     let wide = view.measure(120, &mut cache);

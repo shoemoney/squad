@@ -247,10 +247,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     app.session.transcript.sync_activity();
     let new_activity = app.session.transcript.new_activity();
     let footer = if app.search_open {
-        format!(
-            "{} · Enter Next · ↑ Prev · Esc Close",
-            app.search.status()
-        )
+        format!("{} · Enter Next · ↑ Prev · Esc Close", app.search.status())
     } else if !app.session.transcript.follow && app.stop_confirmation.is_none() {
         if new_activity > 0 {
             format!(

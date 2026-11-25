@@ -359,7 +359,9 @@ impl Composed {
             for (id, source) in &session.tournaments {
                 let mut view = source.clone();
                 if expanded {
-                    view.rounds.iter_mut().for_each(|round| round.expanded = true);
+                    view.rounds
+                        .iter_mut()
+                        .for_each(|round| round.expanded = true);
                 }
                 let view = &view;
                 let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
@@ -387,7 +389,9 @@ impl Composed {
                 let mut view = source.clone();
                 if expanded {
                     view.appendix_expanded = true;
-                    view.plans.iter_mut().for_each(|plan| plan.expanded = Some(true));
+                    view.plans
+                        .iter_mut()
+                        .for_each(|plan| plan.expanded = Some(true));
                 }
                 let view = &view;
                 let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
@@ -401,7 +405,8 @@ impl Composed {
                 model.presentation.revision = revision;
                 model.presentation.expanded = view.expanded;
                 model.presentation.appendix_expanded = view.appendix_expanded;
-                model.presentation.rankings_expanded = view.plans.iter().all(|p| p.expanded == Some(true));
+                model.presentation.rankings_expanded =
+                    view.plans.iter().all(|p| p.expanded == Some(true));
                 models.push(model);
             }
             for (id, source) in &session.probes {
@@ -556,8 +561,7 @@ impl Composed {
                 let mut model =
                     TranscriptMessage::new(identity(pick.request.contest_id), "PICK", "");
                 model.widget_rows = rows(&scratch, height);
-                model.presentation.pick_revision =
-                    revision + pick.request.eligible.len() as u64;
+                model.presentation.pick_revision = revision + pick.request.eligible.len() as u64;
                 models.push(model);
             }
         }
