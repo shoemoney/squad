@@ -1,11 +1,16 @@
 [package]
 name = "squad-cli"
-description = "The squad binary."
+description = "A terminal chat room for multiple language models through OpenRouter"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+readme = "../../README.md"
+homepage = "https://github.com/shoemoney/squad"
+keywords = ["cli", "tui", "chat", "llm", "openrouter"]
+categories = ["command-line-utilities"]
+include = ["src/**", "tests/**", "Cargo.toml", "Cargo.lock"]
 
 [[bin]]
 name = "squad"
