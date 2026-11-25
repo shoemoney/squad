@@ -138,6 +138,29 @@ pub struct Completion {
 pub enum EnvelopePayload {
     #[serde(rename = "user.message")]
     UserMessage(UserMessage),
+    #[serde(rename = "crosscheck.setup")]
+    CrosscheckSetup(CrosscheckSetup),
+    #[serde(rename = "crosscheck.state")]
+    CrosscheckState(CrosscheckState),
+    #[serde(rename = "crosscheck.preflight")]
+    CrosscheckPreflight(CrosscheckPreflight),
+    #[serde(rename = "crosscheck.goal")]
+    CrosscheckGoal(CrosscheckGoalRecord),
+    #[serde(rename = "crosscheck.ruling")]
+    CrosscheckRuling(CrosscheckRulingRecord),
+    #[serde(rename = "crosscheck.inventory")]
+    CrosscheckInventory(CrosscheckInventory),
+    #[serde(rename = "crosscheck.grid")]
+    CrosscheckGrid(CrosscheckGrid),
+    #[serde(rename = "crosscheck.review")]
+    CrosscheckReview(CrosscheckReview),
+    #[serde(rename = "crosscheck.audit")]
+    CrosscheckAudit(CrosscheckAudit),
+    #[serde(rename = "crosscheck.acceptance")]
+    CrosscheckAcceptance(CrosscheckAcceptance),
+    #[serde(rename = "crosscheck.report")]
+    CrosscheckReport(CrosscheckReport),
+
     #[serde(rename = "agent.reply")]
     AgentReply(Completion),
     #[serde(rename = "message.final")]
@@ -639,6 +662,31 @@ fn validate_envelope(
                 "tournament announcement requires system to human",
             )?;
         }
+        EnvelopePayload::CrosscheckAcceptance(v) => {
+            ensure(
+                base.sender == Actor::Me && human_only,
+                "crosscheck acceptance requires human",
+            )?;
+            v.validate()?;
+        }
+        EnvelopePayload::CrosscheckGrid(v) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "crosscheck grid is application-owned",
+            )?;
+            v.validate()?;
+        }
+        EnvelopePayload::CrosscheckState(_)
+        | EnvelopePayload::CrosscheckSetup(_)
+        | EnvelopePayload::CrosscheckPreflight(_)
+        | EnvelopePayload::CrosscheckReport(_) => ensure(
+            base.sender == Actor::System && human_only,
+            "crosscheck control is application-owned",
+        )?,
+        _ => {}
+    }
+
+    match payload {
         EnvelopePayload::UserMessage(message) => {
             ensure(base.sender == Actor::Me, "user.message requires me")?;
             ensure(
@@ -764,6 +812,17 @@ fn validate_envelope(
             "invalid opening",
         )?,
         EnvelopePayload::DebateSetup(setup) => setup.validate()?,
+        EnvelopePayload::CrosscheckSetup(v) => v.validate()?,
+        EnvelopePayload::CrosscheckState(v) => v.validate()?,
+        EnvelopePayload::CrosscheckPreflight(v) => v.validate()?,
+        EnvelopePayload::CrosscheckInventory(v) => v.response.validate()?,
+        EnvelopePayload::CrosscheckRuling(_)
+        | EnvelopePayload::CrosscheckGoal(_)
+        | EnvelopePayload::CrosscheckGrid(_)
+        | EnvelopePayload::CrosscheckReview(_)
+        | EnvelopePayload::CrosscheckAudit(_)
+        | EnvelopePayload::CrosscheckAcceptance(_)
+        | EnvelopePayload::CrosscheckReport(_) => {}
         EnvelopePayload::DebateState(state) => state.validate()?,
         EnvelopePayload::DebateTurn(turn) => {
             generation(&turn.generation)?;
@@ -925,6 +984,7 @@ fn validate_envelope(
                 (ContestKind::Debate, ContestTransition::Debate(_))
                     | (ContestKind::Tournament, ContestTransition::Tournament(_))
                     | (ContestKind::Census, ContestTransition::Census(_))
+                    | (ContestKind::Crosscheck, ContestTransition::Crosscheck(_))
             ),
             "transition kind mismatch",
         )?,

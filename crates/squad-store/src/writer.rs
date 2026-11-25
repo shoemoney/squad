@@ -45,7 +45,7 @@ impl Store {
     fn with_lock(path: &std::path::Path, lock: Option<crate::room_lock::RoomLock>) -> Result<Self> {
         let mut connection = crate::open(path)?;
         crate::schema::migrate(&mut connection)?;
-        connection.execute_batch("INSERT OR IGNORE INTO room_meta VALUES ('main',1,1,1,1,NULL); INSERT OR IGNORE INTO vars(name,value) VALUES ('ROUNDS',10),('GRILL_ROUNDS',2),('CENSUS_PASSES',2);")?;
+        connection.execute_batch("INSERT OR IGNORE INTO room_meta VALUES ('main',2,1,1,1,NULL); INSERT OR IGNORE INTO vars(name,value) VALUES ('ROUNDS',10),('GRILL_ROUNDS',2),('CENSUS_PASSES',2);")?;
         let (sender, receiver) = mpsc::channel::<Job>();
         let vacuum_pending = Arc::new(AtomicBool::new(false));
         let retry_vacuum = vacuum_pending.clone();

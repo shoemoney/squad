@@ -15,4 +15,5 @@ pub mod transcript;
 pub mod verdict;
 
 pub mod census;
+pub mod crosscheck;
 mod tournament_events;

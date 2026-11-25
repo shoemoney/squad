@@ -26,7 +26,10 @@ fn selection_state_and_generic_preflights_have_one_shared_shape() {
             kind.is_built(),
             matches!(
                 kind,
-                ContestKind::Debate | ContestKind::Tournament | ContestKind::Census
+                ContestKind::Debate
+                    | ContestKind::Tournament
+                    | ContestKind::Census
+                    | ContestKind::Crosscheck
             )
         );
     }

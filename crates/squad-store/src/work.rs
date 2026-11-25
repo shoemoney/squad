@@ -87,7 +87,14 @@ pub fn insert(
         )?;
         if let Some(raw) = raw {
             let value: serde_json::Value = decode(raw)?;
-            let (plan_id, reserved, calls) = if work.kind.census_composition().is_some() {
+            let (plan_id, reserved, calls) = if work.kind.is_crosscheck() {
+                let plan: CrosscheckPreflight = serde_json::from_value(value)?;
+                (
+                    plan.base.plan_id,
+                    plan.base.estimate.reserved_usd,
+                    plan.reserved_attempts,
+                )
+            } else if work.kind.census_composition().is_some() {
                 let plan: ContestPreflight = serde_json::from_value(value)?;
                 let setup = crate::census::setup(db, contest)?;
                 (

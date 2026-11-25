@@ -518,6 +518,91 @@ pub fn attach(
                     },
                 )
             }
+            FxCue::CrosscheckCellsReady {
+                contest_id,
+                artifact_id,
+            } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let committed = app
+                    .session
+                    .snapshot
+                    .events
+                    .iter()
+                    .find(|e| e.base.id == *artifact_id);
+                let selected = committed
+                    .map(|e| match &e.content {
+                        squad_protocol::EnvelopePayload::CrosscheckReview(r) => r
+                            .response
+                            .cells
+                            .iter()
+                            .map(|c| c.cell_id)
+                            .collect::<Vec<_>>(),
+                        squad_protocol::EnvelopePayload::ContestArtifact(a)
+                            if a.artifact_kind.as_str() == "crosscheck.cell" =>
+                        {
+                            squad_protocol::validation::decode::<
+                                squad_protocol::CrosscheckReviewResponse,
+                            >(&a.data)
+                            .map(|r| r.cells.into_iter().map(|c| c.cell_id).collect())
+                            .unwrap_or_default()
+                        }
+                        squad_protocol::EnvelopePayload::CrosscheckReport(r) => {
+                            r.ledger.iter().map(|c| c.cell.cell_id).collect()
+                        }
+                        _ => vec![],
+                    })
+                    .unwrap_or_default();
+                let cells = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .map(|g| {
+                        g.crosscheck_cells
+                            .iter()
+                            .filter(|(cell, _, _)| selected.contains(cell))
+                            .map(|(_, index, rect)| fx::crosscheck::CellAccent {
+                                grid_index: *index,
+                                rect: app.composed.graphic_rect(id, *rect, top, transcript),
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                let summary = messages
+                    .cards
+                    .iter()
+                    .find(|(message, _)| message == &id)
+                    .map(|(_, r)| Rect::new(r.x, r.y, r.width, 1));
+                let narrow = (transcript.width < 40).then_some(summary).flatten();
+                let effect = fx::crosscheck::CrosscheckEffect::new(
+                    fx::crosscheck::Motion::new(level, no_color, false),
+                    seed,
+                    cells,
+                    palette.chrome(),
+                );
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    cue.cue.duration(),
+                    move |elapsed, buf, _| effect.apply(buf, elapsed, transcript, narrow),
+                )
+            }
+            FxCue::ModeBannerReady { contest_id, .. } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let Some((_, visible)) = messages.cards.iter().find(|(message, _)| message == &id)
+                else {
+                    continue;
+                };
+                let area = Rect::new(visible.x, visible.y, visible.width, 1);
+                let gold = palette.chrome();
+                Pass::catalogue(
+                    key,
+                    area,
+                    PassAccess::Unprotected,
+                    cue.cue.duration(),
+                    move |elapsed, buf, _| tint_prepared(buf, area, elapsed, gold, level),
+                )
+            }
             FxCue::DailySpendChanged => {
                 let gold = palette.chrome();
                 Pass::catalogue(

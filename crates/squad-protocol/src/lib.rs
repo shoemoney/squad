@@ -10,6 +10,8 @@ pub mod identities;
 pub mod parser;
 pub use errors::ErrorCode;
 pub mod contest;
+pub mod crosscheck;
+pub use crosscheck::*;
 pub mod requests;
 
 pub mod capabilities;

@@ -92,6 +92,7 @@ impl PromptRenderer for Renderer {
 }
 
 pub(super) struct Executor {
+    pub pack: Arc<PromptPack>,
     pub client: OpenRouterClient,
     pub config: SquadConfig,
     pub member: squad_protocol::config::AgentConfig,
@@ -106,6 +107,18 @@ impl squad_agents::worker::WorkExecutor for Executor {
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
         Box::pin(async move {
+            if grant.work.kind.is_crosscheck_member() {
+                return super::crosscheck::execute(
+                    context,
+                    grant,
+                    cancel,
+                    &self.client,
+                    &self.config,
+                    &self.pack,
+                    &self.models,
+                )
+                .await;
+            }
             let Some(model) = self.models.get(grant.binding.model.as_str()) else {
                 return squad_agents::agents::failed(context, &grant, ErrorCode::MODEL_UNAVAILABLE)
                     .await;

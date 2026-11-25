@@ -136,6 +136,7 @@ impl Router {
                 },
             )?);
         }
+        outcomes.extend(self.drive_crosschecks()?);
         Ok(outcomes)
     }
     fn fail_engine(&self, mut state: DebateState, failure: StoreError) -> Result<CommitOutcome> {

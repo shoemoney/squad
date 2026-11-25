@@ -14,7 +14,10 @@ pub(super) struct Runner {
     pub pack: Arc<PromptPack>,
     pub models: squad_agents::resolver::Catalog,
 }
-pub(super) struct Executor(pub squad_agents::judge::JudgeExecutor);
+pub(super) struct Executor {
+    pub ordinary: squad_agents::judge::JudgeExecutor,
+    pub crosscheck: Arc<Runner>,
+}
 impl squad_agents::worker::WorkExecutor for Executor {
     fn execute<'a>(
         &'a self,
@@ -23,9 +26,21 @@ impl squad_agents::worker::WorkExecutor for Executor {
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
         if grant.work.kind.census_judge() {
-            return self.0.runner.execute(context, grant, cancel);
+            return self.crosscheck.execute(context, grant, cancel);
         }
-        self.0.execute(context, grant, cancel)
+        if grant.work.kind.is_crosscheck_judge() {
+            Box::pin(super::crosscheck::execute(
+                context,
+                grant,
+                cancel,
+                &self.crosscheck.client,
+                &self.crosscheck.config,
+                &self.crosscheck.pack,
+                &self.crosscheck.models,
+            ))
+        } else {
+            self.ordinary.execute(context, grant, cancel)
+        }
     }
 }
 impl JudgeAttemptRunner for Runner {

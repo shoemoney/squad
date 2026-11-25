@@ -4,6 +4,7 @@
 //! transaction. Neither this renderer nor `ExportSource` opens the room runtime.
 //! Opaque generic artifact/report data is deliberately never serialized here.
 pub mod census;
+mod crosscheck;
 mod tournament;
 use crate::banner::{Banner, render_default};
 use squad_protocol::*;
@@ -119,10 +120,7 @@ fn check_scope(scope: &ExportScope, id: Option<ContestId>) -> Result<(), ExportE
     if id.is_none() {
         return Err(ExportError::ContestIdRequired);
     }
-    if matches!(
-        scope,
-        ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
-    ) {
+    if matches!(scope, ExportScope::Survey | ExportScope::Probe) {
         return Err(ExportError::UnsupportedScope);
     }
     Ok(())
@@ -189,6 +187,7 @@ pub fn render(
             ExportScope::Tournament => ContestKind::Tournament,
             ExportScope::Grill => ContestKind::Grill,
             ExportScope::Census => ContestKind::Census,
+            ExportScope::Crosscheck => ContestKind::Crosscheck,
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -258,6 +257,15 @@ pub fn render(
             _ => None,
         })
         .collect();
+    let typed_crosscheck_work: BTreeSet<_> = events
+        .iter()
+        .filter_map(|e| match &e.content {
+            EnvelopePayload::CrosscheckInventory(v) => Some(v.work_id),
+            EnvelopePayload::CrosscheckReview(v) => Some(v.work_id),
+            EnvelopePayload::CrosscheckAudit(v) => Some(v.work_id),
+            _ => None,
+        })
+        .collect();
     let mut out = String::from("# Squad transcript\n\n");
     let mut boundaries: BTreeMap<ContestId, BTreeSet<String>> = BTreeMap::new();
     for e in events {
@@ -275,6 +283,18 @@ pub fn render(
             continue;
         }
         if census::render(&mut out, &e.content) {
+            continue;
+        }
+        if let EnvelopePayload::ContestArtifact(a) = &e.content
+            && a.work_id
+                .is_some_and(|w| !typed_crosscheck_work.contains(&w))
+            && let Some(text) = crosscheck::partial(a, &e.base.sender)
+        {
+            out.push_str(&text);
+            continue;
+        }
+        if let Some(text) = crosscheck::render(&e.content) {
+            out.push_str(&text);
             continue;
         }
         match &e.content {
@@ -547,6 +567,8 @@ fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
         | EnvelopePayload::ContestState(ContestState::Census(s)) => {
             (s.contest_id, ContestKind::Census)
         }
+        EnvelopePayload::CrosscheckSetup(s) => (s.contest_id, ContestKind::Crosscheck),
+        EnvelopePayload::CrosscheckState(s) => (s.contest_id, ContestKind::Crosscheck),
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -574,6 +596,15 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         EnvelopePayload::CensusLedger(s) => Some(s.contest_id),
         EnvelopePayload::CensusRating(s) => Some(s.contest_id),
         EnvelopePayload::CensusReport(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckGoal(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckInventory(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckGrid(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckReview(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckAudit(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckRuling(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckAcceptance(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckReport(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckPreflight(s) => Some(s.base.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

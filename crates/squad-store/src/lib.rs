@@ -27,4 +27,5 @@ pub use writer::Store;
 pub mod contest_steps;
 
 pub mod census;
+pub mod crosscheck;
 pub mod tournaments;

@@ -1,5 +1,6 @@
 //! Per-kind executors share attempt-scoped streaming and ingress fencing.
 pub mod census;
+pub mod crosscheck;
 pub mod member;
 use crate::{
     accounting::{AttemptAccounting, acknowledged},
@@ -46,6 +47,12 @@ pub async fn stream_attempt(
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
         WorkKind::CensusHunt | WorkKind::CensusRate => DeadlineClass::DebateTurn,
         WorkKind::CensusMerge | WorkKind::CensusFinal => DeadlineClass::FinalJudge,
+        WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit => {
+            DeadlineClass::DebateTurn
+        }
+        WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
+            DeadlineClass::FinalJudge
+        }
         WorkKind::Reply => DeadlineClass::Ordinary,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,

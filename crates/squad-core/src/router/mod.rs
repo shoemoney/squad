@@ -5,6 +5,7 @@ pub mod cases;
 pub mod census;
 pub mod clear;
 pub mod contests;
+pub(crate) mod crosscheck;
 pub mod debates;
 pub mod ephemeral;
 pub mod executor;
@@ -139,6 +140,8 @@ impl Router {
                 if let EnvelopePayload::DebateState(s) = &event.content {
                     scope.insert(s.debate_id);
                 } else if let EnvelopePayload::TournamentState(s) = &event.content {
+                    self.wake_members();
+                } else if let EnvelopePayload::CrosscheckState(s) = &event.content {
                     scope.insert(s.contest_id);
                 }
             }
@@ -249,6 +252,9 @@ impl Router {
         let digest = squad_store::commit::digest(&request)?;
         let roster = self.roster.clone();
         let bindings = self.bindings.clone();
+        let engine_config = self.engine_config.clone();
+        let self_threshold = self.confirmation_threshold;
+        let max = self.daily_max;
         let clear = matches!(request, Request::Clear { .. });
         let defaults = self.variable_defaults;
         let tournament_max = self.daily_max;
@@ -268,6 +274,7 @@ impl Router {
                     if let ParsedInput::Tournament { input: conversation, entrants, prompt } = &parsed {
                         return tournaments::prepare(tx,group,id,input,conversation,entrants,prompt,&bindings,tournament_max,tournament_threshold,tournament_config.as_ref(),preconfirmed);
                     }
+                    if matches!(parsed,ParsedInput::Crosscheck{..}) { return crosscheck::prepare(tx,group,id,input,parsed,&bindings,max,self_threshold,preconfirmed,engine_config.as_ref()); }
                     if let ParsedInput::Debate {input:conversation,..}=&parsed {
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
                         let request=Request::UserMessage {input,parsed,preconfirmed};
@@ -315,6 +322,7 @@ impl Router {
                         squad_store::work::insert(tx,&work,&bindings[nick.as_str()],held)?;
                     }
                 }
+                Request::CrosscheckAccept {contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason,..}=>crosscheck::accept(tx,group,id,contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason)?,
                 Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>{
                     if squad_store::schema::validate_contest_kind(tx,debate_id,ContestKind::Census)? { return census::resolve(tx,group,id,debate_id,plan_id,false); }
                     return preflight::resolve(tx,group,id,debate_id,plan_id,false);
@@ -570,7 +578,7 @@ impl Router {
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
                         EnvelopePayload::ContestArtifact(artifact) if work.kind.census_composition().is_some()=>squad_store::census::accept(tx,&work,artifact,seq)?,
-                        EnvelopePayload::ContestArtifact(artifact)=>squad_store::contest_steps::artifact(tx,artifact,seq)?,
+                        EnvelopePayload::ContestArtifact(artifact)=>{ if matches!(work.kind,WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit|WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule) {crosscheck::validate_artifact(tx,&work,artifact)?;} squad_store::contest_steps::artifact(tx,artifact,seq)?; },
                         _ => return Err(authorization::forbidden()),
                     }
                     let status=if matches!(&output,EnvelopePayload::DebateRoundScore(score) if score.scores.is_none()){WorkStatus::Failed}else{WorkStatus::Completed};
@@ -837,6 +845,16 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             ),
             _ => (None, String::new(), None),
         };
+        let crosscheck_state = if let EnvelopePayload::CrosscheckState(state) = &event.content {
+            Some(state.clone())
+        } else {
+            None
+        };
+        let crosscheck_contest = match &event.content {
+            EnvelopePayload::CrosscheckSetup(s) => Some(s.contest_id),
+            EnvelopePayload::CrosscheckGrid(g) => Some(g.contest_id),
+            _ => None,
+        };
         let superseded: bool = db.query_row(
             "SELECT EXISTS(SELECT 1 FROM superseded WHERE superseded_event_id=?)",
             [event.base.id.to_string()],
@@ -851,7 +869,7 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             recipients: event.base.recipients,
             content,
             in_reply_to_message_id: reply,
-            contest_id: None,
+            contest_id: crosscheck_contest,
             case_id: None,
             plan_event_id: None,
             grid_event_id: None,
@@ -860,6 +878,36 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             superseded,
             eligible: !superseded,
         });
+        if let Some(state) = crosscheck_state {
+            let record = ctx.records.last_mut().expect("just pushed");
+            record.contest_id = Some(state.contest_id);
+            record.state_version = Some(state.state_version);
+            record.content = serde_json::to_string(&state)?;
+            for (kind, slot) in [
+                ("crosscheck.setup", &mut record.plan_event_id),
+                ("crosscheck.grid", &mut record.grid_event_id),
+            ] {
+                let raw:Option<String>=db.query_row("SELECT e.id FROM events e JOIN contest_events c ON c.event_seq=e.seq WHERE c.contest_id=? AND e.kind=? ORDER BY e.seq DESC LIMIT 1",params![state.contest_id.to_string(),kind],|r|r.get(0)).optional()?;
+                *slot = raw
+                    .map(|id| id.parse().map_err(|_| StoreError::Unavailable))
+                    .transpose()?;
+            }
+            let mut q = db.prepare("SELECT cell_id FROM crosscheck_cells WHERE contest_id=?")?;
+            record.cell_ids = q
+                .query_map([state.contest_id.to_string()], |r| r.get::<_, String>(0))?
+                .map(|r| r?.parse().map_err(|_| rusqlite::Error::InvalidQuery))
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            if state.status == CrosscheckStatus::Complete {
+                let report: CrosscheckReport =
+                    crosscheck::map(db, state.contest_id, "crosscheck.report")?;
+                record.cell_ids.extend(
+                    report
+                        .residual_risks
+                        .iter()
+                        .filter_map(|r| r.id.as_str().parse::<CellId>().ok()),
+                );
+            }
+        }
     }
     if let Some(raw) = db
         .query_row("SELECT state_json FROM contests WHERE active=1", [], |r| {
@@ -881,7 +929,11 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
         } else if let Ok(state) = serde_json::from_str::<CensusState>(&raw) {
             ctx.active_contest = Some(ContestState::Census(state));
         } else {
-            ctx.active_contest = Some(ContestState::Debate(serde_json::from_str(&raw)?));
+            ctx.active_contest = if let Ok(state) = serde_json::from_str::<CrosscheckState>(&raw) {
+                Some(ContestState::Generic(state.generic()))
+            } else {
+                Some(ContestState::Debate(serde_json::from_str(&raw)?))
+            };
         }
     }
     Ok(ctx)

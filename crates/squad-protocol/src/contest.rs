@@ -231,6 +231,7 @@ pub enum ContestTransition {
     Debate(DebateTransition),
     Tournament(TournamentTransition),
     Census(CensusTransition),
+    Crosscheck(CrosscheckTransition),
 }
 impl ContestKind {
     pub fn as_str(self) -> &'static str {
@@ -245,7 +246,10 @@ impl ContestKind {
         }
     }
     pub fn is_built(self) -> bool {
-        matches!(self, Self::Debate | Self::Tournament | Self::Census)
+        matches!(
+            self,
+            Self::Debate | Self::Tournament | Self::Census | Self::Crosscheck
+        )
     }
 }
 impl ContestTransitionSubmission {

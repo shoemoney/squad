@@ -46,6 +46,7 @@ pub struct Graphics {
     pub winner: Rect,
     pub totals: Vec<Rect>,
     pub census_estimate: Rect,
+    pub crosscheck_cells: Vec<(CellId, usize, Rect)>,
 }
 fn identity(id: impl ToString) -> MessageId {
     id.to_string().parse().expect("protocol UUID")
@@ -69,6 +70,9 @@ fn rows(buffer: &Buffer, height: usize) -> Vec<Line<'static>> {
         .collect()
 }
 impl Composed {
+    pub fn invalidate_artifacts(&mut self) {
+        self.artifact_signature = None;
+    }
     pub fn toggle_verdict(&mut self) {
         self.verdict_expanded = !self.verdict_expanded;
         if let Some((&id, _)) = self
@@ -323,6 +327,54 @@ impl Composed {
                 models.push(model);
             }
             for (id, contest) in &session.contests {
+                if contest.crosscheck.state.is_some() {
+                    let height = contest
+                        .crosscheck
+                        .lines()
+                        .iter()
+                        .map(|line| line.width().div_ceil(usize::from(body_width.max(1))) * 2 + 1)
+                        .sum::<usize>()
+                        .min(usize::from(u16::MAX)) as u16;
+                    let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, height));
+                    widgets::crosscheck::render(
+                        &contest.crosscheck,
+                        scratch.area,
+                        &mut scratch,
+                        palette,
+                    );
+                    let height = (0..scratch.area.height)
+                        .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                        .map_or(0, |y| usize::from(y) + 1);
+                    let mut cells = vec![];
+                    if body_width >= 36
+                        && let Some(grid) = &contest.crosscheck.grid
+                    {
+                        let headers = (0..scratch.area.height)
+                            .filter_map(|y| {
+                                let key = (0..36)
+                                    .map(|x| scratch[(x, y)].symbol())
+                                    .collect::<String>();
+                                key.parse::<CellId>().ok().map(|id| (id, y))
+                            })
+                            .collect::<BTreeMap<_, _>>();
+                        for (index, cell) in grid.cells.iter().enumerate() {
+                            if let Some(y) = headers.get(&cell.cell_id) {
+                                cells.push((cell.cell_id, index, Rect::new(0, *y, body_width, 1)));
+                            }
+                        }
+                    }
+                    self.graphics.insert(
+                        identity(id),
+                        Graphics {
+                            crosscheck_cells: cells,
+                            ..Default::default()
+                        },
+                    );
+                    let mut model = TranscriptMessage::new(identity(id), "CROSSCHECK", "");
+                    model.widget_rows = rows(&scratch, height);
+                    models.push(model);
+                    continue;
+                }
                 if let Some(ContestState::Generic(state)) = &contest.state {
                     let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 128));
                     let rect = scratch.area;

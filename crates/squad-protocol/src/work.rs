@@ -8,6 +8,18 @@ use serde::{Deserialize, Serialize};
 pub enum WorkKind {
     #[serde(rename = "reply")]
     Reply,
+    #[serde(rename = "crosscheck.goal")]
+    CrosscheckGoal,
+    #[serde(rename = "crosscheck.inventory")]
+    CrosscheckInventory,
+    #[serde(rename = "crosscheck.normalize")]
+    CrosscheckNormalize,
+    #[serde(rename = "crosscheck.cell")]
+    CrosscheckCell,
+    #[serde(rename = "crosscheck.audit")]
+    CrosscheckAudit,
+    #[serde(rename = "crosscheck.rule")]
+    CrosscheckRule,
     #[serde(rename = "debate.turn")]
     DebateTurn,
     #[serde(rename = "judge")]
@@ -127,6 +139,46 @@ impl Work {
                     )?;
                 }
             }
+            WorkKind::CrosscheckInventory
+            | WorkKind::CrosscheckCell
+            | WorkKind::CrosscheckAudit
+            | WorkKind::CrosscheckGoal
+            | WorkKind::CrosscheckNormalize
+            | WorkKind::CrosscheckRule => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.round.is_none(),
+                    "crosscheck requires contest step",
+                )?;
+                ensure(
+                    (self.kind.is_crosscheck_judge()) == (self.target == Target::Judge),
+                    "crosscheck target mismatch",
+                )?;
+                if let Target::Member(nick) = &self.target {
+                    ensure(
+                        self.case_id.is_none()
+                            && self.context_id.0
+                                == format!(
+                                    "contest:{}:{}:{}",
+                                    self.contest_id.expect("checked contest"),
+                                    self.step_id.expect("checked step"),
+                                    nick
+                                ),
+                        "crosscheck member context must be fresh and step-bound",
+                    )?;
+                }
+                ensure(
+                    self.attempt
+                        <= if self.kind.is_crosscheck_judge() {
+                            3
+                        } else {
+                            2
+                        },
+                    "crosscheck attempt limit",
+                )?;
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -226,6 +278,12 @@ impl Work {
             WorkKind::Judge | WorkKind::JudgeTournament => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::CensusMerge | WorkKind::CensusFinal => 4096,
             WorkKind::CensusHunt | WorkKind::CensusRate => 2048,
+            WorkKind::CrosscheckInventory
+            | WorkKind::CrosscheckCell
+            | WorkKind::CrosscheckAudit => 2048,
+            WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
+                4096
+            }
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
             WorkKind::DebateTurn => constants::DEBATE_TURN_VISIBLE_TOKENS,
@@ -272,5 +330,20 @@ impl WorkKind {
     }
     pub fn census_judge(&self) -> bool {
         matches!(self, Self::CensusMerge | Self::CensusFinal)
+    }
+    pub fn is_crosscheck_member(&self) -> bool {
+        matches!(
+            self,
+            Self::CrosscheckInventory | Self::CrosscheckCell | Self::CrosscheckAudit
+        )
+    }
+    pub fn is_crosscheck_judge(&self) -> bool {
+        matches!(
+            self,
+            Self::CrosscheckGoal | Self::CrosscheckNormalize | Self::CrosscheckRule
+        )
+    }
+    pub fn is_crosscheck(&self) -> bool {
+        self.is_crosscheck_member() || self.is_crosscheck_judge()
     }
 }

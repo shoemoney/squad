@@ -1,5 +1,6 @@
 //! Private member workers and dynamically discovered case executors.
 pub mod contexts;
+mod crosscheck;
 mod judge;
 mod member;
 use crate::{bus::InProcessBus, prompts::PromptPack};
@@ -155,6 +156,7 @@ fn launch_mode(
             member.nick.clone(),
             renderer,
             Arc::new(member::Executor {
+                pack: pack.clone(),
                 client: client.clone(),
                 config: config.clone(),
                 member: member.clone(),
@@ -270,9 +272,12 @@ fn launch_mode(
                     case,
                     squad_agents::worker::spawn(
                         context,
-                        Arc::new(judge::Executor(squad_agents::judge::JudgeExecutor {
-                            runner: judge.clone(),
-                        })),
+                        Arc::new(judge::Executor {
+                            ordinary: squad_agents::judge::JudgeExecutor {
+                                runner: judge.clone(),
+                            },
+                            crosscheck: judge.clone(),
+                        }),
                     ),
                 ));
             }

@@ -417,6 +417,18 @@ pub fn shared_move_composition(
     Ok(match move_name {
         ContestMove::Pick | ContestMove::Tally | ContestMove::Barrier | ContestMove::Report => None,
         ContestMove::Collect if work.kind == WorkKind::Reply => Some("reply"),
+        ContestMove::Fanout if work.kind == WorkKind::CrosscheckInventory => {
+            Some("crosscheck.inventory")
+        }
+        ContestMove::Fanout if work.kind == WorkKind::CrosscheckCell => Some("crosscheck.cell"),
+        ContestMove::Fanout if work.kind == WorkKind::CrosscheckAudit => Some("crosscheck.audit"),
+        ContestMove::Judge if work.kind == WorkKind::CrosscheckGoal => {
+            Some("crosscheck.normalize.extract_goal")
+        }
+        ContestMove::Judge if work.kind == WorkKind::CrosscheckNormalize => {
+            Some("crosscheck.normalize.normalize_inventory")
+        }
+        ContestMove::Judge if work.kind == WorkKind::CrosscheckRule => Some("crosscheck.rule"),
         ContestMove::Fanout | ContestMove::Turns if work.kind == WorkKind::DebateTurn => {
             Some(debate_composition(
                 work.round.ok_or_else(|| error("missing debate round"))?,

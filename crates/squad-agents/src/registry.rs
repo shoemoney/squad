@@ -74,6 +74,12 @@ impl<'a> Registry<'a> {
             WorkKind::CensusMerge | WorkKind::CensusFinal => {
                 (TaskKind::CensusJudge, DeadlineClass::FinalJudge)
             }
+            WorkKind::CrosscheckInventory
+            | WorkKind::CrosscheckCell
+            | WorkKind::CrosscheckAudit => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
+                (TaskKind::CrosscheckJudge, DeadlineClass::FinalJudge)
+            }
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),

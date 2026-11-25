@@ -58,7 +58,7 @@
   - [x] M4.P1.L5.T4 — Verify contest completion, variable confirmation, ordinary input during picks, transient dismissal without stopping, stop-confirmation expiry, and shutdown keys in `crates/squad-tui/tests/input.rs` and `crates/squad-tui/tests/completion.rs`.
 
 - **M4.P1.L6 — Integrate the four new mode commands**
-  - [ ] M4.P1.L6.T1 — Add `$census`, `$crosscheck`, `$survey`, `$probe`, `$CENSUS_PASSES`, and `$CENSUS_PASSES=` completion in `crates/squad-tui/src/widgets/completion.rs` using the shared parser's recognized forms.
+  - [x] M4.P1.L6.T1 — Add `$census`, `$crosscheck`, `$survey`, `$probe`, `$CENSUS_PASSES`, and `$CENSUS_PASSES=` completion in `crates/squad-tui/src/widgets/completion.rs` using the shared parser's recognized forms.
   - [ ] M4.P1.L6.T2 — Present census pass assignment and lookup confirmation, verbatim new-mode validation errors, source previews, and rejected-draft and quote preservation in `crates/squad-tui/src/validation.rs` and `crates/squad-tui/src/app.rs`.
   - [ ] M4.P1.L6.T3 — Extend help and export command presentation from the authoritative parser and Foundations contracts in `crates/squad-tui/src/actions.rs`, without adding local grammar.
   - [ ] M4.P1.L6.T4 — Verify completion, pass-variable confirmation, protected text, exact parser-error display, and draft preservation for all four verbs in `crates/squad-tui/tests/completion.rs` and `crates/squad-tui/tests/input.rs`.
@@ -189,12 +189,12 @@
   - [x] M4.P3.L9.T5 — Expose census banner and estimate count-down hooks for M4.P5 in `crates/squad-tui/src/widgets/census.rs`, retaining the complete static ledger and final estimate with effects off.
 
 - **M4.P3.L10 — Render crosscheck**
-  - [ ] M4.P3.L10.T1 — Implement plan, goal, and constraint preview, optional extraction progress, plan-hidden inventory labels, lens assignments, normalization, and grid-building presentation in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T2 — Render the coverage grid summary, stable cell IDs, actual retained count, cap and trimming disclosure, and expandable single-item or cross-lens-pair records in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T3 — Render cited coverage, justified exclusions, open gaps and proposed fixes, pending or skipped reviews, and cell history without treating probable coverage as closure in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T4 — Render fresh-context auditor details, sampled evidence, challenges, proposed missing cases, and accepted rulings without dropping cells in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T5 — Connect eligible explicit risk-acceptance actions through the shared core contract, wait for acknowledgement, and show bounded stop guidance and unresolved audit findings in `crates/squad-tui/src/actions.rs` and `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T6 — Expose crosscheck banner and cell-filling hooks for M4.P5 in `crates/squad-tui/src/widgets/crosscheck.rs`, retaining textual statuses and complete cell detail with effects off.
+  - [x] M4.P3.L10.T1 — Implement plan, goal, and constraint preview, optional extraction progress, plan-hidden inventory labels, lens assignments, normalization, and grid-building presentation in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T2 — Render the coverage grid summary, stable cell IDs, actual retained count, cap and trimming disclosure, and expandable single-item or cross-lens-pair records in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T3 — Render cited coverage, justified exclusions, open gaps and proposed fixes, pending or skipped reviews, and cell history without treating probable coverage as closure in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T4 — Render fresh-context auditor details, sampled evidence, challenges, proposed missing cases, and accepted rulings without dropping cells in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T5 — Connect eligible explicit risk-acceptance actions through the shared core contract, wait for acknowledgement, and show bounded stop guidance and unresolved audit findings in `crates/squad-tui/src/actions.rs` and `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T6 — Expose crosscheck banner and cell-filling hooks for M4.P5 in `crates/squad-tui/src/widgets/crosscheck.rs`, retaining textual statuses and complete cell detail with effects off.
 
 - **M4.P3.L11 — Render survey**
   - [ ] M4.P3.L11.T1 — Implement new-question and existing-answer previews, optional collection, neutral claim extraction, and stable claim identity across steps in `crates/squad-tui/src/widgets/survey.rs`.
@@ -254,8 +254,8 @@
 - **M4.P4.L6 — Verify census and crosscheck presentation**
   - [x] M4.P4.L6.T1 — Snapshot census source previews, pass and lens labels, ranked ledger, singletons, covered citations, member-by-gap details, skipped members, and collapsed reports at both viewports in `crates/squad-tui/tests/census.rs`.
   - [x] M4.P4.L6.T2 — Verify exact authoritative census range text, adjacent caveat, discovery curve, plan-version changes, quiet guidance, and distinct pass-limit, stopped, and failed completion in `crates/squad-tui/tests/census.rs`, without testing estimate arithmetic in the TUI.
-  - [ ] M4.P4.L6.T3 — Snapshot crosscheck optional extraction, blind-inventory labels, grid summaries, retained count and trimming, every cell disposition, citations, exclusions, gaps, fixes, and skipped reviews in `crates/squad-tui/tests/crosscheck.rs`.
-  - [ ] M4.P4.L6.T4 — Verify auditor sample and challenge details, accepted rulings, retained cells, explicit risk-acceptance acknowledgement, and bounded stop guidance in `crates/squad-tui/tests/crosscheck.rs`.
+  - [x] M4.P4.L6.T3 — Snapshot crosscheck optional extraction, blind-inventory labels, grid summaries, retained count and trimming, every cell disposition, citations, exclusions, gaps, fixes, and skipped reviews in `crates/squad-tui/tests/crosscheck.rs`.
+  - [x] M4.P4.L6.T4 — Verify auditor sample and challenge details, accepted rulings, retained cells, explicit risk-acceptance acknowledgement, and bounded stop guidance in `crates/squad-tui/tests/crosscheck.rs`.
   - [ ] M4.P4.L6.T5 — Verify census and crosscheck display the authoritative call counts, pass count, optional extraction call, estimates, and remaining daily amount from M5 fixtures in `crates/squad-tui/tests/census.rs` and `crates/squad-tui/tests/crosscheck.rs`.
 
 - **M4.P4.L7 — Verify survey and probe presentation**

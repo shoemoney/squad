@@ -137,6 +137,7 @@ impl RoomApi for RoomHandle {
         let mut tournaments = std::collections::BTreeMap::new();
         let mut debates = BTreeMap::new();
         let mut census = BTreeMap::new();
+        let mut crosschecks = BTreeMap::new();
         let mut addressed = BTreeSet::new();
         let mut terminal = BTreeSet::new();
         let mut failed = false;
@@ -225,6 +226,9 @@ impl RoomApi for RoomHandle {
                 EnvelopePayload::CensusState(s) => {
                     census.insert(s.contest_id, s.status);
                 }
+                EnvelopePayload::CrosscheckState(s) => {
+                    crosschecks.insert(s.contest_id, s.status);
+                }
                 EnvelopePayload::DebateState(d) => {
                     debates.insert(d.debate_id, d.state.clone());
                 }
@@ -247,6 +251,7 @@ impl RoomApi for RoomHandle {
             };
         }
         if tournaments.values().any(|s| !s.is_terminal())
+            || crosschecks.values().any(|s| !s.is_terminal())
             || !addressed.is_subset(&terminal)
             || work
                 .values()
@@ -266,6 +271,9 @@ impl RoomApi for RoomHandle {
             return Progress::Running;
         }
         if failed
+            || crosschecks
+                .values()
+                .any(|s| matches!(s, CrosscheckStatus::Failed | CrosscheckStatus::Stopped))
             || work
                 .values()
                 .any(|s| matches!(s, WorkStatus::Failed | WorkStatus::Cancelled))
@@ -534,6 +542,35 @@ mod tests {
         state
             .events
             .push(event(3, old, EnvelopePayload::WorkState(completed)));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
+    }
+    #[test]
+    fn crosscheck_waits_for_script_terminal_even_between_model_steps() {
+        let request = EventId::new();
+        let mut state = state();
+        let mut crosscheck = CrosscheckState {
+            contest_id: ContestId::new(),
+            plan_id: PlanId::new(),
+            plan_version: 1,
+            grid_version: 1,
+            state_version: 1,
+            status: CrosscheckStatus::BuildingGrid,
+            step_id: None,
+            terminal_reason: None,
+        };
+        state.events.push(event(
+            1,
+            request,
+            EnvelopePayload::CrosscheckState(crosscheck.clone()),
+        ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Running);
+        crosscheck.status = CrosscheckStatus::Complete;
+        crosscheck.state_version += 1;
+        state.events.push(event(
+            2,
+            request,
+            EnvelopePayload::CrosscheckState(crosscheck),
+        ));
         assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
     }
 }
