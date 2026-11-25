@@ -77,6 +77,9 @@ impl Composed {
     }
     pub fn toggle_verdict(&mut self) {
         self.verdict_expanded = !self.verdict_expanded;
+        if self.anchor.is_none() {
+            self.anchor = self.transcript.anchor_at(self.top);
+        }
         if let Some((&id, _)) = self
             .graphics
             .iter()
@@ -92,13 +95,15 @@ impl Composed {
         self.signature = None;
         self.artifact_signature = None;
     }
-    pub fn scroll(&mut self, delta: isize) {
-        let top = self.top.saturating_add_signed(delta).min(
-            self.transcript
-                .total_rows()
-                .saturating_sub(usize::from(self.viewport.height)),
-        );
+    /// Moves the viewport by `delta` rows and returns true when it reached the live bottom.
+    pub fn scroll(&mut self, delta: isize) -> bool {
+        let bottom = self
+            .transcript
+            .total_rows()
+            .saturating_sub(usize::from(self.viewport.height));
+        let top = self.top.saturating_add_signed(delta).min(bottom);
         self.anchor = self.transcript.anchor_at(top);
+        top >= bottom
     }
     pub fn prepare(&mut self, session: &Session, width: u16, palette: &Palette) {
         if self.epoch != session.presentation_epoch {
@@ -151,12 +156,30 @@ impl Composed {
         self.transcript.resize(width);
         let body_width = width.saturating_sub(1);
         let mut models = Vec::new();
+        let mut superseded = session.transcript.superseded.clone();
+        for event in &session.snapshot.events {
+            if let EnvelopePayload::MessageSuperseded(s) = &event.content {
+                superseded.insert(s.superseded_message_id, s.replacement_message_id);
+            }
+        }
         for card in session.transcript.cards.values() {
             if session.debate_messages.contains(&card.id) {
                 continue;
             }
+            let replacement = superseded.get(&card.id).copied();
+            let state = if replacement.is_some() {
+                crate::transcript::CardState::Superseded
+            } else {
+                session
+                    .transcript
+                    .state_of(card.id)
+                    .unwrap_or(crate::transcript::CardState::Complete)
+            };
             if self.transcript.message(card.id).is_some_and(|m| {
-                m.source == card.text && m.complete == card.complete && m.attempt == card.attempt
+                m.source == card.text
+                    && m.complete == card.complete
+                    && m.attempt == card.attempt
+                    && m.status == state.label()
             }) {
                 continue;
             }
@@ -176,12 +199,31 @@ impl Composed {
                 .unwrap_or(0);
             model.attempt = card.attempt;
             model.complete = card.complete;
-            model.status = if card.complete {
-                "complete"
-            } else {
-                "streaming"
+            model.status = state.label().into();
+            match state {
+                crate::transcript::CardState::Superseded => {
+                    let by = replacement
+                        .and_then(|id| session.transcript.cards.get(&id))
+                        .map_or_else(
+                            || "a replacement reply".to_owned(),
+                            |c| match &c.author {
+                                Actor::Member(n) => format!("@{n}"),
+                                _ => "a replacement reply".to_owned(),
+                            },
+                        );
+                    model.before_body.push(Line::raw(format!(
+                        "⟳ Replaced by {by}. This earlier attempt is kept for reference."
+                    )));
+                }
+                crate::transcript::CardState::Incomplete(cancelled) => {
+                    model.after_body.push(Line::raw(if cancelled {
+                        "— Output stopped: cancelled before it finished."
+                    } else {
+                        "— Output stopped: this reply did not finish."
+                    }));
+                }
+                _ => {}
             }
-            .into();
             models.push(model);
         }
         let artifact_signature = (
@@ -197,6 +239,8 @@ impl Composed {
         if self.artifact_signature != Some(artifact_signature) {
             self.artifact_signature = Some(artifact_signature);
             self.graphics.clear();
+            let expanded = self.verdict_expanded;
+            let revision = session.snapshot.events.len() as u64;
             for (index, (id, source)) in session.debates.iter().enumerate() {
                 let mut view = source.clone();
                 view.number = index + 1;
@@ -308,9 +352,18 @@ impl Composed {
                 }
                 let mut model = TranscriptMessage::new(identity(id), "CASE", "");
                 model.widget_rows = rows(&scratch, geometry.content_height);
+                model.presentation.expanded = !view.collapsed;
+                model.presentation.report_revision = revision;
                 models.push(model);
             }
-            for (id, view) in &session.tournaments {
+            for (id, source) in &session.tournaments {
+                let mut view = source.clone();
+                if expanded {
+                    view.rounds
+                        .iter_mut()
+                        .for_each(|round| round.expanded = true);
+                }
+                let view = &view;
                 let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
                 let geometry =
                     widgets::tournament::render(view, scratch.area, &mut scratch, palette);
@@ -319,6 +372,10 @@ impl Composed {
                     .map_or(0, |y| usize::from(y) + 1);
                 let mut model = TranscriptMessage::new(identity(id), "TOURNAMENT", "");
                 model.widget_rows = rows(&scratch, height);
+                model.presentation.revision = revision;
+                model.presentation.expanded = view.expanded;
+                model.presentation.rankings_expanded =
+                    view.rounds.iter().all(|round| round.expanded);
                 self.graphics.insert(
                     model.id,
                     Graphics {
@@ -328,7 +385,15 @@ impl Composed {
                 );
                 models.push(model);
             }
-            for (id, view) in &session.grills {
+            for (id, source) in &session.grills {
+                let mut view = source.clone();
+                if expanded {
+                    view.appendix_expanded = true;
+                    view.plans
+                        .iter_mut()
+                        .for_each(|plan| plan.expanded = Some(true));
+                }
+                let view = &view;
                 let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
                 let area = scratch.area;
                 widgets::grill::render(view, area, &mut scratch, palette);
@@ -337,6 +402,11 @@ impl Composed {
                     .map_or(0, |y| usize::from(y) + 1);
                 let mut model = TranscriptMessage::new(identity(id), "GRILL", "");
                 model.widget_rows = rows(&scratch, height);
+                model.presentation.revision = revision;
+                model.presentation.expanded = view.expanded;
+                model.presentation.appendix_expanded = view.appendix_expanded;
+                model.presentation.rankings_expanded =
+                    view.plans.iter().all(|p| p.expanded == Some(true));
                 models.push(model);
             }
             for (id, source) in &session.probes {
@@ -353,6 +423,8 @@ impl Composed {
                 let geometry = widgets::probe::render(&view, scratch.area, &mut scratch, palette);
                 let mut model = TranscriptMessage::new(identity(id), "PROBE", "");
                 model.widget_rows = rows(&scratch, geometry.content_height);
+                model.presentation.expanded = !view.matrix_collapsed;
+                model.presentation.report_revision = revision;
                 self.graphics.insert(
                     model.id,
                     Graphics {
@@ -409,6 +481,8 @@ impl Composed {
                     );
                     let mut model = TranscriptMessage::new(identity(id), "CROSSCHECK", "");
                     model.widget_rows = rows(&scratch, height);
+                    model.presentation.expanded = contest.crosscheck.collapsed_cells.is_empty();
+                    model.presentation.report_revision = revision;
                     models.push(model);
                     continue;
                 }
@@ -427,6 +501,8 @@ impl Composed {
                     );
                     let mut model = TranscriptMessage::new(identity(id), "SURVEY", "");
                     model.widget_rows = rows(&scratch, height);
+                    model.presentation.expanded = !view.collapsed;
+                    model.presentation.report_revision = revision;
                     models.push(model);
                     continue;
                 }
@@ -485,6 +561,7 @@ impl Composed {
                 let mut model =
                     TranscriptMessage::new(identity(pick.request.contest_id), "PICK", "");
                 model.widget_rows = rows(&scratch, height);
+                model.presentation.pick_revision = revision + pick.request.eligible.len() as u64;
                 models.push(model);
             }
         }

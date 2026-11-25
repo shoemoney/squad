@@ -1,0 +1,79 @@
+---
+source: crates/squad-tui/tests/banners.rs
+expression: "paint(&every_banner(), mode, width, &palette)"
+---
+── Opening · Compact · 4 rows
+     ___  ___ ___ _  _ ___ _  _  ___
+    / _ \| _ \ __| \| |_ _| \| |/ __|
+   | (_) |  _/ _|| .` || || .` | (_ |
+    \___/|_| |___|_|\_|___|_|\_|\___|
+── Round(2) · Default · 5 rows
+ ____   ___  _   _ _   _ ____    ____
+|  _ \ / _ \| | | | \ | |  _ \  |___ \
+| |_) | | | | | | |  \| | | | |   __) |
+|  _ <| |_| | |_| | |\  | |_| |  / __/
+|_| \_\\___/ \___/|_| \_|____/  |_____|
+── FinalRound · Divider · 1 rows
+         ──── FINAL ROUND ────
+── Verdict · Compact · 4 rows
+   __   _____ ___ ___ ___ ___ _____
+   \ \ / / __| _ \   \_ _/ __|_   _|
+    \ V /| _||   / |) | | (__  | |
+     \_/ |___|_|_\___/___\___| |_|
+── Tournament · Divider · 1 rows
+          ──── TOURNAMENT ────
+── TournamentRound { round: 1, remaining: 8 } · Divider · 1 rows
+      ──── ROUND 1 · 8 REMAIN ────
+── TournamentRound { round: 3, remaining: 2 } · Default · 5 rows
+     _____ ___ _   _    _    _
+    |  ___|_ _| \ | |  / \  | |
+    | |_   | ||  \| | / _ \ | |
+    |  _|  | || |\  |/ ___ \| |___
+    |_|   |___|_| \_/_/   \_\_____|
+── Final · Default · 5 rows
+     _____ ___ _   _    _    _
+    |  ___|_ _| \ | |  / \  | |
+    | |_   | ||  \| | / _ \ | |
+    |  _|  | || |\  |/ ___ \| |___
+    |_|   |___|_| \_/_/   \_\_____|
+── Champion · Divider · 1 rows
+           ──── CHAMPION ────
+── Grill · Default · 5 rows
+       ____ ____  ___ _     _
+      / ___|  _ \|_ _| |   | |
+     | |  _| |_) || || |   | |
+     | |_| |  _ < | || |___| |___
+      \____|_| \_\___|_____|_____|
+── GrillRound(2) · Divider · 1 rows
+        ──── GRILL ROUND 2 ────
+── FinalPlan · Divider · 1 rows
+          ──── FINAL PLAN ────
+── Survived · Compact · 4 rows
+ ___ _   _ _____   _______   _____ ___
+/ __| | | | _ \ \ / /_ _\ \ / / __|   \
+\__ \ |_| |   /\ V / | | \ V /| _|| |) |
+|___/\___/|_|_\ \_/ |___| \_/ |___|___/
+── ChooseDebate · Divider · 1 rows
+   ──── CHOOSE YOUR DEBATE BROS ────
+── ChooseGrill · Divider · 1 rows
+   ──── CHOOSE WHO GETS GRILLED ────
+── Census · Default · 5 rows
+   ____ _____ _   _ ____  _   _ ____
+  / ___| ____| \ | / ___|| | | / ___|
+ | |   |  _| |  \| \___ \| | | \___ \
+ | |___| |___| |\  |___) | |_| |___) |
+  \____|_____|_| \_|____/ \___/|____/
+── Crosscheck · Divider · 1 rows
+          ──── CROSSCHECK ────
+── Survey · Default · 5 rows
+  ____  _   _ ______     _________   __
+ / ___|| | | |  _ \ \   / / ____\ \ / /
+ \___ \| | | | |_) \ \ / /|  _|  \ V /
+  ___) | |_| |  _ < \ V / | |___  | |
+ |____/ \___/|_| \_\ \_/  |_____| |_|
+── Probe · Default · 5 rows
+     ____  ____   ___  ____  _____
+    |  _ \|  _ \ / _ \| __ )| ____|
+    | |_) | |_) | | | |  _ \|  _|
+    |  __/|  _ <| |_| | |_) | |___
+    |_|   |_| \_\\___/|____/|_____|

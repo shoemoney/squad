@@ -1,0 +1,42 @@
+---
+source: crates/squad-tui/tests/banners.rs
+expression: "paint(&every_banner(), mode, width, &palette)"
+---
+── Opening · Label · 1 rows
+                                                        OPENING
+── Round(2) · Label · 1 rows
+                                                        ROUND 2
+── FinalRound · Label · 1 rows
+                                                      FINAL ROUND
+── Verdict · Label · 1 rows
+                                                        VERDICT
+── Tournament · Label · 1 rows
+                                                       TOURNAMENT
+── TournamentRound { round: 1, remaining: 8 } · Label · 1 rows
+                                                   ROUND 1 · 8 REMAIN
+── TournamentRound { round: 3, remaining: 2 } · Label · 1 rows
+                                                         FINAL
+── Final · Label · 1 rows
+                                                         FINAL
+── Champion · Label · 1 rows
+                                                        CHAMPION
+── Grill · Label · 1 rows
+                                                         GRILL
+── GrillRound(2) · Label · 1 rows
+                                                     GRILL ROUND 2
+── FinalPlan · Label · 1 rows
+                                                       FINAL PLAN
+── Survived · Label · 1 rows
+                                                        SURVIVED
+── ChooseDebate · Label · 1 rows
+                                                CHOOSE YOUR DEBATE BROS
+── ChooseGrill · Label · 1 rows
+                                                CHOOSE WHO GETS GRILLED
+── Census · Label · 1 rows
+                                                         CENSUS
+── Crosscheck · Label · 1 rows
+                                                       CROSSCHECK
+── Survey · Label · 1 rows
+                                                         SURVEY
+── Probe · Label · 1 rows
+                                                         PROBE

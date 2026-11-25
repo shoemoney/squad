@@ -1,0 +1,11 @@
+---
+source: crates/squad-tui/tests/render_budget.rs
+expression: text(&first)
+---
+Today $0.0000 / $0.00 · pending $0.0000
+· remaining $0.0000
+Terminal too small: 40×12. Required:
+80×24.
+Resize to continue. Your draft and room
+activity are preserved.
+Ctrl+C: Exit
