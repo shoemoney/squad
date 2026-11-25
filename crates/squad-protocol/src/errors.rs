@@ -1,6 +1,6 @@
 //! Shared protocol error codes.
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[allow(non_camel_case_types)]
 pub enum ErrorCode {
     INVALID_ENVELOPE,

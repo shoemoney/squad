@@ -9,7 +9,13 @@ rust-version.workspace = true
 
 [dependencies]
 serde.workspace = true
-uuid.workspace = true
+uuid = { workspace = true, features = ["v7", "v4"] }
+serde_json.workspace = true
+chrono = { version = "0.4", features = ["serde"] }
+schemars = { version = "1", features = ["chrono04", "uuid1"] }
+jsonschema = { version = "0.46", default-features = false }
+tokio = { version = "1", features = ["sync"] }
+tokio-util = "0.7"
 
 [dev-dependencies]
 serde_json.workspace = true
