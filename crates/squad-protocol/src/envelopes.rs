@@ -138,6 +138,20 @@ pub struct Completion {
 pub enum EnvelopePayload {
     #[serde(rename = "user.message")]
     UserMessage(UserMessage),
+    #[serde(rename = "survey.setup")]
+    SurveySetup(SurveySetup),
+    #[serde(rename = "survey.state")]
+    SurveyState(SurveyState),
+    #[serde(rename = "survey.claims")]
+    SurveyClaims(SurveyClaims),
+    #[serde(rename = "survey.vote")]
+    SurveyVote(SurveyVote),
+    #[serde(rename = "survey.selection")]
+    SurveySelection(SurveySelection),
+    #[serde(rename = "survey.revote")]
+    SurveyRevote(SurveyRevote),
+    #[serde(rename = "survey.report")]
+    SurveyReport(SurveyReport),
     #[serde(rename = "agent.reply")]
     AgentReply(Completion),
     #[serde(rename = "message.final")]
@@ -735,6 +749,36 @@ fn validate_envelope(
             )?;
             completed(&ruling.completed, ruling.content.as_str())?;
         }
+        EnvelopePayload::SurveySetup(setup) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "survey setup is human only",
+            )?;
+            setup.validate()?;
+        }
+        EnvelopePayload::SurveyState(state) => ensure(
+            base.sender == Actor::System && human_only && state.state_version > 0,
+            "invalid survey state",
+        )?,
+        EnvelopePayload::SurveySelection(_) => ensure(
+            base.sender == Actor::System && human_only,
+            "survey selection is human only",
+        )?,
+        EnvelopePayload::SurveyClaims(value) => ensure(
+            base.sender == Actor::Judge && human_only && value.extraction.claims.len() <= 25,
+            "invalid survey extraction",
+        )?,
+        EnvelopePayload::SurveyVote(value) | EnvelopePayload::SurveyRevote(value) => ensure(
+            base.sender == Actor::Member(value.voter.clone()) && human_only,
+            "invalid survey voter",
+        )?,
+        EnvelopePayload::SurveyReport(value) => {
+            ensure(
+                base.sender == Actor::Judge && human_only,
+                "invalid survey report sender",
+            )?;
+            value.report.validate(&value.map)?;
+        }
         EnvelopePayload::ContestSetup(setup) => {
             ensure(
                 setup.kind != ContestKind::Debate
@@ -744,6 +788,9 @@ fn validate_envelope(
             )?;
         }
         EnvelopePayload::ContestState(state) => match state {
+            ContestState::Survey(state) => {
+                ensure(state.state_version > 0, "invalid survey version")?
+            }
             ContestState::Debate(state) => state.validate()?,
             ContestState::Generic(state) => ensure(
                 state.kind != ContestKind::Debate && unique(&state.artifact_event_ids),
@@ -761,7 +808,11 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            submission.kind == ContestKind::Debate,
+            matches!(
+                (&submission.transition, submission.kind),
+                (ContestTransition::Debate(_), ContestKind::Debate)
+                    | (ContestTransition::Survey(_), ContestKind::Survey)
+            ),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {

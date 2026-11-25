@@ -43,13 +43,20 @@ pub async fn stream_attempt(
     forward_deltas: bool,
 ) -> Result<StreamOutput, ExecutionError> {
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
+        WorkKind::SurveyExtract | WorkKind::SurveyReport => DeadlineClass::FinalJudge,
+        WorkKind::SurveyVote | WorkKind::SurveyRevote => DeadlineClass::Ordinary,
         WorkKind::Reply => DeadlineClass::Ordinary,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,
         WorkKind::JudgeRound => DeadlineClass::RoundJudge,
     });
     request.model = grant.binding.model.to_string();
-    request.reasoning_effort = if grant.work.kind == WorkKind::JudgeRound {
+    request.reasoning_effort = if matches!(
+        grant.work.kind,
+        WorkKind::SurveyExtract | WorkKind::SurveyReport
+    ) {
+        ReasoningEffort::Medium
+    } else if grant.work.kind == WorkKind::JudgeRound {
         ReasoningEffort::Low
     } else {
         grant.binding.effort

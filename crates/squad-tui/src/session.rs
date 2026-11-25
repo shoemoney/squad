@@ -216,6 +216,7 @@ impl Session {
     fn restore_contest(&mut self, state: ContestState) {
         let id = match &state {
             ContestState::Generic(s) => s.contest_id,
+            ContestState::Survey(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Selection(s) => {
                 if s.state == ContestSelectionStatus::AwaitingPick {
@@ -710,6 +711,7 @@ impl Session {
 }
 pub fn contest_active(s: &ContestState) -> bool {
     match s {
+        ContestState::Survey(s) => !s.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing

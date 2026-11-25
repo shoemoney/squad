@@ -8,6 +8,14 @@ use serde::{Deserialize, Serialize};
 pub enum WorkKind {
     #[serde(rename = "reply")]
     Reply,
+    #[serde(rename = "survey.extract")]
+    SurveyExtract,
+    #[serde(rename = "survey.vote")]
+    SurveyVote,
+    #[serde(rename = "survey.revote")]
+    SurveyRevote,
+    #[serde(rename = "survey.report")]
+    SurveyReport,
     #[serde(rename = "debate.turn")]
     DebateTurn,
     #[serde(rename = "judge")]
@@ -78,6 +86,28 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
+            WorkKind::SurveyExtract
+            | WorkKind::SurveyReport
+            | WorkKind::SurveyVote
+            | WorkKind::SurveyRevote => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.round.is_none(),
+                    "survey requires isolated step",
+                )?;
+                let judge = matches!(self.kind, WorkKind::SurveyExtract | WorkKind::SurveyReport);
+                ensure(
+                    judge == matches!(self.target, Target::Judge)
+                        && judge == self.case_id.is_some(),
+                    "survey actor mismatch",
+                )?;
+                ensure(
+                    self.attempt <= if judge { 3 } else { 2 },
+                    "survey attempt limit",
+                )?;
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -143,6 +173,8 @@ impl Work {
             }
         }
         let ceiling = match self.kind {
+            WorkKind::SurveyExtract | WorkKind::SurveyReport => 4096,
+            WorkKind::SurveyVote | WorkKind::SurveyRevote => 2048,
             WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
