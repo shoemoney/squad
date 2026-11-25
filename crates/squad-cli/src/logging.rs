@@ -26,18 +26,20 @@ struct Fields(Map<String, Value>);
 
 fn allowed(name: &str) -> bool {
     let name = name.to_ascii_lowercase();
-    ![
-        "authorization",
-        "key",
-        "token",
-        "secret",
-        "header",
-        "body",
-        "prompt",
-        "reasoning",
-    ]
-    .iter()
-    .any(|part| name.contains(part))
+    let credential = ["key", "token"]
+        .iter()
+        .any(|part| name == *part || name.ends_with(&format!("_{part}")));
+    !credential
+        && ![
+            "authorization",
+            "secret",
+            "header",
+            "body",
+            "prompt",
+            "reasoning",
+        ]
+        .iter()
+        .any(|part| name.contains(part))
 }
 impl Visit for Fields {
     fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
@@ -225,11 +227,16 @@ mod tests {
             );
             let _guard = span.enter();
             span.record("attempt", 3_u64);
-            tracing::info!(model = "provider/model", cursor = 42_u64, OPENROUTER_API_KEY = "key-secret", authorization = "auth-secret", proxy_authorization = "proxy-secret", headers = ?["header-secret"], secret_key = "other-secret", "Doctor initialized: {}", "fixture-openrouter-credential");
+            tracing::info!(model = "provider/model", cursor = 42_u64, input_tokens = 11_u64, output_tokens = 7_u64, max_output_tokens = 64_u64, token = "token-secret", access_token = "access-secret", prompt = "private-prompt", body = "private-body", reasoning = "private-reasoning", OPENROUTER_API_KEY = "key-secret", authorization = "auth-secret", proxy_authorization = "proxy-secret", headers = ?["header-secret"], secret_key = "other-secret", "Doctor initialized: {}", "fixture-openrouter-credential");
             tracing::debug!(cursor = 99_u64);
         });
         let contents = std::fs::read_to_string(temp.path().join("logs/squad.jsonl")).unwrap();
         for secret in [
+            "token-secret",
+            "access-secret",
+            "private-prompt",
+            "private-body",
+            "private-reasoning",
             "span-secret",
             "span-auth",
             "key-secret",
@@ -253,6 +260,9 @@ mod tests {
             "Doctor initialized: [REDACTED]"
         );
         assert_eq!(rows[0]["fields"]["cursor"], 42);
+        assert_eq!(rows[0]["fields"]["input_tokens"], 11);
+        assert_eq!(rows[0]["fields"]["output_tokens"], 7);
+        assert_eq!(rows[0]["fields"]["max_output_tokens"], 64);
         assert_eq!(rows[0]["fields"]["model"], "provider/model");
         let fields = &rows[0]["spans"][0]["fields"];
         for (key, value) in [
