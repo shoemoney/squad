@@ -75,9 +75,9 @@ The focused chrome, participant and composition checks passed (12 tests).
 Final gates after the design refinements: workspace tests **913 passed,
 0 failed, 2 pre-existing ignored** (exit 0); all-target Clippy with warnings
 denied, formatting and diff whitespace checks all passed. The additional test
-is the indexed-logo frame regression. The workspace log includes unused-import
-warnings from the initial compile; those imports were removed and final Clippy
-verifies the warning-free source.
+is the indexed-logo frame regression. The initial compile produced unused-import
+warnings; those imports were removed and final Clippy verifies the warning-free
+source.
 
 Local demo terminal captures: [startup](startup.png), [six-member streaming](streaming.png),
 and [opening with the focused gold input divider](opening-focused.png).
