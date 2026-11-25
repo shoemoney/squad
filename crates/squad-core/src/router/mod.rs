@@ -124,7 +124,7 @@ impl Router {
         owner: Option<ExecutorKey>,
     ) -> Result<CommitOutcome> {
         let human = owner.is_none();
-        let original_id=request_id(&request);
+        let original_id = request_id(&request);
         let mut outcome = self.process_request(request, owner)?;
         if human
             && !outcome.duplicate
@@ -137,8 +137,22 @@ impl Router {
             }
         }
         let initial = outcome.events.len();
-        let contests:std::collections::BTreeSet<_>=outcome.events.iter().filter_map(|e|if let EnvelopePayload::DebateState(s)=&e.content{Some(s.debate_id)}else{None}).collect();
-        match if outcome.events.is_empty() { Ok(Vec::new()) } else { self.drive_contests() } {
+        let contests: std::collections::BTreeSet<_> = outcome
+            .events
+            .iter()
+            .filter_map(|e| {
+                if let EnvelopePayload::DebateState(s) = &e.content {
+                    Some(s.debate_id)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        match if outcome.events.is_empty() {
+            Ok(Vec::new())
+        } else {
+            self.drive_contests()
+        } {
             Ok(moves) => {
                 for moved in moves {
                     if matches!(
@@ -157,9 +171,10 @@ impl Router {
             }
             Err(e) => tracing::error!(error=%e,"Contest engine failed to advance"),
         }
-        if !outcome.duplicate && let RequestResult::Accepted {
-            event_ids, cursor, ..
-        } = &mut outcome.result
+        if !outcome.duplicate
+            && let RequestResult::Accepted {
+                event_ids, cursor, ..
+            } = &mut outcome.result
         {
             event_ids.extend(outcome.events[initial..].iter().map(|e| e.base.id));
             if let Some(last) = outcome.events.last() {
@@ -168,12 +183,14 @@ impl Router {
         }
         if human && !outcome.duplicate && self.engine_config.is_some() {
             match &mut outcome.result {
-                RequestResult::Accepted{request_id,..}|RequestResult::PendingConfirmation{request_id,..}|RequestResult::Rejected{request_id,..}=>*request_id=original_id,
-                _=>{}
+                RequestResult::Accepted { request_id, .. }
+                | RequestResult::PendingConfirmation { request_id, .. }
+                | RequestResult::Rejected { request_id, .. } => *request_id = original_id,
+                _ => {}
             }
             // Store the composed human receipt, including an automatic engine
             // preflight, so submission retries preserve its public result.
-            let result=serde_json::to_string(&outcome.result)?;
+            let result = serde_json::to_string(&outcome.result)?;
             self.store.call(move |db| { db.execute("UPDATE receipts SET result_json=? WHERE request_id=? AND producer_identity='me'",rusqlite::params![result,original_id.to_string()])?; Ok(()) })?;
         }
         Ok(outcome)

@@ -37,8 +37,9 @@ impl ResolutionStore for ResolutionPersistence {
     }
     fn save_resolution(&mut self, snapshot: &ResolutionSnapshot) -> squad_store::Result<()> {
         let snapshot = snapshot.clone();
-        self.store.call(move |db| {
-            let tx=db.transaction()?;
+        let id = EventId::new();
+        let digest = squad_store::commit::digest(&snapshot)?;
+        self.store.commit(id,"model-resolver".into(),digest,move |tx,group| {
             tx.execute("DELETE FROM catalog",[])?;
             for model in snapshot.catalog.models.values(){
                 tx.execute("INSERT INTO catalog VALUES (?,?,?,?,?,?)",params![model.id,model.context_length,model.output_limit,model.pricing.to_string(),serde_json::to_string(&model.supported_parameters)?,chrono::DateTime::from_timestamp(snapshot.catalog.fetched_at as i64,0).ok_or(StoreError::Unavailable)?.to_rfc3339()])?;
@@ -52,14 +53,21 @@ impl ResolutionStore for ResolutionPersistence {
             // Offline members keep their configured roster position in the
             // snapshot, so available model rows can have gaps in roster_order.
             tx.execute("DELETE FROM models WHERE role='member'",[])?;
-            for member in &members { squad_store::models::save_model(&tx,member).map_err(|_|StoreError::Unavailable)?; }
+            for member in &members { squad_store::models::save_model(tx,member).map_err(|_|StoreError::Unavailable)?; }
             tx.execute("DELETE FROM models WHERE role='judge'",[])?;
             if let Some(model)=&snapshot.judge.model {
-                squad_store::models::save_model(&tx,&Model {nick:Actor::Judge,requested_slug:Text::new(snapshot.judge.configured.clone()).map_err(|_|StoreError::Unavailable)?,resolved_slug:Text::new(model.id.clone()).map_err(|_|StoreError::Unavailable)?,roster_order:None,context_length:u64::from(model.context_length),pricing:model.pricing.clone(),resolved_at:chrono::Utc::now()}).map_err(|_|StoreError::Unavailable)?;
+                squad_store::models::save_model(tx,&Model {nick:Actor::Judge,requested_slug:Text::new(snapshot.judge.configured.clone()).map_err(|_|StoreError::Unavailable)?,resolved_slug:Text::new(model.id.clone()).map_err(|_|StoreError::Unavailable)?,roster_order:None,context_length:u64::from(model.context_length),pricing:model.pricing.clone(),resolved_at:chrono::Utc::now()}).map_err(|_|StoreError::Unavailable)?;
             }
             tx.execute("INSERT INTO startup_resolution VALUES (1,?) ON CONFLICT(id) DO UPDATE SET snapshot_json=excluded.snapshot_json",[serde_json::to_string(&snapshot)?])?;
-            tx.commit()?;Ok(())
-        })
+            if snapshot.cached {
+                group.push(tx,crate::router::envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::SystemNotice(SystemNotice{code:Text::new("MODEL_CATALOG_CACHED").expect("literal"),text:Text::new("WARNING: using cached OpenRouter catalog after three transient failures").expect("literal"),work_id:None,debate_id:None,case_id:None,contest_id:None})))?;
+            }
+            for pinned in snapshot.members.iter().chain(std::iter::once(&snapshot.judge)).filter(|p|p.model.is_none()) {
+                let error=crate::router::error(ErrorCode::MODEL_UNAVAILABLE,pinned.error.clone().unwrap_or_else(||format!("Model resolution failed for {}",pinned.nick)));
+                group.push(tx,crate::router::envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::Error(error)))?;
+            }
+            Ok(group.accepted(id))
+        }).map(|_|())
     }
     fn before_probe(
         &mut self,

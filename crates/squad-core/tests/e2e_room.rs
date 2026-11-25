@@ -446,6 +446,14 @@ async fn alias_failure_degrades_one_member_and_persists_billed_probes_and_catalo
     assert_eq!(f.fake.captured_bodies().await.len(), 2);
     assert_eq!(f.db().query_row("SELECT COUNT(*) FROM attempts WHERE context_id='probe:member0' AND reported_cost_micros=45",[],|r|r.get::<_,i64>(0)).unwrap(),1);
     assert_eq!(room.state().await.daily_spend.spent_usd, 0.000090);
+    room.submit(squad_protocol::Request::Clear {
+        request_id: EventId::new(),
+    })
+    .await;
+    assert_eq!(
+        room.state().await.participants[0].status,
+        PresenceStatus::Offline
+    );
     room.shutdown().await.unwrap();
     Mock::given(method("GET"))
         .and(path("/api/v1/models"))
@@ -478,53 +486,173 @@ async fn alias_failure_degrades_one_member_and_persists_billed_probes_and_catalo
 
 #[tokio::test]
 async fn admitted_debate_restarts_before_dispatch_and_finishes_without_duplicate_calls() {
-    let f=Fixture::new().await;
-    let room=f.open(OpenMode::OneShot).await;
-    let command=request(&f.config,"@member0 @member1 $debate $ROUNDS=2 @judge Compare designs");
-    let receipt=room.submit_commit_only(command.clone()).await;
-    assert!(matches!(receipt,RequestResult::Accepted{..}));
+    let mut f = Fixture::new().await;
+    let room = f.open(OpenMode::OneShot).await;
+    let command = request(
+        &f.config,
+        "@member0 @member1 $debate $ROUNDS=2 @judge Compare designs",
+    );
+    let receipt = room.submit_commit_only(command.clone()).await;
+    assert!(matches!(receipt, RequestResult::Accepted { .. }));
     assert!(f.fake.captured_bodies().await.is_empty());
-    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work WHERE kind='debate.turn' AND status='queued'",[],|r|r.get::<_,i64>(0)).unwrap(),2);
+    assert_eq!(
+        f.db()
+            .query_row(
+                "SELECT COUNT(*) FROM work WHERE kind='debate.turn' AND status='queued'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        2
+    );
     room.shutdown().await.unwrap();
-    let room=f.open(OpenMode::Interactive).await;
-    assert_eq!(room.submit(command).await,receipt);
-    f.wait(||f.count("verdict")==1).await;
-    assert_eq!(f.fake.captured_bodies().await.len(),9);
-    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM attempts",[],|r|r.get::<_,i64>(0)).unwrap(),9);
-    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work",[],|r|r.get::<_,i64>(0)).unwrap(),9);
+    f.config.agents[0].model = "fixture/member2".into();
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(room.submit(command).await, receipt);
+    f.wait(|| f.count("verdict") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 9);
+    assert_eq!(
+        f.db()
+            .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        9
+    );
+    assert_eq!(
+        f.db()
+            .query_row("SELECT COUNT(*) FROM work", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        9
+    );
+    let bodies = f.fake.captured_bodies().await;
+    assert_eq!(
+        bodies
+            .iter()
+            .filter(|b| b["model"] == "fixture/member0")
+            .count(),
+        3
+    );
+    assert_eq!(
+        bodies
+            .iter()
+            .filter(|b| b["model"] == "fixture/member2")
+            .count(),
+        0
+    );
     f.assert_ledger();
     room.shutdown().await.unwrap();
 }
 
 #[tokio::test]
 async fn explicit_judging_of_unjudged_debate_opens_fresh_case_without_replaying_turns() {
-    let _=tracing_subscriber::fmt().try_init();
-    let f=Fixture::new().await;
-    let room=f.open(OpenMode::Interactive).await;
-    room.submit(request(&f.config,"@member0 @member1 $debate $ROUNDS=2 Compare designs")).await;
-    f.wait(||f.count("debate.turn")==6 && f.db().query_row("SELECT active FROM contests",[],|r|r.get::<_,i64>(0)).unwrap()==0).await;
-    let result=room.submit(squad_protocol::Request::Judge{request_id:EventId::new(),debate_id:None}).await;
-    assert!(matches!(result,RequestResult::Accepted{..}),"{result:?}");
-    f.wait(||f.count("verdict")==1).await;
-    assert_eq!(f.fake.captured_bodies().await.len(),7);
-    assert_eq!(f.count("debate.turn"),6);
-    assert_eq!(f.count("case.opened"),1);
+    let _ = tracing_subscriber::fmt().try_init();
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(
+        &f.config,
+        "@member0 @member1 $debate $ROUNDS=2 Compare designs",
+    ))
+    .await;
+    f.wait(|| {
+        f.count("debate.turn") == 6
+            && f.db()
+                .query_row("SELECT active FROM contests", [], |r| r.get::<_, i64>(0))
+                .unwrap()
+                == 0
+    })
+    .await;
+    let result = room
+        .submit(squad_protocol::Request::Judge {
+            request_id: EventId::new(),
+            debate_id: None,
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("verdict") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 7);
+    assert_eq!(f.count("debate.turn"), 6);
+    assert_eq!(f.count("case.opened"), 1);
     room.shutdown().await.unwrap();
 }
 
 #[tokio::test]
 async fn question_first_pick_reuses_answers_and_drives_the_selected_debate() {
-    let f=Fixture::new().await;
-    let room=f.open(OpenMode::OneShot).await;
-    room.submit(request(&f.config,"@all $debate $ROUNDS=2 Compare designs?")).await;
-    f.wait(||f.count("contest.pick_requested")==1).await;
-    let state=room.state().await;
-    let Some(ContestState::Selection(pick))=state.active_contest else{panic!("expected pending pick")};
-    assert_eq!(f.fake.captured_bodies().await.len(),6);
-    let result=room.submit(squad_protocol::Request::ContestPick{request_id:EventId::new(),contest_id:pick.contest_id,nicks:vec![nick("member0"),nick("member1")]}).await;
-    assert!(matches!(result,RequestResult::Accepted{..}),"{result:?}");
-    f.wait(||f.count("verdict")==1).await;
-    assert_eq!(f.count("debate.turn"),4);
-    assert_eq!(f.fake.captured_bodies().await.len(),13);
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::OneShot).await;
+    room.submit(request(
+        &f.config,
+        "@all $debate $ROUNDS=2 Compare designs?",
+    ))
+    .await;
+    f.wait(|| f.count("contest.pick_requested") == 1).await;
+    let state = room.state().await;
+    let Some(ContestState::Selection(pick)) = state.active_contest else {
+        panic!("expected pending pick")
+    };
+    assert_eq!(f.fake.captured_bodies().await.len(), 6);
+    let result = room
+        .submit(squad_protocol::Request::ContestPick {
+            request_id: EventId::new(),
+            contest_id: pick.contest_id,
+            nicks: vec![nick("member0"), nick("member1")],
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("verdict") == 1).await;
+    assert_eq!(f.count("debate.turn"), 4);
+    assert_eq!(f.fake.captured_bodies().await.len(), 13);
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn explicit_judge_rejection_restores_prior_terminal_state_and_reservations() {
+    let mut f = Fixture::new().await;
+    f.config.judge.model = "fixture/member0".into();
+    f.config.judge.conflict_fallbacks = vec![];
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(
+        &f.config,
+        "@member0 @member1 $debate $ROUNDS=2 Compare designs",
+    ))
+    .await;
+    f.wait(|| {
+        f.count("debate.turn") == 6
+            && f.db()
+                .query_row("SELECT active FROM contests", [], |r| r.get::<_, i64>(0))
+                .unwrap()
+                == 0
+    })
+    .await;
+    let prior = room.state().await.debates[0].clone();
+    let result = room
+        .submit(squad_protocol::Request::Judge {
+            request_id: EventId::new(),
+            debate_id: Some(prior.debate_id),
+        })
+        .await;
+    assert!(
+        matches!(
+            result,
+            RequestResult::Rejected {
+                error: ErrorPayload {
+                    code: ErrorCode::MODEL_UNAVAILABLE,
+                    ..
+                },
+                ..
+            }
+        ),
+        "{result:?}"
+    );
+    let after = room.state().await.debates[0].clone();
+    assert_eq!(after.state, prior.state);
+    assert_eq!(after.case_ids, prior.case_ids);
+    assert_eq!(f.fake.captured_bodies().await.len(), 6);
+    assert_eq!(f.count("case.opened"), 0);
+    assert_eq!(room.state().await.daily_spend.reserved_usd, 0.);
     room.shutdown().await.unwrap();
 }

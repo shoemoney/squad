@@ -146,7 +146,9 @@ pub fn snapshot(
         // Owning stores may persist either the shared tagged carrier or its inner state.
         let state = serde_json::from_str::<ContestState>(&json).or_else(|_| {
             if kind == "debate" {
-                serde_json::from_str(&json).map(ContestState::Debate).or_else(|_|serde_json::from_str(&json).map(ContestState::Selection))
+                serde_json::from_str(&json)
+                    .map(ContestState::Debate)
+                    .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
             } else {
                 serde_json::from_str(&json)
                     .map(ContestState::Selection)

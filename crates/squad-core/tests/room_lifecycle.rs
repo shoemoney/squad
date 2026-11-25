@@ -138,7 +138,8 @@ async fn independent_process_cannot_acquire_open_rooms_lock() {
 #[tokio::test]
 async fn default_client_is_configured_and_unknown_rooms_fail_before_network() {
     let root = tempfile::tempdir().unwrap();
-    let _client = squad_agents::openrouter::OpenRouterClient::from_config(&config(root.path())).unwrap();
+    let _client =
+        squad_agents::openrouter::OpenRouterClient::from_config(&config(root.path())).unwrap();
     let result = RoomHandle::open(config(root.path()), "other", OpenMode::Interactive).await;
     assert!(matches!(result,Err(error) if error.code==ErrorCode::ROOM_NOT_FOUND));
     assert!(!config(root.path()).data_dir.exists());

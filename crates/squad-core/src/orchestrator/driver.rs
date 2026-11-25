@@ -154,13 +154,14 @@ impl Router {
             squad_store::commit::digest(&(state.debate_id, state.state_version, code))?,
             move |tx, group| {
                 let version = state.state_version;
-                state.state = if state.state == DebateStatus::Preparing {
-                    DebateStatus::Rejected
+                let prior:Option<String>=tx.query_row("SELECT json_extract(pending_request_json,'$.priorState') FROM contests WHERE contest_id=?",[state.debate_id.to_string()],|r|r.get(0))?;
+                if state.state==DebateStatus::Preparing && let Some(prior)=prior {
+                    state=serde_json::from_str(&prior)?;
                 } else {
-                    DebateStatus::Failed
-                };
-                state.state_version += 1;
-                state.terminal_reason = Some(format!("{code:?}"));
+                    state.state=if state.state==DebateStatus::Preparing {DebateStatus::Rejected}else{DebateStatus::Failed};
+                    state.terminal_reason=Some(format!("{code:?}"));
+                }
+                state.state_version=version+1;
                 let mut error = crate::router::error(code, "Contest could not advance");
                 error.debate_id = Some(state.debate_id);
                 error.contest_id = Some(state.debate_id);
@@ -176,7 +177,7 @@ impl Router {
     fn engine_move(&mut self, s: Snapshot) -> Result<Option<CommitOutcome>> {
         if s.state.state == DebateStatus::Preparing {
             let plan = match &s.plan {
-                Some(plan) if plan.prior_terminal==s.prior => plan.clone(),
+                Some(plan) if plan.prior_terminal == s.prior => plan.clone(),
                 _ => self.freeze_plan(&s)?,
             };
             return self
@@ -184,12 +185,27 @@ impl Router {
                 .map(Some);
         }
         let Some(plan) = &s.plan else { return Ok(None) };
-        if s.state.state==DebateStatus::AwaitingConfirmation && chrono::Utc::now()>=plan.preflight.expires_at {
-            return machine::submit(self,EventId::new(),&s.state,if plan.preflight.judge_only {DebateTransition::JudgeOnlyExpired}else{DebateTransition::Expire}).map(Some);
+        if s.state.state == DebateStatus::AwaitingConfirmation
+            && chrono::Utc::now() >= plan.preflight.expires_at
+        {
+            return machine::submit(
+                self,
+                EventId::new(),
+                &s.state,
+                if plan.preflight.judge_only {
+                    DebateTransition::JudgeOnlyExpired
+                } else {
+                    DebateTransition::Expire
+                },
+            )
+            .map(Some);
         }
-        if plan.preflight.judge_only && s.state.state==DebateStatus::Judging {
+        if plan.preflight.judge_only && s.state.state == DebateStatus::Judging {
             let confirmed=s.events.iter().rev().find(|e|matches!(&e.content,EnvelopePayload::DebatePreflightResult(r) if r.plan_id==plan.preflight.plan_id && r.status==PreflightStatus::Confirmed)).map(|e|e.commit.seq.get()).ok_or(StoreError::Unavailable)?;
-            if !s.events.iter().any(|e|e.commit.seq.get()>confirmed && matches!(e.content,EnvelopePayload::CaseOpened(_))) {
+            if !s.events.iter().any(|e| {
+                e.commit.seq.get() > confirmed
+                    && matches!(e.content, EnvelopePayload::CaseOpened(_))
+            }) {
                 return self.open_engine_case(&s).map(Some);
             }
         }
@@ -236,9 +252,11 @@ impl Router {
             .cloned()
             .collect::<Vec<_>>();
         if s.state.state == DebateStatus::Judging
-            && s.work
-                .iter()
-                .any(|w| w.work.kind == WorkKind::Judge && w.work.case_id==s.state.case_id && w.phase == AttemptPhase::Exhausted)
+            && s.work.iter().any(|w| {
+                w.work.kind == WorkKind::Judge
+                    && w.work.case_id == s.state.case_id
+                    && w.phase == AttemptPhase::Exhausted
+            })
         {
             return machine::submit(
                 self,
@@ -255,7 +273,10 @@ impl Router {
                 scoring_work: &scoring_work,
                 committed_rounds: &s.committed,
                 scores: &s.scores,
-                final_work_exists: s.work.iter().any(|w| w.work.kind == WorkKind::Judge && w.work.case_id==s.state.case_id),
+                final_work_exists: s
+                    .work
+                    .iter()
+                    .any(|w| w.work.kind == WorkKind::Judge && w.work.case_id == s.state.case_id),
                 manual_judge: plan.preflight.judge_only,
                 earlier_unfinished: s.earlier,
             },
@@ -396,8 +417,14 @@ impl Router {
         let id = s.state.debate_id;
         let state = s.state.clone();
         let bindings = self.bindings_for_engine();
-        let prior=s.prior.clone();
-        let retained=s.events.iter().find_map(|e|if let EnvelopePayload::DebateSetup(setup)=&e.content{Some(setup.clone())}else{None});
+        let prior = s.prior.clone();
+        let retained = s.events.iter().find_map(|e| {
+            if let EnvelopePayload::DebateSetup(setup) = &e.content {
+                Some(setup.clone())
+            } else {
+                None
+            }
+        });
         let pack = PromptPack::from_override_dir(config.prompts.directory.as_deref())
             .map_err(|_| policy(ErrorCode::CONFIG_INVALID))?;
         self.store.call(move |db|{
@@ -452,7 +479,17 @@ impl Router {
         let case = CaseId::new();
         state.case_id = Some(case);
         state.case_ids.push(case);
-        let transcript=s.events.iter().filter_map(|e|if let EnvelopePayload::DebateTurn(t)=&e.content{(t.round>0 && s.committed.contains(&t.round)).then_some(t.clone())}else{None}).collect::<Vec<_>>();
+        let transcript = s
+            .events
+            .iter()
+            .filter_map(|e| {
+                if let EnvelopePayload::DebateTurn(t) = &e.content {
+                    (t.round > 0 && s.committed.contains(&t.round)).then_some(t.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
         let bundle = cases::bundle(
             plan,
             &state,

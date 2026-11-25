@@ -204,6 +204,7 @@ pub struct RoomHandle {
     daily_max: i64,
     cached: Mutex<RoomState>,
     observations: Mutex<(FeedReceiver, BTreeMap<MemberNick, Presence>)>,
+    offline: BTreeMap<MemberNick, Presence>,
 }
 impl RoomHandle {
     pub async fn open(config: SquadConfig, room: &str, mode: OpenMode) -> Result<Self, RoomError> {
@@ -371,6 +372,7 @@ impl RoomHandle {
             roster,
             daily_max,
             cached: Mutex::new(cached),
+            offline: offline.clone(),
             observations: Mutex::new((receiver, offline)),
         })
     }
@@ -543,11 +545,11 @@ impl RoomHandle {
                     Ok(FeedItem::Committed(event))
                         if matches!(event.content, EnvelopePayload::RoomCleared(_)) =>
                     {
-                        observations.1.clear()
+                        observations.1 = self.offline.clone()
                     }
                     Ok(_) => {}
                     Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => {
-                        observations.1.clear();
+                        observations.1 = self.offline.clone();
                     }
                     Err(_) => break,
                 }

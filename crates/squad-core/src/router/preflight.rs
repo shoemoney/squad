@@ -240,7 +240,9 @@ pub fn resolve(
             let seq = group.push(tx, event)?;
             squad_store::contests::associate(tx, debate, ContestKind::Debate, seq)?;
         }
-        if plan.judge_only { state.judge_requested=true; }
+        if plan.judge_only {
+            state.judge_requested = true;
+        }
         if !plan.judge_only {
             state.round = u32::from(!plan.opening_round_required);
         }
@@ -250,7 +252,7 @@ pub fn resolve(
             DebateStatus::WaitingForDebaters
         };
     }
-    let result_seq=group.push(
+    let result_seq = group.push(
         tx,
         super::envelope(
             id,
@@ -266,7 +268,7 @@ pub fn resolve(
             }),
         ),
     )?;
-    squad_store::contests::associate(tx,plan.debate_id,ContestKind::Debate,result_seq)?;
+    squad_store::contests::associate(tx, plan.debate_id, ContestKind::Debate, result_seq)?;
     state.state_version = version + 1;
     super::debates::save(tx, group, id, &state, Some(version))?;
     Ok(group.accepted(id))
@@ -298,7 +300,7 @@ fn reject(
             DebateStatus::Rejected
         };
     }
-    let result_seq=group.push(
+    let result_seq = group.push(
         tx,
         super::envelope(
             id,
@@ -313,7 +315,7 @@ fn reject(
             }),
         ),
     )?;
-    squad_store::contests::associate(tx,plan.debate_id,ContestKind::Debate,result_seq)?;
+    squad_store::contests::associate(tx, plan.debate_id, ContestKind::Debate, result_seq)?;
     state.state_version = version + 1;
     super::debates::save(tx, group, id, &state, Some(version))?;
     Ok(RequestResult::Rejected {
