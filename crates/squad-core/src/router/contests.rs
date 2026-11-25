@@ -481,6 +481,7 @@ impl Router {
             let frozen=frozen.map(|raw|serde_json::from_str::<crate::orchestrator::types::DebatePlan>(&raw)).transpose()?;
             for mut item in work {
                 let boundary: i64=tx.query_row("SELECT COALESCE(MAX(pos),0) FROM history WHERE context_id=?",[&item.context_id.0],|r|r.get(0))?;
+                if item.history_through.get()>boundary {return Err(super::debates::invalid());}
                 item.history_through=HistoryPosition::new(boundary).map_err(|_|super::debates::invalid())?;
                 if item.contest_id!=Some(contest) || item.debate_id!=Some(contest) || item.step_id.is_some() {return Err(super::authorization::forbidden());}
                 if item.kind==WorkKind::DebateTurn && (item.round!=Some(state.round) || state.state!=DebateStatus::RoundRunning) {return Err(super::debates::invalid());}
