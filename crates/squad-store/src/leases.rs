@@ -6,17 +6,30 @@ use squad_protocol::*;
 /// Startup invalidates every previous owner. Periodic scans invalidate expired leases.
 /// The durable start ledger, rather than a delivered wakeup, consumes an ordinal.
 pub fn recover(db: &Connection, startup: bool, now: DateTime) -> Result<Vec<WorkId>> {
-    let mut query = db.prepare("SELECT work_id FROM work WHERE status='running' AND (?1 OR lease_until<=?2 OR execution_deadline<=?2) ORDER BY trigger_event_seq,rowid")?;
+    recover_matching(db, startup, now, None)
+}
+/// Recover one assignment without disturbing other live executors.
+pub fn recover_work(db: &Connection, id: WorkId, now: DateTime) -> Result<Vec<WorkId>> {
+    recover_matching(db, false, now, Some(id))
+}
+fn recover_matching(
+    db: &Connection,
+    startup: bool,
+    now: DateTime,
+    only: Option<WorkId>,
+) -> Result<Vec<WorkId>> {
+    let mut query = db.prepare("SELECT work_id FROM work WHERE status='running' AND (?1 OR lease_until<=?2 OR execution_deadline<=?2) AND (?3 IS NULL OR work_id=?3) ORDER BY trigger_event_seq,rowid")?;
     let ids = query
-        .query_map(params![startup, now.to_rfc3339()], |r| {
-            r.get::<_, String>(0)
-        })?
+        .query_map(
+            params![startup, now.to_rfc3339(), only.map(|id| id.to_string())],
+            |r| r.get::<_, String>(0),
+        )?
         .collect::<std::result::Result<Vec<_>, _>>()?;
     let mut recovered = Vec::new();
     for id in ids {
         // An attempt row is conservative evidence even if an interrupted older
         // implementation failed to persist its convenience flag.
-        db.execute("UPDATE work SET attempt=attempt-CASE WHEN provider_may_have_started=0 AND NOT EXISTS(SELECT 1 FROM attempts WHERE attempts.work_id=work.work_id AND attempts.attempt=work.attempt) THEN 1 ELSE 0 END, status='queued',lease_owner=NULL,lease_until=NULL,lease_fence=lease_fence+1,provider_may_have_started=0,execution_deadline=CASE WHEN kind LIKE 'probe.%' THEN NULL ELSE execution_deadline END WHERE work_id=?", [&id])?;
+        db.execute("UPDATE work SET attempt=attempt-CASE WHEN provider_may_have_started=0 AND NOT EXISTS(SELECT 1 FROM attempts WHERE attempts.work_id=work.work_id AND attempts.attempt=work.attempt) THEN 1 ELSE 0 END, status='queued',lease_owner=NULL,lease_until=NULL,lease_fence=lease_fence+1,provider_may_have_started=0,execution_deadline=CASE WHEN kind LIKE 'probe.%' OR kind LIKE 'grill.%' THEN NULL ELSE execution_deadline END WHERE work_id=?", [&id])?;
         recovered.push(
             id.parse()
                 .map_err(|_| invalid("Invalid stored work identity"))?,

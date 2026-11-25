@@ -40,6 +40,9 @@ from wave 4.
    isolation, stop with held-work release, and restart without repeated accepted
    questions. Restart also changes prompt files/personas and verifies frozen prompts.
    Accounting assertions reconcile daily totals with attempts and reservations.
+   Additional cases cover quoted source selection, clear cleanup, forged generation
+   rejection, executor-bound reader denial, deadline exhaustion and confirmation
+   refusing a reduced daily cap after restart.
    Protocol tests separately exercise exact PASS, repeated questions, strict root
    shapes, complete answer coverage and limits. Existing script/store tests retain
    rotation, bounds, migration and compact-projection coverage.
@@ -52,7 +55,7 @@ from wave 4.
 ## Validation
 
 The initial runtime checkpoint passed its two-round RoomHandle workflow. Subsequent
-focused validation passed all 11 core GRILL workflows and the real-runtime TUI test.
+focused validation passed all 15 core GRILL workflows and the real-runtime TUI test.
 Final workspace gates are recorded after completion in the branch's final report.
 
 The earlier foundation suites remain enabled: typed payloads and work validation,

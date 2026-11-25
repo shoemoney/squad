@@ -54,6 +54,11 @@ fn generic_carriers_cannot_impersonate_typed_debate_contracts() {
     payload["kind"] = json!("grill");
     payload["nicks"] = json!(["a"]);
     payload["sourceMessageIds"] = json!([ID]);
+    assert!(ProducerEnvelope::from_value(&envelope("contest.picked", payload.clone())).is_ok());
+    payload["nicks"] = json!(["a", "b"]);
+    assert!(ProducerEnvelope::from_value(&envelope("contest.picked", payload.clone())).is_err());
+    payload["nicks"] = json!(["a"]);
+    payload["sourceMessageIds"] = json!([]);
     assert!(ProducerEnvelope::from_value(&envelope("contest.picked", payload)).is_err());
 }
 

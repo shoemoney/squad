@@ -248,7 +248,16 @@ pub fn prepare(
     }
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
     let amount = squad_store::accounting::reservation_micros(reserved).map_err(|_| invalid())?;
-    squad_store::accounting::admit(tx, &day, amount, max)?;
+    match squad_store::accounting::admit(tx, &day, amount, max) {
+        Ok(()) => {}
+        Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
+            return Ok(RequestResult::Rejected {
+                request_id: id,
+                error: daily_error(max),
+            });
+        }
+        Err(e) => return Err(e),
+    }
     let spend = squad_store::accounting::daily(tx, &day)?;
     let plan = ContestPreflight {
         contest_id: setup.contest_id,
@@ -293,6 +302,7 @@ pub fn prepare(
         &serde_json::json!({"bindings":frozen_bindings,"models":models,"prompts":prompts,"packVersion":pack.version()}),
     )?;
     if !replacing {
+        let quotes = super::references::quotes(tx, input.quote.as_deref().unwrap_or_default())?;
         let mut event = envelope(
             id,
             Actor::Me,
@@ -300,7 +310,7 @@ pub fn prepare(
             EnvelopePayload::UserMessage(UserMessage {
                 input,
                 body: setup.focus.clone(),
-                resolved_quotes: vec![],
+                resolved_quotes: quotes,
                 debate_id: None,
                 case_id: None,
                 contest_id: Some(setup.contest_id),
@@ -349,6 +359,7 @@ pub fn prepare(
         } else {
             Confirmation::Automatic
         }),
+        None,
     )?;
     Ok(g.accepted(id))
 }
@@ -370,6 +381,15 @@ fn reserve(tx: &Connection, plan: &ContestPreflight, max: i64) -> Result<()> {
     )?;
     Ok(())
 }
+fn daily_error(max: i64) -> ErrorPayload {
+    error(
+        ErrorCode::DAILY_MAX_REACHED,
+        format!(
+            "Daily max of ${:.2} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.",
+            max as f64 / 1e6
+        ),
+    )
+}
 fn preflight_result(
     tx: &Transaction<'_>,
     g: &mut CommitGroup,
@@ -377,6 +397,7 @@ fn preflight_result(
     plan: &ContestPreflight,
     status: PreflightStatus,
     confirmation: Option<Confirmation>,
+    failure: Option<ErrorPayload>,
 ) -> Result<()> {
     let seq = g.push(
         tx,
@@ -389,7 +410,7 @@ fn preflight_result(
                 plan_id: plan.plan_id,
                 status,
                 confirmation,
-                error: None,
+                error: failure,
             }),
         ),
     )?;
@@ -414,16 +435,25 @@ pub fn resolve(
     if state.state != GrillStatus::Preflight {
         return Err(invalid());
     }
+    let mut failure = None;
     let status = if cancel {
         PreflightStatus::Cancelled
     } else if g.accepted_at >= plan.expires_at {
         PreflightStatus::Expired
     } else {
-        reserve(tx, &plan, max)?;
-        PreflightStatus::Confirmed
+        match reserve(tx, &plan, max) {
+            Ok(()) => PreflightStatus::Confirmed,
+            Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
+                failure = Some(daily_error(max));
+                PreflightStatus::Rejected
+            }
+            Err(e) => return Err(e),
+        }
     };
     state.state = if status == PreflightStatus::Confirmed {
         GrillStatus::WaitingForParticipants
+    } else if status == PreflightStatus::Rejected {
+        GrillStatus::Failed
     } else {
         GrillStatus::Stopped
     };
@@ -436,7 +466,14 @@ pub fn resolve(
         &plan,
         status.clone(),
         (status == PreflightStatus::Confirmed).then_some(Confirmation::Explicit),
+        failure.clone(),
     )?;
+    if let Some(error) = failure {
+        return Ok(RequestResult::Rejected {
+            request_id: id,
+            error,
+        });
+    }
     Ok(g.accepted(id))
 }
 pub fn provenance(db: &Connection, id: ContestId) -> Result<serde_json::Value> {

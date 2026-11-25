@@ -1,11 +1,11 @@
 //! Drive the sequential grill script through the shared trusted router hooks.
 use crate::router::{Router, envelope, grill};
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use squad_protocol::*;
 use squad_store::{Result, StoreError, commit::CommitOutcome};
 use std::collections::BTreeMap;
 impl Router {
-    pub(super) fn drive_grills(&mut self) -> Result<Vec<CommitOutcome>> {
+    pub(crate) fn drive_grills(&mut self) -> Result<Vec<CommitOutcome>> {
         let ids=self.store.call(|db|{let mut q=db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='grill' AND json_type(state_json,'$.leader')='text'")?;Ok(q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?)})?;
         let mut outcomes = vec![];
         for raw in ids {
@@ -69,7 +69,21 @@ impl Router {
                     continue;
                 }
                 if let Some(step) = self.store.call(move |db| grill::current_step(db, id))? {
-                    let pending=self.store.call(move|db|{let tx=db.transaction()?;tx.execute("UPDATE work SET status='failed',runnable=0 WHERE step_id=? AND status='queued' AND (attempt>=2 OR execution_deadline<=?)",params![step.to_string(),chrono::Utc::now().to_rfc3339()])?;let pending:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE step_id=? AND status IN ('queued','running'))",[step.to_string()],|r|r.get(0))?;tx.commit()?;Ok(pending)})?;
+                    let pending=self.store.call(move|db|{
+                        let tx=db.transaction()?;
+                        let now=chrono::Utc::now();
+                        let expired:Option<String>=tx.query_row("SELECT work_id FROM work WHERE step_id=? AND status='running' AND (execution_deadline<=? OR lease_until<=?)",params![step.to_string(),now.to_rfc3339(),now.to_rfc3339()],|r|r.get(0)).optional()?;
+                        if let Some(raw)=expired{
+                            let wid:WorkId=raw.parse().map_err(|_|StoreError::Unavailable)?;
+                            let w=squad_store::work::template(&tx,wid)?.ok_or(StoreError::Unavailable)?.0;
+                            let mut failure=crate::router::error(ErrorCode::PROVIDER_TIMEOUT,"Grill attempt deadline or lease expired");failure.work_id=Some(wid);failure.contest_id=w.contest_id;
+                            tx.execute("UPDATE work SET error_json=? WHERE work_id=?",params![serde_json::to_string(&failure)?,raw])?;
+                            squad_store::leases::recover_work(&tx,wid,now)?;
+                        }
+                        tx.execute("UPDATE work SET status='failed',runnable=0 WHERE step_id=? AND status='queued' AND attempt>=2",[step.to_string()])?;
+                        let pending:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE step_id=? AND status IN ('queued','running'))",[step.to_string()],|r|r.get(0))?;
+                        tx.commit()?;Ok(pending)
+                    })?;
                     if pending {
                         break;
                     }

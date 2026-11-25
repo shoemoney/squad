@@ -201,6 +201,14 @@ impl Respond for Answers {
     }
 }
 async fn send(f: &Fixture, room: &RoomHandle, text: &str) -> RequestResult {
+    send_meta(f, room, text, parser::SubmissionMeta::default()).await
+}
+async fn send_meta(
+    f: &Fixture,
+    room: &RoomHandle,
+    text: &str,
+    meta: parser::SubmissionMeta,
+) -> RequestResult {
     let state = room.state().await;
     let events = room.page_events(None, 500).await.unwrap();
     let mut ctx = parser::ParseContext {
@@ -243,16 +251,15 @@ async fn send(f: &Fixture, room: &RoomHandle, text: &str) -> RequestResult {
         });
     }
 
-    if let Some(ContestState::Selection(s)) = &ctx.active_contest {
-        if s.state == ContestSelectionStatus::AwaitingPick {
-            ctx.pending_pick = Some(parser::PendingPick {
-                contest_id: s.contest_id,
-                mode: parser::QuestionFirstMode::Grill,
-                eligible: s.answers.iter().map(|a| a.nick.clone()).collect(),
-            });
-        }
+    if let Some(ContestState::Selection(s)) = &ctx.active_contest
+        && s.state == ContestSelectionStatus::AwaitingPick
+    {
+        ctx.pending_pick = Some(parser::PendingPick {
+            contest_id: s.contest_id,
+            mode: parser::QuestionFirstMode::Grill,
+            eligible: s.answers.iter().map(|a| a.nick.clone()).collect(),
+        });
     }
-    let meta = parser::SubmissionMeta::default();
     let parsed = parse(text, &meta, &ctx).unwrap();
     room.submit(
         Request::from_parsed_with_context(EventId::new(), parsed, &meta, &ctx, false).unwrap(),
@@ -657,6 +664,237 @@ async fn real_floor_is_limited_to_selected_participants() {
     assert!(!export.contains("PERSONA"));
     let projections:i64=f.db().query_row("SELECT COUNT(*) FROM history WHERE context_id LIKE 'contest:%' AND projection_key='grill.working'",[],|r|r.get(0)).unwrap();
     assert!(projections > 0);
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn quoted_plan_source_is_frozen_and_clear_removes_all_floor_records() {
+    let f = Fixture::scenario(3, Scenario::Pass).await;
+    let room = f.open(OpenMode::Interactive).await;
+    let ctx = parser::ParseContext {
+        roster: f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        ..Default::default()
+    };
+    let err = parse("@member0 $grill", &Default::default(), &ctx).unwrap_err();
+    assert_eq!(
+        err.message,
+        "@member0 has no plan to grill yet. Ask it something first."
+    );
+    seed(&f, &room).await;
+    let source = room
+        .page_events(None, 500)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|e| matches!(e.content, EnvelopePayload::MessageFinal(_)))
+        .unwrap();
+    send(&f, &room, "@member0 A different plan").await;
+    f.wait(|| f.count("message.final") == 2).await;
+    let result = send_meta(
+        &f,
+        &room,
+        "@member0 $grill Focus on cost",
+        parser::SubmissionMeta {
+            quote: vec![source.base.id],
+            ..Default::default()
+        },
+    )
+    .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| terminal(&f)).await;
+    let raw: String = f
+        .db()
+        .query_row(
+            "SELECT map_json FROM contest_private_maps WHERE scope_key='grill.settings'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let frozen: GrillPreflight = serde_json::from_str(&raw).unwrap();
+    let EnvelopePayload::MessageFinal(reply) = source.content else {
+        panic!()
+    };
+    assert_eq!(
+        frozen.setup.source_message_id,
+        reply.completed.generation.message_id
+    );
+    assert_eq!(frozen.setup.focus, "Focus on cost");
+    assert_eq!(f.count("verdict"), 0);
+    assert_eq!(calls(&f, "judge"), 0);
+    let trophies: i64 = f
+        .db()
+        .query_row(
+            "SELECT COALESCE(SUM(wins+losses+trophies),0) FROM scores",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(trophies, 0);
+    let result = room
+        .submit(Request::Clear {
+            request_id: EventId::new(),
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    for table in [
+        "grill_plans",
+        "grill_turns",
+        "contest_private_maps",
+        "contests",
+    ] {
+        let count: i64 = f
+            .db()
+            .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 0, "{table}");
+    }
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn generation_identity_bound_readers_and_durable_deadline_are_enforced() {
+    let f = Fixture::scenario(3, Scenario::SlowQuestion).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 $grill").await;
+    f.wait(|| calls(&f, "grill.question") == 1).await;
+    let db = f.db();
+    let (raw,attempt,fence,epoch):(String,u32,i64,i64)=db.query_row("SELECT scheduling_meta,attempt,lease_fence,epoch FROM work WHERE kind='grill.question'",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let mut work: Work = serde_json::from_value(value["work"].clone()).unwrap();
+    work.attempt = attempt;
+    let owner = ExecutorKey::Member(nick("member1"));
+    let record = squad_store::work::record(&db, work.work_id)
+        .unwrap()
+        .unwrap();
+    let deadline = record.deadline.unwrap();
+    assert!(
+        deadline > chrono::Utc::now()
+            && deadline <= chrono::Utc::now() + chrono::Duration::seconds(180)
+    );
+    db.execute(
+        "UPDATE work SET lease_until=? WHERE work_id=?",
+        rusqlite::params![
+            (deadline + chrono::Duration::seconds(10)).to_rfc3339(),
+            work.work_id.to_string()
+        ],
+    )
+    .unwrap();
+    assert!(
+        squad_store::work::check_fence(
+            &db,
+            work.work_id,
+            &owner,
+            attempt,
+            fence as u64,
+            epoch as u64,
+            deadline + chrono::Duration::milliseconds(1)
+        )
+        .is_err()
+    );
+    let make = |message_id| {
+        EnvelopePayload::ContestArtifact(ContestArtifact {
+            contest_id: work.contest_id.unwrap(),
+            step_id: work.step_id.unwrap(),
+            artifact_kind: Text::new("grill.question").unwrap(),
+            work_id: Some(work.work_id),
+            source_refs: vec![],
+            data: serde_json::json!({"generation":GenerationIdentity{message_id,work_id:work.work_id,trigger_event_id:work.trigger_event_id,attempt},"raw":"PASS","finishReason":"stop"}),
+        })
+    };
+    assert!(squad_core::router::grill::canonical(&db, &work, &make(work.message_id)).is_ok());
+    assert!(squad_core::router::grill::canonical(&db, &work, &make(MessageId::new())).is_err());
+    let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
+    let foreign = squad_store::readers::ScopedReaders::new(
+        store.clone(),
+        ExecutorKey::Member(nick("member2")),
+        epoch as u64,
+    );
+    assert_eq!(
+        foreign.for_work(work.work_id).await.unwrap_err(),
+        ReaderError::Forbidden
+    );
+    assert_eq!(
+        foreign
+            .prompt_values_for_work(work.work_id)
+            .await
+            .unwrap_err(),
+        ReaderError::Forbidden
+    );
+    room.submit(Request::Stop {
+        request_id: EventId::new(),
+        target: None,
+    })
+    .await;
+    assert!(squad_core::router::grill::canonical(&db, &work, &make(work.message_id)).is_err());
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn confirmation_rechecks_daily_cap_after_restart() {
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    let result = send(&f, &room, "@member0 $grill").await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = result
+    else {
+        panic!("{result:?}")
+    };
+    room.shutdown().await.unwrap();
+    drop(room);
+    f.config.budget.daily_max_usd = 0.05;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room
+        .submit(Request::ContestConfirm {
+            request_id: EventId::new(),
+            contest_id: plan.contest_id,
+            plan_id: plan.plan_id,
+        })
+        .await;
+    assert!(
+        matches!(&result,RequestResult::Rejected{error,..} if error.code==ErrorCode::DAILY_MAX_REACHED&&error.text.as_str()=="Daily max of $0.05 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow."),
+        "{result:?}"
+    );
+    assert_eq!(status(&f), "FAILED");
+    assert_eq!(calls(&f, "grill.question"), 0);
+    no_reservation(&f);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn expired_attempts_retry_then_record_timeout_without_late_acceptance() {
+    let f = Fixture::scenario(3, Scenario::SlowQuestion).await;
+    let room = f.open(OpenMode::Interactive).await;
+    seed(&f, &room).await;
+    send(&f, &room, "@member0 $grill $GRILL_ROUNDS=1").await;
+    for attempt in 1..=2 {
+        f.wait(||f.db().query_row("SELECT EXISTS(SELECT 1 FROM work WHERE kind='grill.question' AND target='member1' AND status='running' AND attempt=?)",[attempt],|r|r.get::<_,bool>(0)).unwrap()).await;
+        f.db().execute("UPDATE work SET execution_deadline=? WHERE kind='grill.question' AND target='member1'",[(chrono::Utc::now()-chrono::Duration::milliseconds(1)).to_rfc3339()]).unwrap();
+    }
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(calls(&f, "grill.question"), 3);
+    assert_eq!(f.count("grill.question"), 0);
+    assert_eq!(f.count("grill.pass"), 2);
+    let timed_out:i64=f.db().query_row("SELECT COUNT(*) FROM events WHERE kind='grill.pass' AND json_extract(payload,'$.reason')='timeout'",[],|r|r.get(0)).unwrap();
+    assert_eq!(timed_out, 1);
+    assert_eq!(status(&f), "COMPLETE");
+    assert_eq!(
+        f.db()
+            .query_row(
+                "SELECT json_extract(state_json,'$.terminalReason') FROM contests",
+                [],
+                |r| r.get::<_, String>(0)
+            )
+            .unwrap(),
+        "grillers_exhausted"
+    );
     no_reservation(&f);
     room.shutdown().await.unwrap();
 }

@@ -129,6 +129,10 @@ impl Router {
         request: Request,
         owner: Option<ExecutorKey>,
     ) -> Result<CommitOutcome> {
+        let grill_tick = matches!(
+            &request,
+            Request::Internal(InternalRequest::Executor(ExecutorRequest::Presence(_)))
+        );
         let human = owner.is_none();
         let original_id = request_id(&request);
         let mut outcome = self.process_request(request, owner)?;
@@ -170,7 +174,11 @@ impl Router {
             })
             .collect();
         match if outcome.events.is_empty() {
-            Ok(Vec::new())
+            if grill_tick {
+                self.drive_grills()
+            } else {
+                Ok(Vec::new())
+            }
         } else {
             self.drive_contests()
         } {
