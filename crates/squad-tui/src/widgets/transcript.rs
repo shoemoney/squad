@@ -48,6 +48,8 @@ pub struct TranscriptMessage {
     /// Prepared static banner, scorecard, or collapsed-report rows. Their full
     /// wrapped height participates in the same lookup and anchor calculations.
     pub before_body: Vec<Line<'static>>,
+    /// Precomposed widget rows, already measured at the transcript body width.
+    pub widget_rows: Vec<Line<'static>>,
     pub after_body: Vec<Line<'static>>,
 }
 impl TranscriptMessage {
@@ -67,6 +69,7 @@ impl TranscriptMessage {
             quotes: vec![],
             presentation: PresentationKey::default(),
             before_body: vec![],
+            widget_rows: vec![],
             after_body: vec![],
         }
     }
@@ -112,6 +115,7 @@ impl CachedMessage {
             ));
         }
         prefix.extend(wrap_lines(&self.model.before_body, width));
+        prefix.extend(self.model.widget_rows.clone());
         self.prefix = prefix;
         self.suffix = wrap_lines(&self.model.after_body, width);
         // Source grapheme anchors use block-local wrapping rather than global
@@ -265,6 +269,19 @@ impl TranscriptView {
         self.messages = preceding.messages;
         self.reindex();
     }
+    pub fn retain(&mut self, mut keep: impl FnMut(MessageId) -> bool) {
+        let old = self.messages.len();
+        self.messages.retain(|m| keep(m.model.id));
+        if old != self.messages.len() {
+            self.reindex();
+        }
+    }
+    pub fn first_id(&self) -> Option<MessageId> {
+        self.messages.first().map(|m| m.model.id)
+    }
+    pub fn start_row(&self, id: MessageId) -> Option<usize> {
+        self.indexes.get(&id).map(|i| self.prefix(*i))
+    }
     fn reindex(&mut self) {
         self.indexes.clear();
         self.heights = vec![0; self.messages.len() + 1];
@@ -336,6 +353,7 @@ impl TranscriptView {
 }
 #[derive(Clone, Debug, Default)]
 pub struct TranscriptRects {
+    pub cards: Vec<(MessageId, Rect)>,
     pub protected: Vec<Rect>,
     pub rails: Vec<Rect>,
     pub cursors: Vec<Rect>,
@@ -363,6 +381,10 @@ pub fn render(
         let message = &view.messages[index];
         geometry.messages_visited += 1;
         let take = (message.height - local).min(usize::from(area.bottom() - y));
+        geometry.cards.push((
+            message.model.id,
+            Rect::new(area.x, y, area.width, take as u16),
+        ));
         let color = palette.member(
             if message.model.human {
                 "me"
@@ -396,7 +418,6 @@ pub fn render(
             geometry.rails.push(rail);
             if !message.model.complete && row + 1 == body_end {
                 buf.set_string(area.x, row_y, "▌", Style::default().fg(color));
-                geometry.cursors.push(rail);
             }
             let content = Rect::new(area.x + 1, row_y, area.width.saturating_sub(1), 1);
             if row == 0 {
@@ -435,7 +456,19 @@ pub fn render(
             } else if row - body_end < message.suffix.len() {
                 message.suffix[row - body_end].clone().render(content, buf);
             }
-            geometry.protected.push(content);
+            let mut protected_content = content;
+            if !message.model.complete && row + 1 == body_end && content.width > 1 {
+                let end = (content.x..content.right())
+                    .rfind(|x| buf[(*x, row_y)].symbol() != " ")
+                    .map_or(content.x, |x| {
+                        x + unicode_width::UnicodeWidthStr::width(buf[(x, row_y)].symbol()) as u16
+                    });
+                if end < content.right() {
+                    geometry.cursors.push(Rect::new(end, row_y, 1, 1));
+                    protected_content.width = end - content.x;
+                }
+            }
+            geometry.protected.push(protected_content);
             geometry.rows_drawn += 1;
         }
         y += take as u16;

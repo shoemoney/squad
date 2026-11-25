@@ -71,14 +71,26 @@ impl ParticipantView {
         };
         vec![
             Line::styled(
-                format!("{} · {}", sanitize(&self.nick), sanitize(&self.version)),
+                format!(
+                    "{}{}",
+                    sanitize(&self.nick),
+                    if self.version.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" · {}", sanitize(&self.version))
+                    }
+                ),
                 Style::default()
                     .fg(palette.member(&self.nick, self.slot))
                     .add_modifier(Modifier::BOLD),
             ),
             Line::raw(format!(
-                "{status} · queue {}{}",
-                self.queue_depth,
+                "{status}{}{}",
+                if self.queue_depth > 0 {
+                    format!(" · q{}", self.queue_depth)
+                } else {
+                    String::new()
+                },
                 self.contest
                     .as_ref()
                     .map_or(String::new(), |c| format!(" · {}", sanitize(c)))
@@ -94,16 +106,11 @@ impl ParticipantView {
                     ""
                 }
             )),
-            Line::raw(format!(
-                "tokens {} · {}{}",
-                self.tokens.map_or("unavailable".into(), |n| n.to_string()),
-                self.cost_usd
-                    .filter(|c| c.is_finite() && *c >= 0.)
-                    .map_or("cost unavailable".into(), |c| format!("${c:.4}")),
+            Line::raw(
                 self.tokens_per_second
                     .filter(|n| n.is_finite() && *n >= 0.)
-                    .map_or(String::new(), |n| format!(" · {n:.1} tok/s"))
-            )),
+                    .map_or_else(|| "ready".into(), |n| format!("{n:.1} tok/s · estimated")),
+            ),
         ]
     }
 }
@@ -114,6 +121,7 @@ pub struct ParticipantsView<'a> {
 }
 #[derive(Clone, Debug, Default)]
 pub struct ParticipantsRects {
+    pub names: Vec<(String, Rect)>,
     pub protected: Vec<Rect>,
     pub animatable: Vec<Rect>,
     pub total_rows: usize,
@@ -157,6 +165,9 @@ pub fn render(view: &ParticipantsView<'_>, area: Rect, buf: &mut Buffer) -> Part
                 );
                 text.render(Rect::new(area.x, y, area.width, 1), buf);
                 let rect = Rect::new(area.x, y, area.width, 1);
+                if i == 0 {
+                    geometry.names.push((member.nick.clone(), rect));
+                }
                 if (record_start..record_end).contains(&i) {
                     geometry.animatable.push(rect);
                 } else {

@@ -2,6 +2,7 @@
 pub mod actions;
 pub mod app;
 pub mod clipboard;
+pub mod composed;
 pub mod event_loop;
 pub mod fx;
 pub mod input_events;
@@ -17,5 +18,6 @@ pub mod text;
 pub mod theme;
 pub mod transcript;
 pub mod ui;
+mod ui_fx;
 pub mod validation;
 pub mod widgets;

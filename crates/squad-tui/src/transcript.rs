@@ -13,18 +13,31 @@ pub struct ReplyCard {
     pub next_chunk: u64,
     pub complete: bool,
 }
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Transcript {
+    pub revision: u64,
     pub cards: BTreeMap<MessageId, ReplyCard>,
     pub anchor: Option<(MessageId, usize)>,
     pub follow: bool,
     pub batch_deadline: Option<Duration>,
+}
+impl Default for Transcript {
+    fn default() -> Self {
+        Self {
+            revision: 0,
+            cards: BTreeMap::new(),
+            anchor: None,
+            follow: true,
+            batch_deadline: None,
+        }
+    }
 }
 impl Transcript {
     pub fn complete(&mut self, id: MessageId, author: Actor, attempt: u32, text: String) {
         if self.cards.get(&id).is_some_and(|c| c.attempt > attempt) {
             return;
         }
+        self.revision = self.revision.wrapping_add(1);
         self.cards.insert(
             id,
             ReplyCard {
@@ -45,6 +58,7 @@ impl Transcript {
             return false;
         }
         self.batch_deadline = None;
+        self.revision = self.revision.wrapping_add(1);
         for card in self.cards.values_mut() {
             card.text.push_str(&std::mem::take(&mut card.pending_text));
         }

@@ -1,0 +1,46 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+expression: output
+---
+ SQUAD   /   main   ·   six minds, one room
+$1.57 / $2.00 · pending $0.10 · remaining $0.33
+▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▒▒▱▱▱▱▱ !
+claude               │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
+idle                 │                                       \ \ / /|  _| | |_) | | | | | |     | |
+1-0 · trophies 0     │                                        \ V / | |___|  _ <| |_| | | |___  | |
+ready                │                                         \_/  |_____|_| \_\____/___\____| |_|
+                     │Case: 00000000-0000-7000-8000-000000000001
+fable                │[Collapse debate] · /stop · /stop @nick
+idle
+0-0 · trophies 0     │JUDGE
+ready                │VERDICT · Judge: demo/judge
+                     │Criteria · scale 1–10                claude             openai
+openai               │Fit                                    8/10               7/10
+idle                 │Feasibility                            8/10               7/10
+0-1 · trophies 0     │Originality                            8/10               7/10
+ready                │Survived attacks                       8/10               7/10
+                     │@claude weighted total: 8.00 / 10
+gemini               │@openai weighted total: 7.00 / 10
+idle                 │Winner: @claude
+0-0 · trophies 0     │Round tally · @claude: 24
+ready                │Round tally · @openai: 21
+                     │Round 1
+grok                 │@claude: 8/10 · Clear durability contract
+idle                 │@openai: 7/10 · Strong responsiveness argument
+0-0 · trophies 0     │Round 2
+ready                │@claude: 8/10 · Clear durability contract
+                     │@openai: 7/10 · Strong responsiveness argument
+muse                 │Round 3
+idle                 │@claude: 8/10 · Clear durability contract
+0-0 · trophies 0     │@openai: 7/10 · Strong responsiveness argument
+ready                │Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a
+                     │responsive room that survives restarts.
+                     │RESPECT · What to steal from the loser
+                     │• Bounded input-first scheduling
+                     │[Follow up with @judge]
+
+>
+
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C Quit

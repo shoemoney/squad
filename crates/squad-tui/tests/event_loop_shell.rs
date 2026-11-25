@@ -41,6 +41,7 @@ fn frame_scheduler_caps_every_source_and_disarms_idle() {
 #[tokio::test]
 async fn idle_room_draws_once_and_stays_disarmed_for_five_seconds() {
     let mut app = App::new(TerminalCaps::resolve(|_| None, false, (80, 24).into()).unwrap());
+    app.composed.started = true; // This test starts after the startup reveal.
     let room = Arc::new(FakeRoom::new());
     let (tx, mut rx) = mpsc::channel(8);
     tokio::spawn(async move {
@@ -117,6 +118,7 @@ async fn sustained_feed_draws_between_bounded_batches_and_quit_stays_responsive(
 async fn effects_finish_then_idle_timer_stays_disarmed() {
     use squad_tui::fx::{CatalogueEffect, FeedOrigin, FxCue, TimedCue};
     let mut app = App::new(TerminalCaps::resolve(|_| None, false, (80, 24).into()).unwrap());
+    app.composed.started = true;
     app.fx.queue_mut().push(
         FeedOrigin::Live,
         TimedCue {

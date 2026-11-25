@@ -103,7 +103,7 @@ async fn realistic_demo_finishes_six_streams_debate_and_verdict_without_network(
             .iter()
             .filter(|e| matches!(e.content, EnvelopePayload::MessageFinal(_)))
             .count(),
-        6
+        7
     );
     assert_eq!(
         state
@@ -111,7 +111,7 @@ async fn realistic_demo_finishes_six_streams_debate_and_verdict_without_network(
             .iter()
             .filter(|e| matches!(e.content, EnvelopePayload::DebateTurn(_)))
             .count(),
-        6
+        8
     );
     assert_eq!(
         state
@@ -123,8 +123,8 @@ async fn realistic_demo_finishes_six_streams_debate_and_verdict_without_network(
     );
     let mut session = Session::default();
     session.restore(state);
-    assert_eq!(session.transcript.cards.len(), 13);
-    assert!(!session.active_contest());
+    assert_eq!(session.transcript.cards.len(), 16);
+    assert!(session.pick.is_some());
     assert!(session.contests.values().any(|v| v.verdict.is_some()));
 }
 

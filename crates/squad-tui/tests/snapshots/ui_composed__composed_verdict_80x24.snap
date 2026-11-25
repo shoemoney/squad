@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+expression: output
+---
+ SQUAD   /   main   ·   six minds, one room
+$1.57 / $2.00 · pending $0.10 · remaining $0.33
+▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▒▒▱▱▱▱▱ !
+claude           │Round 1
+idle             │@claude: 8/10 · Clear durability contract
+1-0 · trophies 0 │@openai: 7/10 · Strong responsiveness argument
+ready            │Round 2
+                 │@claude: 8/10 · Clear durability contract
+fable            │@openai: 7/10 · Strong responsiveness argument
+idle             │Round 3
+0-0 · trophies 0 │@claude: 8/10 · Clear durability contract
+ready            │@openai: 7/10 · Strong responsiveness argument
+                 │Durability wins the foundation; take bounded, input-first
+openai           │scheduling from the other proposal. Together they make a
+idle             │responsive room that survives restarts.
+0-1 · trophies 0 │RESPECT · What to steal from the loser
+ready            │• Bounded input-first scheduling
+                 │[Follow up with @judge]
+gemini
+>
+
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C

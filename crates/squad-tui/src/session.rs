@@ -138,21 +138,33 @@ pub struct PickView {
 }
 #[derive(Debug, Default)]
 pub struct Session {
+    pub presentation_epoch: u64,
     pub snapshot: RoomSnapshot,
     pub transcript: Transcript,
     pub contests: BTreeMap<ContestId, ContestView>,
     pub pick: Option<PickView>,
     pub seen: BTreeSet<EventId>,
     pub last_error: Option<String>,
+    pub debates: BTreeMap<ContestId, crate::widgets::debate::DebateView>,
+    pub debate_messages: BTreeSet<MessageId>,
+    pub debate_streams: BTreeMap<MessageId, Delta>,
+    pub cases: BTreeMap<CaseId, crate::widgets::case::CaseView>,
+    pub stream_started: BTreeMap<MessageId, Duration>,
+    pub stream_rates: BTreeMap<Nick, f64>,
 }
 impl Session {
     pub fn restore(&mut self, mut snapshot: RoomSnapshot) {
+        self.presentation_epoch = self.presentation_epoch.wrapping_add(1);
         let anchor = self.transcript.anchor;
         let follow = self.transcript.follow;
         let events = std::mem::take(&mut snapshot.events);
         self.snapshot = snapshot;
         self.seen.clear();
         self.contests.clear();
+        self.debates.clear();
+        self.debate_streams.clear();
+        self.debate_messages.clear();
+        self.cases.clear();
         self.pick = None;
         self.transcript.clear();
         // Reduce history, then restore the newer authoritative room snapshot.
@@ -206,7 +218,14 @@ impl Session {
             ContestState::Debate(s) => s.debate_id,
             ContestState::Selection(s) => {
                 if s.state == ContestSelectionStatus::AwaitingPick {
-                    let eligible = s.answers.iter().map(|a| a.nick.clone()).collect::<Vec<_>>();
+                    let eligible = self
+                        .snapshot
+                        .context
+                        .pending_pick
+                        .as_ref()
+                        .filter(|p| p.contest_id == s.contest_id)
+                        .map(|p| p.eligible.clone())
+                        .unwrap_or_else(|| s.answers.iter().map(|a| a.nick.clone()).collect());
                     self.pick = Some(PickView {
                         request: ContestPickRequested {
                             contest_id: s.contest_id,
@@ -236,6 +255,14 @@ impl Session {
         let view = self.contests.entry(id).or_default();
         if let ContestState::Debate(s) = &state {
             view.debate = Some(s.clone());
+            self.debates
+                .entry(id)
+                .and_modify(|v| {
+                    v.apply_state(s, &DebateTransition::RoundEntered);
+                    v.verdict_entered |=
+                        matches!(s.state, DebateStatus::Judging | DebateStatus::Completed);
+                })
+                .or_insert_with(|| s.into());
         }
         view.state = Some(state);
     }
@@ -264,6 +291,21 @@ impl Session {
                     .cursor
                     .map_or(commit.seq, |c| c.max(commit.seq)),
             );
+        }
+        let generation = match content {
+            EnvelopePayload::MessageFinal(m) | EnvelopePayload::AgentReply(m) => {
+                Some(&m.completed.generation)
+            }
+            EnvelopePayload::DebateTurn(t) => Some(&t.generation),
+            _ => None,
+        };
+        if generation.is_some_and(|g| {
+            self.transcript
+                .cards
+                .get(&g.message_id)
+                .is_some_and(|c| c.complete && c.attempt >= g.attempt)
+        }) {
+            return false;
         }
         let mut cue = None;
         let mut immediate = true;
@@ -312,6 +354,23 @@ impl Session {
                         model: model.clone(),
                     });
                 }
+                self.stream_started.entry(card.id).or_insert(now);
+                if let Actor::Member(nick) = &base.sender {
+                    let elapsed = now
+                        .saturating_sub(self.stream_started[&card.id])
+                        .as_secs_f64();
+                    if elapsed > 0.1 {
+                        self.stream_rates.insert(
+                            nick.clone(),
+                            (card.text.len() + card.pending_text.len()) as f64 / 4. / elapsed,
+                        );
+                    }
+                }
+                if d.debate_id.is_some() {
+                    self.debate_messages.insert(card.id);
+                    self.debate_streams.insert(card.id, d.clone());
+                }
+                self.transcript.revision = self.transcript.revision.wrapping_add(1);
                 card.next_chunk = d.chunk_index + 1;
                 card.pending_text.push_str(&d.text);
                 self.transcript
@@ -320,6 +379,11 @@ impl Session {
                 immediate = false;
             }
             EnvelopePayload::UserMessage(m) => {
+                cue = Some(FxCue::Catalogue {
+                    effect: crate::fx::CatalogueEffect::Dispatch,
+                    target: m.input.message_id.to_string(),
+                    duration: Duration::from_millis(600),
+                });
                 self.transcript.complete(
                     m.input.message_id,
                     base.sender.clone(),
@@ -434,7 +498,35 @@ impl Session {
                         None
                     };
             }
+            EnvelopePayload::DebateSetup(s) => {
+                if let Some(view) = self.debates.get_mut(&s.debate_id) {
+                    *view = view.clone().with_setup(s, true);
+                }
+            }
+            EnvelopePayload::CaseOpened(c) => {
+                self.cases.insert(c.case_id, c.into());
+            }
+            EnvelopePayload::CaseRuling(r) => {
+                if let Some(c) = self.cases.get_mut(&r.case_id) {
+                    c.add_ruling(r);
+                }
+            }
+            EnvelopePayload::CaseFollowup(f) => {
+                let text = self
+                    .snapshot
+                    .context
+                    .record(f.user_event_id)
+                    .map(|r| r.content.clone())
+                    .unwrap_or_default();
+                if let Some(c) = self.cases.get_mut(&f.case_id) {
+                    c.add_followup(f, &text);
+                }
+            }
             EnvelopePayload::DebateTurn(t) => {
+                self.debate_messages.insert(t.generation.message_id);
+                if let Some(view) = self.debates.get_mut(&t.debate_id) {
+                    view.apply_turn(t);
+                }
                 let text = match &t.outcome {
                     DebateTurnOutcome::Completed { content, .. } => content.clone(),
                     DebateTurnOutcome::Forfeit { text, .. } => text.to_string(),
@@ -450,6 +542,9 @@ impl Session {
                 });
             }
             EnvelopePayload::DebateRoundScore(s) => {
+                if let Some(view) = self.debates.get_mut(&s.debate_id) {
+                    view.apply_score(s);
+                }
                 self.contests
                     .entry(s.debate_id)
                     .or_default()
@@ -470,7 +565,11 @@ impl Session {
                     None,
                     v.verdict.verdict.reasoning.clone(),
                 );
-                // The entrance belongs to JUDGING, never the later verdict receipt.
+                cue = Some(FxCue::Catalogue {
+                    effect: crate::fx::CatalogueEffect::Verdict,
+                    target: v.debate_id.to_string(),
+                    duration: Duration::from_secs(6),
+                });
             }
             EnvelopePayload::ContestArtifact(a) => {
                 self.contests
@@ -504,6 +603,12 @@ impl Session {
                 self.snapshot.context.pending_pick = None;
             }
             EnvelopePayload::ContestPickRequested(p) => {
+                if let Some(ContestState::Selection(state)) =
+                    &mut self.snapshot.context.active_contest
+                    && state.contest_id == p.contest_id
+                {
+                    state.state = ContestSelectionStatus::AwaitingPick;
+                }
                 cue = Some(FxCue::PickRequested {
                     contest_id: p.contest_id.to_string().parse().expect("UUIDv7"),
                 });
@@ -534,8 +639,13 @@ impl Session {
             ),
             EnvelopePayload::Error(e) => self.last_error = Some(e.text.to_string()),
             EnvelopePayload::RoomCleared(_) => {
+                self.presentation_epoch = self.presentation_epoch.wrapping_add(1);
                 self.transcript.clear();
                 self.contests.clear();
+                self.debates.clear();
+                self.debate_streams.clear();
+                self.debate_messages.clear();
+                self.cases.clear();
                 self.pick = None;
                 self.snapshot.context.records.clear();
                 self.snapshot.context.active_contest = None;
@@ -643,6 +753,7 @@ impl FakeRoom {
             .map(|s| Nick::new(s).expect("demo nick"))
             .collect();
         session.snapshot.daily_spend.limit_usd = 25.;
+        session.snapshot.daily_spend.day = "2026-11-24".into();
         Self {
             inner: Arc::new(Mutex::new(session)),
             feed,
@@ -734,6 +845,19 @@ impl FakeRoom {
             .context
             .roster
             .clone();
+        tokio::time::sleep(Duration::from_millis(1400)).await;
+        self.commit(
+            Actor::System,
+            EnvelopePayload::BudgetState(BudgetStateEvent {
+                day: "2026-11-24".into(),
+                spent_usd: 0.42,
+                reserved_usd: 0.16,
+                limit_usd: 2.,
+                estimated_usd: 0.,
+                unresolved_attempts: 0,
+                unknown_calls: 0,
+            }),
+        );
         let question = MessageId::new();
         self.commit(
             Actor::Me,
@@ -752,12 +876,12 @@ impl FakeRoom {
             }),
         );
         let replies = [
-            "Start with explicit ownership and a durable event log. Stream tokens separately from committed outcomes; recovery should be safe to repeat.",
-            "Make the interface calm and readable. Keep input responsive while every model streams, then compare the ideas in a short debate.",
-            "Use typed requests and one validated parser. Preserve the draft when validation fails; acknowledge only after durable acceptance.",
-            "Give every operation an identity. A retry should return the original receipt, and replay should restore content without replaying motion.",
-            "Measure the worst case: twelve streams, a resize, and a verdict. Bound every queue and protect the human input path.",
-            "Build a network-free rehearsal. Let people explore the room, ask a question, and see a debate finish before they connect a provider.",
+            "**Trust starts with a receipt.** Give one writer ownership of the durable log. A token is a preview; a committed answer is a promise.\n\n```rust\ncommit(outcome).await?;\nacknowledge(receipt);\n```\n\nRecovery should replay facts, never repeat side effects.",
+            "I picture a quiet control room: six coloured rails, one clear draft, and room to think. Let the models disagree without making the person fight the interface. **Motion should explain a change**, then get out of the way.",
+            "Make the contract executable. Typed requests enter one validated parser; a bounded scheduler prioritizes keyboard input. Keep provisional tokens separate from final outcomes.\n\n- Preserve rejected drafts\n- Deduplicate by message and attempt\n- Measure latency during twelve simultaneous streams",
+            "The interesting failure is a restart between commit and acknowledgement. Give each operation an identity and return its original receipt on retry. Then test the same history at every interruption point. A reliable room makes recovery boring, even when its models are surprising.",
+            "Twelve models talking at once? Excellent way to discover your supposedly asynchronous UI is a slideshow. Set a frame budget, bound the queues, and inject a slow judge. **If typing stutters, the benchmark fails.** Pretty pixels do not get an exemption.",
+            "Ship a rehearsal before asking for credentials. Let someone watch an idea grow, survive a challenge, and become a better plan. The first minute should show the whole journey: question, disagreement, evidence, and a verdict that keeps the best part of both answers.",
         ];
         let jobs = roster
             .iter()
@@ -779,7 +903,7 @@ impl FakeRoom {
             debate_id: id,
             state: DebateStatus::RoundRunning,
             debaters: [roster[0].clone(), roster[2].clone()],
-            round: 1,
+            round: 0,
             total_rounds: 3,
             judge_model: "demo/judge".into(),
             judge_requested: true,
@@ -788,12 +912,44 @@ impl FakeRoom {
             case_id: Some(case),
             case_ids: vec![case],
         };
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        self.commit(Actor::System, EnvelopePayload::DebateState(state.clone()));
+        tokio::time::sleep(Duration::from_millis(1700)).await;
+        self.stream(roster[0].clone(),question,"I defend **durability**: one writer, stable identities, and receipts that survive every restart.",Some((id,0))).await;
+        self.stream(roster[2].clone(),question,"I defend **responsiveness**: bounded queues, cached presentation, and a keyboard that never waits for models.",Some((id,0))).await;
+        let arguments = [
+            [
+                "**Opening: make promises durable.** A single writer commits the answer before the room acknowledges it. If the process dies between those steps, the client retries with the same identity and receives the original receipt. No answer is lost or charged twice.",
+                "**Opening: protect the human loop.** A durable answer is useful only if the person can still type while six models stream. Drain a bounded feed batch, paint the newest prepared rows, and service input first. Put a measurable latency target in the contract.",
+            ],
+            [
+                "Your scheduling contract is necessary, but what does it preserve after a crash? Keep transient deltas outside the authoritative log. The reducer must replace previews with committed outcomes by message and attempt, so a reconnect cannot turn one answer into three copies.",
+                "Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery and responsive presentation should share one test harness.",
+            ],
+            [
+                "**Closing: start with one source of truth.** Commit receipts, usage, and final outcomes atomically. Replay reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery contract: durability is the foundation, and latency is how people experience it.",
+                "**Closing: make both promises observable.** Track commit receipts and p99 draw time in the same rehearsal. Fail the release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the product before a real provider is connected.",
+            ],
+        ];
         for round in 1..=3 {
             state.round = round;
             state.state_version += 1;
             self.commit(Actor::System, EnvelopePayload::DebateState(state.clone()));
-            self.stream(roster[0].clone(), question, "Durability is the foundation. Commit the authoritative outcome before acknowledging it, then replay safely after any disconnect.", Some((id, round))).await;
-            self.stream(roster[2].clone(), question, "Responsiveness also needs a contract. Bound feed work, batch tokens, and let terminal input take priority in the single event loop.", Some((id, round))).await;
+            tokio::time::sleep(Duration::from_millis(1700)).await;
+            self.stream(
+                roster[0].clone(),
+                question,
+                arguments[(round - 1) as usize][0],
+                Some((id, round)),
+            )
+            .await;
+            self.stream(
+                roster[2].clone(),
+                question,
+                arguments[(round - 1) as usize][1],
+                Some((id, round)),
+            )
+            .await;
             self.commit(
                 Actor::Judge,
                 EnvelopePayload::DebateRoundScore(DebateRoundScore {
@@ -827,11 +983,13 @@ impl FakeRoom {
                     reason: None,
                 }),
             );
+            tokio::time::sleep(Duration::from_secs(2)).await;
         }
+        tokio::time::sleep(Duration::from_millis(1400)).await;
         state.state = DebateStatus::Judging;
         state.state_version += 1;
         self.commit(Actor::System, EnvelopePayload::DebateState(state.clone()));
-        tokio::time::sleep(Duration::from_millis(900)).await;
+        tokio::time::sleep(Duration::from_millis(1800)).await;
         let generation = GenerationIdentity {
             message_id: MessageId::new(),
             work_id: WorkId::new(),
@@ -846,7 +1004,7 @@ impl FakeRoom {
             reasoning: "Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a responsive room that survives restarts.".into(),
             what_to_steal_from_loser: vec!["Bounded input-first scheduling".into()], tally_override_reason: None,
         }, &state.debaters, &[(roster[0].clone(), 24), (roster[2].clone(), 21)].into()).expect("valid demo verdict");
-        self.commit(
+        let verdict_event = self.commit(
             Actor::Judge,
             EnvelopePayload::Verdict(DebateVerdict {
                 completed: CompletedGeneration {
@@ -865,6 +1023,64 @@ impl FakeRoom {
         state.state = DebateStatus::Completed;
         state.state_version += 1;
         self.commit(Actor::System, EnvelopePayload::DebateState(state));
+        self.commit(
+            Actor::System,
+            EnvelopePayload::ScoresChanged(ScoresChanged {
+                verdict_event_id: verdict_event,
+                scores: vec![
+                    Score {
+                        nick: roster[0].clone(),
+                        wins: 1,
+                        losses: 0,
+                        trophies: 0,
+                    },
+                    Score {
+                        nick: roster[2].clone(),
+                        wins: 0,
+                        losses: 1,
+                        trophies: 0,
+                    },
+                ],
+            }),
+        );
+        self.commit(
+            Actor::System,
+            EnvelopePayload::BudgetState(BudgetStateEvent {
+                day: "2026-11-24".into(),
+                spent_usd: 1.57,
+                reserved_usd: 0.1,
+                limit_usd: 2.,
+                estimated_usd: 0.,
+                unresolved_attempts: 0,
+                unknown_calls: 0,
+            }),
+        );
+        tokio::time::sleep(Duration::from_secs(8)).await;
+        // M1 has a typed question-first grill collection, but no typed grill
+        // exchanges yet. Showcase that supported boundary without inventing M5 JSON.
+        let grill = ContestId::new();
+        self.commit(
+            Actor::System,
+            EnvelopePayload::ContestCollecting(ContestCollecting {
+                contest_id: grill,
+                kind: ContestKind::Grill,
+                question_message_id: question,
+                question: "Stress-test the rollout plan".into(),
+                addressed: roster.clone(),
+            }),
+        );
+        self.stream(roster[4].clone(),question,"**Grill me on this plan:** ship one writer, one reducer, and a twelve-stream release gate. Ask what happens when the writer stalls; my answer is bounded backpressure and visible pending receipts, never a frozen keyboard.",None).await;
+        self.commit(
+            Actor::System,
+            EnvelopePayload::ContestPickRequested(ContestPickRequested {
+                contest_id: grill,
+                kind: ContestKind::Grill,
+                question_message_id: question,
+                eligible: vec![roster[4].clone()],
+                required_picks: 1,
+                banner: "Stress-test the rollout plan".into(),
+            }),
+        );
     }
     async fn stream(
         &self,
@@ -878,6 +1094,25 @@ impl FakeRoom {
             work_id: WorkId::new(),
             trigger_event_id: EventId::new(),
             attempt: 1,
+        };
+        self.emit(FeedItem::Presence(ProducerEnvelope {
+            base: demo_base(Actor::Member(nick.clone())),
+            content: EnvelopePayload::Presence(Presence {
+                nick: nick.clone(),
+                status: PresenceStatus::Streaming,
+                work_id: Some(generation.work_id),
+                queue_depth: 0,
+                error_code: None,
+                observed_at: std::time::SystemTime::now().into(),
+            }),
+        }));
+        let speed = match nick.as_str() {
+            "claude" => 130,
+            "openai" => 110,
+            "gemini" => 85,
+            "grok" => 65,
+            "fable" => 110,
+            _ => 125,
         };
         let cancelled = self.stop.subscribe();
         for (chunk, word) in text.split_inclusive(' ').enumerate() {
@@ -897,7 +1132,7 @@ impl FakeRoom {
                     step_id: None,
                 }),
             }));
-            tokio::time::sleep(Duration::from_millis(38)).await;
+            tokio::time::sleep(Duration::from_millis(speed)).await;
         }
         let content = if let Some((debate_id, round)) = debate {
             EnvelopePayload::DebateTurn(DebateTurn {
@@ -924,7 +1159,18 @@ impl FakeRoom {
                 content: text.into(),
             })
         };
-        self.commit(Actor::Member(nick), content);
+        self.commit(Actor::Member(nick.clone()), content);
+        self.emit(FeedItem::Presence(ProducerEnvelope {
+            base: demo_base(Actor::Member(nick.clone())),
+            content: EnvelopePayload::Presence(Presence {
+                nick,
+                status: PresenceStatus::Idle,
+                work_id: None,
+                queue_depth: 0,
+                error_code: None,
+                observed_at: std::time::SystemTime::now().into(),
+            }),
+        }));
     }
 }
 fn demo_base(sender: Actor) -> EnvelopeBase {

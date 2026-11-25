@@ -3,8 +3,8 @@ source: crates/squad-tui/tests/transcript.rs
 expression: "screen(28, 16)"
 ---
 │claude · 4.7 · streaming
-│  > me: How does this wor
-│  k?
+│  > me: How does this
+│  work?
 │  A clear answer with 中
 │  文  and emoji 👩‍💻 .
 │  ```rust

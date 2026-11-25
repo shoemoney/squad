@@ -1,0 +1,46 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+expression: output
+---
+ SQUAD   /   main   ·   six minds, one room
+$0.42 / $2.00 · pending $0.16 · remaining $1.42
+▰▰▰▰▰▰▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱
+claude               │  Your scheduling contract is necessary, but what does it preserve after a crash? Keep transient deltas outside the
+idle                 │  authoritative log. The reducer must replace previews with committed outcomes by message and attempt, so a
+0-0 · trophies 0     │  reconnect cannot turn one answer into three copies.
+ready                │@openai · Stop
+                     │  Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve
+fable                │  replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery and
+idle                 │   responsive presentation should share one test harness.
+0-0 · trophies 0     │@claude: 8/10
+ready                │@openai: 7/10
+                     │[Expand scorecard]
+openai               │Authoritative tally: @claude 16 · @openai 14
+idle                 │                            _____ ___ _   _    _    _       ____   ___  _   _ _   _ ____
+0-0 · trophies 0     │                           |  ___|_ _| \ | |  / \  | |     |  _ \ / _ \| | | | \ | |  _ \
+ready                │                           | |_   | ||  \| | / _ \ | |     | |_) | | | | | | |  \| | | | |
+                     │                           |  _|  | || |\  |/ ___ \| |___  |  _ <| |_| | |_| | |\  | |_| |
+gemini               │                           |_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
+idle                 │Closing statements
+0-0 · trophies 0     │@claude · Stop
+ready                │  Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
+                     │  reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery
+grok                 │  contract: durability is the foundation, and latency is how people experience it.
+idle                 │@openai · Stop
+0-0 · trophies 0     │  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
+ready                │  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
+                     │  product before a real provider is connected.
+muse                 │@claude: 8/10
+idle                 │@openai: 7/10
+0-0 · trophies 0     │[Expand scorecard]
+ready                │Authoritative tally: @claude 24 · @openai 21
+                     │[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────]
+                     │Case: 00000000-0000-7000-8000-000000000001
+                     │[Collapse debate] · /stop · /stop @nick
+                     │Press Esc again within 2 s to stop the active contest.
+
+>
+
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C Quit
