@@ -61,3 +61,24 @@ fn census_diagnostics_read_persisted_value_without_writing_or_replacing_seed() {
     assert!(stored.contains("seed 5; default 2; range 1..=5"));
     assert_eq!(db.total_changes(), before);
 }
+
+#[test]
+fn storage_reports_used_of_capacity_and_warns_near_and_at_the_ceiling() {
+    let temp = tempfile::tempdir().unwrap();
+    let absent = squad_cli::diagnostics::storage(temp.path(), 1 << 30).unwrap();
+    assert!(absent.contains("Storage: 0.0 MiB used of 1024.0 MiB (0.0%)"));
+    assert!(!absent.contains("WARNING"));
+    assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);
+    let db = database(temp.path(), vec![]);
+    let used = squad_store::storage::used_bytes(&db).unwrap();
+    assert!(used > 0);
+    let before = db.total_changes();
+    let roomy = squad_cli::diagnostics::storage(temp.path(), used * 100).unwrap();
+    assert!(roomy.starts_with("Storage: "));
+    assert!(!roomy.contains("WARNING"));
+    let near = squad_cli::diagnostics::storage(temp.path(), used * 105 / 100).unwrap();
+    assert!(near.contains("WARNING - near the ceiling"));
+    let full = squad_cli::diagnostics::storage(temp.path(), used).unwrap();
+    assert!(full.contains("at the ceiling") && full.contains("STORAGE_LIMIT"));
+    assert_eq!(db.total_changes(), before);
+}

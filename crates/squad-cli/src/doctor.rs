@@ -158,6 +158,10 @@ pub fn run(
         for check in [
             squad_cli::diagnostics::accounting(path, &day, limit),
             squad_cli::diagnostics::identities(path),
+            squad_cli::diagnostics::storage(
+                path,
+                squad_protocol::constants::STORAGE_CAPACITY_BYTES,
+            ),
             squad_cli::diagnostics::census_passes(
                 path,
                 config.as_ref().ok().map(|c| c.defaults.census_passes),

@@ -87,3 +87,28 @@ pub fn census_passes(
         seed.map_or_else(|| "unavailable".into(), |v| v.to_string())
     ))
 }
+
+/// Storage ceiling report: used and capacity bytes, with a warning near or at the ceiling.
+pub fn storage(data_dir: &Path, capacity: u64) -> Result<String, String> {
+    let used = if data_dir.join("squad.db").exists() {
+        let db = open_readonly(data_dir).map_err(|_| "Could not read storage use.".to_owned())?;
+        squad_store::storage::used_bytes(&db)
+            .map_err(|_| "Could not read storage use.".to_owned())?
+    } else {
+        0
+    };
+    let mib = |bytes: u64| bytes as f64 / (1024.0 * 1024.0);
+    let percent = used as f64 * 100.0 / capacity.max(1) as f64;
+    let note = if used >= capacity {
+        "; WARNING - at the ceiling: new generation is refused (STORAGE_LIMIT); history, export and cleanup stay available"
+    } else if percent >= 90.0 {
+        "; WARNING - near the ceiling"
+    } else {
+        ""
+    };
+    Ok(format!(
+        "Storage: {:.1} MiB used of {:.1} MiB ({percent:.1}%){note}\n",
+        mib(used),
+        mib(capacity)
+    ))
+}
