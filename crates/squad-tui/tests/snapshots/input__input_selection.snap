@@ -1,0 +1,18 @@
+---
+source: crates/squad-tui/tests/input.rs
+expression: buffer
+---
+Buffer {
+    area: Rect { x: 0, y: 0, width: 20, height: 4 },
+    content: [
+        "> é界👩‍💻             ", // hidden by multi-width symbols: [(4, " "), (6, " ")]
+        "                    ",
+        "                    ",
+        "                    ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 5, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: REVERSED,
+        x: 6, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
