@@ -14,6 +14,14 @@ pub enum WorkKind {
     Judge,
     #[serde(rename = "judge.round")]
     JudgeRound,
+    #[serde(rename = "probe.explain")]
+    ProbeExplain,
+    #[serde(rename = "probe.check")]
+    ProbeCheck,
+    #[serde(rename = "probe.predict")]
+    ProbePredict,
+    #[serde(rename = "probe.report")]
+    ProbeReport,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -78,6 +86,10 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
+            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict | WorkKind::ProbeReport => {
+                ensure(self.contest_id.is_some() && self.step_id.is_some() && self.debate_id.is_none() && self.round.is_none(), "probe requires contest and step")?;
+                ensure(if self.kind == WorkKind::ProbeReport {self.target==Target::Judge && self.attempt<=3} else {matches!(self.target, Target::Member(_)) && self.case_id.is_none() && self.attempt<=2}, "invalid probe owner or attempt")?;
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -143,6 +155,8 @@ impl Work {
             }
         }
         let ceiling = match self.kind {
+            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => constants::DEBATE_TURN_VISIBLE_TOKENS,
+            WorkKind::ProbeReport => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,

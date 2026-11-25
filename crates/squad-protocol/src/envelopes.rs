@@ -136,6 +136,20 @@ pub struct Completion {
 #[serde(tag = "kind", content = "payload")]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum EnvelopePayload {
+    #[serde(rename = "probe.setup")]
+    ProbeSetup(ProbeSetup),
+    #[serde(rename = "probe.state")]
+    ProbeState(ProbeState),
+    #[serde(rename = "probe.preflight")]
+    ProbePreflight(ProbePreflight),
+    #[serde(rename = "probe.explanation")]
+    ProbeExplanation(ProbeOutput<ProbeExplanation>),
+    #[serde(rename = "probe.check")]
+    ProbeCheck(ProbeOutput<ProbeCheck>),
+    #[serde(rename = "probe.prediction")]
+    ProbePrediction(ProbeOutput<ProbePrediction>),
+    #[serde(rename = "probe.report")]
+    ProbeReport(ProbeOutput<ProbeReport>),
     #[serde(rename = "user.message")]
     UserMessage(UserMessage),
     #[serde(rename = "agent.reply")]
@@ -743,7 +757,13 @@ fn validate_envelope(
                 "invalid generic setup",
             )?;
         }
+        EnvelopePayload::ProbeSetup(v) => v.validate()?,
+        EnvelopePayload::ProbeState(v) => v.validate()?,
+        EnvelopePayload::ProbePreflight(v) => v.validate()?,
+        EnvelopePayload::ProbeCheck(v) => v.data.validate()?,
+        EnvelopePayload::ProbeExplanation(_) | EnvelopePayload::ProbePrediction(_) | EnvelopePayload::ProbeReport(_) => {},
         EnvelopePayload::ContestState(state) => match state {
+            ContestState::Probe(state) => state.validate()?,
             ContestState::Debate(state) => state.validate()?,
             ContestState::Generic(state) => ensure(
                 state.kind != ContestKind::Debate && unique(&state.artifact_event_ids),
@@ -761,7 +781,7 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            submission.kind == ContestKind::Debate,
+            matches!((&submission.kind,&submission.transition), (ContestKind::Debate,ContestTransition::Debate(_)) | (ContestKind::Probe,ContestTransition::Probe(_))),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {

@@ -20,6 +20,8 @@ pub mod envelopes;
 pub mod validation;
 pub mod verdict;
 pub mod work;
+pub mod probe;
+pub use probe::*;
 pub use capabilities::*;
 pub use contest::*;
 pub use cursor::*;

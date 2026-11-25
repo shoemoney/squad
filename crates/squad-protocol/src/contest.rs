@@ -111,6 +111,7 @@ pub enum ContestState {
     Generic(GenericContestState),
     Selection(ContestSelectionState),
     Debate(DebateState),
+    Probe(ProbeState),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -150,6 +151,7 @@ pub struct ContestPreflightResult {
 pub enum PendingPreflight {
     Debate(DebatePreflight),
     Contest(ContestPreflight),
+    Probe(ProbePreflight),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -227,6 +229,7 @@ pub struct ContestTransitionSubmission {
 )]
 pub enum ContestTransition {
     Debate(DebateTransition),
+    Probe(ProbeTransition),
 }
 impl ContestKind {
     pub fn as_str(self) -> &'static str {
@@ -241,7 +244,7 @@ impl ContestKind {
         }
     }
     pub fn is_built(self) -> bool {
-        self == Self::Debate
+        matches!(self, Self::Debate | Self::Probe)
     }
 }
 impl ContestTransitionSubmission {
@@ -253,7 +256,7 @@ impl ContestTransitionSubmission {
             self.kind == ContestKind::Debate,
             "transition kind does not match debate",
         )?;
-        let ContestTransition::Debate(transition) = self.transition;
+        let ContestTransition::Debate(transition) = self.transition else { return Err(crate::validation::ValidationError { message: "expected debate transition".into() }); };
         Ok((self.contest_id, self.expected_state_version, transition))
     }
 }

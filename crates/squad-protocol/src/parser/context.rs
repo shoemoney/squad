@@ -52,6 +52,7 @@ impl ParseContext {
             ContestState::Generic(s) => s.kind,
             ContestState::Selection(s) => s.kind,
             ContestState::Debate(_) => ContestKind::Debate,
+            ContestState::Probe(_) => ContestKind::Probe,
         });
         // A parallel batch is one human question, never a union of latest replies.
         let latest_question = records
