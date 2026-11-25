@@ -39,11 +39,11 @@
   - [ ] M4.P1.L2.T6 — Expose the post-render effects pass and effects manager hook in `crates/squad-tui/src/event_loop.rs` and `crates/squad-tui/src/ui.rs`, following TUI effects and motion while keeping static rendering complete and correct with effects off.
 
 - **M4.P1.L3 — Spike and implement grapheme-aware input**
-  - [ ] M4.P1.L3.T1 — Compare a custom input prototype with compatible textarea candidates for soft wrap, Unicode cursor movement, selection, paste, and resize in `crates/squad-tui/examples/input_spike.rs`; record the evidence for writing Squad's widget in `crates/squad-tui/README.md`.
-  - [ ] M4.P1.L3.T2 — Implement grapheme segmentation, pinned cell widths, tab expansion, CRLF normalization, and source mappings in `crates/squad-tui/src/text.rs`.
-  - [ ] M4.P1.L3.T3 — Implement four-to-eight-row editing, cursor following, overflow labels, and draft-preserving input history in `crates/squad-tui/src/widgets/input.rs`.
-  - [ ] M4.P1.L3.T4 — Implement Kitty keyboard negotiation, fallback newline keys, bracketed paste, and duplicate-event prevention in `crates/squad-tui/src/input_events.rs`.
-  - [ ] M4.P1.L3.T5 — Verify pasted code preservation, UTF-8 byte validation, and grapheme-boundary editing in `crates/squad-tui/tests/input.rs`.
+  - [x] M4.P1.L3.T1 — Compare a custom input prototype with compatible textarea candidates for soft wrap, Unicode cursor movement, selection, paste, and resize in `crates/squad-tui/examples/input_spike.rs`; record the evidence for writing Squad's widget in `crates/squad-tui/README.md`.
+  - [x] M4.P1.L3.T2 — Implement grapheme segmentation, pinned cell widths, tab expansion, CRLF normalization, and source mappings in `crates/squad-tui/src/text.rs`.
+  - [x] M4.P1.L3.T3 — Implement four-to-eight-row editing, cursor following, overflow labels, and draft-preserving input history in `crates/squad-tui/src/widgets/input.rs`.
+  - [x] M4.P1.L3.T4 — Implement Kitty keyboard negotiation, fallback newline keys, bracketed paste, and duplicate-event prevention in `crates/squad-tui/src/input_events.rs`.
+  - [x] M4.P1.L3.T5 — Verify pasted code preservation, UTF-8 byte validation, and grapheme-boundary editing in `crates/squad-tui/tests/input.rs`.
 
 - **M4.P1.L4 — Integrate completion and shared validation**
   - [ ] M4.P1.L4.T1 — Connect the shared parser, exact errors, and recipient preview in `crates/squad-tui/src/validation.rs`.
