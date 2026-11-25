@@ -74,7 +74,8 @@ impl Router {
                 }
                 if let Some(step) = self.store.call(move |db| grill::current_step(db, id))? {
                     let pending=self.store.call(move|db|{
-                        let tx=db.transaction()?;
+                        // Reads precede the writes: lock first so a second connection makes this wait, not fail.
+                        let tx=db.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
                         let now=chrono::Utc::now();
                         let expired:Option<String>=tx.query_row("SELECT work_id FROM work WHERE step_id=? AND status='running' AND (execution_deadline<=? OR lease_until<=?)",params![step.to_string(),now.to_rfc3339(),now.to_rfc3339()],|r|r.get(0)).optional()?;
                         if let Some(raw)=expired{
