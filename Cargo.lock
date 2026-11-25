@@ -2674,6 +2674,7 @@ version = "0.1.0"
 dependencies = [
  "figlet-rs",
  "insta",
+ "serde",
  "serde_json",
  "squad-agents",
  "squad-protocol",
