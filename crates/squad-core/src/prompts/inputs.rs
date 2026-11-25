@@ -45,7 +45,7 @@ fn quotes_value(quotes: &[ResolvedQuote]) -> Value {
             .collect(),
     )
 }
-fn base(config: &SquadConfig) -> Inputs {
+pub(super) fn base(config: &SquadConfig) -> Inputs {
     Inputs::from([
         (
             "member_nicks_json".into(),
@@ -64,7 +64,7 @@ fn base(config: &SquadConfig) -> Inputs {
 impl PromptPack {
     /// Keep exactly the slots used by the selected composition. This also keeps
     /// member personas out of every judge composition.
-    fn selected(
+    pub(super) fn selected(
         &self,
         id: &str,
         mut values: Inputs,
@@ -333,7 +333,7 @@ impl PromptPack {
     }
 }
 
-fn member_inputs(
+pub(super) fn member_inputs(
     config: &SquadConfig,
     work: &Work,
     binding: &ExecutorBinding,
@@ -417,6 +417,18 @@ pub fn shared_move_composition(
     Ok(match move_name {
         ContestMove::Pick | ContestMove::Tally | ContestMove::Barrier | ContestMove::Report => None,
         ContestMove::Collect if work.kind == WorkKind::Reply => Some("reply"),
+        ContestMove::Fanout if work.kind == WorkKind::CrosscheckInventory => {
+            Some("crosscheck.inventory")
+        }
+        ContestMove::Fanout if work.kind == WorkKind::CrosscheckCell => Some("crosscheck.cell"),
+        ContestMove::Fanout if work.kind == WorkKind::CrosscheckAudit => Some("crosscheck.audit"),
+        ContestMove::Judge if work.kind == WorkKind::CrosscheckGoal => {
+            Some("crosscheck.normalize.extract_goal")
+        }
+        ContestMove::Judge if work.kind == WorkKind::CrosscheckNormalize => {
+            Some("crosscheck.normalize.normalize_inventory")
+        }
+        ContestMove::Judge if work.kind == WorkKind::CrosscheckRule => Some("crosscheck.rule"),
         ContestMove::Fanout | ContestMove::Turns if work.kind == WorkKind::DebateTurn => {
             Some(debate_composition(
                 work.round.ok_or_else(|| error("missing debate round"))?,

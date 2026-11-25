@@ -1,0 +1,90 @@
+---
+source: crates/squad-tui/tests/probe.rs
+expression: rows
+---
+                                             ____  ____   ___  ____  _____
+                                            |  _ \|  _ \ / _ \| __ )| ____|
+                                            | |_) | |_) | | | |  _ \|  _|
+                                            |  __/|  _ <| |_| | |_) | |___
+                                            |_|   |_| \_\\___/|____/|_____|
+Brief: Intermittent noise; fan ruled out; inspect exterior indicator only
+Explainers: alpha, beta, gamma, delta · Checkers: checker1, checker2, checker3, checker4
+Sitting out: @epsilon
+Complete
+Skipped member: @beta
+Skipped member: @checker3
+Skipped member: @checker4
+alpha: Loose connector
+Key assumption: Depends on charging state
+Limit: Not observed
+beta: Regulator vibration
+Key assumption: Depends on charging state
+Limit: Not observed
+gamma: Resonant cover
+Key assumption: Depends on charging state
+Limit: Not observed
+delta: Unstable sensor
+Key assumption: Depends on charging state
+Limit: Not observed
+checker1: Read indicator
+Procedure: Observe without opening or touching the case · Measure: Indicator color · Effort: One minute
+red: Red
+green: Green
+Safety: Do not open the case
+Locked predictions · alpha
+00000000-0000-4000-8000-000000000001: cannot predict · Cannot infer this indicator from the explanation
+00000000-0000-4000-8000-000000000002: cannot predict · Cannot infer this indicator from the explanation
+Locked predictions · gamma
+00000000-0000-4000-8000-000000000001: red · Conditional on this explanation
+00000000-0000-4000-8000-000000000002: cannot predict · Cannot infer this indicator from the explanation
+Locked predictions · delta
+00000000-0000-4000-8000-000000000001: green · Conditional on this explanation
+00000000-0000-4000-8000-000000000002: cannot predict · Cannot infer this indicator from the explanation
+Accepted anonymous explanations
+00000000-0000-4000-8000-000000000003: Loose connector · assumption: Depends on charging state
+00000000-0000-4000-8000-000000000004: Regulator vibration · assumption: Depends on charging state
+00000000-0000-4000-8000-000000000005: Resonant cover · assumption: Depends on charging state
+00000000-0000-4000-8000-000000000006: Unstable sensor · assumption: Depends on charging state
+Accepted anonymous checks
+00000000-0000-4000-8000-000000000001: Read indicator · procedure: Observe without opening or touching the case · measure
+: Indicator color
+red: Red
+green: Green
+00000000-0000-4000-8000-000000000002: Read indicator · procedure: Observe without opening or touching the case · measure
+: Indicator color
+red: Red
+green: Green
+Missing prediction row: 00000000-0000-4000-8000-000000000004; no elimination evidence
+Skipped member: @beta
+Skipped member: @checker3
+Skipped member: @checker4
+Prediction matrix · F7 to collapse
+Explanation 00000000-0000-4000-8000-000000000003
+00000000-0000-4000-8000-000000000001: cannot predict · Cannot infer this indicator from the explanation
+00000000-0000-4000-8000-000000000002: cannot predict · Cannot infer this indicator from the explanation
+Explanation 00000000-0000-4000-8000-000000000004
+Missing row; no elimination evidence
+Explanation 00000000-0000-4000-8000-000000000005
+00000000-0000-4000-8000-000000000001: red · Conditional on this explanation
+00000000-0000-4000-8000-000000000002: cannot predict · Cannot infer this indicator from the explanation
+Explanation 00000000-0000-4000-8000-000000000006
+00000000-0000-4000-8000-000000000001: green · Conditional on this explanation
+00000000-0000-4000-8000-000000000002: cannot predict · Cannot infer this indicator from the explanation
+Decision tree
+Result red → red
+Result green → green
+├── root: check 00000000-0000-4000-8000-000000000001; measure Indicator color
+└── green: 00000000-0000-4000-8000-000000000003, 00000000-0000-4000-8000-000000000004, 00000000-0000-4000-8000-
+000000000006 remain · Review remaining possibilities
+└── red: 00000000-0000-4000-8000-000000000003, 00000000-0000-4000-8000-000000000004, 00000000-0000-4000-8000-
+000000000005 remain · Review remaining possibilities
+└── Unexpected result · unexpected: 00000000-0000-4000-8000-000000000003, 00000000-0000-4000-8000-000000000004, 00000000
+-0000-4000-8000-000000000005, 00000000-0000-4000-8000-000000000006 remain · Reopen the diagnostic brief and reassess the
+assumptions · reopen diagnostic brief
+Dropped check 00000000-0000-4000-8000-000000000002: Does not distinguish the available explanations
+Inseparable: 00000000-0000-4000-8000-000000000003, 00000000-0000-4000-8000-000000000004, 00000000-0000-4000-8000-
+000000000005 · Unknown and missing predictions cannot eliminate explanations
+Inseparable: 00000000-0000-4000-8000-000000000003, 00000000-0000-4000-8000-000000000004, 00000000-0000-4000-8000-
+000000000006 · Unknown and missing predictions cannot eliminate explanations
+Limitation: No checks performed
+Inspect manually. No explanation is declared true; checks have not been executed.

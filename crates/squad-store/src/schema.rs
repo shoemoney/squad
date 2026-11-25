@@ -9,16 +9,49 @@ pub fn configure(connection: &Connection) -> rusqlite::Result<()> {
 /// Apply the initial schema atomically, once. Foreign keys remain enabled.
 pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
     configure(connection)?;
-    let tx = connection.transaction()?;
-    let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    if version == 0 {
-        tx.execute_batch(INITIAL)?;
-        tx.pragma_update(None, "user_version", 1)?;
-    } else if version != 1 {
-        return Err(rusqlite::Error::InvalidQuery);
-    }
-    tx.commit()
+    connection.pragma_update(None, "foreign_keys", false)?;
+    let result = (|| {
+        let tx = connection.transaction()?;
+        let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        if version > 7 {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
+        if version == 0 {
+            tx.execute_batch(INITIAL)?;
+        }
+        if version < 2 {
+            tx.execute_batch(include_str!("../migrations/0002_tournament.sql"))?;
+        }
+        if version < 3 {
+            tx.execute_batch(include_str!("../migrations/0003_census.sql"))?;
+        }
+        if version < 4 {
+            tx.execute_batch(include_str!("../migrations/0004_crosscheck.sql"))?;
+        }
+        if version < 5 {
+            tx.execute_batch(include_str!("../migrations/0005_survey.sql"))?;
+        }
+        if version < 6 {
+            tx.execute_batch(include_str!("../migrations/0006_grill.sql"))?;
+        }
+        if version < 7 {
+            tx.execute_batch(include_str!("../migrations/0007_probe.sql"))?;
+        }
+        let invalid: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
+            [],
+            |r| r.get(0),
+        )?;
+        if invalid {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
+        tx.pragma_update(None, "user_version", 7)?;
+        tx.commit()
+    })();
+    connection.pragma_update(None, "foreign_keys", true)?;
+    result
 }
+
 /// Validate a mode-specific reference against the shared contest table.
 /// Generic carriers do not confer admission or permission to execute that mode.
 pub fn validate_contest_kind(

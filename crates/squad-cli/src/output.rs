@@ -1,5 +1,6 @@
 use serde_json::{Value, json};
 use squad_protocol::*;
+use squad_tui::markdown::sanitize;
 use std::io::{self, Write};
 
 pub struct Output<'a> {
@@ -9,8 +10,13 @@ pub struct Output<'a> {
 }
 impl Output<'_> {
     pub fn record(&mut self, value: Value) -> io::Result<()> {
-        serde_json::to_writer(&mut self.stdout, &value)?;
-        writeln!(self.stdout)
+        // JSON escapes C0, but serde leaves Unicode C1 controls literal. Escape
+        // those too so terminal output stays safe and decoded records stay intact.
+        writeln!(
+            self.stdout,
+            "{}",
+            terminal_json(serde_json::to_string(&value)?)
+        )
     }
     pub fn error(
         &mut self,
@@ -26,7 +32,7 @@ impl Output<'_> {
             }
             self.record(value)
         } else {
-            writeln!(self.stderr, "{message}")
+            writeln!(self.stderr, "{}", sanitize(message))
         }
     }
     pub fn ack(
@@ -87,10 +93,10 @@ impl Output<'_> {
                         p.rounds,
                         p.debaters[0],
                         p.debaters[1],
-                        p.judge_model.as_deref().unwrap_or("none")
+                        sanitize(p.judge_model.as_deref().unwrap_or("none"))
                     )?;
                     if let Some(warning) = &p.warning {
-                        writeln!(self.stdout, "Warning: {warning}")?;
+                        writeln!(self.stdout, "Warning: {}", sanitize(warning.as_str()))?;
                     }
                 }
                 PendingPreflight::Contest(p) => {
@@ -106,10 +112,10 @@ impl Output<'_> {
                     writeln!(
                         self.stdout,
                         "Settings: {}",
-                        serde_json::to_string_pretty(&p.settings)?
+                        terminal_json(serde_json::to_string_pretty(&p.settings)?)
                     )?;
                     if let Some(warning) = &p.warning {
-                        writeln!(self.stdout, "Warning: {warning}")?;
+                        writeln!(self.stdout, "Warning: {}", sanitize(warning.as_str()))?;
                     }
                 }
             }
@@ -133,6 +139,20 @@ impl Output<'_> {
             let author = value["sender"].as_str().unwrap_or("system");
             let kind = value["kind"].as_str().unwrap_or("event");
             let payload = &value["payload"];
+            if let EnvelopePayload::CensusReport(report) = &event.content {
+                return writeln!(
+                    self.stdout,
+                    "{}",
+                    squad_core::export::census::report_text(report)
+                );
+            }
+            if let EnvelopePayload::CensusState(state) = &event.content {
+                return writeln!(
+                    self.stdout,
+                    "CENSUS · pass {} · plan {} · {:?}",
+                    state.pass, state.plan_version, state.status
+                );
+            }
             if let EnvelopePayload::DebateRoundScore(score) = &event.content {
                 let late = if latest_round.is_some_and(|round| round > score.round) {
                     " (late)"
@@ -148,17 +168,22 @@ impl Output<'_> {
                     self.stdout,
                     "Round {} {status}{late}: {}",
                     score.round,
-                    serde_json::to_string_pretty(payload)?
+                    terminal_json(serde_json::to_string_pretty(payload)?)
                 );
+            }
+            if let Some(text) = squad_core::export::survey::render(&event.content) {
+                return writeln!(self.stdout, "{text}");
             }
             if kind == "message.final" {
                 writeln!(
                     self.stdout,
                     "{author}: {}",
-                    payload["content"]
-                        .as_str()
-                        .or_else(|| payload["body"].as_str())
-                        .unwrap_or("")
+                    sanitize(
+                        payload["content"]
+                            .as_str()
+                            .or_else(|| payload["body"].as_str())
+                            .unwrap_or("")
+                    )
                 )
             } else {
                 // Field labels retain the owning round/step and attribution even
@@ -166,9 +191,22 @@ impl Output<'_> {
                 writeln!(
                     self.stdout,
                     "{author} [{kind}] {}",
-                    serde_json::to_string_pretty(payload)?
+                    terminal_json(serde_json::to_string_pretty(payload)?)
                 )
             }
         }
     }
+}
+
+fn terminal_json(json: String) -> String {
+    use std::fmt::Write as _;
+    let mut output = String::with_capacity(json.len());
+    for ch in json.chars() {
+        if ('\u{80}'..='\u{9f}').contains(&ch) {
+            let _ = write!(output, "\\u{:04x}", ch as u32);
+        } else {
+            output.push(ch);
+        }
+    }
+    output
 }

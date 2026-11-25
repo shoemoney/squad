@@ -62,6 +62,11 @@ pub fn run(
                 text,
                 "Configuration: PASS - {source}; process environment overrides file values; parsing and references validated"
             );
+            let _ = writeln!(
+                text,
+                "SQUAD_CENSUS_PASSES seed: {} (default 2, range 1..=5; stored CENSUS_PASSES takes precedence)",
+                config.defaults.census_passes
+            );
             for agent in &config.agents {
                 let _ = writeln!(text, "  {}: {}", agent.nick, agent.model);
             }
@@ -156,6 +161,15 @@ pub fn run(
         for check in [
             squad_cli::diagnostics::accounting(path, &day, limit),
             squad_cli::diagnostics::identities(path),
+            squad_cli::diagnostics::census_passes(
+                path,
+                config.as_ref().ok().map(|c| c.defaults.census_passes),
+                match effective.source("SQUAD_CENSUS_PASSES") {
+                    squad_protocol::config::VariableSource::Default => "built-in default",
+                    squad_protocol::config::VariableSource::File(_) => "environment file",
+                    squad_protocol::config::VariableSource::Process => "process environment",
+                },
+            ),
         ] {
             match check {
                 Ok(report) => text.push_str(&report),
@@ -190,7 +204,7 @@ pub fn run(
     if show_env {
         text.push_str("\nSupported environment variables and defaults:\n");
         text.push_str(include_str!("env-help.md"));
-        text.push_str("\nProcess environment overrides file values, including empty values. Load exactly one environment file.\nPersisted ROUNDS and GRILL_ROUNDS override their environment seeds.\nLoaded roster and numeric values are reported above; credential values are never displayed.\n");
+        text.push_str("\nProcess environment overrides file values, including empty values. Load exactly one environment file.\nPersisted ROUNDS, GRILL_ROUNDS and CENSUS_PASSES override their environment seeds.\nLoaded roster and numeric values are reported above; credential values are never displayed.\n");
     }
     let _ = writeln!(
         text,

@@ -186,15 +186,15 @@
   - [ ] M5.P3.L4.T28 — Document all four modes' template texts, output-schema sources, actor-specific input mappings, repair composition, report ownership, step limits, and D71 shared-move integration in `docs/prompt-pack.md`.
 
 - **M5.P3.L5 — Add tournament prompts**
-  - [ ] M5.P3.L5.T1 — Add root `prompts/tournament.entrant.md` for the `squad-core` prompt pack with elimination rules, remaining entrant count, ordinary word limits, and own-result improvement guidance; register its system-suffix composition in `prompts/manifest.json`.
-  - [ ] M5.P3.L5.T2 — Add root `prompts/tournament.judge.md` and the blind `judge.system.md` composition for the `squad-core` prompt pack, including anonymous strict ranking, forfeit guidance, and task-specific repair text; register composition-specific placeholders in `prompts/manifest.json`.
-  - [ ] M5.P3.L5.T3 — Add root `prompts/tournament.result.md` and `prompts/tournament.final.md` for the `squad-core` prompt pack, exposing only the addressed entrant’s own result and the final nick-and-placement list respectively.
-  - [ ] M5.P3.L5.T4 — Map canonical tournament state, own results, anonymized judge material, ranking schema, and final placements in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`; record template and composition provenance in `crates/squad-core/src/orchestrator/provenance.rs`.
-  - [ ] M5.P3.L5.T5 — Integrate canonical tournament-ranking validation and blind attempt-scoped repair within three total attempts in `squad-agents` at `crates/squad-agents/src/judge.rs`, leaving replay and elimination decisions to the contest engine.
-  - [ ] M5.P3.L5.T6 — Capture first and later tournament-entry requests to verify one member system message, ordinary word limits, exactly one own preceding result, and absence of other entrants’ answers or results in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
-  - [ ] M5.P3.L5.T7 — Capture blind tournament judge and repair requests to verify no entrant nick, entrant model name, roster, persona, label map, or prior-round identity mapping enters any provider message, including when the judge’s model competes, in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
-  - [ ] M5.P3.L5.T8 — Test anonymous-label permutation fixtures, forfeit ranking, strict ordering with equal scores, repair exhaustion, shuffled-label rendering, and final placement notices without answer text, scores, or critiques in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs` using canonical `squad-protocol` validators.
-  - [ ] M5.P3.L5.T9 — Document tournament template IDs, blind system composition and override requirements, own-result delivery, ranking repair, and final-placement visibility for the `squad-core` prompt pack in `docs/prompt-pack.md`.
+  - [x] M5.P3.L5.T1 — Add root `prompts/tournament.entrant.md` for the `squad-core` prompt pack with elimination rules, remaining entrant count, ordinary word limits, and own-result improvement guidance; register its system-suffix composition in `prompts/manifest.json`.
+  - [x] M5.P3.L5.T2 — Add root `prompts/tournament.judge.md` and the blind `judge.system.md` composition for the `squad-core` prompt pack, including anonymous strict ranking, forfeit guidance, and task-specific repair text; register composition-specific placeholders in `prompts/manifest.json`.
+  - [x] M5.P3.L5.T3 — Add root `prompts/tournament.result.md` and `prompts/tournament.final.md` for the `squad-core` prompt pack, exposing only the addressed entrant’s own result and the final nick-and-placement list respectively.
+  - [x] M5.P3.L5.T4 — Map canonical tournament state, own results, anonymized judge material, ranking schema, and final placements in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`; record template and composition provenance in `crates/squad-core/src/orchestrator/provenance.rs`.
+  - [x] M5.P3.L5.T5 — Integrate canonical tournament-ranking validation and blind attempt-scoped repair within three total attempts in `squad-agents` at `crates/squad-agents/src/judge.rs`, leaving replay and elimination decisions to the contest engine.
+  - [x] M5.P3.L5.T6 — Capture first and later tournament-entry requests to verify one member system message, ordinary word limits, exactly one own preceding result, and absence of other entrants’ answers or results in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
+  - [x] M5.P3.L5.T7 — Capture blind tournament judge and repair requests to verify no entrant nick, entrant model name, roster, persona, label map, or prior-round identity mapping enters any provider message, including when the judge’s model competes, in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs`.
+  - [x] M5.P3.L5.T8 — Test anonymous-label permutation fixtures, forfeit ranking, strict ordering with equal scores, repair exhaustion, shuffled-label rendering, and final placement notices without answer text, scores, or critiques in `squad-core` at `crates/squad-core/tests/tournament_prompts.rs` using canonical `squad-protocol` validators.
+  - [x] M5.P3.L5.T9 — Document tournament template IDs, blind system composition and override requirements, own-result delivery, ranking repair, and final-placement visibility for the `squad-core` prompt pack in `docs/prompt-pack.md`.
 
 - **M5.P3.L6 — Add grill prompts**
   - [ ] M5.P3.L6.T1 — Add root `prompts/grill.question.md` for the `squad-core` prompt pack with the assigned angle, at most three questions within 200 words, no-repeat guidance, and exact `PASS`; register its placeholders in `prompts/manifest.json`.
@@ -208,10 +208,10 @@
 
 - **M5.P3.L7 — Add census prompts**
   - [ ] M5.P3.L7.T1 — Add root `prompts/census.hunt.md`, `prompts/census.merge.md`, `prompts/census.rate.md`, and `prompts/census.final.md` with the complete task text, canonical schemas, assigned-lens inputs, citations, source references, and majority-decision framing.
-  - [ ] M5.P3.L7.T2 — Map census pass, current plan version, assigned lens, private hunt references, anonymous rating ledger, accepted ratings, additions, and computed majority decisions in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
-  - [ ] M5.P3.L7.T3 — Capture census requests to verify independent hunts, no finder identities or counts in rating payloads, no rating additions treated as hunt captures, preserved covered citations, and no model-computed estimate in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
-  - [ ] M5.P3.L7.T4 — Verify accepted-ledger report rendering uses the application's range, finder counts, singleton flags, discovery curve, exact headline, shared-blind-spots caveat, quiet notice, skipped-member records, and singleton-to-grill hint without another provider call in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
-  - [ ] M5.P3.L7.T5 — Test patched-plan version changes, lens rotation inputs, canonical gap coverage and reference validation, malformed ratings, repair isolation, and restart-frozen census compositions in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
+  - [x] M5.P3.L7.T2 — Map census pass, current plan version, assigned lens, private hunt references, anonymous rating ledger, accepted ratings, additions, and computed majority decisions in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
+  - [x] M5.P3.L7.T3 — Capture census requests to verify independent hunts, no finder identities or counts in rating payloads, no rating additions treated as hunt captures, preserved covered citations, and no model-computed estimate in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
+  - [x] M5.P3.L7.T4 — Verify accepted-ledger report rendering uses the application's range, finder counts, singleton flags, discovery curve, exact headline, shared-blind-spots caveat, quiet notice, skipped-member records, and singleton-to-grill hint without another provider call in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
+  - [x] M5.P3.L7.T5 — Test patched-plan version changes, lens rotation inputs, canonical gap coverage and reference validation, malformed ratings, repair isolation, and restart-frozen census compositions in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
 
 - **M5.P3.L8 — Add crosscheck prompts**
   - [ ] M5.P3.L8.T1 — Add root `prompts/crosscheck.inventory.md`, `prompts/crosscheck.normalize.md`, `prompts/crosscheck.cell.md`, `prompts/crosscheck.audit.md`, and `prompts/crosscheck.rule.md`, including complete goal-extraction and inventory-normalization compositions.
@@ -222,11 +222,11 @@
   - [ ] M5.P3.L8.T6 — Verify report rendering preserves open gaps and proposed fixes, explicit residual-risk acceptance requirements, missing audit work, and the bounded stop statement without an extra provider call in `squad-core` at `crates/squad-core/tests/crosscheck_prompts.rs`.
 
 - **M5.P3.L9 — Add survey prompts**
-  - [ ] M5.P3.L9.T1 — Add root `prompts/survey.extract.md`, `prompts/survey.vote.md`, `prompts/survey.revote.md`, and `prompts/survey.report.md` with neutral atomic claims, private origins, structured ballots, change-evidence fields, and all five report bands.
-  - [ ] M5.P3.L9.T2 — Map ordinary question-first collection or reused parallel answers, private origin references, anonymous claim and reason projections, selected revote claims, computed counts, band assignments, and switch records in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
-  - [ ] M5.P3.L9.T3 — Capture vote and revote requests to verify absence of whole answers, authorship, origin counts, ballot counts, private mappings, and forbidden earlier history in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
-  - [ ] M5.P3.L9.T4 — Test canonical claim coverage, AGREE/DISAGREE/UNSURE values, confidence bounds, selected-claim revoting, evidence-to-change-mind fields, skipped ballots, and task-specific repair in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
-  - [ ] M5.P3.L9.T5 — Verify the human report preserves consensus, contested claims with both sides and settling questions, lone insights, lone dissents, rejected outliers, recorded switches, and uncertainty without declaring a winner or delivering private tallies to members in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
+  - [x] M5.P3.L9.T1 — Add root `prompts/survey.extract.md`, `prompts/survey.vote.md`, `prompts/survey.revote.md`, and `prompts/survey.report.md` with neutral atomic claims, private origins, structured ballots, change-evidence fields, and all five report bands.
+  - [x] M5.P3.L9.T2 — Map ordinary question-first collection or reused parallel answers, private origin references, anonymous claim and reason projections, selected revote claims, computed counts, band assignments, and switch records in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
+  - [x] M5.P3.L9.T3 — Capture vote and revote requests to verify absence of whole answers, authorship, origin counts, ballot counts, private mappings, and forbidden earlier history in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
+  - [x] M5.P3.L9.T4 — Test canonical claim coverage, AGREE/DISAGREE/UNSURE values, confidence bounds, selected-claim revoting, evidence-to-change-mind fields, skipped ballots, and task-specific repair in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
+  - [x] M5.P3.L9.T5 — Verify the human report preserves consensus, contested claims with both sides and settling questions, lone insights, lone dissents, rejected outliers, recorded switches, and uncertainty without declaring a winner or delivering private tallies to members in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
 
 - **M5.P3.L10 — Add probe prompts**
   - [ ] M5.P3.L10.T1 — Add root `prompts/probe.explain.md`, `prompts/probe.check.md`, `prompts/probe.predict.md`, and `prompts/probe.report.md` with independent roles, measurable non-destructive checks, committed predictions, unknowns, and a structured diagnostic tree.
@@ -301,50 +301,50 @@
 ## Phase M5.P5 — Tournament
 
 - **M5.P5.L1 — Admit and schedule elimination rounds**
-  - [ ] M5.P5.L1.T1 — Integrate this phase’s tournament payloads and the shared contest claim in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L1.T2 — Freeze entrants and prompt, calculate k−1 rounds, and implement normal-call and retry/replay reservation estimates in `crates/squad-core/src/orchestrator/preflight.rs`.
-  - [ ] M5.P5.L1.T3 — Implement entrant holds, `WAITING_FOR_ENTRANTS`, and parallel reply-like entry work with contest and replay identity in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L1.T4 — Integrate `tournament.entrant.md` and each survivor’s own previous result using the executor in `crates/squad-agents/src/agents/tournament.rs`.
-  - [ ] M5.P5.L1.T5 — Test minimum entrants, exclusions, queue draining, daily admission, planned call counts, and k−1 rounds in `crates/squad-core/tests/orchestrator/tournament.rs`.
+  - [x] M5.P5.L1.T1 — Integrate this phase’s tournament payloads and the shared contest claim in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L1.T2 — Freeze entrants and prompt, calculate k−1 rounds, and implement normal-call and retry/replay reservation estimates in `crates/squad-core/src/orchestrator/preflight.rs`.
+  - [x] M5.P5.L1.T3 — Implement entrant holds, `WAITING_FOR_ENTRANTS`, and parallel reply-like entry work with contest and replay identity in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L1.T4 — Integrate `tournament.entrant.md` and each survivor’s own previous result using the executor in `crates/squad-agents/src/agents/tournament.rs`.
+  - [x] M5.P5.L1.T5 — Test minimum entrants, exclusions, queue draining, daily admission, planned call counts, and k−1 rounds in `crates/squad-core/tests/orchestrator/tournament.rs`.
 
 - **M5.P5.L2 — Judge blind rankings**
-  - [ ] M5.P5.L2.T1 — Persist shuffled round label maps outside judge-readable capabilities and construct anonymised judging projections in `crates/squad-core/src/router/tournaments.rs`.
-  - [ ] M5.P5.L2.T2 — Integrate `judge.tournament`, the judge system prompt, high reasoning, visible-plus-reasoning limits, and the 120 s deadline in `crates/squad-agents/src/agents/judge.rs`.
-  - [ ] M5.P5.L2.T3 — Consume this phase’s permutation validation and the three-attempt repair path with attempt-scoped repair records in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L2.T4 — Implement forfeit placement below completed entries and single-elimination commits in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L2.T5 — Implement one durable replay after exhausted judging and fail after replay exhaustion in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L2.T6 — Test permutations, duplicate and missing labels, invalid scores, strict rank order, single-forfeit elimination, and replay fencing in `crates/squad-core/tests/orchestrator/tournament_ranking.rs`.
-  - [ ] M5.P5.L2.T7 — Capture judge requests and prove absence of entrant nicks, model identities, personas, and label maps, including self-identifying answer text, in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
-  - [ ] M5.P5.L2.T8 — Verify that a Fable entrant does not trigger judge swapping in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
+  - [x] M5.P5.L2.T1 — Persist shuffled round label maps outside judge-readable capabilities and construct anonymised judging projections in `crates/squad-core/src/router/tournaments.rs`.
+  - [x] M5.P5.L2.T2 — Integrate `judge.tournament`, the judge system prompt, high reasoning, visible-plus-reasoning limits, and the 120 s deadline in `crates/squad-agents/src/agents/judge.rs`.
+  - [x] M5.P5.L2.T3 — Consume this phase’s permutation validation and the three-attempt repair path with attempt-scoped repair records in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L2.T4 — Implement forfeit placement below completed entries and single-elimination commits in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L2.T5 — Implement one durable replay after exhausted judging and fail after replay exhaustion in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L2.T6 — Test permutations, duplicate and missing labels, invalid scores, strict rank order, single-forfeit elimination, and replay fencing in `crates/squad-core/tests/orchestrator/tournament_ranking.rs`.
+  - [x] M5.P5.L2.T7 — Capture judge requests and prove absence of entrant nicks, model identities, personas, and label maps, including self-identifying answer text, in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
+  - [x] M5.P5.L2.T8 — Verify that a Fable entrant does not trigger judge swapping in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
 
 - **M5.P5.L3 — Deliver results and commit the champion**
-  - [ ] M5.P5.L3.T1 — Commit full rankings to `me` and only each entrant’s own result to its history in `crates/squad-core/src/router/tournaments.rs`.
-  - [ ] M5.P5.L3.T2 — Integrate `tournament.result.md` and `tournament.final.md` without exposing other entrants’ answers or individual results in `crates/squad-core/src/orchestrator/tournament.rs`.
-  - [ ] M5.P5.L3.T3 — Atomically commit final placements, champion, terminal state, and one trophy increment in `crates/squad-core/src/router/tournaments.rs`.
-  - [ ] M5.P5.L3.T4 — Test entrant and non-entrant isolation, final-placement visibility, duplicate champion commits, and independent debate score records in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
-  - [ ] M5.P5.L3.T5 — Supply tournament state and committed ranking records to the TUI and export consumers in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L3.T1 — Commit full rankings to `me` and only each entrant’s own result to its history in `crates/squad-core/src/router/tournaments.rs`.
+  - [x] M5.P5.L3.T2 — Integrate `tournament.result.md` and `tournament.final.md` without exposing other entrants’ answers or individual results in `crates/squad-core/src/orchestrator/tournament.rs`.
+  - [x] M5.P5.L3.T3 — Atomically commit final placements, champion, terminal state, and one trophy increment in `crates/squad-core/src/router/tournaments.rs`.
+  - [x] M5.P5.L3.T4 — Test entrant and non-entrant isolation, final-placement visibility, duplicate champion commits, and independent debate score records in `crates/squad-core/tests/orchestrator/tournament_isolation.rs`.
+  - [x] M5.P5.L3.T5 — Supply tournament state and committed ranking records to the TUI and export consumers in `crates/squad-core/src/orchestrator/tournament.rs`.
 
 - **M5.P5.L4 — Recover and verify tournament integration**
-  - [ ] M5.P5.L4.T1 — Recover survivors, replay identity, label maps, judging work, elimination commits, and trophy state in `crates/squad-core/src/orchestrator/recovery.rs`.
-  - [ ] M5.P5.L4.T2 — Fence tournament entries and judging on stop and release participant holds and unused reservations in `crates/squad-core/src/orchestrator/stop.rs`.
-  - [ ] M5.P5.L4.T3 — Test restart at answering, judging, replay, elimination, and champion commit in `crates/squad-core/tests/orchestrator/tournament_recovery.rs`.
-  - [ ] M5.P5.L4.T4 — Test canonical tournament commands, daily-cap interruption, no pick step, and mutual exclusion with debate through `RoomHandle` in `crates/squad-core/tests/orchestrator/tournament_integration.rs`.
-  - [ ] M5.P5.L4.T5 — Verify tournament export records include failed runs, accepted rankings, eliminations, placements, and champion in `crates/squad-core/tests/orchestrator/export.rs`.
-  - [ ] M5.P5.L4.T6 — Verify `/clear` removes tournament records and trophies through the shared clear contract in `crates/squad-core/tests/orchestrator/clear.rs`.
+  - [x] M5.P5.L4.T1 — Recover survivors, replay identity, label maps, judging work, elimination commits, and trophy state in `crates/squad-core/src/orchestrator/recovery.rs`.
+  - [x] M5.P5.L4.T2 — Fence tournament entries and judging on stop and release participant holds and unused reservations in `crates/squad-core/src/orchestrator/stop.rs`.
+  - [x] M5.P5.L4.T3 — Test restart at answering, judging, replay, elimination, and champion commit in `crates/squad-core/tests/orchestrator/tournament_recovery.rs`.
+  - [x] M5.P5.L4.T4 — Test canonical tournament commands, daily-cap interruption, no pick step, and mutual exclusion with debate through `RoomHandle` in `crates/squad-core/tests/orchestrator/tournament_integration.rs`.
+  - [x] M5.P5.L4.T5 — Verify tournament export records include failed runs, accepted rankings, eliminations, placements, and champion in `crates/squad-core/tests/orchestrator/export.rs`.
+  - [x] M5.P5.L4.T6 — Verify `/clear` removes tournament records and trophies through the shared clear contract in `crates/squad-core/tests/orchestrator/clear.rs`.
 
 - **M5.P5.L5 — Run tournament over shared moves**
-  - [ ] M5.P5.L5.T1 — Express initial collection, survivor-specific fanouts, blind judge calls, elimination tallies, own-result barriers and champion report as the tournament script.
-  - [ ] M5.P5.L5.T2 — Verify unchanged entry limits, shuffled-label isolation, single-elimination rounds, replay identity, call counts and trophy commits over the shared engine.
+  - [x] M5.P5.L5.T1 — Express initial collection, survivor-specific fanouts, blind judge calls, elimination tallies, own-result barriers and champion report as the tournament script.
+  - [x] M5.P5.L5.T2 — Verify unchanged entry limits, shuffled-label isolation, single-elimination rounds, replay identity, call counts and trophy commits over the shared engine.
 
 - **M5.P5.L6 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P5.L6.T1 — Declare tournament statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/tournament.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P5.L6.T2 — Add the tournament tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P5.L6.T3 — Implement router-only tournament label-map storage and restricted anonymised judge projections in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`, and crate `squad-core`, file `crates/squad-core/src/router/tournaments.rs`. (Deferred from M1.P3.L5.T3.)
-  - [ ] M5.P5.L6.T4 — Commit accepted rankings, individual result histories, one elimination and final placements with an idempotent trophy increment in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`. (Deferred from M1.P3.L5.T4.)
-  - [ ] M5.P5.L6.T5 — Prove tournament entrant histories contain no other entrant’s answers or individual results, and blind judge reads contain no entrant nick, model name or label map, in crate `squad-core`, file `crates/squad-core/tests/router_visibility.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L4.T2.)
-  - [ ] M5.P5.L6.T6 — Test duplicate ranking delivery, round replay records, final-placement projections and exactly one trophy increment in crate `squad-store`, file `crates/squad-store/tests/tournaments.rs`. (Deferred from M1.P4.L4.T3.)
-  - [ ] M5.P5.L6.T7 — Add the exact tournament per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P5.L6.T8 — Require tournament `Work.replay` and matching round-execution replay on entry/judge result acceptance; test nullable forfeit scores/critiques and idempotent champion `trophies`.
+  - [x] M5.P5.L6.T1 — Declare tournament statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/tournament.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P5.L6.T2 — Add the tournament tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P5.L6.T3 — Implement router-only tournament label-map storage and restricted anonymised judge projections in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`, and crate `squad-core`, file `crates/squad-core/src/router/tournaments.rs`. (Deferred from M1.P3.L5.T3.)
+  - [x] M5.P5.L6.T4 — Commit accepted rankings, individual result histories, one elimination and final placements with an idempotent trophy increment in crate `squad-store`, file `crates/squad-store/src/tournaments.rs`. (Deferred from M1.P3.L5.T4.)
+  - [x] M5.P5.L6.T5 — Prove tournament entrant histories contain no other entrant’s answers or individual results, and blind judge reads contain no entrant nick, model name or label map, in crate `squad-core`, file `crates/squad-core/tests/router_visibility.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L4.T2.)
+  - [x] M5.P5.L6.T6 — Test duplicate ranking delivery, round replay records, final-placement projections and exactly one trophy increment in crate `squad-store`, file `crates/squad-store/tests/tournaments.rs`. (Deferred from M1.P4.L4.T3.)
+  - [x] M5.P5.L6.T7 — Add the exact tournament per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P5.L6.T8 — Require tournament `Work.replay` and matching round-execution replay on entry/judge result acceptance; test nullable forfeit scores/critiques and idempotent champion `trophies`.
 
 ## Phase M5.P6 — Grill
 
@@ -394,132 +394,132 @@
 ## Phase M5.P7 — Census
 
 - **M5.P7.L1 — Admit plans and schedule blind passes**
-  - [ ] M5.P7.L1.T1 — Implement quoted, pasted and latest-member plan selection, minimum participation and frozen `CENSUS_PASSES` in `crates/squad-core/src/orchestrator/census.rs`.
-  - [ ] M5.P7.L1.T2 — Persist plan versions, pass numbers and rotating lens assignments and derive the `p × (2m + 2)` normal-call and `p × (4m + 6)` reserved-attempt counts.
-  - [ ] M5.P7.L1.T3 — Execute hunt and anonymous rating fanouts with barriers using `census.hunt.md` and `census.rate.md`.
+  - [x] M5.P7.L1.T1 — Implement quoted, pasted and latest-member plan selection, minimum participation and frozen `CENSUS_PASSES` in `crates/squad-core/src/orchestrator/census.rs`.
+  - [x] M5.P7.L1.T2 — Persist plan versions, pass numbers and rotating lens assignments and derive the `p × (2m + 2)` normal-call and `p × (4m + 6)` reserved-attempt counts.
+  - [x] M5.P7.L1.T3 — Execute hunt and anonymous rating fanouts with barriers using `census.hunt.md` and `census.rate.md`.
 
 - **M5.P7.L2 — Finalize ledgers and estimates**
-  - [ ] M5.P7.L2.T1 — Integrate `census.merge.md` and `census.final.md`, preserving distinct blind finder sets, rating-stage origins, majority exclusions and covered citations.
-  - [ ] M5.P7.L2.T2 — Implement app-computed finder counts, `f1`, `f2`, both Chao1 branches, singleton markers and cross-pass discovery identities.
+  - [x] M5.P7.L2.T1 — Integrate `census.merge.md` and `census.final.md`, preserving distinct blind finder sets, rating-stage origins, majority exclusions and covered citations.
+  - [x] M5.P7.L2.T2 — Implement app-computed finder counts, `f1`, `f2`, both Chao1 branches, singleton markers and cross-pass discovery identities.
   - [ ] M5.P7.L2.T3 — Resolve the estimate-range rule, implement its bounds and shared-blind-spot caveat, and gate the exact quiet message on complete qualifying evidence.
-  - [ ] M5.P7.L2.T4 — Support between-pass continuation, quoted replacement plans, revised preflight when needed and claim-releasing handoff to grill.
+  - [x] M5.P7.L2.T4 — Support between-pass continuation, quoted replacement plans, revised preflight when needed and claim-releasing handoff to grill.
 
 - **M5.P7.L3 — Report and recover census**
-  - [ ] M5.P7.L3.T1 — Assemble the ranked ledger, human finder table, covered citations, estimate line, singleton hint and discovery curve in `crates/squad-core/src/orchestrator/census.rs`.
-  - [ ] M5.P7.L3.T2 — Recover each step and between-pass wait without duplicate hunts, ratings, estimates or deliveries; fence all work on stop.
-  - [ ] M5.P7.L3.T3 — Verify 14-call passes, 28-call defaults, failed-member reporting, majority arithmetic, duplicate finder handling, zero-doubleton estimates, plan revisions and markdown export in `crates/squad-core/tests/orchestrator/census.rs`.
+  - [x] M5.P7.L3.T1 — Assemble the ranked ledger, human finder table, covered citations, estimate line, singleton hint and discovery curve in `crates/squad-core/src/orchestrator/census.rs`.
+  - [x] M5.P7.L3.T2 — Recover each step and between-pass wait without duplicate hunts, ratings, estimates or deliveries; fence all work on stop.
+  - [x] M5.P7.L3.T3 — Verify 14-call passes, 28-call defaults, failed-member reporting, majority arithmetic, duplicate finder handling, zero-doubleton estimates, plan revisions and markdown export in `crates/squad-core/tests/orchestrator/census.rs`.
 
 - **M5.P7.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P7.L4.T1 — Declare census statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/census.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P7.L4.T2 — Add the census tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P7.L4.T3 — Implement the census setup, state, plan, hunt, ledger, rating, report and case-material types with exhaustive envelope registration in crate `squad-protocol`, file `crates/squad-protocol/src/census.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T2.)
-  - [ ] M5.P7.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P7.L4.T5 — Commit census plan versions, hunt artifacts, finder sets, ledgers, ratings and reports with distinct initial-find and addition provenance in crate `squad-store`, file `crates/squad-store/src/census.rs`. (Deferred from M1.P3.L7.T4.)
-  - [ ] M5.P7.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P7.L4.T7 — Prove census hunters cannot read peer finds, raters cannot read finder identities or counts, and later additions cannot alter initial finder sets in crate `squad-store`, file `crates/squad-store/tests/census.rs`. (Deferred from M1.P4.L5.T2.)
-  - [ ] M5.P7.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P7.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P7.L4.T1 — Declare census statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/census.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P7.L4.T2 — Add the census tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P7.L4.T3 — Implement the census setup, state, plan, hunt, ledger, rating, report and case-material types with exhaustive envelope registration in crate `squad-protocol`, file `crates/squad-protocol/src/census.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T2.)
+  - [x] M5.P7.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P7.L4.T5 — Commit census plan versions, hunt artifacts, finder sets, ledgers, ratings and reports with distinct initial-find and addition provenance in crate `squad-store`, file `crates/squad-store/src/census.rs`. (Deferred from M1.P3.L7.T4.)
+  - [x] M5.P7.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P7.L4.T7 — Prove census hunters cannot read peer finds, raters cannot read finder identities or counts, and later additions cannot alter initial finder sets in crate `squad-store`, file `crates/squad-store/tests/census.rs`. (Deferred from M1.P4.L5.T2.)
+  - [x] M5.P7.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P7.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
   - [ ] M5.P7.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P7.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P7.L4.T12 — Add the exact census per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P7.L4.T13 — Persist private random lens permutation/tie-break seed; exclude lenses and finder metadata from ratings; store nullable estimateLow/estimateHigh with Chao1 inputs and validate only Chao1 until the range rule is settled. Implement `/continue`, hold release at WAITING_FOR_PLAN, and reacquisition/draining on continue.
+  - [x] M5.P7.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P7.L4.T12 — Add the exact census per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P7.L4.T13 — Persist private random lens permutation/tie-break seed; exclude lenses and finder metadata from ratings; store nullable estimateLow/estimateHigh with Chao1 inputs and validate only Chao1 until the range rule is settled. Implement `/continue`, hold release at WAITING_FOR_PLAN, and reacquisition/draining on continue.
 
 ## Phase M5.P8 — Crosscheck
 
 - **M5.P8.L1 — Build and assign the independent grid**
-  - [ ] M5.P8.L1.T1 — Freeze plan, goal and constraints and implement optional judge extraction with its extra preflight call in `crates/squad-core/src/orchestrator/crosscheck.rs`.
-  - [ ] M5.P8.L1.T2 — Deliver plan-hidden inventory payloads through fresh contexts and integrate `crosscheck.inventory.md` and `crosscheck.normalize.md`.
-  - [ ] M5.P8.L1.T3 — Build singles and all cross-lens pairs, validate the 153-cell default, apply the 200-cell priority cap and preserve omitted-cell records.
-  - [ ] M5.P8.L1.T4 — Balance eligible review assignments while excluding every contributor to a cell’s constituent items; retain unassignable cells as open.
+  - [x] M5.P8.L1.T1 — Freeze plan, goal and constraints and implement optional judge extraction with its extra preflight call in `crates/squad-core/src/orchestrator/crosscheck.rs`.
+  - [x] M5.P8.L1.T2 — Deliver plan-hidden inventory payloads through fresh contexts and integrate `crosscheck.inventory.md` and `crosscheck.normalize.md`.
+  - [x] M5.P8.L1.T3 — Build singles and all cross-lens pairs, validate the 153-cell default, apply the 200-cell priority cap and preserve omitted-cell records.
+  - [x] M5.P8.L1.T4 — Balance eligible review assignments while excluding every contributor to a cell’s constituent items; retain unassignable cells as open.
 
 - **M5.P8.L2 — Review and audit closures**
-  - [ ] M5.P8.L2.T1 — Integrate `crosscheck.cell.md`, validate exact assigned-cell coverage and retain citation, exclusion or proposed-fix evidence.
-  - [ ] M5.P8.L2.T2 — Persist random auditor selections and closure samples and invoke the M2 fresh-context auditor executor with `crosscheck.audit.md`.
-  - [ ] M5.P8.L2.T3 — Integrate `crosscheck.rule.md`; reopen false closures, preserve every retained cell and record accepted additions without automatic human risk acceptance.
-  - [ ] M5.P8.L2.T4 — Bind explicit human acceptances to cell or residual-risk identity and plan version and compute the bounded-stop result.
+  - [x] M5.P8.L2.T1 — Integrate `crosscheck.cell.md`, validate exact assigned-cell coverage and retain citation, exclusion or proposed-fix evidence.
+  - [x] M5.P8.L2.T2 — Persist random auditor selections and closure samples and invoke the M2 fresh-context auditor executor with `crosscheck.audit.md`.
+  - [x] M5.P8.L2.T3 — Integrate `crosscheck.rule.md`; reopen false closures, preserve every retained cell and record accepted additions without automatic human risk acceptance.
+  - [x] M5.P8.L2.T4 — Bind explicit human acceptances to cell or residual-risk identity and plan version and compute the bounded-stop result.
 
 - **M5.P8.L3 — Report and recover crosscheck**
-  - [ ] M5.P8.L3.T1 — Assemble the coverage ledger, grid summary, audit findings, cap omissions, residual risks and export records.
-  - [ ] M5.P8.L3.T2 — Recover inventories, assignments, samples, reviews, rulings and acceptances without redrawing randomness or repeating accepted work.
-  - [ ] M5.P8.L3.T3 — Verify 16-call and 17-call preflights, no self-review, failed-review open cells, short audit samples, no silent cell deletion, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/crosscheck.rs`.
+  - [x] M5.P8.L3.T1 — Assemble the coverage ledger, grid summary, audit findings, cap omissions, residual risks and export records.
+  - [x] M5.P8.L3.T2 — Recover inventories, assignments, samples, reviews, rulings and acceptances without redrawing randomness or repeating accepted work.
+  - [x] M5.P8.L3.T3 — Verify 16-call and 17-call preflights, no self-review, failed-review open cells, short audit samples, no silent cell deletion, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/crosscheck.rs`.
 
 - **M5.P8.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P8.L4.T1 — Declare crosscheck statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/crosscheck.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P8.L4.T2 — Add the crosscheck tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P8.L4.T3 — Implement the crosscheck setup, state, goal, inventory, grid, review, audit, ruling, acceptance, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/crosscheck.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T3.)
-  - [ ] M5.P8.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P8.L4.T5 — Commit crosscheck inventories, grids, origin-aware cell assignments, reviews, fixed audit samples, rulings and version-bound human risk acceptances in crate `squad-store`, file `crates/squad-store/src/crosscheck.rs`. (Deferred from M1.P3.L7.T5.)
-  - [ ] M5.P8.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P8.L4.T7 — Prove crosscheck inventory contexts cannot read a plan already present in ordinary history, reviewers cannot read unassigned cells or review self-origin items, and fresh auditors cannot read reviewer histories or identities in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T3.)
-  - [ ] M5.P8.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P8.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
-  - [ ] M5.P8.L4.T10 — Test human-only version-bound risk acceptance, stale acceptance rejection and rulings preserving every retained crosscheck cell in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T8.)
+  - [x] M5.P8.L4.T1 — Declare crosscheck statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/crosscheck.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P8.L4.T2 — Add the crosscheck tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P8.L4.T3 — Implement the crosscheck setup, state, goal, inventory, grid, review, audit, ruling, acceptance, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/crosscheck.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T3.)
+  - [x] M5.P8.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P8.L4.T5 — Commit crosscheck inventories, grids, origin-aware cell assignments, reviews, fixed audit samples, rulings and version-bound human risk acceptances in crate `squad-store`, file `crates/squad-store/src/crosscheck.rs`. (Deferred from M1.P3.L7.T5.)
+  - [x] M5.P8.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P8.L4.T7 — Prove crosscheck inventory contexts cannot read a plan already present in ordinary history, reviewers cannot read unassigned cells or review self-origin items, and fresh auditors cannot read reviewer histories or identities in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T3.)
+  - [x] M5.P8.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P8.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P8.L4.T10 — Test human-only version-bound risk acceptance, stale acceptance rejection and rulings preserving every retained crosscheck cell in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T8.)
   - [ ] M5.P8.L4.T11 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P8.L4.T12 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P8.L4.T13 — Add the exact crosscheck per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P8.L4.T14 — Persist private lens permutation/tie-break seed; support nullable reviewer/grid origin with exclusive origin_event_seq; implement `/accept` on COMPLETE with plan/grid/state fencing.
+  - [x] M5.P8.L4.T12 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P8.L4.T13 — Add the exact crosscheck per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P8.L4.T14 — Persist private lens permutation/tie-break seed; support nullable reviewer/grid origin with exclusive origin_event_seq; implement `/accept` on COMPLETE with plan/grid/state fencing.
 
 ## Phase M5.P9 — Survey
 
 - **M5.P9.L1 — Freeze answers and extract claims**
-  - [ ] M5.P9.L1.T1 — Implement question-first collection and reuse of the most recent parallel answer set with frozen source identities in `crates/squad-core/src/orchestrator/survey.rs`.
-  - [ ] M5.P9.L1.T2 — Integrate `survey.extract.md`, enforcing at most 25 neutral deduplicated claims and private origin references.
-  - [ ] M5.P9.L1.T3 — Derive 20-call question-first and 14-call reuse preflights and their reserved-attempt bounds.
+  - [x] M5.P9.L1.T1 — Implement question-first collection and reuse of the most recent parallel answer set with frozen source identities in `crates/squad-core/src/orchestrator/survey.rs`.
+  - [x] M5.P9.L1.T2 — Integrate `survey.extract.md`, enforcing at most 25 neutral deduplicated claims and private origin references.
+  - [x] M5.P9.L1.T3 — Derive 20-call question-first and 14-call reuse preflights and their reserved-attempt bounds.
 
 - **M5.P9.L2 — Lock votes and anonymous revotes**
-  - [ ] M5.P9.L2.T1 — Integrate `survey.vote.md`, exact claim coverage, three-value ballots, one-line reasons and confidence bounds.
-  - [ ] M5.P9.L2.T2 — Compute first tallies and deterministic split ordering, select up to five claims and persist anonymous reason projections without counts.
-  - [ ] M5.P9.L2.T3 — Integrate `survey.revote.md`, preserve missing second ballots and compute switches only from two accepted ballots.
+  - [x] M5.P9.L2.T1 — Integrate `survey.vote.md`, exact claim coverage, three-value ballots, one-line reasons and confidence bounds.
+  - [x] M5.P9.L2.T2 — Compute first tallies and deterministic split ordering, select up to five claims and persist anonymous reason projections without counts.
+  - [x] M5.P9.L2.T3 — Integrate `survey.revote.md`, preserve missing second ballots and compute switches only from two accepted ballots.
 
 - **M5.P9.L3 — Report and recover survey**
-  - [ ] M5.P9.L3.T1 — Integrate `survey.report.md` and validate the five bands, cross-references and settling questions against app-computed origins and tallies.
-  - [ ] M5.P9.L3.T2 — Recover collection, extraction, locked ballots, selected claims and report delivery without duplicate calls or changed source sets.
-  - [ ] M5.P9.L3.T3 — Verify empty claims, unsure and missing votes, singleton origins, rejected outliers, identified switches, failed-member reporting, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/survey.rs`.
+  - [x] M5.P9.L3.T1 — Integrate `survey.report.md` and validate the five bands, cross-references and settling questions against app-computed origins and tallies.
+  - [x] M5.P9.L3.T2 — Recover collection, extraction, locked ballots, selected claims and report delivery without duplicate calls or changed source sets.
+  - [x] M5.P9.L3.T3 — Verify empty claims, unsure and missing votes, singleton origins, rejected outliers, identified switches, failed-member reporting, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/survey.rs`.
 
 - **M5.P9.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P9.L4.T1 — Declare survey statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/survey.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P9.L4.T2 — Add the survey tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P9.L4.T3 — Implement the survey setup, state, claims, vote, selection, revote, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/survey.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T4.)
-  - [ ] M5.P9.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P9.L4.T5 — Commit survey source snapshots, claim provenance, both ballots, app-selected claims and report projections without exposing authorship or counts to voters in crate `squad-store`, file `crates/squad-store/src/survey.rs`. (Deferred from M1.P3.L7.T6.)
-  - [ ] M5.P9.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P9.L4.T7 — Prove survey voters cannot read whole peer answers, claim authorship, vote counts or attributed reasons, and duplicate ballots cannot change tallies in crate `squad-store`, file `crates/squad-store/tests/survey.rs`. (Deferred from M1.P4.L5.T4.)
-  - [ ] M5.P9.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P9.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P9.L4.T1 — Declare survey statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/survey.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P9.L4.T2 — Add the survey tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P9.L4.T3 — Implement the survey setup, state, claims, vote, selection, revote, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/survey.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T4.)
+  - [x] M5.P9.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P9.L4.T5 — Commit survey source snapshots, claim provenance, both ballots, app-selected claims and report projections without exposing authorship or counts to voters in crate `squad-store`, file `crates/squad-store/src/survey.rs`. (Deferred from M1.P3.L7.T6.)
+  - [x] M5.P9.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P9.L4.T7 — Prove survey voters cannot read whole peer answers, claim authorship, vote counts or attributed reasons, and duplicate ballots cannot change tallies in crate `squad-store`, file `crates/squad-store/tests/survey.rs`. (Deferred from M1.P4.L5.T4.)
+  - [x] M5.P9.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P9.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
   - [ ] M5.P9.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P9.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P9.L4.T12 — Add the exact survey per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P9.L4.T13 — Enforce second-ballot change_evidence in SQL and bundle/deduplicate all anonymous revote reasons under the survey.selection barrier origin with no voter grouping or counts.
+  - [x] M5.P9.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P9.L4.T12 — Add the exact survey per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P9.L4.T13 — Enforce second-ballot change_evidence in SQL and bundle/deduplicate all anonymous revote reasons under the survey.selection barrier origin with no voter grouping or counts.
 
 ## Phase M5.P10 — Probe
 
 - **M5.P10.L1 — Admit the brief and lock roles**
-  - [ ] M5.P10.L1.T1 — Freeze observation, ruled-out material and inspectable resources, enforce an even participating count of at least four and announce an odd-roster sit-out in `crates/squad-core/src/orchestrator/probe.rs`.
-  - [ ] M5.P10.L1.T2 — Persist a random equal explainer/checker split and derive `m + m/2 + 1` calls and `3m + 3` reserved attempts.
-  - [ ] M5.P10.L1.T3 — Run blind proposal fanouts with `probe.explain.md` and `probe.check.md`, validating one explanation or cheap non-destructive check per accepted member.
+  - [x] M5.P10.L1.T1 — Freeze observation, ruled-out material and inspectable resources, enforce an even participating count of at least four and announce an odd-roster sit-out in `crates/squad-core/src/orchestrator/probe.rs`.
+  - [x] M5.P10.L1.T2 — Persist a random equal explainer/checker split and derive `m + m/2 + 1` calls and `3m + 3` reserved attempts.
+  - [x] M5.P10.L1.T3 — Run blind proposal fanouts with `probe.explain.md` and `probe.check.md`, validating one explanation or cheap non-destructive check per accepted member.
 
 - **M5.P10.L2 — Lock predictions and assemble the tree**
-  - [ ] M5.P10.L2.T1 — Deliver only each explainer’s own explanation and all accepted anonymous checks through `probe.predict.md`.
-  - [ ] M5.P10.L2.T2 — Validate one prediction or explicit inability per check and retain missing rows without treating them as evidence.
-  - [ ] M5.P10.L2.T3 — Integrate `probe.report.md`, validate tree references, record discarded checks and inseparable groups, and require an unexpected-result branch at every check node.
+  - [x] M5.P10.L2.T1 — Deliver only each explainer’s own explanation and all accepted anonymous checks through `probe.predict.md`.
+  - [x] M5.P10.L2.T2 — Validate one prediction or explicit inability per check and retain missing rows without treating them as evidence.
+  - [x] M5.P10.L2.T3 — Integrate `probe.report.md`, validate tree references, record discarded checks and inseparable groups, and require an unexpected-result branch at every check node.
 
 - **M5.P10.L3 — Report and recover probe**
-  - [ ] M5.P10.L3.T1 — Assemble the runnable decision tree, prediction matrix, role and sit-out notices and export evidence.
-  - [ ] M5.P10.L3.T2 — Recover the same random split, proposals, locked predictions and report without redrawing roles or repeating accepted steps.
-  - [ ] M5.P10.L3.T3 — Verify the six-member 10-call path, odd-roster behavior, failed members, insufficient usable evidence, no truth declaration, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/probe.rs`.
+  - [x] M5.P10.L3.T1 — Assemble the runnable decision tree, prediction matrix, role and sit-out notices and export evidence.
+  - [x] M5.P10.L3.T2 — Recover the same random split, proposals, locked predictions and report without redrawing roles or repeating accepted steps.
+  - [x] M5.P10.L3.T3 — Verify the six-member 10-call path, odd-roster behavior, failed members, insufficient usable evidence, no truth declaration, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/probe.rs`.
 
 
 - **M5.P10.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P10.L4.T1 — Declare probe statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/probe.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P10.L4.T2 — Add the probe tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P10.L4.T3 — Implement the probe setup, state, explanation, check, prediction, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/probe.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T5.)
-  - [ ] M5.P10.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P10.L4.T5 — Commit probe role splits, sitting-out notices, blind initial artifacts, locked predictions and report references in crate `squad-store`, file `crates/squad-store/src/probe.rs`. (Deferred from M1.P3.L7.T7.)
-  - [ ] M5.P10.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P10.L4.T7 — Prove probe initial roles remain mutually blind, explainers receive only their own explanation and frozen checks for prediction, and committed predictions cannot change before reporting in crate `squad-store`, file `crates/squad-store/tests/probe.rs`. (Deferred from M1.P4.L5.T5.)
-  - [ ] M5.P10.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P10.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
-  - [ ] M5.P10.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P10.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P10.L4.T12 — Add the exact probe per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P10.L4.T13 — Mint anonymous proposal/check IDs at the proposal barrier and deliver one anonymous check bundle per prediction context, with no contributor event IDs or time order.
+  - [x] M5.P10.L4.T1 — Declare probe statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/probe.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P10.L4.T2 — Add the probe tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P10.L4.T3 — Implement the probe setup, state, explanation, check, prediction, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/probe.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T5.)
+  - [x] M5.P10.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P10.L4.T5 — Commit probe role splits, sitting-out notices, blind initial artifacts, locked predictions and report references in crate `squad-store`, file `crates/squad-store/src/probe.rs`. (Deferred from M1.P3.L7.T7.)
+  - [x] M5.P10.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P10.L4.T7 — Prove probe initial roles remain mutually blind, explainers receive only their own explanation and frozen checks for prediction, and committed predictions cannot change before reporting in crate `squad-store`, file `crates/squad-store/tests/probe.rs`. (Deferred from M1.P4.L5.T5.)
+  - [x] M5.P10.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P10.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P10.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
+  - [x] M5.P10.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P10.L4.T12 — Add the exact probe per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P10.L4.T13 — Mint anonymous proposal/check IDs at the proposal barrier and deliver one anonymous check bundle per prediction context, with no contributor event IDs or time order.

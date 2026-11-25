@@ -252,3 +252,16 @@ pub fn commit_barrier<R: super::types::ContestRouter>(
     }
     router.barrier(request_id, barrier)
 }
+
+/// Run any mode script until its next durable dependency is unresolved. Every
+/// callback commits exactly one engine move before observing the next snapshot.
+pub fn drive_script<T, E>(mut next: impl FnMut() -> Result<Option<T>, E>) -> Result<Vec<T>, E> {
+    let mut outcomes = Vec::new();
+    for _ in 0..256 {
+        match next()? {
+            Some(outcome) => outcomes.push(outcome),
+            None => break,
+        }
+    }
+    Ok(outcomes)
+}

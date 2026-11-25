@@ -1,0 +1,24 @@
+---
+source: crates/squad-tui/tests/crosscheck.rs
+expression: render(&view)
+---
+CROSSCHECK
+Blind inventories: 0 · plan hidden from writers
+4 retained cells · 0 cap omissions
+550e8400-e29b-41d4-a716-446655440000 · Covered · A retained case
+  A concrete evidence-based explanation
+  Citation Section 2: roll back immediately
+550e8400-e29b-41d4-a716-446655440001 · Inapplicable · A retained case
+  A concrete evidence-based explanation
+550e8400-e29b-41d4-a716-446655440002 · HUMAN ACCEPTED · A retained case
+  A concrete evidence-based explanation
+  Fix: Add a rollback control
+550e8400-e29b-41d4-a716-446655440003 · OPEN · A retained case
+Audit member1 · 1/5 sampled closures
+  550e8400-e29b-41d4-a716-446655440000 Challenged: Citation does not cover the interaction
+Missing-case proposal: A concurrent outage · Two regions may fail together · fix Add a joint rollback test
+Missing inventories [] · failed reviewers [Nick("member2")] · failed auditors []
+Clean audit: false · bounded stop: false
+Human acceptance · plan v1 grid v1 · cells [CellId(550e8400-e29b-41d4-a716-446655440002)] · residuals []: Explicitly accept this specific risk
+Stop rule: every retained cell has evidence, justified exclusion or explicit human acceptance; audit has no unresolved material finding. Bounded coverage is not proof of completeness.
+On COMPLETE: /accept <cellId…> -- <reason>

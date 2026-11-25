@@ -142,7 +142,13 @@ pub fn artifact(db: &Connection, artifact: &ContestArtifact, seq: Cursor) -> Res
         settle(db, artifact.step_id, &work.target, None)?;
         crate::work::finish(db, id, WorkStatus::Completed, seq)?;
     }
-    crate::contests::associate(db, artifact.contest_id, ContestKind::Debate, seq)
+    let kind: String = db.query_row(
+        "SELECT kind FROM contests WHERE contest_id=?",
+        [artifact.contest_id.to_string()],
+        |r| r.get(0),
+    )?;
+    let kind: ContestKind = serde_json::from_value(serde_json::Value::String(kind))?;
+    crate::contests::associate(db, artifact.contest_id, kind, seq)
 }
 
 /// A human report may reference only retained artifacts from its own contest.

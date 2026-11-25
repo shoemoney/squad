@@ -130,8 +130,10 @@ pub struct ContestView {
     pub artifacts: BTreeMap<EventId, ContestArtifact>,
     pub reports: BTreeMap<EventId, ContestReport>,
     pub debate: Option<DebateState>,
+    pub crosscheck: crate::widgets::crosscheck::CrosscheckView,
     pub scores: BTreeMap<u32, DebateRoundScore>,
     pub verdict: Option<DebateVerdict>,
+    pub survey: Option<crate::widgets::survey::SurveyView>,
 }
 #[derive(Debug, Clone)]
 pub struct PickView {
@@ -146,14 +148,38 @@ pub struct Session {
     pub pick: Option<PickView>,
     pub seen: BTreeSet<EventId>,
     pub last_error: Option<String>,
+    pub probes: BTreeMap<ContestId, crate::widgets::probe::ProbeView>,
     pub debates: BTreeMap<ContestId, crate::widgets::debate::DebateView>,
+    pub tournaments: BTreeMap<ContestId, crate::widgets::tournament::TournamentView>,
     pub debate_messages: BTreeSet<MessageId>,
     pub debate_streams: BTreeMap<MessageId, Delta>,
     pub cases: BTreeMap<CaseId, crate::widgets::case::CaseView>,
+    pub census: BTreeMap<ContestId, crate::widgets::census::CensusView>,
+    pub grills: BTreeMap<ContestId, crate::widgets::grill::GrillView>,
     pub stream_started: BTreeMap<MessageId, Duration>,
     pub stream_rates: BTreeMap<Nick, f64>,
 }
 impl Session {
+    pub fn probe_participant_status(&self, nick: &MemberNick) -> Option<String> {
+        self.probes.values().find_map(|view| {
+            let state = view.state.as_ref()?;
+            if state.state.is_terminal() {
+                return None;
+            }
+            let setup = view.setup.as_ref()?;
+            let role = if setup.sitting_out.as_ref() == Some(nick) {
+                "sitting out"
+            } else if setup.explainers.contains(nick) {
+                "explainer"
+            } else if setup.checkers.contains(nick) {
+                "checker"
+            } else {
+                return None;
+            };
+            Some(format!("probe · {role} · {:?}", state.state))
+        })
+    }
+
     pub fn restore(&mut self, mut snapshot: RoomSnapshot) {
         self.presentation_epoch = self.presentation_epoch.wrapping_add(1);
         let anchor = self.transcript.anchor;
@@ -163,9 +189,13 @@ impl Session {
         self.seen.clear();
         self.contests.clear();
         self.debates.clear();
+        self.tournaments.clear();
+        self.grills.clear();
+        self.probes.clear();
         self.debate_streams.clear();
         self.debate_messages.clear();
         self.cases.clear();
+        self.census.clear();
         self.pick = None;
         self.transcript.clear();
         // Reduce history, then restore the newer authoritative room snapshot.
@@ -216,7 +246,11 @@ impl Session {
     fn restore_contest(&mut self, state: ContestState) {
         let id = match &state {
             ContestState::Generic(s) => s.contest_id,
+            ContestState::Census(s) => s.contest_id,
+            ContestState::Survey(s) => s.contest_id,
+            ContestState::Probe(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
+            ContestState::Tournament(s) => s.contest_id,
             ContestState::Selection(s) => {
                 if s.state == ContestSelectionStatus::AwaitingPick {
                     let eligible = self
@@ -293,6 +327,25 @@ impl Session {
                     .map_or(commit.seq, |c| c.max(commit.seq)),
             );
         }
+        if let EnvelopePayload::WorkState(w) = content
+            && let Some(c) = w.contest_id.and_then(|id| self.contests.get_mut(&id))
+            && let Some(v) = &mut c.survey
+        {
+            v.apply(content);
+        }
+        if committed.is_none()
+            && matches!(
+                content,
+                EnvelopePayload::ProbeSetup(_)
+                    | EnvelopePayload::ProbeState(_)
+                    | EnvelopePayload::ProbeExplanation(_)
+                    | EnvelopePayload::ProbeCheck(_)
+                    | EnvelopePayload::ProbePrediction(_)
+                    | EnvelopePayload::ProbeReport(_)
+            )
+        {
+            return false;
+        }
         let generation = match content {
             EnvelopePayload::MessageFinal(m) | EnvelopePayload::AgentReply(m) => {
                 Some(&m.completed.generation)
@@ -311,6 +364,36 @@ impl Session {
         let mut cue = None;
         let mut immediate = true;
         match content {
+            EnvelopePayload::GrillSetup(_)
+            | EnvelopePayload::GrillState(_)
+            | EnvelopePayload::GrillQuestion(_)
+            | EnvelopePayload::GrillAnswer(_)
+            | EnvelopePayload::GrillPass(_)
+            | EnvelopePayload::GrillPlan(_)
+            | EnvelopePayload::GrillComplete(_) => {
+                if let Some(commit) = committed {
+                    let event = CommittedEnvelope {
+                        base: base.clone(),
+                        commit: commit.clone(),
+                        content: content.clone(),
+                    };
+                    let id = match content {
+                        EnvelopePayload::GrillSetup(v) => v.contest_id,
+                        EnvelopePayload::GrillState(v) => v.contest_id,
+                        EnvelopePayload::GrillQuestion(v) => v.contest_id,
+                        EnvelopePayload::GrillAnswer(v) => v.contest_id,
+                        EnvelopePayload::GrillPass(v) => v.contest_id,
+                        EnvelopePayload::GrillPlan(v) => v.contest_id,
+                        EnvelopePayload::GrillComplete(v) => v.contest_id,
+                        _ => unreachable!(),
+                    };
+                    cue = self
+                        .grills
+                        .entry(id)
+                        .or_insert_with(|| crate::widgets::grill::GrillView::new("", vec![]))
+                        .apply_event(&event);
+                }
+            }
             EnvelopePayload::Delta(d) => {
                 use std::collections::btree_map::Entry;
                 // Durable terminal outcomes always win over delayed/repeated deltas.
@@ -367,7 +450,10 @@ impl Session {
                         );
                     }
                 }
-                if d.debate_id.is_some() {
+                if d.debate_id.is_some()
+                    || d.contest_id
+                        .is_some_and(|id| self.tournaments.contains_key(&id))
+                {
                     self.debate_messages.insert(card.id);
                     self.debate_streams.insert(card.id, d.clone());
                 }
@@ -462,6 +548,273 @@ impl Session {
                     .map(|score| (score.nick.clone(), score.trophies))
                     .collect();
             }
+            EnvelopePayload::TournamentSetup(s) => {
+                self.tournaments
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentState(s) => {
+                self.tournaments
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+                self.restore_contest(ContestState::Tournament(s.clone()));
+                self.snapshot.context.active_contest =
+                    (!s.state.is_terminal()).then(|| ContestState::Tournament(s.clone()));
+            }
+            EnvelopePayload::TournamentEntry(e) => {
+                self.debate_messages.insert(e.generation.message_id);
+                if let Some(card) = self.transcript.cards.get_mut(&e.generation.message_id) {
+                    card.complete = true;
+                }
+                self.tournaments
+                    .entry(e.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentRanking(r) => {
+                cue = self
+                    .tournaments
+                    .entry(r.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentResult(r) => {
+                cue = self
+                    .tournaments
+                    .entry(r.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+            }
+            EnvelopePayload::TournamentChampion(c) => {
+                cue = self
+                    .tournaments
+                    .entry(c.contest_id)
+                    .or_default()
+                    .apply_payload(content);
+                self.snapshot
+                    .trophies
+                    .insert(c.champion.clone(), c.trophies);
+            }
+            EnvelopePayload::CrosscheckSetup(s) => {
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .setup = Some(s.clone());
+                cue = Some(FxCue::ModeBannerReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    mode: crate::fx::ReportMode::Crosscheck,
+                });
+            }
+            EnvelopePayload::CrosscheckState(s) => {
+                self.record(
+                    base,
+                    committed,
+                    "crosscheck.state",
+                    None,
+                    None,
+                    format!("{{\"status\":\"{}\"}}", s.generic().status),
+                );
+                let plan=self.snapshot.events.iter().rev().find(|e|matches!(&e.content,EnvelopePayload::CrosscheckSetup(v) if v.contest_id==s.contest_id)).map(|e|e.base.id);
+                let grid=self.snapshot.events.iter().rev().find(|e|matches!(&e.content,EnvelopePayload::CrosscheckGrid(v) if v.contest_id==s.contest_id)).map(|e|e.base.id);
+                let cells = self
+                    .contests
+                    .get(&s.contest_id)
+                    .map(|v| {
+                        v.crosscheck
+                            .report
+                            .as_ref()
+                            .map(|r| {
+                                r.ledger
+                                    .iter()
+                                    .map(|c| c.cell.cell_id)
+                                    .chain(
+                                        r.residual_risks
+                                            .iter()
+                                            .filter_map(|r| r.id.as_str().parse::<CellId>().ok()),
+                                    )
+                                    .collect()
+                            })
+                            .unwrap_or_else(|| {
+                                v.crosscheck
+                                    .grid
+                                    .as_ref()
+                                    .map(|g| g.cells.iter().map(|c| c.cell_id).collect())
+                                    .unwrap_or_default()
+                            })
+                    })
+                    .unwrap_or_default();
+                if let Some(r) = self.snapshot.context.records.last_mut() {
+                    r.contest_id = Some(s.contest_id);
+                    r.state_version = Some(s.state_version);
+                    r.plan_event_id = plan;
+                    r.grid_event_id = grid;
+                    r.cell_ids = cells;
+                }
+
+                self.restore_contest(ContestState::Generic(s.generic()));
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .state = Some(s.clone());
+                self.snapshot.context.active_contest =
+                    (!s.status.is_terminal()).then(|| ContestState::Generic(s.generic()));
+            }
+            EnvelopePayload::CrosscheckPreflight(p) => {
+                self.contests
+                    .entry(p.base.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .preflight = Some(p.clone());
+                self.snapshot
+                    .preflights
+                    .push(PendingPreflight::Contest(p.base.clone()));
+            }
+            EnvelopePayload::CrosscheckGoal(g) => {
+                if let Some(setup) = self
+                    .contests
+                    .entry(g.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .setup
+                    .as_mut()
+                {
+                    setup.goal = Some(g.goal.clone());
+                }
+            }
+            EnvelopePayload::CrosscheckInventory(i) => {
+                self.contests
+                    .entry(i.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .inventories
+                    .insert(i.member.clone(), i.clone());
+            }
+            EnvelopePayload::CrosscheckGrid(g) => {
+                self.contests
+                    .entry(g.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .grid = Some(g.clone());
+            }
+            EnvelopePayload::CrosscheckReview(r) => {
+                let view = &mut self.contests.entry(r.contest_id).or_default().crosscheck;
+                view.reviews
+                    .extend(r.response.cells.iter().map(|c| (c.cell_id, c.clone())));
+                if view.review_work_ids.insert(r.work_id) {
+                    cue = Some(FxCue::CrosscheckCellsReady {
+                        contest_id: r.contest_id.to_string().parse().expect("UUID"),
+                        artifact_id: base.id,
+                    });
+                }
+            }
+            EnvelopePayload::CrosscheckAudit(a) => {
+                self.contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .audits
+                    .insert(a.auditor.clone(), a.clone());
+            }
+            EnvelopePayload::CrosscheckRuling(r) => {
+                self.contests
+                    .entry(r.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .ruling = Some(r.clone());
+            }
+            EnvelopePayload::CrosscheckReport(r) => {
+                self.contests
+                    .entry(r.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .report = Some(r.clone());
+                cue = Some(FxCue::CrosscheckCellsReady {
+                    contest_id: r.contest_id.to_string().parse().expect("UUID"),
+                    artifact_id: base.id,
+                });
+            }
+            EnvelopePayload::CrosscheckAcceptance(a) => {
+                self.contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .crosscheck
+                    .acceptances
+                    .push(a.clone());
+            }
+            EnvelopePayload::SurveySetup(s) => {
+                let contest = self.contests.entry(s.contest_id).or_default();
+                let first = contest.survey.as_ref().is_none_or(|v| {
+                    !v.artifacts
+                        .iter()
+                        .any(|p| matches!(p, EnvelopePayload::SurveySetup(_)))
+                });
+                contest
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+                if first {
+                    cue = Some(FxCue::ModeBannerReady {
+                        contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                        mode: crate::fx::cue::ReportMode::Survey,
+                    });
+                }
+            }
+            EnvelopePayload::SurveyState(s) => {
+                self.restore_contest(ContestState::Survey(s.clone()));
+                self.snapshot.context.active_contest = if s.state.is_terminal() {
+                    None
+                } else {
+                    Some(ContestState::Survey(s.clone()))
+                };
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+            }
+            EnvelopePayload::SurveyClaims(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .survey
+                .get_or_insert_with(Default::default)
+                .apply(content),
+            EnvelopePayload::SurveyVote(s) | EnvelopePayload::SurveyRevote(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .survey
+                .get_or_insert_with(Default::default)
+                .apply(content),
+            EnvelopePayload::SurveySelection(s) => {
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+                cue = Some(FxCue::SurveyTallyReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    artifact_id: base.id,
+                });
+            }
+            EnvelopePayload::SurveyReport(s) => {
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+                cue = Some(FxCue::SurveyTallyReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    artifact_id: base.id,
+                });
+            }
             EnvelopePayload::ContestSetup(s) => {
                 self.contests.entry(s.contest_id).or_default().setup = Some(s.clone())
             }
@@ -499,13 +852,74 @@ impl Session {
                         None
                     };
             }
+            EnvelopePayload::ProbeSetup(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                cue = Some(FxCue::ModeBannerReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    mode: crate::fx::ReportMode::Probe,
+                });
+            }
+            EnvelopePayload::ProbeState(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                self.restore_contest(ContestState::Probe(s.clone()));
+                if s.state.is_terminal() {
+                    self.snapshot.preflights.retain(
+                        |p| !matches!(p,PendingPreflight::Contest(p) if p.contest_id==s.contest_id),
+                    );
+                }
+                self.snapshot.context.active_contest = if s.state.is_terminal() {
+                    None
+                } else {
+                    Some(ContestState::Probe(s.clone()))
+                };
+            }
+            EnvelopePayload::ProbeExplanation(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbeCheck(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbePrediction(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbeReport(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                cue = Some(FxCue::ProbeTreeReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                });
+            }
             EnvelopePayload::DebateSetup(s) => {
                 if let Some(view) = self.debates.get_mut(&s.debate_id) {
                     *view = view.clone().with_setup(s, true);
                 }
             }
             EnvelopePayload::CaseOpened(c) => {
-                self.cases.insert(c.case_id, c.into());
+                if let (Some(id), CaseMaterial::Probe(_)) = (c.contest_id, &c.material) {
+                    self.probes
+                        .entry(id)
+                        .or_default()
+                        .apply_payload(content, &base.sender);
+                } else {
+                    self.cases.insert(c.case_id, c.into());
+                }
             }
             EnvelopePayload::CaseRuling(r) => {
                 if let Some(c) = self.cases.get_mut(&r.case_id) {
@@ -573,6 +987,20 @@ impl Session {
                 });
             }
             EnvelopePayload::ContestArtifact(a) => {
+                if a.artifact_kind.as_str() == "crosscheck.cell"
+                    && let Some(work_id) = a.work_id
+                    && let Ok(response) = validation::decode::<CrosscheckReviewResponse>(&a.data)
+                {
+                    let view = &mut self.contests.entry(a.contest_id).or_default().crosscheck;
+                    view.reviews
+                        .extend(response.cells.into_iter().map(|c| (c.cell_id, c)));
+                    if view.review_work_ids.insert(work_id) {
+                        cue = Some(FxCue::CrosscheckCellsReady {
+                            contest_id: a.contest_id.to_string().parse().expect("UUID"),
+                            artifact_id: base.id,
+                        });
+                    }
+                }
                 self.contests
                     .entry(a.contest_id)
                     .or_default()
@@ -624,6 +1052,64 @@ impl Session {
                     eligible: p.eligible.clone(),
                 });
             }
+            EnvelopePayload::TournamentPreflight(p) => self
+                .snapshot
+                .preflights
+                .push(PendingPreflight::Contest(p.base.clone())),
+            EnvelopePayload::CensusSetup(s) => {
+                self.census.entry(s.contest_id).or_default().setup = Some(s.clone());
+                cue = Some(FxCue::ModeBannerReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    mode: crate::fx::ReportMode::Census,
+                });
+            }
+            EnvelopePayload::CensusHunt(h) => {
+                self.census
+                    .entry(h.contest_id)
+                    .or_default()
+                    .hunts
+                    .push(h.clone());
+            }
+            EnvelopePayload::CensusPlan(p) => {
+                self.census
+                    .entry(p.contest_id)
+                    .or_default()
+                    .plans
+                    .push(p.clone());
+                self.record(
+                    base,
+                    committed,
+                    "census.plan",
+                    None,
+                    None,
+                    p.text.to_string(),
+                );
+            }
+            EnvelopePayload::CensusState(s) => {
+                self.census.entry(s.contest_id).or_default().state = Some(s.clone());
+                self.restore_contest(ContestState::Census(s.clone()));
+                self.snapshot.context.active_contest =
+                    (!s.status.is_terminal()).then(|| ContestState::Census(s.clone()));
+            }
+            EnvelopePayload::CensusReport(r) => {
+                self.census
+                    .entry(r.contest_id)
+                    .or_default()
+                    .reports
+                    .push(r.clone());
+                self.record(
+                    base,
+                    committed,
+                    "census.report",
+                    None,
+                    None,
+                    squad_core::export::census::report_text(r),
+                );
+                cue = Some(FxCue::CensusEstimateReady {
+                    contest_id: r.contest_id.to_string().parse().expect("UUID"),
+                    pass: u32::from(r.pass),
+                });
+            }
             EnvelopePayload::DebatePreflight(p) => self
                 .snapshot
                 .preflights
@@ -644,9 +1130,13 @@ impl Session {
                 self.transcript.clear();
                 self.contests.clear();
                 self.debates.clear();
+                self.tournaments.clear();
+                self.grills.clear();
+                self.probes.clear();
                 self.debate_streams.clear();
                 self.debate_messages.clear();
                 self.cases.clear();
+                self.census.clear();
                 self.pick = None;
                 self.snapshot.context.records.clear();
                 self.snapshot.context.active_contest = None;
@@ -710,6 +1200,10 @@ impl Session {
 }
 pub fn contest_active(s: &ContestState) -> bool {
     match s {
+        ContestState::Tournament(s) => !s.state.is_terminal(),
+        ContestState::Census(s) => !s.status.is_terminal(),
+        ContestState::Survey(s) => !s.state.is_terminal(),
+        ContestState::Probe(p) => !p.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing

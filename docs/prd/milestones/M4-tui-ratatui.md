@@ -58,7 +58,7 @@
   - [x] M4.P1.L5.T4 — Verify contest completion, variable confirmation, ordinary input during picks, transient dismissal without stopping, stop-confirmation expiry, and shutdown keys in `crates/squad-tui/tests/input.rs` and `crates/squad-tui/tests/completion.rs`.
 
 - **M4.P1.L6 — Integrate the four new mode commands**
-  - [ ] M4.P1.L6.T1 — Add `$census`, `$crosscheck`, `$survey`, `$probe`, `$CENSUS_PASSES`, and `$CENSUS_PASSES=` completion in `crates/squad-tui/src/widgets/completion.rs` using the shared parser's recognized forms.
+  - [x] M4.P1.L6.T1 — Add `$census`, `$crosscheck`, `$survey`, `$probe`, `$CENSUS_PASSES`, and `$CENSUS_PASSES=` completion in `crates/squad-tui/src/widgets/completion.rs` using the shared parser's recognized forms.
   - [ ] M4.P1.L6.T2 — Present census pass assignment and lookup confirmation, verbatim new-mode validation errors, source previews, and rejected-draft and quote preservation in `crates/squad-tui/src/validation.rs` and `crates/squad-tui/src/app.rs`.
   - [ ] M4.P1.L6.T3 — Extend help and export command presentation from the authoritative parser and Foundations contracts in `crates/squad-tui/src/actions.rs`, without adding local grammar.
   - [ ] M4.P1.L6.T4 — Verify completion, pass-variable confirmation, protected text, exact parser-error display, and draft preservation for all four verbs in `crates/squad-tui/tests/completion.rs` and `crates/squad-tui/tests/input.rs`.
@@ -150,11 +150,11 @@
 
 - **M4.P3.L5 — Render tournaments**
   - [x] M4.P3.L5.T1 — Implement inline collapsible tournament blocks, authoritative states, stable parallel entry cards, retry and forfeit labels, and inspectable previous rounds in `crates/squad-tui/src/widgets/tournament.rs`.
-  - [ ] M4.P3.L5.T2 — Consume tournament setup, state, entry, ranking, result, and champion events by canonical identity in `crates/squad-tui/src/session.rs`, rendering accepted ranks, scores, critiques, final placements, replay, and failure without local ranking decisions.
-  - [ ] M4.P3.L5.T3 — Render eliminated participants and authoritative trophy counts in `crates/squad-tui/src/widgets/participants.rs`, deduplicating updates and retaining elimination marks for the rest of the tournament.
+  - [x] M4.P3.L5.T2 — Consume tournament setup, state, entry, ranking, result, and champion events by canonical identity in `crates/squad-tui/src/session.rs`, rendering accepted ranks, scores, critiques, final placements, replay, and failure without local ranking decisions.
+  - [x] M4.P3.L5.T3 — Render eliminated participants and authoritative trophy counts in `crates/squad-tui/src/widgets/participants.rs`, deduplicating updates and retaining elimination marks for the rest of the tournament.
   - [ ] M4.P3.L5.T4 — Present the core's k + (k−1) + ... + 2 answer calls, k−1 judge calls, total estimate, remaining daily amount, and confirmation controls in `crates/squad-tui/src/widgets/preflight.rs`.
-  - [ ] M4.P3.L5.T5 — Add `TOURNAMENT`, `ROUND r · N REMAIN`, `FINAL`, and `CHAMPION` boundaries and bottom-up ranking and champion effect hooks in `crates/squad-tui/src/widgets/tournament.rs` and `crates/squad-tui/src/widgets/banner.rs`, retaining complete static views with effects off.
-  - [ ] M4.P3.L5.T6 — Connect `/export tournament [id]` to shared core export and destination writes in `crates/squad-tui/src/actions.rs`.
+  - [x] M4.P3.L5.T5 — Add `TOURNAMENT`, `ROUND r · N REMAIN`, `FINAL`, and `CHAMPION` boundaries and bottom-up ranking and champion effect hooks in `crates/squad-tui/src/widgets/tournament.rs` and `crates/squad-tui/src/widgets/banner.rs`, retaining complete static views with effects off.
+  - [x] M4.P3.L5.T6 — Connect `/export tournament [id]` to shared core export and destination writes in `crates/squad-tui/src/actions.rs`.
 
 - **M4.P3.L6 — Render grills**
   - [ ] M4.P3.L6.T1 — Implement eligible leader-plan preview and explicit source selection using the shared selected-or-quoted-message contract in `crates/squad-tui/src/selection.rs`.
@@ -182,32 +182,32 @@
   - [ ] M4.P3.L8.T6 — Integrate fixtures in D71 order—debate, grill, census, crosscheck, tournament, survey, probe—while preserving existing task IDs and the existing modes' presentation behavior in `crates/squad-tui/tests/conversation.rs`.
 
 - **M4.P3.L9 — Render census**
-  - [ ] M4.P3.L9.T1 — Implement plan-source preview, participating members, pass count, per-pass plan references, assigned lenses, and hunt, merge, rate, and finalise step presentation in `crates/squad-tui/src/widgets/census.rs`.
-  - [ ] M4.P3.L9.T2 — Render ranked ledger rows, singleton labels, consequences, lenses, finder counts, ratings, additions, and covered citations with a human-only member-by-gap drilldown in `crates/squad-tui/src/widgets/census.rs`.
-  - [ ] M4.P3.L9.T3 — Render the exact authoritative estimate-range line, adjacent shared-blind-spots caveat, discovery curve, and per-pass plan versions in `crates/squad-tui/src/widgets/census.rs`, without calculating bounds or finder counts locally.
-  - [ ] M4.P3.L9.T4 — Present between-pass continuation, patched-plan quote preparation, the singleton-to-grill hint, and core-supplied quiet guidance separately from pass-limit completion in `crates/squad-tui/src/widgets/census.rs` and `crates/squad-tui/src/actions.rs`.
-  - [ ] M4.P3.L9.T5 — Expose census banner and estimate count-down hooks for M4.P5 in `crates/squad-tui/src/widgets/census.rs`, retaining the complete static ledger and final estimate with effects off.
+  - [x] M4.P3.L9.T1 — Implement plan-source preview, participating members, pass count, per-pass plan references, assigned lenses, and hunt, merge, rate, and finalise step presentation in `crates/squad-tui/src/widgets/census.rs`.
+  - [x] M4.P3.L9.T2 — Render ranked ledger rows, singleton labels, consequences, lenses, finder counts, ratings, additions, and covered citations with a human-only member-by-gap drilldown in `crates/squad-tui/src/widgets/census.rs`.
+  - [x] M4.P3.L9.T3 — Render the exact authoritative estimate-range line, adjacent shared-blind-spots caveat, discovery curve, and per-pass plan versions in `crates/squad-tui/src/widgets/census.rs`, without calculating bounds or finder counts locally.
+  - [x] M4.P3.L9.T4 — Present between-pass continuation, patched-plan quote preparation, the singleton-to-grill hint, and core-supplied quiet guidance separately from pass-limit completion in `crates/squad-tui/src/widgets/census.rs` and `crates/squad-tui/src/actions.rs`.
+  - [x] M4.P3.L9.T5 — Expose census banner and estimate count-down hooks for M4.P5 in `crates/squad-tui/src/widgets/census.rs`, retaining the complete static ledger and final estimate with effects off.
 
 - **M4.P3.L10 — Render crosscheck**
-  - [ ] M4.P3.L10.T1 — Implement plan, goal, and constraint preview, optional extraction progress, plan-hidden inventory labels, lens assignments, normalization, and grid-building presentation in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T2 — Render the coverage grid summary, stable cell IDs, actual retained count, cap and trimming disclosure, and expandable single-item or cross-lens-pair records in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T3 — Render cited coverage, justified exclusions, open gaps and proposed fixes, pending or skipped reviews, and cell history without treating probable coverage as closure in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T4 — Render fresh-context auditor details, sampled evidence, challenges, proposed missing cases, and accepted rulings without dropping cells in `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T5 — Connect eligible explicit risk-acceptance actions through the shared core contract, wait for acknowledgement, and show bounded stop guidance and unresolved audit findings in `crates/squad-tui/src/actions.rs` and `crates/squad-tui/src/widgets/crosscheck.rs`.
-  - [ ] M4.P3.L10.T6 — Expose crosscheck banner and cell-filling hooks for M4.P5 in `crates/squad-tui/src/widgets/crosscheck.rs`, retaining textual statuses and complete cell detail with effects off.
+  - [x] M4.P3.L10.T1 — Implement plan, goal, and constraint preview, optional extraction progress, plan-hidden inventory labels, lens assignments, normalization, and grid-building presentation in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T2 — Render the coverage grid summary, stable cell IDs, actual retained count, cap and trimming disclosure, and expandable single-item or cross-lens-pair records in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T3 — Render cited coverage, justified exclusions, open gaps and proposed fixes, pending or skipped reviews, and cell history without treating probable coverage as closure in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T4 — Render fresh-context auditor details, sampled evidence, challenges, proposed missing cases, and accepted rulings without dropping cells in `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T5 — Connect eligible explicit risk-acceptance actions through the shared core contract, wait for acknowledgement, and show bounded stop guidance and unresolved audit findings in `crates/squad-tui/src/actions.rs` and `crates/squad-tui/src/widgets/crosscheck.rs`.
+  - [x] M4.P3.L10.T6 — Expose crosscheck banner and cell-filling hooks for M4.P5 in `crates/squad-tui/src/widgets/crosscheck.rs`, retaining textual statuses and complete cell detail with effects off.
 
 - **M4.P3.L11 — Render survey**
-  - [ ] M4.P3.L11.T1 — Implement new-question and existing-answer previews, optional collection, neutral claim extraction, and stable claim identity across steps in `crates/squad-tui/src/widgets/survey.rs`.
-  - [ ] M4.P3.L11.T2 — Render blind-vote and re-vote progress, AGREE / DISAGREE / UNSURE, reasons, confidence, selected split claims, and evidence that would change a member's mind in `crates/squad-tui/src/widgets/survey.rs`.
-  - [ ] M4.P3.L11.T3 — Render the five-band map, empty-band labels, split reasons, switchers, origins, settling questions, and labeled vote bars with first-vote/re-vote drilldowns in `crates/squad-tui/src/widgets/survey.rs`, using core classifications and preserving missing votes separately.
-  - [ ] M4.P3.L11.T4 — Expose survey banner and bar-splitting hooks for M4.P5 in `crates/squad-tui/src/widgets/survey.rs`, retaining all bands, counts, reasons, and no-winner presentation with effects off.
+  - [x] M4.P3.L11.T1 — Implement new-question and existing-answer previews, optional collection, neutral claim extraction, and stable claim identity across steps in `crates/squad-tui/src/widgets/survey.rs`.
+  - [x] M4.P3.L11.T2 — Render blind-vote and re-vote progress, AGREE / DISAGREE / UNSURE, reasons, confidence, selected split claims, and evidence that would change a member's mind in `crates/squad-tui/src/widgets/survey.rs`.
+  - [x] M4.P3.L11.T3 — Render the five-band map, empty-band labels, split reasons, switchers, origins, settling questions, and labeled vote bars with first-vote/re-vote drilldowns in `crates/squad-tui/src/widgets/survey.rs`, using core classifications and preserving missing votes separately.
+  - [x] M4.P3.L11.T4 — Expose survey banner and bar-splitting hooks for M4.P5 in `crates/squad-tui/src/widgets/survey.rs`, retaining all bands, counts, reasons, and no-winner presentation with effects off.
 
 - **M4.P3.L12 — Render probe**
-  - [ ] M4.P3.L12.T1 — Implement brief preview, authoritative random role split, odd-member sit-out notice, and separate blind explanation and check groups in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T2 — Render explanation assumptions, exact check measurements and outcomes, prediction-locking progress, accepted predictions, cannot-predict entries, and skipped work in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T3 — Render the accepted decision tree with box characters, wrapped branch conditions, remaining explanations, next checks, and a visible unexpected-result branch in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T4 — Render the expandable prediction matrix, dropped-check reasons, and inseparable explanations without declaring one explanation true or executing checks in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T5 — Expose probe banner and branch-drawing hooks for M4.P5 in `crates/squad-tui/src/widgets/probe.rs`, retaining the full static tree and matrix with effects off.
+  - [x] M4.P3.L12.T1 — Implement brief preview, authoritative random role split, odd-member sit-out notice, and separate blind explanation and check groups in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T2 — Render explanation assumptions, exact check measurements and outcomes, prediction-locking progress, accepted predictions, cannot-predict entries, and skipped work in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T3 — Render the accepted decision tree with box characters, wrapped branch conditions, remaining explanations, next checks, and a visible unexpected-result branch in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T4 — Render the expandable prediction matrix, dropped-check reasons, and inseparable explanations without declaring one explanation true or executing checks in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T5 — Expose probe banner and branch-drawing hooks for M4.P5 in `crates/squad-tui/src/widgets/probe.rs`, retaining the full static tree and matrix with effects off.
 
 ## Phase M4.P4 — Verification
 
@@ -235,8 +235,8 @@
   - [ ] M4.P4.L3.T4 — Record passing workspace checks and M5 integration results before closing M4 in `crates/squad-tui/README.md`.
 
 - **M4.P4.L4 — Verify tournament, grill, and pick presentation**
-  - [ ] M4.P4.L4.T1 — Snapshot tournament parallel entries, strict accepted rankings, scores, critiques, eliminated rows, trophies, champion, round replay, stopped state, and failed judging at both viewports in `crates/squad-tui/tests/tournament.rs`.
-  - [ ] M4.P4.L4.T2 — Verify tournament preflight call counts, k−1 round presentation, forfeit labels, unchanged blind judge identity, deduplicated trophies, and complete static ranking without effects in `crates/squad-tui/tests/tournament.rs`.
+  - [x] M4.P4.L4.T1 — Snapshot tournament parallel entries, strict accepted rankings, scores, critiques, eliminated rows, trophies, champion, round replay, stopped state, and failed judging at both viewports in `crates/squad-tui/tests/tournament.rs`.
+  - [x] M4.P4.L4.T2 — Verify tournament preflight call counts, k−1 round presentation, forfeit labels, unchanged blind judge identity, deduplicated trophies, and complete static ranking without effects in `crates/squad-tui/tests/tournament.rs`.
   - [ ] M4.P4.L4.T3 — Snapshot grill participant scope, rotated sequential turns, headings, primary angles, questions, answers, plan changes, passes, counters, skipped turns, plan versions, appendix, survived completion, and leader failure in `crates/squad-tui/tests/grill.rs`.
   - [ ] M4.P4.L4.T4 — Verify grill call-count presentation, explicit plan sources, newest-plan expansion, last-good-plan retention, and absence of judge or scoreboard changes in `crates/squad-tui/tests/grill.rs`.
   - [ ] M4.P4.L4.T5 — Verify question-first debate and grill collection, eligible candidates, exact banners and hints, placeholders, `pick pending`, valid picks, wrong-pick strings, and insufficient-answer failure in `crates/squad-tui/tests/pick.rs`.
@@ -252,17 +252,17 @@
   - [ ] M4.P4.L5.T4 — Record final full-effects hardware, versions, measurement methods, results, and the completed M4.P5 dependency in `crates/squad-tui/README.md`; block M4 exit until both platforms pass.
 
 - **M4.P4.L6 — Verify census and crosscheck presentation**
-  - [ ] M4.P4.L6.T1 — Snapshot census source previews, pass and lens labels, ranked ledger, singletons, covered citations, member-by-gap details, skipped members, and collapsed reports at both viewports in `crates/squad-tui/tests/census.rs`.
-  - [ ] M4.P4.L6.T2 — Verify exact authoritative census range text, adjacent caveat, discovery curve, plan-version changes, quiet guidance, and distinct pass-limit, stopped, and failed completion in `crates/squad-tui/tests/census.rs`, without testing estimate arithmetic in the TUI.
-  - [ ] M4.P4.L6.T3 — Snapshot crosscheck optional extraction, blind-inventory labels, grid summaries, retained count and trimming, every cell disposition, citations, exclusions, gaps, fixes, and skipped reviews in `crates/squad-tui/tests/crosscheck.rs`.
-  - [ ] M4.P4.L6.T4 — Verify auditor sample and challenge details, accepted rulings, retained cells, explicit risk-acceptance acknowledgement, and bounded stop guidance in `crates/squad-tui/tests/crosscheck.rs`.
+  - [x] M4.P4.L6.T1 — Snapshot census source previews, pass and lens labels, ranked ledger, singletons, covered citations, member-by-gap details, skipped members, and collapsed reports at both viewports in `crates/squad-tui/tests/census.rs`.
+  - [x] M4.P4.L6.T2 — Verify exact authoritative census range text, adjacent caveat, discovery curve, plan-version changes, quiet guidance, and distinct pass-limit, stopped, and failed completion in `crates/squad-tui/tests/census.rs`, without testing estimate arithmetic in the TUI.
+  - [x] M4.P4.L6.T3 — Snapshot crosscheck optional extraction, blind-inventory labels, grid summaries, retained count and trimming, every cell disposition, citations, exclusions, gaps, fixes, and skipped reviews in `crates/squad-tui/tests/crosscheck.rs`.
+  - [x] M4.P4.L6.T4 — Verify auditor sample and challenge details, accepted rulings, retained cells, explicit risk-acceptance acknowledgement, and bounded stop guidance in `crates/squad-tui/tests/crosscheck.rs`.
   - [ ] M4.P4.L6.T5 — Verify census and crosscheck display the authoritative call counts, pass count, optional extraction call, estimates, and remaining daily amount from M5 fixtures in `crates/squad-tui/tests/census.rs` and `crates/squad-tui/tests/crosscheck.rs`.
 
 - **M4.P4.L7 — Verify survey and probe presentation**
-  - [ ] M4.P4.L7.T1 — Snapshot survey question-first and existing-answer paths, stable claim IDs, vote reasons and confidence, selected re-vote claims, five bands including empty bands, switchers, and settling questions at both viewports in `crates/squad-tui/tests/survey.rs`.
-  - [ ] M4.P4.L7.T2 — Verify survey's authoritative counts and band assignments, first-vote/re-vote comparison, missing-vote distinction, rejected-outlier wording, and absence of winner or scoreboard changes in `crates/squad-tui/tests/survey.rs`.
-  - [ ] M4.P4.L7.T3 — Snapshot probe role split, odd-member sit-out, explanation assumptions, check measurements, locked predictions, cannot-predict and skipped entries, tree, matrix, and unexpected-result branch at both viewports in `crates/squad-tui/tests/probe.rs`.
-  - [ ] M4.P4.L7.T4 — Verify probe branch wrapping, dropped-check reasons, inseparable explanations, authoritative participating count, and absence of execution or truth declarations in `crates/squad-tui/tests/probe.rs`.
+  - [x] M4.P4.L7.T1 — Snapshot survey question-first and existing-answer paths, stable claim IDs, vote reasons and confidence, selected re-vote claims, five bands including empty bands, switchers, and settling questions at both viewports in `crates/squad-tui/tests/survey.rs`.
+  - [x] M4.P4.L7.T2 — Verify survey's authoritative counts and band assignments, first-vote/re-vote comparison, missing-vote distinction, rejected-outlier wording, and absence of winner or scoreboard changes in `crates/squad-tui/tests/survey.rs`.
+  - [x] M4.P4.L7.T3 — Snapshot probe role split, odd-member sit-out, explanation assumptions, check measurements, locked predictions, cannot-predict and skipped entries, tree, matrix, and unexpected-result branch at both viewports in `crates/squad-tui/tests/probe.rs`.
+  - [x] M4.P4.L7.T4 — Verify probe branch wrapping, dropped-check reasons, inseparable explanations, authoritative participating count, and absence of execution or truth declarations in `crates/squad-tui/tests/probe.rs`.
   - [ ] M4.P4.L7.T5 — Verify survey's new-answer and existing-answer preflight counts and probe's adjusted participant count and estimate against M5 fixtures in `crates/squad-tui/tests/survey.rs` and `crates/squad-tui/tests/probe.rs`.
 
 - **M4.P4.L8 — Verify shared new-mode interaction and recovery**

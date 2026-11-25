@@ -462,3 +462,67 @@ fn final_evidence_preserves_round_records_reasons_and_router_tally() {
             .contains("UNIQUE_REASON")
     );
 }
+
+#[test]
+fn grill_compositions_use_frozen_roles_rounds_angles_and_limits() {
+    let pack = PromptPack::embedded().unwrap();
+    let config = config();
+    let frozen = GrillPreflight {
+        setup: GrillSetup {
+            contest_id: ID.parse().unwrap(),
+            leader: "alpha".parse().unwrap(),
+            grillers: vec!["beta".parse().unwrap()],
+            source_message_id: ID.parse().unwrap(),
+            initial_plan: "Plan".into(),
+            focus: "Focus".into(),
+            total_rounds: 2,
+        },
+        answer_words: 321,
+        plan_words: 1200,
+    };
+    let mut state = squad_core::orchestrator::grill::initial_state(&frozen.setup).unwrap();
+    let mut w = work("grill.question", "beta", 1);
+    w.debate_id = None;
+    w.step_id = Some(ID.parse().unwrap());
+    state.state = GrillStatus::Questioning;
+    for (kind, status, actor, id) in [
+        (
+            WorkKind::GrillQuestion,
+            GrillStatus::Questioning,
+            "beta",
+            "grill.question",
+        ),
+        (
+            WorkKind::GrillAnswer,
+            GrillStatus::Answering,
+            "alpha",
+            "grill.answer",
+        ),
+        (
+            WorkKind::GrillRebuild,
+            GrillStatus::Rebuilding,
+            "alpha",
+            "grill.rebuild",
+        ),
+    ] {
+        w.kind = kind;
+        w.prompt_ref.as_mut().unwrap().template_id = Text::new(id).unwrap();
+        w.target = Target::Member(actor.parse().unwrap());
+        w.context_id = ContextId(format!("contest:{ID}:{ID}:{actor}"));
+        state.state = status;
+        let (composition, inputs) = pack
+            .grill_inputs(&config, &w, &binding(), &frozen, &state)
+            .unwrap();
+        assert_eq!(composition, id);
+        let rendered = pack.render_composition(id, &inputs, false).unwrap();
+        assert!(rendered.user.contains("round 1 of 2"));
+        assert!(rendered.user.contains("alpha"));
+        assert!(!rendered.user.contains("judge.round"));
+        assert_eq!(rendered.system.matches("You are @").count(), 1);
+    }
+    w.target = Target::Member("beta".parse().unwrap());
+    assert!(
+        pack.grill_inputs(&config, &w, &binding(), &frozen, &state)
+            .is_err()
+    );
+}

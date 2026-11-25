@@ -1,0 +1,25 @@
+---
+source: crates/squad-core/tests/census_export.rs
+expression: output
+---
+# Squad transcript
+
+Pass 1 · plan 1 · Complete
+
+CENSUS · pass 1 · plan version 1
+
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+
+- Confirmed: No rollback plan — A bad release may cause an outage
+  Finders (1): member0 · lens: failure modes · accepted ratings: 3 (covered 1, trivial 0)
+  Priority: Prevent a prolonged outage
+  Singleton: the other members missed this gap.
+  Covered citation · Recovery section: Restore from backup
+
+Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; input gaps: g1
+
+Discovery curve
+Pass 1 · plan 1: new 1, cumulative 1, singletons 1
+
+Send singletons to $grill. Stop census first to release its active-contest claim.

@@ -136,8 +136,66 @@ pub struct Completion {
 #[serde(tag = "kind", content = "payload")]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum EnvelopePayload {
+    #[serde(rename = "probe.setup")]
+    ProbeSetup(ProbeSetup),
+    #[serde(rename = "probe.state")]
+    ProbeState(ProbeState),
+    #[serde(rename = "probe.preflight")]
+    ProbePreflight(ProbePreflight),
+    #[serde(rename = "probe.explanation")]
+    ProbeExplanation(ProbeOutput<ProbeExplanation>),
+    #[serde(rename = "probe.check")]
+    ProbeCheck(ProbeOutput<ProbeCheck>),
+    #[serde(rename = "probe.prediction")]
+    ProbePrediction(ProbeOutput<ProbePrediction>),
+    #[serde(rename = "probe.report")]
+    ProbeReport(ProbeOutput<ProbeReport>),
     #[serde(rename = "user.message")]
     UserMessage(UserMessage),
+    #[serde(rename = "crosscheck.setup")]
+    CrosscheckSetup(CrosscheckSetup),
+    #[serde(rename = "crosscheck.state")]
+    CrosscheckState(CrosscheckState),
+    #[serde(rename = "crosscheck.preflight")]
+    CrosscheckPreflight(CrosscheckPreflight),
+    #[serde(rename = "crosscheck.goal")]
+    CrosscheckGoal(CrosscheckGoalRecord),
+    #[serde(rename = "crosscheck.ruling")]
+    CrosscheckRuling(CrosscheckRulingRecord),
+    #[serde(rename = "crosscheck.inventory")]
+    CrosscheckInventory(CrosscheckInventory),
+    #[serde(rename = "crosscheck.grid")]
+    CrosscheckGrid(CrosscheckGrid),
+    #[serde(rename = "crosscheck.review")]
+    CrosscheckReview(CrosscheckReview),
+    #[serde(rename = "crosscheck.audit")]
+    CrosscheckAudit(CrosscheckAudit),
+    #[serde(rename = "crosscheck.acceptance")]
+    CrosscheckAcceptance(CrosscheckAcceptance),
+    #[serde(rename = "crosscheck.report")]
+    CrosscheckReport(CrosscheckReport),
+
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.setup")]
+    SurveySetup(SurveySetup),
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.state")]
+    SurveyState(SurveyState),
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.claims")]
+    SurveyClaims(SurveyClaims),
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.vote")]
+    SurveyVote(SurveyVote),
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.selection")]
+    SurveySelection(SurveySelection),
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.revote")]
+    SurveyRevote(SurveyRevote),
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.report")]
+    SurveyReport(SurveyReport),
     #[serde(rename = "agent.reply")]
     AgentReply(Completion),
     #[serde(rename = "message.final")]
@@ -158,6 +216,20 @@ pub enum EnvelopePayload {
     UsageRecord(UsageRecord),
     #[serde(rename = "budget.state")]
     BudgetState(BudgetStateEvent),
+    #[serde(rename = "grill.setup")]
+    GrillSetup(GrillSetup),
+    #[serde(rename = "grill.state")]
+    GrillState(GrillState),
+    #[serde(rename = "grill.question")]
+    GrillQuestion(GrillQuestion),
+    #[serde(rename = "grill.answer")]
+    GrillAnswer(GrillAnswer),
+    #[serde(rename = "grill.pass")]
+    GrillPass(GrillPass),
+    #[serde(rename = "grill.plan")]
+    GrillPlan(GrillPlan),
+    #[serde(rename = "grill.complete")]
+    GrillComplete(GrillComplete),
     #[serde(rename = "debate.preflight")]
     DebatePreflight(DebatePreflight),
     #[serde(rename = "debate.preflight.result")]
@@ -188,6 +260,38 @@ pub enum EnvelopePayload {
     RoomCleared(RoomCleared),
     #[serde(rename = "debate.round_score")]
     DebateRoundScore(DebateRoundScore),
+    #[serde(rename = "tournament.setup")]
+    TournamentSetup(TournamentSetup),
+    #[serde(rename = "tournament.state")]
+    TournamentState(TournamentState),
+    #[serde(rename = "tournament.preflight")]
+    TournamentPreflight(TournamentPreflight),
+    #[serde(rename = "tournament.entry")]
+    TournamentEntry(TournamentEntry),
+    #[serde(rename = "tournament.ranking")]
+    TournamentRanking(TournamentRanking),
+    #[serde(rename = "tournament.result")]
+    TournamentResult(TournamentResult),
+    #[serde(rename = "tournament.champion")]
+    TournamentChampion(TournamentChampion),
+    #[serde(rename = "tournament.judgment")]
+    TournamentJudgment(TournamentJudgment),
+    #[serde(rename = "census.setup")]
+    CensusSetup(CensusSetup),
+    #[serde(rename = "census.state")]
+    CensusState(CensusState),
+    #[serde(rename = "census.plan")]
+    CensusPlan(CensusPlan),
+    #[serde(rename = "census.hunt")]
+    CensusHunt(CensusHunt),
+    #[serde(rename = "census.ledger")]
+    CensusLedger(CensusLedger),
+    #[serde(rename = "census.rating")]
+    CensusRating(CensusRating),
+    #[serde(rename = "census.report")]
+    CensusReport(CensusReport),
+    #[serde(rename = "census.case_material")]
+    CensusCaseMaterial(CensusCaseMaterial),
     #[serde(rename = "contest.setup")]
     ContestSetup(ContestSetup),
     #[serde(rename = "contest.state")]
@@ -399,6 +503,14 @@ pub struct BudgetStateEvent {
 // Keep the shared by-value API specified by section 02.
 #[allow(clippy::large_enum_variant)]
 pub enum CaseMaterial {
+    Tournament {
+        material: TournamentCaseMaterial,
+    },
+    #[cfg(feature = "mode-survey")]
+    Survey {
+        material: SurveyCaseMaterial,
+    },
+    Probe(ProbeCaseMaterial),
     Standalone {
         messages: Vec<ResolvedQuote>,
         question: Text,
@@ -518,7 +630,11 @@ impl EnvelopePayload {
     pub fn is_durable(&self) -> bool {
         !matches!(
             self,
-            Self::Delta(_) | Self::Presence(_) | Self::AgentReply(_) | Self::ContestTransition(_)
+            Self::Delta(_)
+                | Self::Presence(_)
+                | Self::AgentReply(_)
+                | Self::ContestTransition(_)
+                | Self::TournamentJudgment(_)
         )
     }
 }
@@ -533,6 +649,97 @@ fn validate_envelope(
         "recipients must be nonempty and unique",
     )?;
     let human_only = base.recipients == [Recipient::Me];
+    match payload {
+        EnvelopePayload::TournamentState(s) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "tournament state requires system to human",
+            )?;
+            s.validate()?;
+        }
+        EnvelopePayload::TournamentEntry(e) => {
+            ensure(
+                human_only
+                    && (base.sender == Actor::Member(e.entrant.clone())
+                        || (base.sender == Actor::System
+                            && matches!(e.outcome, DebateTurnOutcome::Forfeit { .. }))),
+                "invalid tournament entry author",
+            )?;
+            ensure(e.round > 0 && e.replay <= 1, "invalid entry execution")?;
+        }
+        EnvelopePayload::TournamentJudgment(j) => {
+            ensure(
+                base.sender == Actor::Judge && human_only && j.round > 0 && j.replay <= 1,
+                "invalid tournament judgment",
+            )?;
+        }
+        EnvelopePayload::TournamentSetup(s) => {
+            ensure(
+                base.sender == Actor::System
+                    && human_only
+                    && s.entrants.len() >= 3
+                    && unique(&s.entrants)
+                    && s.total_rounds == s.entrants.len() as u32 - 1
+                    && !s.prompt.trim().is_empty(),
+                "invalid tournament setup",
+            )?;
+        }
+        EnvelopePayload::TournamentPreflight(p) => {
+            ensure(
+                base.sender == Actor::System
+                    && human_only
+                    && p.base.kind == ContestKind::Tournament
+                    && p.base.participants.len() >= 3
+                    && unique(&p.base.participants)
+                    && p.total_rounds == p.base.participants.len() as u32 - 1
+                    && p.replays == 1
+                    && p.entry_attempts == 2
+                    && p.judge_attempts == 3,
+                "invalid tournament preflight",
+            )?;
+            p.base.estimate.validate()?;
+        }
+        EnvelopePayload::TournamentResult(r) => {
+            ensure(
+                base.sender == Actor::System
+                    && base.recipients.len() == 2
+                    && base.recipients.contains(&Recipient::Me)
+                    && base
+                        .recipients
+                        .contains(&Recipient::Member(r.entrant.clone())),
+                "tournament result requires human and owning entrant",
+            )?;
+        }
+        EnvelopePayload::TournamentRanking(_) | EnvelopePayload::TournamentChampion(_) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "tournament announcement requires system to human",
+            )?;
+        }
+        EnvelopePayload::CrosscheckAcceptance(v) => {
+            ensure(
+                base.sender == Actor::Me && human_only,
+                "crosscheck acceptance requires human",
+            )?;
+            v.validate()?;
+        }
+        EnvelopePayload::CrosscheckGrid(v) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "crosscheck grid is application-owned",
+            )?;
+            v.validate()?;
+        }
+        EnvelopePayload::CrosscheckState(_)
+        | EnvelopePayload::CrosscheckSetup(_)
+        | EnvelopePayload::CrosscheckPreflight(_)
+        | EnvelopePayload::CrosscheckReport(_) => ensure(
+            base.sender == Actor::System && human_only,
+            "crosscheck control is application-owned",
+        )?,
+        _ => {}
+    }
+
     match payload {
         EnvelopePayload::UserMessage(message) => {
             ensure(base.sender == Actor::Me, "user.message requires me")?;
@@ -647,6 +854,24 @@ fn validate_envelope(
             same_contest(state.debate_id, state.contest_id)?;
         }
         EnvelopePayload::Error(error) => validate_error(error)?,
+        EnvelopePayload::GrillSetup(v) => v.validate()?,
+        EnvelopePayload::GrillState(v) => v.validate()?,
+        EnvelopePayload::GrillQuestion(v) => {
+            v.validate()?;
+            ensure(
+                base.sender == Actor::Member(v.griller.clone()),
+                "grill question author mismatch",
+            )?;
+        }
+        EnvelopePayload::GrillPlan(v) => v.validate(u32::MAX)?,
+        EnvelopePayload::GrillAnswer(v) => ensure(
+            !v.answers.is_empty() && v.answers.len() <= 3,
+            "invalid grill answer",
+        )?,
+        EnvelopePayload::GrillPass(v) => ensure((1..=10).contains(&v.round), "invalid grill pass")?,
+        EnvelopePayload::GrillComplete(v) => {
+            ensure(v.final_plan_version > 0, "invalid final grill plan")?
+        }
         EnvelopePayload::DebatePreflight(preflight) => preflight.validate()?,
         EnvelopePayload::DebatePreflightResult(result) => {
             validate_preflight_result(&result.status, &result.confirmation, &result.error)?
@@ -659,6 +884,17 @@ fn validate_envelope(
             "invalid opening",
         )?,
         EnvelopePayload::DebateSetup(setup) => setup.validate()?,
+        EnvelopePayload::CrosscheckSetup(v) => v.validate()?,
+        EnvelopePayload::CrosscheckState(v) => v.validate()?,
+        EnvelopePayload::CrosscheckPreflight(v) => v.validate()?,
+        EnvelopePayload::CrosscheckInventory(v) => v.response.validate()?,
+        EnvelopePayload::CrosscheckRuling(_)
+        | EnvelopePayload::CrosscheckGoal(_)
+        | EnvelopePayload::CrosscheckGrid(_)
+        | EnvelopePayload::CrosscheckReview(_)
+        | EnvelopePayload::CrosscheckAudit(_)
+        | EnvelopePayload::CrosscheckAcceptance(_)
+        | EnvelopePayload::CrosscheckReport(_) => {}
         EnvelopePayload::DebateState(state) => state.validate()?,
         EnvelopePayload::DebateTurn(turn) => {
             generation(&turn.generation)?;
@@ -715,6 +951,28 @@ fn validate_envelope(
         EnvelopePayload::CaseOpened(case) => {
             same_contest(case.debate_id, case.contest_id)?;
             match &case.material {
+                CaseMaterial::Tournament { material } => {
+                    ensure(
+                        case.contest_id.is_some() && case.debate_id.is_none() && material.round > 0,
+                        "invalid tournament case",
+                    )?;
+                }
+                #[cfg(feature = "mode-survey")]
+                CaseMaterial::Survey { material } => {
+                    let setup = match material {
+                        SurveyCaseMaterial::Extraction { setup }
+                        | SurveyCaseMaterial::Report { setup, .. } => setup,
+                    };
+                    setup.validate()?;
+                    ensure(
+                        case.contest_id == Some(setup.contest_id) && case.debate_id.is_none(),
+                        "survey case identity mismatch",
+                    )?;
+                }
+                CaseMaterial::Probe(_) => ensure(
+                    case.contest_id.is_some() && case.debate_id.is_none(),
+                    "invalid probe case",
+                )?,
                 CaseMaterial::Standalone { messages, .. } => ensure(
                     !messages.is_empty() && messages.len() <= 12 && case.debate_id.is_none(),
                     "invalid standalone case",
@@ -735,6 +993,94 @@ fn validate_envelope(
             )?;
             completed(&ruling.completed, ruling.content.as_str())?;
         }
+        EnvelopePayload::CensusSetup(s) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "census setup requires system",
+            )?;
+            s.validate()?;
+        }
+        EnvelopePayload::CensusState(s) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "census state requires system",
+            )?;
+            s.validate()?;
+        }
+        EnvelopePayload::CensusPlan(_) | EnvelopePayload::CensusCaseMaterial(_) => ensure(
+            base.sender == Actor::System && human_only,
+            "census material requires system",
+        )?,
+        EnvelopePayload::CensusHunt(h) => {
+            ensure(
+                base.sender == Actor::Member(h.member.clone()) && human_only,
+                "hunt requires assigned member",
+            )?;
+            h.output.validate()?;
+        }
+        EnvelopePayload::CensusLedger(l) => {
+            ensure(
+                (l.stage == CensusLedgerStage::Finalized) == l.final_output.is_some(),
+                "ledger stage mismatch",
+            )?;
+            ensure(
+                base.sender == Actor::Judge && human_only,
+                "ledger requires judge",
+            )?;
+        }
+        EnvelopePayload::CensusRating(r) => ensure(
+            base.sender == Actor::Member(r.member.clone()) && human_only,
+            "rating requires assigned member",
+        )?,
+        EnvelopePayload::CensusReport(r) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "report requires system",
+            )?;
+            r.validate()?;
+        }
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveySetup(setup) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "survey setup is human only",
+            )?;
+            setup.validate()?;
+        }
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveyState(state) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "invalid survey state sender",
+            )?;
+            state.validate()?;
+        }
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveySelection(selection) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "survey selection is human only",
+            )?;
+            selection.validate()?;
+        }
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveyClaims(value) => ensure(
+            base.sender == Actor::Judge && human_only && value.extraction.claims.len() <= 25,
+            "invalid survey extraction",
+        )?,
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveyVote(value) | EnvelopePayload::SurveyRevote(value) => ensure(
+            base.sender == Actor::Member(value.voter.clone()) && human_only,
+            "invalid survey voter",
+        )?,
+        #[cfg(feature = "mode-survey")]
+        EnvelopePayload::SurveyReport(value) => {
+            ensure(
+                base.sender == Actor::Judge && human_only,
+                "invalid survey report sender",
+            )?;
+            value.report.validate(&value.map)?;
+        }
         EnvelopePayload::ContestSetup(setup) => {
             ensure(
                 setup.kind != ContestKind::Debate
@@ -743,8 +1089,57 @@ fn validate_envelope(
                 "invalid generic setup",
             )?;
         }
+        EnvelopePayload::ProbeSetup(v) => v.validate()?,
+        EnvelopePayload::ProbeState(v) => v.validate()?,
+        EnvelopePayload::ProbePreflight(v) => v.validate()?,
+        EnvelopePayload::ProbeCheck(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+            v.data.validate()?;
+        }
+        EnvelopePayload::ProbeExplanation(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+        }
+        EnvelopePayload::ProbePrediction(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+        }
+        EnvelopePayload::ProbeReport(v) => {
+            ensure(
+                human_only && base.sender == Actor::Judge,
+                "probe report must be judge-to-human",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+        }
         EnvelopePayload::ContestState(state) => match state {
+            #[cfg(feature = "mode-survey")]
+            ContestState::Survey(state) => state.validate()?,
+            ContestState::Probe(state) => state.validate()?,
             ContestState::Debate(state) => state.validate()?,
+            ContestState::Tournament(state) => state.validate()?,
+            ContestState::Census(state) => state.validate()?,
             ContestState::Generic(state) => ensure(
                 state.kind != ContestKind::Debate && unique(&state.artifact_event_ids),
                 "duplicate artifact references",
@@ -760,10 +1155,19 @@ fn validate_envelope(
                 "invalid selection state",
             )?,
         },
-        EnvelopePayload::ContestTransition(submission) => ensure(
-            submission.kind == ContestKind::Debate,
-            "transition kind mismatch",
-        )?,
+        EnvelopePayload::ContestTransition(submission) => {
+            let kind = match &submission.transition {
+                ContestTransition::Debate(_) => ContestKind::Debate,
+                ContestTransition::Probe(_) => ContestKind::Probe,
+                ContestTransition::Grill(_) => ContestKind::Grill,
+                ContestTransition::Tournament(_) => ContestKind::Tournament,
+                ContestTransition::Census(_) => ContestKind::Census,
+                ContestTransition::Crosscheck(_) => ContestKind::Crosscheck,
+                #[cfg(feature = "mode-survey")]
+                ContestTransition::Survey(_) => ContestKind::Survey,
+            };
+            ensure(submission.kind == kind, "transition kind mismatch")?;
+        }
         EnvelopePayload::ContestPreflight(preflight) => {
             preflight.estimate.validate()?;
             ensure(
@@ -789,6 +1193,7 @@ fn validate_envelope(
         )?,
         EnvelopePayload::ContestPicked(pick) => ensure(
             pick.kind.is_built()
+                && pick.kind != ContestKind::Survey
                 && distinct_members(&pick.nicks)
                 && unique(&pick.source_message_ids)
                 && pick.nicks.len() == pick.source_message_ids.len()
@@ -844,7 +1249,15 @@ fn validate_envelope(
             "invalid report",
         )?,
         EnvelopePayload::SystemNotice(notice) => same_contest(notice.debate_id, notice.contest_id)?,
-        EnvelopePayload::CaseFollowup(_)
+        EnvelopePayload::TournamentSetup(_)
+        | EnvelopePayload::TournamentState(_)
+        | EnvelopePayload::TournamentPreflight(_)
+        | EnvelopePayload::TournamentEntry(_)
+        | EnvelopePayload::TournamentRanking(_)
+        | EnvelopePayload::TournamentResult(_)
+        | EnvelopePayload::TournamentChampion(_)
+        | EnvelopePayload::TournamentJudgment(_)
+        | EnvelopePayload::CaseFollowup(_)
         | EnvelopePayload::MessageSuperseded(_)
         | EnvelopePayload::ScoresChanged(_)
         | EnvelopePayload::RoomCleared(_) => {}

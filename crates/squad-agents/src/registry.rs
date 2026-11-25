@@ -68,9 +68,38 @@ impl<'a> Registry<'a> {
             return Err(crate::openrouter::TransportError::InvalidModel);
         }
         let (kind, deadline) = match grant.work.kind {
+            WorkKind::CensusHunt | WorkKind::CensusRate => {
+                (TaskKind::Reply, DeadlineClass::DebateTurn)
+            }
+            WorkKind::CensusMerge | WorkKind::CensusFinal => {
+                (TaskKind::CensusJudge, DeadlineClass::FinalJudge)
+            }
+            WorkKind::CrosscheckInventory
+            | WorkKind::CrosscheckCell
+            | WorkKind::CrosscheckAudit => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
+                (TaskKind::CrosscheckJudge, DeadlineClass::FinalJudge)
+            }
+            WorkKind::SurveyExtract | WorkKind::SurveyReport => {
+                (TaskKind::SurveyJudge, DeadlineClass::FinalJudge)
+            }
+            WorkKind::SurveyVote | WorkKind::SurveyRevote => {
+                (TaskKind::Reply, DeadlineClass::Ordinary)
+            }
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer => {
+                (TaskKind::DebateTurn, DeadlineClass::DebateTurn)
+            }
+            WorkKind::GrillRebuild => (TaskKind::Plan, DeadlineClass::DebateTurn),
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
+            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => {
+                (TaskKind::Plan, DeadlineClass::DebateTurn)
+            }
+            WorkKind::ProbeReport => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),
+            WorkKind::JudgeTournament => {
+                (TaskKind::TournamentJudge, DeadlineClass::TournamentJudge)
+            }
             WorkKind::JudgeRound => (TaskKind::RoundJudge, DeadlineClass::RoundJudge),
         };
         let mut request = self.request(member, model, kind)?;

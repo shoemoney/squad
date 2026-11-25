@@ -111,6 +111,11 @@ pub enum ContestState {
     Generic(GenericContestState),
     Selection(ContestSelectionState),
     Debate(DebateState),
+    Tournament(TournamentState),
+    Census(CensusState),
+    #[cfg(feature = "mode-survey")]
+    Survey(SurveyState),
+    Probe(ProbeState),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -226,7 +231,14 @@ pub struct ContestTransitionSubmission {
     rename_all_fields = "camelCase"
 )]
 pub enum ContestTransition {
+    Grill(GrillTransition),
     Debate(DebateTransition),
+    Tournament(TournamentTransition),
+    Census(CensusTransition),
+    Crosscheck(CrosscheckTransition),
+    #[cfg(feature = "mode-survey")]
+    Survey(SurveyTransition),
+    Probe(ProbeTransition),
 }
 impl ContestKind {
     pub fn as_str(self) -> &'static str {
@@ -241,7 +253,10 @@ impl ContestKind {
         }
     }
     pub fn is_built(self) -> bool {
-        self == Self::Debate
+        matches!(
+            self,
+            Self::Debate | Self::Tournament | Self::Census | Self::Crosscheck | Self::Probe
+        ) || (cfg!(feature = "mode-survey") && self == Self::Survey)
     }
 }
 impl ContestTransitionSubmission {
@@ -253,7 +268,11 @@ impl ContestTransitionSubmission {
             self.kind == ContestKind::Debate,
             "transition kind does not match debate",
         )?;
-        let ContestTransition::Debate(transition) = self.transition;
+        let ContestTransition::Debate(transition) = self.transition else {
+            return Err(crate::validation::ValidationError {
+                message: "expected debate transition".into(),
+            });
+        };
         Ok((self.contest_id, self.expected_state_version, transition))
     }
 }

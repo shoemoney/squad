@@ -3,6 +3,11 @@
 //! Store adapters must load all events and public artifact projections in one read
 //! transaction. Neither this renderer nor `ExportSource` opens the room runtime.
 //! Opaque generic artifact/report data is deliberately never serialized here.
+pub mod census;
+mod crosscheck;
+mod probe;
+pub mod survey;
+mod tournament;
 use crate::banner::{Banner, render_default};
 use squad_protocol::*;
 use std::collections::{BTreeMap, BTreeSet};
@@ -117,12 +122,6 @@ fn check_scope(scope: &ExportScope, id: Option<ContestId>) -> Result<(), ExportE
     if id.is_none() {
         return Err(ExportError::ContestIdRequired);
     }
-    if matches!(
-        scope,
-        ExportScope::Census | ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
-    ) {
-        return Err(ExportError::UnsupportedScope);
-    }
     Ok(())
 }
 
@@ -186,6 +185,10 @@ pub fn render(
             ExportScope::Debate => ContestKind::Debate,
             ExportScope::Tournament => ContestKind::Tournament,
             ExportScope::Grill => ContestKind::Grill,
+            ExportScope::Census => ContestKind::Census,
+            ExportScope::Crosscheck => ContestKind::Crosscheck,
+            ExportScope::Survey => ContestKind::Survey,
+            ExportScope::Probe => ContestKind::Probe,
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -196,6 +199,10 @@ pub fn render(
     for e in events {
         if id.is_some() && contest_id(&e.content) == id {
             match &e.content {
+                EnvelopePayload::SurveySetup(s) => {
+                    references.insert(s.question_message_id);
+                    references.extend(s.answers.iter().map(|a| a.message_id));
+                }
                 EnvelopePayload::DebateSetup(s) => {
                     references.insert(s.topic_message_id);
                     references.extend(s.solutions.iter().map(|s| s.message_id));
@@ -255,6 +262,15 @@ pub fn render(
             _ => None,
         })
         .collect();
+    let typed_crosscheck_work: BTreeSet<_> = events
+        .iter()
+        .filter_map(|e| match &e.content {
+            EnvelopePayload::CrosscheckInventory(v) => Some(v.work_id),
+            EnvelopePayload::CrosscheckReview(v) => Some(v.work_id),
+            EnvelopePayload::CrosscheckAudit(v) => Some(v.work_id),
+            _ => None,
+        })
+        .collect();
     let mut out = String::from("# Squad transcript\n\n");
     let mut boundaries: BTreeMap<ContestId, BTreeSet<String>> = BTreeMap::new();
     for e in events {
@@ -269,6 +285,28 @@ pub fn render(
             && !matches!(&e.content, EnvelopePayload::CaseRuling(s) if cases.contains(&s.case_id))
             && !matches!(&e.content, EnvelopePayload::UserMessage(s) if s.case_id.is_some_and(|case| cases.contains(&case)))
         {
+            continue;
+        }
+        if census::render(&mut out, &e.content) {
+            continue;
+        }
+        if let EnvelopePayload::ContestArtifact(a) = &e.content
+            && a.work_id
+                .is_some_and(|w| !typed_crosscheck_work.contains(&w))
+            && let Some(text) = crosscheck::partial(a, &e.base.sender)
+        {
+            out.push_str(&text);
+            continue;
+        }
+        if let Some(text) = crosscheck::render(&e.content) {
+            out.push_str(&text);
+            continue;
+        }
+        if let Some(text) = survey::render(&e.content) {
+            out.push_str(&text);
+            continue;
+        }
+        if probe::render(&mut out, &e.content) {
             continue;
         }
         match &e.content {
@@ -410,6 +448,17 @@ pub fn render(
                     block(&mut out, "What to steal from loser", suggestion);
                 }
             }
+            payload if tournament::render(&mut out, payload) => {
+                if let EnvelopePayload::TournamentEntry(entry) = payload {
+                    let failed=events.iter().any(|e|matches!(&e.content,EnvelopePayload::TournamentState(s) if s.contest_id==entry.contest_id && ((s.round==entry.round && s.replay>entry.replay) || (s.state==TournamentStatus::Failed && s.round==entry.round && s.replay==entry.replay))));
+                    if failed {
+                        paragraph(
+                            &mut out,
+                            "Failed replay run: no accepted ranking or elimination from this execution.",
+                        );
+                    }
+                }
+            }
             EnvelopePayload::CaseOpened(s) => {
                 if let CaseMaterial::Standalone { messages, question } = &s.material {
                     block(
@@ -512,6 +561,107 @@ pub fn render(
                     render_artifact(&mut out, artifact);
                 }
             }
+            EnvelopePayload::GrillSetup(v) => {
+                banner(&mut out, Banner::Grill);
+                heading(
+                    &mut out,
+                    &format!("Grill {} · leader @{}", v.contest_id, v.leader),
+                );
+                paragraph(
+                    &mut out,
+                    &format!(
+                        "Shared floor: {}",
+                        v.participants()
+                            .iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                );
+                paragraph(&mut out, &v.focus);
+            }
+            EnvelopePayload::GrillState(v) => {
+                heading(
+                    &mut out,
+                    &format!("Grill round {} · {:?}", v.round, v.state),
+                );
+                if let Some(reason) = &v.terminal_reason {
+                    paragraph(&mut out, reason);
+                }
+            }
+            EnvelopePayload::GrillPlan(v) => block(
+                &mut out,
+                &format!("Plan v{} · round {}", v.version, v.round),
+                &v.text,
+            ),
+            EnvelopePayload::GrillQuestion(v) => {
+                heading(
+                    &mut out,
+                    &format!(
+                        "Round {} · @{} asks @{} · {}",
+                        v.round, v.griller, v.leader, v.angle
+                    ),
+                );
+                for (i, q) in v.questions.iter().enumerate() {
+                    block(&mut out, &format!("Question {}", i + 1), q);
+                }
+            }
+            EnvelopePayload::GrillAnswer(v) => {
+                heading(
+                    &mut out,
+                    &format!("@{} answers · {}", v.leader, v.question_event_id),
+                );
+                for answer in &v.answers {
+                    block(
+                        &mut out,
+                        &format!("Answer {}", answer.question_index + 1),
+                        &answer.answer,
+                    );
+                    block(&mut out, "Plan changes", &answer.plan_changes);
+                }
+            }
+            EnvelopePayload::GrillPass(v) => heading(
+                &mut out,
+                &format!(
+                    "Round {} · @{} · {}",
+                    v.round,
+                    v.griller,
+                    match v.reason {
+                        squad_protocol::GrillPassReason::Pass => "PASS",
+                        squad_protocol::GrillPassReason::Timeout => "SKIPPED (timeout)",
+                        squad_protocol::GrillPassReason::Error => "SKIPPED (error)",
+                    }
+                ),
+            ),
+            EnvelopePayload::GrillComplete(v) => {
+                heading(
+                    &mut out,
+                    &format!(
+                        "FINAL PLAN v{} · {}",
+                        v.final_plan_version, v.final_plan_event_id
+                    ),
+                );
+                if let Some(plan) = events.iter().find_map(|e| match &e.content {
+                    EnvelopePayload::GrillPlan(p) if e.base.id == v.final_plan_event_id => Some(p),
+                    _ => None,
+                }) {
+                    paragraph(&mut out, &plan.text);
+                }
+                heading(&mut out, "Complete attributed question-and-answer appendix");
+                for item in &v.appendix {
+                    block(
+                        &mut out,
+                        &format!("@{} · question {}", item.griller, item.question_index + 1),
+                        &item.question,
+                    );
+                    if let Some(answer) = &item.answer {
+                        block(&mut out, "Answer", answer);
+                    }
+                    if let Some(changes) = &item.plan_changes {
+                        block(&mut out, "Plan changes", changes);
+                    }
+                }
+            }
             EnvelopePayload::SystemNotice(s) => block(&mut out, "Notice", s.text.as_str()),
             _ => {} // Explicit allowlist: private records and generic JSON never render.
         }
@@ -520,6 +670,34 @@ pub fn render(
 }
 fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
     Some(match p {
+        EnvelopePayload::TournamentSetup(s) => (s.contest_id, ContestKind::Tournament),
+        EnvelopePayload::TournamentState(s) => (s.contest_id, ContestKind::Tournament),
+        EnvelopePayload::ContestState(ContestState::Tournament(s)) => {
+            (s.contest_id, ContestKind::Tournament)
+        }
+        EnvelopePayload::CensusSetup(s) => (s.contest_id, ContestKind::Census),
+        EnvelopePayload::CensusState(s)
+        | EnvelopePayload::ContestState(ContestState::Census(s)) => {
+            (s.contest_id, ContestKind::Census)
+        }
+        EnvelopePayload::CrosscheckSetup(s) => (s.contest_id, ContestKind::Crosscheck),
+        EnvelopePayload::CrosscheckState(s) => (s.contest_id, ContestKind::Crosscheck),
+        EnvelopePayload::SurveySetup(s) => (s.contest_id, ContestKind::Survey),
+        EnvelopePayload::SurveyState(s) => (s.contest_id, ContestKind::Survey),
+        EnvelopePayload::ContestState(ContestState::Survey(s)) => {
+            (s.contest_id, ContestKind::Survey)
+        }
+        EnvelopePayload::GrillSetup(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillState(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillQuestion(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillAnswer(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillPass(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillPlan(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::GrillComplete(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::ProbeSetup(s) => (s.contest_id, ContestKind::Probe),
+        EnvelopePayload::ProbeState(s) | EnvelopePayload::ContestState(ContestState::Probe(s)) => {
+            (s.contest_id, ContestKind::Probe)
+        }
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -537,6 +715,34 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         return Some(id);
     }
     match p {
+        EnvelopePayload::TournamentPreflight(s) => Some(s.base.contest_id),
+        EnvelopePayload::TournamentEntry(s) => Some(s.contest_id),
+        EnvelopePayload::TournamentRanking(s) => Some(s.contest_id),
+        EnvelopePayload::TournamentResult(s) => Some(s.contest_id),
+        EnvelopePayload::TournamentChampion(s) => Some(s.contest_id),
+        EnvelopePayload::CensusPlan(s) => Some(s.contest_id),
+        EnvelopePayload::CensusHunt(s) => Some(s.contest_id),
+        EnvelopePayload::CensusLedger(s) => Some(s.contest_id),
+        EnvelopePayload::CensusRating(s) => Some(s.contest_id),
+        EnvelopePayload::CensusReport(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckGoal(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckInventory(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckGrid(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckReview(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckAudit(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckRuling(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckAcceptance(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckReport(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckPreflight(s) => Some(s.base.contest_id),
+        EnvelopePayload::SurveyClaims(s) => Some(s.contest_id),
+        EnvelopePayload::SurveyVote(s) | EnvelopePayload::SurveyRevote(s) => Some(s.contest_id),
+        EnvelopePayload::SurveySelection(s) => Some(s.contest_id),
+        EnvelopePayload::SurveyReport(s) => Some(s.contest_id),
+        EnvelopePayload::ProbeExplanation(s) => Some(s.contest_id),
+        EnvelopePayload::ProbeCheck(s) => Some(s.contest_id),
+        EnvelopePayload::ProbePrediction(s) => Some(s.contest_id),
+        EnvelopePayload::ProbeReport(s) => Some(s.contest_id),
+        EnvelopePayload::ProbePreflight(s) => Some(s.setup.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

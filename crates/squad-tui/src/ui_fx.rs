@@ -245,6 +245,156 @@ pub fn attach(
                     )
                 }
             }
+            FxCue::ModeBannerReady {
+                contest_id,
+                mode: fx::ReportMode::Survey,
+            } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let local = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|g| g.banners.first())
+                    .map(|(_, r)| *r)
+                    .unwrap_or_default();
+                rect = app.composed.graphic_rect(id, local, top, transcript);
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(1900),
+                    move |elapsed, buf, _| {
+                        tint_prepared(buf, rect, elapsed, palette.chrome(), level)
+                    },
+                )
+            }
+            FxCue::SurveyTallyReady { contest_id, .. } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let contest = contest_id.to_string().parse().expect("UUID");
+                let Some(view) = app
+                    .session
+                    .contests
+                    .get(&contest)
+                    .and_then(|c| c.survey.as_ref())
+                else {
+                    continue;
+                };
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let graphics = shapes
+                    .survey
+                    .iter()
+                    .filter_map(|(claim, r)| {
+                        let m = view.tallies().iter().find(|m| &m.claim_id == claim)?;
+                        let rect = app.composed.graphic_rect(id, *r, top, transcript);
+                        let effect = fx::survey::SurveyEffect::new(
+                            fx::survey::Motion::new(level, no_color, false),
+                            seed,
+                            view.report()
+                                .map(|_| crate::widgets::survey::votes(&m.first)),
+                            crate::widgets::survey::votes(&m.final_tally),
+                        );
+                        Some((rect, effect))
+                    })
+                    .collect::<Vec<_>>();
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(400),
+                    move |elapsed, buf, _| {
+                        for (rect, effect) in &graphics {
+                            effect.render_graphic(
+                                buf,
+                                *rect,
+                                elapsed,
+                                rect.width < 48,
+                                [Color::Green, Color::Red, Color::Yellow],
+                            );
+                        }
+                    },
+                )
+            }
+            FxCue::TournamentRankingReady { contest_id, round } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.tournament.as_ref())
+                else {
+                    continue;
+                };
+                let rows = shapes
+                    .rankings
+                    .iter()
+                    .filter(|(r, _, _)| r == round)
+                    .map(|(_, _, r)| app.composed.graphic_rect(id, *r, top, transcript))
+                    .collect::<Vec<_>>();
+                let effect = fx::tournament::RankingReveal::new(level, no_color, true);
+                let duration = effect.duration(rows.len());
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    duration,
+                    move |elapsed, buf, _| effect.render_prepared(buf, &rows, elapsed),
+                )
+            }
+            FxCue::TournamentEliminated { contest_id, member } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let marker = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.tournament.as_ref())
+                    .and_then(|s| s.eliminations.iter().find(|(n, _)| n == member.as_str()))
+                    .map(|(_, r)| app.composed.graphic_rect(id, *r, top, transcript))
+                    .unwrap_or_default();
+                let mut fx = fx::tournament::TournamentFx::default();
+                let Some(effect) =
+                    fx.elimination(&cue.event_id.to_string(), true, true, level, no_color)
+                else {
+                    continue;
+                };
+                Pass::catalogue(
+                    key,
+                    marker,
+                    PassAccess::Unprotected,
+                    effect.duration(),
+                    move |elapsed, buf, _| effect.render(buf, marker, elapsed),
+                )
+            }
+            FxCue::TournamentChampion { contest_id, member } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let marker = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.tournament.as_ref())
+                    .map(|s| app.composed.graphic_rect(id, s.champion, top, transcript))
+                    .unwrap_or_default();
+                let effect = fx::tournament::ChampionReveal::new(
+                    level,
+                    no_color,
+                    true,
+                    u64::from(cue.rng_seed()),
+                );
+                let winner = fx::verdict::Contender {
+                    nick: member.to_string(),
+                    hue: palette.member(member.as_str(), 0),
+                    art: vec![],
+                    compact_art: vec![],
+                };
+                Pass::catalogue(
+                    key,
+                    marker,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(6500),
+                    move |elapsed, buf, _| effect.render(buf, marker, &[], elapsed, &winner),
+                )
+            }
             FxCue::VerdictReady { contest_id } => {
                 let contest: squad_protocol::ContestId =
                     contest_id.to_string().parse().expect("UUID");
@@ -381,6 +531,199 @@ pub fn attach(
                     PassAccess::Unprotected,
                     Duration::from_millis(280),
                     move |elapsed, buf, _| bubble.apply(elapsed, buf, &[]),
+                )
+            }
+            FxCue::ModeBannerReady {
+                contest_id,
+                mode: fx::ReportMode::Census,
+            } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let Some((_, banner)) = shapes.banners.first() else {
+                    continue;
+                };
+                let rect = app.composed.graphic_rect(id, *banner, top, transcript);
+                let entrance = fx::banner::Entrance::new(
+                    &mut fx::banner::BannerCache::default(),
+                    squad_core::banner::Banner::Census,
+                    squad_core::banner::BannerMode::Off,
+                    rect.width,
+                    level,
+                    fx::banner::Palette {
+                        gold: palette.chrome(),
+                        tier: caps.color,
+                        ..Default::default()
+                    },
+                );
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    entrance.duration(),
+                    move |elapsed, buf, _| entrance.render(buf, rect, elapsed, &[]),
+                )
+            }
+            FxCue::CensusEstimateReady { contest_id, .. } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let rect = app
+                    .composed
+                    .graphic_rect(id, shapes.census_estimate, top, transcript);
+                let effect = fx::census::CensusEffect::new(
+                    fx::census::Motion::new(level, no_color, false),
+                    seed,
+                    None,
+                    None,
+                );
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    effect.duration(),
+                    move |elapsed, buf, _| {
+                        effect.render_graphic(buf, rect, elapsed, rect.width < 60, palette.chrome())
+                    },
+                )
+            }
+            FxCue::CrosscheckCellsReady {
+                contest_id,
+                artifact_id,
+            } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let committed = app
+                    .session
+                    .snapshot
+                    .events
+                    .iter()
+                    .find(|e| e.base.id == *artifact_id);
+                let selected = committed
+                    .map(|e| match &e.content {
+                        squad_protocol::EnvelopePayload::CrosscheckReview(r) => r
+                            .response
+                            .cells
+                            .iter()
+                            .map(|c| c.cell_id)
+                            .collect::<Vec<_>>(),
+                        squad_protocol::EnvelopePayload::ContestArtifact(a)
+                            if a.artifact_kind.as_str() == "crosscheck.cell" =>
+                        {
+                            squad_protocol::validation::decode::<
+                                squad_protocol::CrosscheckReviewResponse,
+                            >(&a.data)
+                            .map(|r| r.cells.into_iter().map(|c| c.cell_id).collect())
+                            .unwrap_or_default()
+                        }
+                        squad_protocol::EnvelopePayload::CrosscheckReport(r) => {
+                            r.ledger.iter().map(|c| c.cell.cell_id).collect()
+                        }
+                        _ => vec![],
+                    })
+                    .unwrap_or_default();
+                let cells = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .map(|g| {
+                        g.crosscheck_cells
+                            .iter()
+                            .filter(|(cell, _, _)| selected.contains(cell))
+                            .map(|(_, index, rect)| fx::crosscheck::CellAccent {
+                                grid_index: *index,
+                                rect: app.composed.graphic_rect(id, *rect, top, transcript),
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                let summary = messages
+                    .cards
+                    .iter()
+                    .find(|(message, _)| message == &id)
+                    .map(|(_, r)| Rect::new(r.x, r.y, r.width, 1));
+                let narrow = (transcript.width < 40).then_some(summary).flatten();
+                let effect = fx::crosscheck::CrosscheckEffect::new(
+                    fx::crosscheck::Motion::new(level, no_color, false),
+                    seed,
+                    cells,
+                    palette.chrome(),
+                );
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    cue.cue.duration(),
+                    move |elapsed, buf, _| effect.apply(buf, elapsed, transcript, narrow),
+                )
+            }
+            FxCue::ModeBannerReady {
+                contest_id,
+                mode: fx::ReportMode::Probe,
+            } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let rect = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.banners.first())
+                    .map(|(_, r)| app.composed.graphic_rect(id, *r, top, transcript))
+                    .unwrap_or_default();
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(850),
+                    move |elapsed, buf, _| {
+                        tint_prepared(buf, rect, elapsed, palette.chrome(), level)
+                    },
+                )
+            }
+            FxCue::ProbeTreeReady { contest_id } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let connectors = shapes
+                    .probe_connectors
+                    .iter()
+                    .filter_map(|(x, y)| {
+                        let r =
+                            app.composed
+                                .graphic_rect(id, Rect::new(*x, *y, 1, 1), top, transcript);
+                        (!r.is_empty()).then_some((r.x, r.y))
+                    })
+                    .collect();
+                let motion = fx::probe::Motion::new(level, no_color, false);
+                let effect = fx::probe::ProbeEffect::new(
+                    motion,
+                    seed,
+                    &[fx::probe::Branch { connectors }],
+                    palette.chrome(),
+                );
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(900),
+                    move |elapsed, buf, _| effect.apply(buf, elapsed, transcript),
+                )
+            }
+            FxCue::ModeBannerReady { contest_id, .. } => {
+                let id: squad_protocol::MessageId = contest_id.to_string().parse().expect("UUID");
+                let Some((_, visible)) = messages.cards.iter().find(|(message, _)| message == &id)
+                else {
+                    continue;
+                };
+                let area = Rect::new(visible.x, visible.y, visible.width, 1);
+                let gold = palette.chrome();
+                Pass::catalogue(
+                    key,
+                    area,
+                    PassAccess::Unprotected,
+                    cue.cue.duration(),
+                    move |elapsed, buf, _| tint_prepared(buf, area, elapsed, gold, level),
                 )
             }
             FxCue::DailySpendChanged => {

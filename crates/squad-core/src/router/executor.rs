@@ -131,29 +131,45 @@ pub fn failed(
             return Err(super::authorization::forbidden());
         }
         let repair_used: bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM judge_repairs WHERE work_id=?)",[work_id.to_string()],|r|r.get(0))?;
-        let failure_class=if failure.code==ErrorCode::JUDGE_INVALID_VERDICT { crate::orchestrator::types::FailureClass::InvalidOutput } else if failure.code==ErrorCode::PROVIDER_TIMEOUT { crate::orchestrator::types::FailureClass::Timeout } else { crate::orchestrator::types::FailureClass::Transport };
+        let failure_class=if matches!(failure.code,ErrorCode::JUDGE_INVALID_VERDICT|ErrorCode::JUDGE_INVALID_MODE_OUTPUT) { crate::orchestrator::types::FailureClass::InvalidOutput } else if failure.code==ErrorCode::PROVIDER_TIMEOUT { crate::orchestrator::types::FailureClass::Timeout } else { crate::orchestrator::types::FailureClass::Transport };
         // Judge transport/deadline failures are terminal; only invalid output
         // receives a repair attempt. The shared policy still chooses the outcome.
-        let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
-        let decision=crate::orchestrator::rounds::failure_policy(work_id,&work.kind,attempt,budget,repair_used,failure_class);
-        if let Some(repair) = repair {
+        let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound|WorkKind::SurveyExtract|WorkKind::SurveyReport) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
+        let decision=if work.kind==WorkKind::JudgeTournament && attempt<3 { crate::orchestrator::types::AttemptDecision::Retry{work_id,next_attempt:attempt+1,repair:failure_class==crate::orchestrator::types::FailureClass::InvalidOutput} } else { crate::orchestrator::rounds::failure_policy(work_id,&work.kind,attempt,budget,repair_used,failure_class) };
+        if work.kind.census_composition().is_some() && attempt < if work.kind.census_judge(){3}else{2} && !(work.kind.census_judge() && repair_used && failure.code==ErrorCode::JUDGE_INVALID_MODE_OUTPUT) {
+            if let Some(repair)=repair {
+                if !work.kind.census_judge() || repair.attempt!=attempt+1 || failure.code!=ErrorCode::JUDGE_INVALID_MODE_OUTPUT {return Err(super::authorization::forbidden());}
+                tx.execute("UPDATE work SET attempt=? WHERE work_id=?",params![repair.attempt,work_id.to_string()])?;
+                squad_store::judge_repairs::save(tx,work_id,work.case_id.ok_or(StoreError::Unavailable)?,&repair)?;
+                tx.execute("UPDATE work SET attempt=? WHERE work_id=?",params![attempt,work_id.to_string()])?;
+            }
+            tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL WHERE work_id=?",[work_id.to_string()])?;
+            return Ok(group.accepted(id));
+        }
+        if let Some(mut repair) = repair {
+            if work.kind==WorkKind::JudgeTournament {
+                let raw:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='tournament.identities'",[work.contest_id.ok_or(StoreError::Unavailable)?.to_string()],|r|r.get(0))?;
+                let value:serde_json::Value=serde_json::from_str(&raw)?;let tokens:Vec<String>=serde_json::from_value(value["tokens"].clone())?;
+                repair.rejected_output=crate::orchestrator::tournament::redact(&repair.rejected_output,&tokens);
+            }
+
             if !matches!(decision, crate::orchestrator::types::AttemptDecision::Retry { repair: true, .. }) { return Err(super::authorization::forbidden()); }
             let limit = u32::from(if work.kind == WorkKind::JudgeRound { constants::ROUND_JUDGE_ATTEMPTS } else { constants::FINAL_JUDGE_ATTEMPTS });
-            if !matches!(owner, ExecutorKey::Case(_)) || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound) || failure.code != ErrorCode::JUDGE_INVALID_VERDICT || repair.attempt != attempt + 1 || attempt >= limit {
+            if !matches!(owner, ExecutorKey::Case(_)) || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament | WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule | WorkKind::SurveyExtract | WorkKind::SurveyReport | WorkKind::ProbeReport) || !matches!(failure.code,ErrorCode::JUDGE_INVALID_VERDICT|ErrorCode::JUDGE_INVALID_MODE_OUTPUT) || repair.attempt != attempt + 1 || attempt >= limit {
                 return Err(super::authorization::forbidden());
             }
             let started:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM attempts WHERE work_id=? AND attempt=? AND epoch=?)",params![work_id.to_string(),attempt,epoch as i64],|r|r.get(0))?;
             if !started { return Err(StoreError::Domain(ErrorCode::INVALID_STATE_TRANSITION,"Repair requires a durable provider start")); }
             // Consume the old attempt and authorize the repair atomically. Its
             // rejected body lives exclusively in this private table.
-            tx.execute("UPDATE work SET status='queued',attempt=?,lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL WHERE work_id=?", params![repair.attempt, work_id.to_string()])?;
+            tx.execute("UPDATE work SET status='queued',attempt=?,lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL,execution_deadline=CASE WHEN kind LIKE 'probe.%' THEN NULL ELSE execution_deadline END WHERE work_id=?", params![repair.attempt, work_id.to_string()])?;
             squad_store::judge_repairs::save(tx, work_id, work.case_id.ok_or(StoreError::Unavailable)?, &repair)?;
             // claim() increments attempt, so retain the consumed attempt count.
             tx.execute("UPDATE work SET attempt=? WHERE work_id=?", params![attempt, work_id.to_string()])?;
             return Ok(group.accepted(id));
         }
         if work.contest_id.is_some() && matches!(decision, crate::orchestrator::types::AttemptDecision::Retry { repair: false, .. }) {
-            tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL WHERE work_id=?",[work_id.to_string()])?;
+            tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL,execution_deadline=CASE WHEN kind LIKE 'probe.%' THEN NULL ELSE execution_deadline END WHERE work_id=?",[work_id.to_string()])?;
             return Ok(group.accepted(id));
         }
         terminal(tx, group, id, &work, failure)?;
@@ -172,7 +188,7 @@ pub fn start(
     let id = EventId::new();
     store.commit(id, serde_json::to_string(&owner)?, squad_store::commit::digest(&(work_id, attempt, fence))?, move |tx, group| {
         let epoch: i64 = tx.query_row("SELECT epoch FROM room_meta", [], |r| r.get(0))?;
-        let record = squad_store::work::record(tx, work_id)?.ok_or(StoreError::Unavailable)?;
+        let mut record = squad_store::work::record(tx, work_id)?.ok_or(StoreError::Unavailable)?;
         let mut work = squad_store::work::check_fence(tx, work_id, &owner, record.attempt, fence, epoch as u64, group.accepted_at)?;
         if attempt != work.attempt {
             // Only ordinary transport retries can advance through this operation.
@@ -182,6 +198,11 @@ pub fn start(
             }
             tx.execute("UPDATE work SET attempt=? WHERE work_id=?", params![attempt, work_id.to_string()])?;
             work.attempt = attempt;
+        }
+        if work.kind==WorkKind::JudgeTournament || (work.kind==WorkKind::Reply && work.round.is_some()) {
+            let ms=if work.kind==WorkKind::JudgeTournament {constants::TOURNAMENT_JUDGE_DEADLINE_MS}else{constants::TOTAL_TIMEOUT_MS};
+            let deadline=record.deadline.unwrap_or(group.accepted_at+chrono::Duration::milliseconds(ms as i64));
+            tx.execute("UPDATE work SET execution_deadline=COALESCE(execution_deadline,?) WHERE work_id=?",params![deadline.to_rfc3339(),work_id.to_string()])?;record.deadline=Some(deadline);
         }
         let (_, binding) = squad_store::work::template(tx, work_id)?.ok_or(StoreError::Unavailable)?;
         let grant = ExecutionGrant { binding, work, owner, fence, epoch: epoch as u64, lease_until: record.lease_until.ok_or(StoreError::Unavailable)?, deadline: record.deadline };

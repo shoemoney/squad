@@ -134,7 +134,12 @@ impl RoomApi for RoomHandle {
             .map(|e| e.commit.seq)
             .min();
         let mut work = BTreeMap::new();
+        let mut tournaments = std::collections::BTreeMap::new();
         let mut debates = BTreeMap::new();
+        let mut census = BTreeMap::new();
+        let mut crosschecks = BTreeMap::new();
+        let mut surveys = BTreeMap::new();
+        let mut probes = BTreeMap::new();
         let mut addressed = BTreeSet::new();
         let mut terminal = BTreeSet::new();
         let mut failed = false;
@@ -213,13 +218,66 @@ impl RoomApi for RoomHandle {
                         }
                     }
                 }
+                EnvelopePayload::TournamentState(t) => {
+                    failed |= matches!(
+                        t.state,
+                        TournamentStatus::Failed | TournamentStatus::Stopped
+                    );
+                    tournaments.insert(t.contest_id, t.state.clone());
+                }
+                EnvelopePayload::CensusState(s) => {
+                    census.insert(s.contest_id, s.status);
+                }
+                EnvelopePayload::CrosscheckState(s) => {
+                    crosschecks.insert(s.contest_id, s.status);
+                }
+                EnvelopePayload::SurveyState(s) => {
+                    surveys.insert(s.contest_id, s.state);
+                }
+                EnvelopePayload::ProbeState(p) => {
+                    probes.insert(p.contest_id, p.state);
+                }
                 EnvelopePayload::DebateState(d) => {
                     debates.insert(d.debate_id, d.state.clone());
                 }
                 _ => (),
             }
         }
-        if !addressed.is_subset(&terminal)
+        if !probes.is_empty() {
+            return if probes.values().any(|s| !s.is_terminal()) {
+                Progress::Running
+            } else if probes.values().all(|s| *s == ProbeStatus::Complete) {
+                Progress::Succeeded
+            } else {
+                Progress::Failed
+            };
+        }
+        if !surveys.is_empty() && surveys.values().all(|s| s.is_terminal()) {
+            return if surveys.values().all(|s| *s == SurveyStatus::Complete) {
+                Progress::Succeeded
+            } else {
+                Progress::Failed
+            };
+        }
+        if !census.is_empty() {
+            return if census
+                .values()
+                .any(|s| matches!(s, CensusStatus::Failed | CensusStatus::Stopped))
+            {
+                Progress::Failed
+            } else if census
+                .values()
+                .all(|s| matches!(s, CensusStatus::WaitingForPlan | CensusStatus::Complete))
+            {
+                Progress::Succeeded
+            } else {
+                Progress::Running
+            };
+        }
+        if tournaments.values().any(|s| !s.is_terminal())
+            || crosschecks.values().any(|s| !s.is_terminal())
+            || surveys.values().any(|s| !s.is_terminal())
+            || !addressed.is_subset(&terminal)
             || work
                 .values()
                 .any(|s| matches!(s, WorkStatus::Queued | WorkStatus::Running))
@@ -238,6 +296,9 @@ impl RoomApi for RoomHandle {
             return Progress::Running;
         }
         if failed
+            || crosschecks
+                .values()
+                .any(|s| matches!(s, CrosscheckStatus::Failed | CrosscheckStatus::Stopped))
             || work
                 .values()
                 .any(|s| matches!(s, WorkStatus::Failed | WorkStatus::Cancelled))
@@ -506,6 +567,35 @@ mod tests {
         state
             .events
             .push(event(3, old, EnvelopePayload::WorkState(completed)));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
+    }
+    #[test]
+    fn crosscheck_waits_for_script_terminal_even_between_model_steps() {
+        let request = EventId::new();
+        let mut state = state();
+        let mut crosscheck = CrosscheckState {
+            contest_id: ContestId::new(),
+            plan_id: PlanId::new(),
+            plan_version: 1,
+            grid_version: 1,
+            state_version: 1,
+            status: CrosscheckStatus::BuildingGrid,
+            step_id: None,
+            terminal_reason: None,
+        };
+        state.events.push(event(
+            1,
+            request,
+            EnvelopePayload::CrosscheckState(crosscheck.clone()),
+        ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Running);
+        crosscheck.status = CrosscheckStatus::Complete;
+        crosscheck.state_version += 1;
+        state.events.push(event(
+            2,
+            request,
+            EnvelopePayload::CrosscheckState(crosscheck),
+        ));
         assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
     }
 }

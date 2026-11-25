@@ -4,22 +4,22 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
-claude · 4.5
+claude · claude-opus
 idle W0 L0           │claude · complete
 n/a tok · n/a        │  Trust starts with a receipt. Give one writer ownership of the durable log. A token is a preview; a committed
-fable · 4.1          │  answer is a promise.
+fable · claude-fable │  answer is a promise.
 idle W0 L0           │  ```rust
 n/a tok · n/a        │  commit(outcome).await?;
-openai · 5.1         │  acknowledge(receipt);
+openai · gpt-sol-lat │  acknowledge(receipt);
 idle W0 L0           │  Recovery should replay facts, never repeat side effects.
 n/a tok · n/a
-gemini · 3-pro       │fable · complete
+gemini · 4-neon      │fable · complete
 idle W0 L0           │  I picture a quiet control room: six coloured rails, one clear draft, and room to think. Let the models disagree
 n/a tok · n/a        │  without making the person fight the interface. Motion should explain a change, then get out of the way.
-grok · 4
+grok · grok-latest
 idle W0 L0           │openai · complete
 n/a tok · n/a        │  Make the contract executable. Typed requests enter one validated parser; a bounded scheduler prioritizes keyboard
-muse · 3             │  input. Keep provisional tokens separate from final outcomes.
+muse · muse-wonder   │  input. Keep provisional tokens separate from final outcomes.
 idle W0 L0           │  • Preserve rejected drafts
 n/a tok · n/a        │  • Deduplicate by message and attempt
                      │  • Measure latency during twelve simultaneous streams

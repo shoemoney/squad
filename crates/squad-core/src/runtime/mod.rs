@@ -1,7 +1,9 @@
 //! Private member workers and dynamically discovered case executors.
 pub mod contexts;
+mod crosscheck;
 mod judge;
 mod member;
+mod probe;
 use crate::{bus::InProcessBus, prompts::PromptPack};
 use squad_agents::{openrouter::OpenRouterClient, resolver::ResolutionSnapshot};
 use squad_protocol::*;
@@ -87,7 +89,7 @@ fn unavailable() -> ReaderError {
         message: "Executor runtime unavailable".into(),
     }
 }
-fn prompt(pack: &PromptPack, config: &SquadConfig, id: &str) -> PromptRef {
+pub(crate) fn prompt(pack: &PromptPack, config: &SquadConfig, id: &str) -> PromptRef {
     let material = serde_json::json!({"template": id, "overrides": pack.overrides(), "user": config.user.name, "members": config.agents.iter().map(|a| (&a.nick, &a.model, &a.persona, a.reasoning_effort)).collect::<Vec<_>>(), "roomWords": config.prompts.limits.room_words, "turnWords": config.prompts.limits.turn_words, "finalWords": config.prompts.limits.final_turn_words, "effort": config.defaults.reasoning_effort, "judgeEffort": config.judge.reasoning_effort});
     PromptRef {
         pack_version: Text::new(pack.version()).expect("pack version"),
@@ -155,6 +157,7 @@ fn launch_mode(
             member.nick.clone(),
             renderer,
             Arc::new(member::Executor {
+                pack: pack.clone(),
                 client: client.clone(),
                 config: config.clone(),
                 member: member.clone(),
@@ -270,9 +273,12 @@ fn launch_mode(
                     case,
                     squad_agents::worker::spawn(
                         context,
-                        Arc::new(judge::Executor(squad_agents::judge::JudgeExecutor {
-                            runner: judge.clone(),
-                        })),
+                        Arc::new(judge::Executor {
+                            ordinary: squad_agents::judge::JudgeExecutor {
+                                runner: judge.clone(),
+                            },
+                            crosscheck: judge.clone(),
+                        }),
                     ),
                 ));
             }

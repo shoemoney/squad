@@ -126,6 +126,7 @@ pub struct RoomDefaults {
     pub reasoning_effort: ReasoningEffort,
     pub reasoning_effort_explicit: bool,
     pub grill_rounds: u8,
+    pub census_passes: u8,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct BudgetConfig {
@@ -222,6 +223,7 @@ pub enum ConfigError {
     Banners,
     Effects,
     GrillRounds,
+    CensusPasses,
 }
 impl std::error::Error for ConfigError {}
 impl fmt::Display for ConfigError {
@@ -287,6 +289,9 @@ impl fmt::Display for ConfigError {
             }
             Self::Banners => f.write_str("SQUAD_BANNERS must be on, compact, or off."),
             Self::Effects => f.write_str("SQUAD_FX must be full, lite, or off."),
+            Self::CensusPasses => {
+                f.write_str("SQUAD_CENSUS_PASSES must be an integer from 1 to 5.")
+            }
             Self::GrillRounds => f.write_str("SQUAD_GRILL_ROUNDS must be an integer from 1 to 10."),
         }
     }
@@ -609,6 +614,10 @@ impl EffectiveEnvironment {
             .ok_or(ConfigError::GrillRounds),
             DEFAULT_GRILL_ROUNDS
         );
+        let census_passes = take!(
+            bounded(&get("SQUAD_CENSUS_PASSES", "2"), 1, 5).ok_or(ConfigError::CensusPasses),
+            2
+        );
         let daily_max_usd = take!(
             money(
                 &get("SQUAD_DAILY_MAX_USD", &DEFAULT_DAILY_MAX_USD.to_string()),
@@ -678,6 +687,7 @@ impl EffectiveEnvironment {
             defaults: RoomDefaults {
                 rounds,
                 grill_rounds,
+                census_passes,
                 reasoning_effort: take!(
                     effort(
                         &get(

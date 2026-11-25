@@ -1,0 +1,20 @@
+---
+source: crates/squad-tui/tests/widget_grill.rs
+expression: "screen(&before, 80, 30).0"
+---
+▾ GRILL · QUESTIONING
+Leader @alpha · grillers beta
+Costs
+Shared floor: leader and grillers receive committed plans, questions and
+answers. Non-participants receive nothing.
+GRILL_ROUNDS 2 · round 1 · turn beta · plan v1
+questions asked 0 · passed 0
+GRILL ROUND 1
+beta ▸ grills ▸ alpha · complete
+Angle: cost
+Q: Who pays?
+A: Users pay
+Plan changes: Add pricing
+▾ PLAN v1 · latest
+Original plan
+▸ QUESTION-AND-ANSWER APPENDIX

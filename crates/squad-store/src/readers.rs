@@ -92,7 +92,40 @@ impl HistoryReader for ScopedReaders {
                     return Err(ReaderError::StaleWork);
                 }
                 let work = record.executable.ok_or(ReaderError::NotRunnable)?;
-                crate::history::read(db, &work.context_id, work.history_through).map_err(map_error)
+                let mut history = crate::history::read(db, &work.context_id, work.history_through)
+                    .map_err(map_error)?;
+                if work.kind == WorkKind::Reply && work.round.is_some() {
+                    history.retain(|entry| {
+                        let HistoryMetadata::Attributed {
+                            origin_event_id,
+                            projection_key,
+                            ..
+                        } = &entry.meta
+                        else {
+                            return true;
+                        };
+                        if !projection_key.as_str().starts_with("tournament.") {
+                            return true;
+                        }
+                        let Ok(Some(source)) = crate::events::by_id(db, *origin_event_id) else {
+                            return false;
+                        };
+                        match source.content {
+                            EnvelopePayload::TournamentResult(r) => {
+                                Some(r.contest_id) == work.contest_id
+                                    && Some(r.round + 1) == work.round
+                            }
+                            EnvelopePayload::TournamentEntry(e) => {
+                                Some(e.contest_id) == work.contest_id
+                            }
+                            EnvelopePayload::TournamentState(s) => {
+                                Some(s.contest_id) == work.contest_id
+                            }
+                            _ => false,
+                        }
+                    });
+                }
+                Ok(history)
             })
         })
     }
@@ -107,12 +140,60 @@ impl WorkReader for ScopedReaders {
             let record = owned(db, owner, id)?;
             if record.status != WorkStatus::Running || !record.runnable { return Err(ReaderError::NotRunnable); }
             let work = record.executable.ok_or(ReaderError::NotRunnable)?;
+            if work.kind.census_composition().is_some() {
+                let (fence,epoch):(i64,i64)=db.query_row("SELECT lease_fence,epoch FROM work WHERE work_id=?",[id.to_string()],|r|Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::StaleWork)?;
+                crate::work::check_fence(db,id,owner,work.attempt,fence as u64,epoch as u64,chrono::Utc::now()).map_err(|_|ReaderError::StaleWork)?;
+                return crate::census::input(db,id).map_err(map_error);
+            }
             let mut values = std::collections::BTreeMap::new();
+            if matches!(work.kind, WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit | WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule) {
+                let state=crate::crosscheck::state(db,work.contest_id.ok_or(ReaderError::Forbidden)?).map_err(map_error)?;
+                let valid:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE work_id=? AND lease_owner=? AND lease_until>?)",rusqlite::params![id.to_string(),serde_json::to_string(owner).map_err(|_|ReaderError::Forbidden)?,chrono::Utc::now().to_rfc3339()],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                if state.status.is_terminal() || state.step_id!=work.step_id || !valid {return Err(ReaderError::StaleWork);}
+
+                let material: String = db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key=?",rusqlite::params![work.contest_id.ok_or(ReaderError::Forbidden)?.to_string(),format!("crosscheck.input:{}",id)],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                let material:serde_json::Value=serde_json::from_str(&material).map_err(|_|ReaderError::Forbidden)?;
+                values.insert("crosscheck_material_json".into(),material["value"].to_string());
+                return Ok(values);
+            }
+            if let Some(contest)=work.contest_id
+                && matches!(work.kind, WorkKind::SurveyExtract | WorkKind::SurveyVote | WorkKind::SurveyRevote | WorkKind::SurveyReport) {
+                    let raw:String=db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key=?",rusqlite::params![contest.to_string(),format!("survey.work:{}",work.work_id)],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                    return serde_json::from_str(&raw).map_err(|_|ReaderError::Forbidden);
+            }
+            if work.kind.is_probe() {
+                values.insert("mode_data_json".into(), crate::probe::input(db,&work).map_err(map_error)?.to_string());
+                let raw:String=db.query_row("SELECT plan_json FROM contests WHERE contest_id=?",[work.contest_id.ok_or(ReaderError::NotRunnable)?.to_string()],|r|r.get(0)).map_err(|_|ReaderError::NotFound)?;
+                let plan:ProbePreflight=serde_json::from_str(&raw).map_err(|_|ReaderError::NotRunnable)?;
+                // Only the selected composition and public word limits cross the capability.
+                let id=work.kind.probe_composition().ok_or(ReaderError::NotRunnable)?;
+                values.insert("probe_prompt_json".into(),plan.base.settings["prompts"][id].to_string());
+                values.insert("room_words".into(),plan.base.settings["roomWords"].to_string());
+                values.insert("plan_words".into(),plan.base.settings["planWords"].to_string());
+                return Ok(values);
+            }
             if let Some(case) = work.case_id {
                 if !matches!(owner, ExecutorKey::Case(owned) if *owned == case) { return Err(ReaderError::Forbidden); }
                 let (material, state): (String, String) = db.query_row("SELECT material_json,state_json FROM cases WHERE case_id=? AND epoch=(SELECT epoch FROM room_meta)", [case.to_string()], |r| Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::NotFound)?;
                 values.insert("case_material_json".into(), material);
                 values.insert("case_state_json".into(), state);
+            }
+            if work.kind==WorkKind::Reply && work.round.is_some() {
+                let s=crate::tournaments::validate_execution(db,&work).map_err(map_error)?;
+                values.insert("contest_id".into(),s.contest_id.to_string());
+                values.insert("round".into(),s.round.to_string());
+                values.insert("entrants_remaining".into(),s.survivors.len().to_string());
+            }
+            if work.kind==WorkKind::Reply && let Some(round)=work.round {
+                let raw:String=db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='tournament.member_prompts'",[work.contest_id.ok_or(ReaderError::Forbidden)?.to_string()],|r|r.get(0)).map_err(|_|ReaderError::NotFound)?;
+                let frozen:serde_json::Value=serde_json::from_str(&raw).map_err(|_|ReaderError::Forbidden)?;
+                values.insert("tournament_frozen_system".into(),frozen["systems"][work.target.to_string()].as_str().ok_or(ReaderError::Forbidden)?.into());
+                values.insert("tournament_frozen_instruction".into(),frozen["instructions"][round.to_string()].as_str().ok_or(ReaderError::Forbidden)?.into());
+            }
+            if work.kind==WorkKind::JudgeTournament {
+                crate::tournaments::validate_execution(db,&work).map_err(map_error)?;
+                let raw:String=db.query_row("SELECT state_json FROM tournament_rounds WHERE contest_id=? AND round=? AND replay=? AND judge_work_id=?",rusqlite::params![work.contest_id.unwrap().to_string(),work.round,work.replay,work.work_id.to_string()],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                values.insert("tournament_frozen_judge".into(),raw);
             }
             if let Some(debate) = work.debate_id {
                 let state = crate::contests::debate(db, debate).map_err(map_error)?;

@@ -81,7 +81,7 @@ impl PromptRenderer for Renderer {
             .collect();
         values.retain(|key, _| required.contains(&key.as_str()));
         let rendered = self.pack.render(prompt, &values)?;
-        if composition {
+        if composition && !id.starts_with("census.") {
             let rendered: crate::prompts::RenderedComposition =
                 serde_json::from_str(&rendered).map_err(|_| unavailable())?;
             Ok(rendered.user)
@@ -92,6 +92,7 @@ impl PromptRenderer for Renderer {
 }
 
 pub(super) struct Executor {
+    pub pack: Arc<PromptPack>,
     pub client: OpenRouterClient,
     pub config: SquadConfig,
     pub member: squad_protocol::config::AgentConfig,
@@ -106,6 +107,32 @@ impl squad_agents::worker::WorkExecutor for Executor {
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
         Box::pin(async move {
+            if grant.work.kind.is_crosscheck_member() {
+                return super::crosscheck::execute(
+                    context,
+                    grant,
+                    cancel,
+                    &self.client,
+                    &self.config,
+                    &self.pack,
+                    &self.models,
+                )
+                .await;
+            }
+            if grant.work.kind.is_probe() {
+                let pack = PromptPack::from_override_dir(self.config.prompts.directory.as_deref())
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                return super::probe::execute(
+                    context,
+                    grant,
+                    cancel,
+                    &self.config,
+                    &pack,
+                    &self.models,
+                    &self.client,
+                )
+                .await;
+            }
             let Some(model) = self.models.get(grant.binding.model.as_str()) else {
                 return squad_agents::agents::failed(context, &grant, ErrorCode::MODEL_UNAVAILABLE)
                     .await;
@@ -115,6 +142,36 @@ impl squad_agents::worker::WorkExecutor for Executor {
             let request = registry
                 .work_request(Some(&self.member), model, &grant)
                 .map_err(|_| ReaderError::NotRunnable)?;
+            if grant.work.kind.census_composition().is_some() {
+                let executor = squad_agents::agents::census::CensusExecutor {
+                    client: self.client.clone(),
+                    request,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
+            if matches!(
+                grant.work.kind,
+                WorkKind::SurveyVote | WorkKind::SurveyRevote
+            ) {
+                let executor = squad_agents::agents::survey::SurveyExecutor {
+                    client: self.client.clone(),
+                    request,
+                    system: self.prompt.system.clone(),
+                    system_values: self
+                        .prompt
+                        .values(&grant)
+                        .map_err(|_| ReaderError::Forbidden)?,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
             let executor = squad_agents::agents::member::MemberExecutor {
                 client: self.client.clone(),
                 request,

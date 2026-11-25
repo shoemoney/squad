@@ -45,7 +45,6 @@ impl InProcessBus {
                         Ok(outcome) => {
                             let notify = !outcome.events.is_empty();
                             // The router returns only after COMMIT. Failures cannot reach this path.
-                            let _ = ingress.reply.send(outcome.result.clone());
                             for event in outcome.events {
                                 super::diagnostics::commit(&event);
                                 let _ = feed.send(FeedItem::Committed(event));
@@ -77,6 +76,9 @@ impl InProcessBus {
                                     super::diagnostics::mailbox(key, result.is_err());
                                 }
                             }
+                            // Acknowledgement observes the completed publication and
+                            // coalesced wakeups, all of which are nonblocking.
+                            let _ = ingress.reply.send(outcome.result.clone());
                         }
                         Err(error) => {
                             let _ = ingress.reply.send(rejected(id, error));

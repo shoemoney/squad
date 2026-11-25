@@ -14,7 +14,10 @@ pub(super) struct Runner {
     pub pack: Arc<PromptPack>,
     pub models: squad_agents::resolver::Catalog,
 }
-pub(super) struct Executor(pub squad_agents::judge::JudgeExecutor);
+pub(super) struct Executor {
+    pub ordinary: squad_agents::judge::JudgeExecutor,
+    pub crosscheck: Arc<Runner>,
+}
 impl squad_agents::worker::WorkExecutor for Executor {
     fn execute<'a>(
         &'a self,
@@ -22,7 +25,28 @@ impl squad_agents::worker::WorkExecutor for Executor {
         grant: ExecutionGrant,
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
-        self.0.execute(context, grant, cancel)
+        if grant.work.kind == WorkKind::ProbeReport
+            || grant.work.kind.census_judge()
+            || matches!(
+                grant.work.kind,
+                WorkKind::SurveyExtract | WorkKind::SurveyReport
+            )
+        {
+            return self.crosscheck.execute(context, grant, cancel);
+        }
+        if grant.work.kind.is_crosscheck_judge() {
+            Box::pin(super::crosscheck::execute(
+                context,
+                grant,
+                cancel,
+                &self.crosscheck.client,
+                &self.crosscheck.config,
+                &self.crosscheck.pack,
+                &self.crosscheck.models,
+            ))
+        } else {
+            self.ordinary.execute(context, grant, cancel)
+        }
     }
 }
 impl JudgeAttemptRunner for Runner {
@@ -33,6 +57,82 @@ impl JudgeAttemptRunner for Runner {
         cancel: CancellationToken,
     ) -> JudgeExecutionFuture<'a> {
         Box::pin(async move {
+            if grant.work.kind.census_composition().is_some() {
+                let model = self
+                    .models
+                    .get(grant.binding.model.as_str())
+                    .ok_or(ReaderError::NotRunnable)?;
+                let registry = squad_agents::registry::Registry::new(&self.config)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let request = registry
+                    .work_request(None, model, &grant)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let executor = squad_agents::agents::census::CensusExecutor {
+                    client: self.client.clone(),
+                    request,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
+            if matches!(
+                grant.work.kind,
+                WorkKind::SurveyExtract | WorkKind::SurveyReport
+            ) {
+                let model = self
+                    .models
+                    .get(grant.binding.model.as_str())
+                    .ok_or(ReaderError::NotRunnable)?;
+                let registry = squad_agents::registry::Registry::new(&self.config)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let request = registry
+                    .work_request(None, model, &grant)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let system_values = BTreeMap::from([
+                    (
+                        "member_nicks_json".into(),
+                        serde_json::to_string(
+                            &self
+                                .config
+                                .agents
+                                .iter()
+                                .map(|a| &a.nick)
+                                .collect::<Vec<_>>(),
+                        )
+                        .map_err(|_| ReaderError::Forbidden)?,
+                    ),
+                    (
+                        "user_name_json".into(),
+                        serde_json::to_string(&self.config.user.name)
+                            .map_err(|_| ReaderError::Forbidden)?,
+                    ),
+                ]);
+                let executor = squad_agents::agents::survey::SurveyExecutor {
+                    client: self.client.clone(),
+                    request,
+                    system: super::prompt(&self.pack, &self.config, "judge.system"),
+                    system_values,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
+            if grant.work.kind == WorkKind::ProbeReport {
+                return super::probe::execute(
+                    context,
+                    grant,
+                    cancel,
+                    &self.config,
+                    &self.pack,
+                    &self.models,
+                    &self.client,
+                )
+                .await;
+            }
             let prepared = self.prepare(context, &mut grant).await;
             let (request, debaters, tally, invocation, rubric) = match prepared {
                 Ok(prepared) => prepared,
@@ -63,6 +163,11 @@ impl JudgeAttemptRunner for Runner {
                         return failed(context, &grant, code).await;
                     }
                 };
+            if grant.work.kind == WorkKind::JudgeTournament {
+                return self
+                    .tournament_output(context, &grant, &output.content)
+                    .await;
+            }
             let validation = squad_agents::judge::validate_output(
                 &grant.work,
                 &output.content,
@@ -180,6 +285,94 @@ impl Runner {
             .work
             .prompt_values_for_work(grant.work.work_id)
             .await?;
+        if grant.work.kind == WorkKind::JudgeTournament {
+            let frozen: serde_json::Value = serde_json::from_str(
+                values
+                    .get("tournament_frozen_judge")
+                    .ok_or(ReaderError::NotRunnable)?,
+            )
+            .map_err(|_| ReaderError::NotRunnable)?;
+            let rendered: crate::prompts::RenderedComposition =
+                serde_json::from_value(frozen["prompt"].clone())
+                    .map_err(|_| ReaderError::NotRunnable)?;
+            let mut user = rendered.user;
+            if let Some(repair) = context
+                .work
+                .repair_for_attempt(grant.work.work_id, grant.work.attempt)
+                .await?
+            {
+                let suffix = frozen["repair"]
+                    .as_str()
+                    .ok_or(ReaderError::NotRunnable)?
+                    .replace(
+                        "{{invalid_output_json}}",
+                        &serde_json::to_string(&repair.rejected_output)
+                            .map_err(|_| ReaderError::NotRunnable)?,
+                    )
+                    .replace(
+                        "{{validation_errors_json}}",
+                        &serde_json::to_string(&repair.validation_errors)
+                            .map_err(|_| ReaderError::NotRunnable)?,
+                    );
+                user.push_str("\n\n");
+                user.push_str(&suffix);
+            }
+            let request = squad_agents::openrouter::ChatRequest {
+                model: grant.binding.model.to_string(),
+                messages: vec![
+                    squad_agents::openrouter::ChatMessage {
+                        role: "system".into(),
+                        name: None,
+                        content: rendered.system,
+                    },
+                    squad_agents::openrouter::ChatMessage {
+                        role: "user".into(),
+                        name: Some("squad".into()),
+                        content: user,
+                    },
+                ],
+                visible_ceiling: constants::FINAL_JUDGE_VISIBLE_TOKENS,
+                published_output_limit: model.output_limit,
+                supports_reasoning: model.supports_reasoning(),
+                reasoning_effort: ReasoningEffort::High,
+                reasoning_explicit: false,
+                response_format: None,
+                policy: squad_agents::openrouter::ExecutionPolicy::SingleAttempt(
+                    squad_agents::openrouter::DeadlineClass::TournamentJudge,
+                ),
+            };
+            let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
+                .as_u64()
+                .ok_or(ReaderError::NotRunnable)?;
+            if squad_agents::context::estimate(&request.messages)
+                > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
+            {
+                return Err(ReaderError::NotRunnable);
+            }
+            let state: serde_json::Value = serde_json::from_str(
+                values
+                    .get("case_state_json")
+                    .ok_or(ReaderError::NotRunnable)?,
+            )
+            .map_err(|_| ReaderError::NotRunnable)?;
+            let invocation = serde_json::from_value(state["judgeInvocationId"].clone())
+                .map_err(|_| ReaderError::NotRunnable)?;
+            let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
+                .as_u64()
+                .ok_or(ReaderError::NotRunnable)?;
+            if squad_agents::context::estimate(&request.messages)
+                > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
+            {
+                return Err(ReaderError::NotRunnable);
+            }
+            return Ok((
+                request,
+                None,
+                BTreeMap::new(),
+                invocation,
+                Text::new("v1").unwrap(),
+            ));
+        }
         let material: CaseMaterial = serde_json::from_str(
             values
                 .get("case_material_json")
@@ -230,6 +423,13 @@ impl Runner {
             )
         } else {
             match &material {
+                CaseMaterial::Tournament { material } => self
+                    .pack
+                    .tournament_judge_inputs(material)
+                    .map(|inputs| ("judge.tournament", inputs)),
+
+                CaseMaterial::Survey { .. } => return Err(ReaderError::Forbidden),
+                CaseMaterial::Probe(_) => return Err(ReaderError::NotRunnable),
                 CaseMaterial::Standalone { messages, question } => self.pack.judge_inputs(
                     &self.config,
                     &grant.work,
@@ -314,5 +514,77 @@ impl Runner {
             return Err(ReaderError::NotRunnable);
         }
         Ok((request, debaters, tally, invocation, rubric))
+    }
+}
+
+impl Runner {
+    async fn tournament_output(
+        &self,
+        context: &AgentContext,
+        grant: &ExecutionGrant,
+        raw: &str,
+    ) -> Result<(), ReaderError> {
+        let values = context
+            .work
+            .prompt_values_for_work(grant.work.work_id)
+            .await?;
+        let material: CaseMaterial = serde_json::from_str(
+            values
+                .get("case_material_json")
+                .ok_or(ReaderError::NotRunnable)?,
+        )
+        .map_err(|_| ReaderError::NotRunnable)?;
+        let CaseMaterial::Tournament { material } = material else {
+            return Err(ReaderError::Forbidden);
+        };
+        let labels = material
+            .entries
+            .iter()
+            .map(|e| e.label.clone())
+            .collect::<Vec<_>>();
+        match TournamentJudgeResponse::from_json(raw, &labels) {
+            Ok(response) => acknowledged(
+                context
+                    .submit
+                    .submit(ExecutorRequest::Result {
+                        work_id: grant.work.work_id,
+                        attempt: grant.work.attempt,
+                        fence: grant.fence,
+                        epoch: grant.epoch,
+                        output: EnvelopePayload::TournamentJudgment(TournamentJudgment {
+                            generation: identity(grant),
+                            contest_id: grant.work.contest_id.ok_or(ReaderError::NotRunnable)?,
+                            case_id: grant.work.case_id.ok_or(ReaderError::NotRunnable)?,
+                            round: grant.work.round.ok_or(ReaderError::NotRunnable)?,
+                            replay: grant.work.replay.ok_or(ReaderError::NotRunnable)?,
+                            response,
+                        }),
+                    })
+                    .await,
+            ),
+            Err(_) => {
+                let mut error = crate::router::error(
+                    ErrorCode::JUDGE_INVALID_VERDICT,
+                    "Tournament ranking failed validation",
+                );
+                error.work_id = Some(grant.work.work_id);
+                error.case_id = grant.work.case_id;
+                error.contest_id = grant.work.contest_id;
+                let repair=(grant.work.attempt<3).then(||JudgeRepairData{attempt:grant.work.attempt+1,rejected_output:raw.into(),validation_errors:vec!["Return a strict permutation with integer scores 1 through 10 and one-line critiques".into()]});
+                acknowledged(
+                    context
+                        .submit
+                        .submit(ExecutorRequest::Failed {
+                            work_id: grant.work.work_id,
+                            attempt: grant.work.attempt,
+                            fence: grant.fence,
+                            epoch: grant.epoch,
+                            error,
+                            repair,
+                        })
+                        .await,
+                )
+            }
+        }
     }
 }

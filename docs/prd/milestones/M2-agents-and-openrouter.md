@@ -125,9 +125,9 @@
   - [x] M2.P2.L6.T5 — Test all four modes’ template registration, partial overrides, strict placeholder validation, and schema-preserving payload serialization in crate `squad-core`, file `crates/squad-core/src/prompts/tests.rs`.
 
 - **M2.P2.L7 — Execute tournament and grill work**
-  - [ ] M2.P2.L7.T1 — Execute reply-like tournament entry Work with contest identity, ordinary output limits, and own-result inputs through the injected Prompt pack renderer in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L7.T2 — Execute `judge.tournament` with blind case material, the owning ranking and repair templates, a 120-second deadline, and one provider call per authorized attempt in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L7.T3 — Test that entrant requests contain only their own tournament answers and results and that judge requests contain no entrant nicks, model names, personas, roster, or label map in crate `squad-agents`, file `crates/squad-agents/tests/agents_tournament.rs`.
+  - [x] M2.P2.L7.T1 — Execute reply-like tournament entry Work with contest identity, ordinary output limits, and own-result inputs through the injected Prompt pack renderer in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L7.T2 — Execute `judge.tournament` with blind case material, the owning ranking and repair templates, a 120-second deadline, and one provider call per authorized attempt in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L7.T3 — Test that entrant requests contain only their own tournament answers and results and that judge requests contain no entrant nicks, model names, personas, roster, or label map in crate `squad-agents`, file `crates/squad-agents/tests/agents_tournament.rs`.
   - [ ] M2.P2.L7.T4 — Execute `grill.question`, `grill.answer`, and `grill.rebuild` through their owning templates, word limits, output reservations, and result paths in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
   - [ ] M2.P2.L7.T5 — Assemble the latest plan, current-round shared floor, assigned angle, and earlier-question list without earlier full answers in crate `squad-agents`, file `crates/squad-agents/src/context.rs`.
   - [ ] M2.P2.L7.T6 — Test grill attribution, exact `PASS`, answer and rebuild limits, frozen retry inputs, and absence of executor-owned judging or scheduling in crate `squad-agents`, file `crates/squad-agents/tests/agents_grill.rs`.
@@ -135,30 +135,30 @@
   - [ ] M2.P2.L7.T8 — Test question-first collection as ordinary mutually invisible replies, continued chat while a pick is pending, and retention of collected answers after cancellation in crate `squad-core`, file `crates/squad-core/tests/agents_worker.rs`.
 
 - **M2.P2.L8 — Execute census work**
-  - [ ] M2.P2.L8.T1 — Execute census hunt and rating Work with the assigned lens, frozen plan version, anonymous ledger, and owning result schemas in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L8.T2 — Execute census merge and finalization Work through the case-bound judge adapter and owning templates in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L8.T3 — Capture requests to verify blind hunts, the eight-gap bound, anonymous rating inputs without finder counts, covered citations, and no executor-computed authoritative estimate in crate `squad-agents`, file `crates/squad-agents/tests/agents_census.rs`.
-  - [ ] M2.P2.L8.T4 — Test committed per-member delivery, patched plan versions between passes, frozen retry inputs, and exclusion of the human’s provenance table from member contexts in crate `squad-core`, file `crates/squad-core/tests/agents_census.rs`.
+  - [x] M2.P2.L8.T1 — Execute census hunt and rating Work with the assigned lens, frozen plan version, anonymous ledger, and owning result schemas in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L8.T2 — Execute census merge and finalization Work through the case-bound judge adapter and owning templates in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L8.T3 — Capture requests to verify blind hunts, the eight-gap bound, anonymous rating inputs without finder counts, covered citations, and no executor-computed authoritative estimate in crate `squad-agents`, file `crates/squad-agents/tests/agents_census.rs`.
+  - [x] M2.P2.L8.T4 — Test committed per-member delivery, patched plan versions between passes, frozen retry inputs, and exclusion of the human’s provenance table from member contexts in crate `squad-core`, file `crates/squad-core/tests/agents_census.rs`.
 
 - **M2.P2.L9 — Execute crosscheck work and fresh audits**
-  - [ ] M2.P2.L9.T1 — Execute crosscheck inventory and cell-review Work with only the authorized goal, constraints, lens, plan, and assigned-cell projection in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L9.T2 — Execute crosscheck normalization, optional goal-and-constraints extraction, and audit-ruling Work through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L9.T3 — Construct and recover fresh audit-step `AgentContext` capabilities with no ordinary, inventory, review, or prior audit history while retaining member execution and accounting identity in crate `squad-core`, file `crates/squad-core/src/router/cases.rs`.
-  - [ ] M2.P2.L9.T4 — Execute audit Work from the committed plan, grid, and frozen sample without reviewer identity, resampling, or executor-selected replacements in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L9.T5 — Capture inventory, review, audit, and ruling requests to verify plan blindness, assigned-cell limits, anonymous evidence, and one call per authorized batch in crate `squad-agents`, file `crates/squad-agents/tests/agents_crosscheck.rs`.
-  - [ ] M2.P2.L9.T6 — Test plan-bearing quote and ordinary-history canaries, exclusion of self-authored inventory cells, fresh auditor readers, frozen samples after recovery, and the one-active-generation rule in crate `squad-core`, file `crates/squad-core/tests/agents_crosscheck.rs`.
+  - [x] M2.P2.L9.T1 — Execute crosscheck inventory and cell-review Work with only the authorized goal, constraints, lens, plan, and assigned-cell projection in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L9.T2 — Execute crosscheck normalization, optional goal-and-constraints extraction, and audit-ruling Work through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L9.T3 — Construct and recover fresh audit-step `AgentContext` capabilities with no ordinary, inventory, review, or prior audit history while retaining member execution and accounting identity in crate `squad-core`, file `crates/squad-core/src/router/cases.rs`.
+  - [x] M2.P2.L9.T4 — Execute audit Work from the committed plan, grid, and frozen sample without reviewer identity, resampling, or executor-selected replacements in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L9.T5 — Capture inventory, review, audit, and ruling requests to verify plan blindness, assigned-cell limits, anonymous evidence, and one call per authorized batch in crate `squad-agents`, file `crates/squad-agents/tests/agents_crosscheck.rs`.
+  - [x] M2.P2.L9.T6 — Test plan-bearing quote and ordinary-history canaries, exclusion of self-authored inventory cells, fresh auditor readers, frozen samples after recovery, and the one-active-generation rule in crate `squad-core`, file `crates/squad-core/tests/agents_crosscheck.rs`.
 
 - **M2.P2.L10 — Execute survey work**
-  - [ ] M2.P2.L10.T1 — Execute optional ordinary collection and survey vote and revote Work through the owning templates and result paths in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L10.T2 — Execute survey extraction and report Work with private case provenance and application-supplied tallies in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L10.T3 — Capture requests to verify the claim bound, vote enums, confidence range, anonymous reasons, and absence of other whole answers, authorship, and vote counts from voting contexts in crate `squad-agents`, file `crates/squad-agents/tests/agents_survey.rs`.
-  - [ ] M2.P2.L10.T4 — Test reuse of an existing parallel answer set without replacement calls, step-bound voting contexts, frozen revote inputs, and no broadcast of private report provenance in crate `squad-core`, file `crates/squad-core/tests/agents_survey.rs`.
+  - [x] M2.P2.L10.T1 — Execute optional ordinary collection and survey vote and revote Work through the owning templates and result paths in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L10.T2 — Execute survey extraction and report Work with private case provenance and application-supplied tallies in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L10.T3 — Capture requests to verify the claim bound, vote enums, confidence range, anonymous reasons, and absence of other whole answers, authorship, and vote counts from voting contexts in crate `squad-agents`, file `crates/squad-agents/tests/agents_survey.rs`.
+  - [x] M2.P2.L10.T4 — Test reuse of an existing parallel answer set without replacement calls, step-bound voting contexts, frozen revote inputs, and no broadcast of private report provenance in crate `squad-core`, file `crates/squad-core/tests/agents_survey.rs`.
 
 - **M2.P2.L11 — Execute probe work**
-  - [ ] M2.P2.L11.T1 — Execute probe explanation, check, and prediction Work using the committed role assignment and owning templates in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L11.T2 — Execute probe report Work from the locked explanations, checks, and prediction matrix through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L11.T3 — Capture requests to verify mutually blind initial proposals, own-explanation-plus-all-checks prediction inputs, explicit inability to predict, and no rival explanation or prediction leakage in crate `squad-agents`, file `crates/squad-agents/tests/agents_probe.rs`.
-  - [ ] M2.P2.L11.T4 — Test committed role delivery, no generation for the member sitting out, frozen prediction inputs, and absence of executor-run checks or role reshuffling in crate `squad-core`, file `crates/squad-core/tests/agents_probe.rs`.
+  - [x] M2.P2.L11.T1 — Execute probe explanation, check, and prediction Work using the committed role assignment and owning templates in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L11.T2 — Execute probe report Work from the locked explanations, checks, and prediction matrix through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L11.T3 — Capture requests to verify mutually blind initial proposals, own-explanation-plus-all-checks prediction inputs, explicit inability to predict, and no rival explanation or prediction leakage in crate `squad-agents`, file `crates/squad-agents/tests/agents_probe.rs`.
+  - [x] M2.P2.L11.T4 — Test committed role delivery, no generation for the member sitting out, frozen prediction inputs, and absence of executor-run checks or role reshuffling in crate `squad-core`, file `crates/squad-core/tests/agents_probe.rs`.
 
 ## Phase M2.P3 — OpenRouter execution
 

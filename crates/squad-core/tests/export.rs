@@ -1,4 +1,5 @@
 use serde_json::{Value, json};
+use squad_core::export::GrillQuestion;
 use squad_core::{banner::Banner, export::*};
 use squad_protocol::*;
 
@@ -272,7 +273,7 @@ fn rejects_invalid_scopes_and_snapshots() {
     );
     assert_eq!(
         render(&s, ExportScope::Census, id),
-        Err(ExportError::UnsupportedScope)
+        Err(ExportError::ScopeMismatch)
     );
     s.events.push(s.events[0].clone());
     assert_eq!(
@@ -365,4 +366,137 @@ fn standalone_case_exports_only_public_question_sources_and_ruling() {
     assert!(output.contains("Source · alpha"));
     assert!(output.contains("Use the index"));
     assert!(!output.contains(&uuid(93)));
+}
+
+#[test]
+fn survey_exports_committed_sources_both_ballots_all_bands_and_observed_switches() {
+    let claim = json!({"id":"c1","claim":"The proposal is feasible.","sourceAnswerIds":[uuid(71)]});
+    let map = json!([{"claimId":"c1","first":{"agree":1,"disagree":1,"unsure":0,"missing":0},"finalTally":{"agree":0,"disagree":2,"unsure":0,"missing":0},"notRevoted":["beta"],"switches":[{"voter":"alpha","from":"AGREE","to":"DISAGREE"}],"bands":["rejectedOutliers"]}]);
+    let ballot = |voter: &str, choice: &str, second: bool| {
+        let mut item = json!({"claimId":"c1","vote":choice,"reason":"The capacity measurement matters.","confidence":4});
+        if second {
+            item["changeEvidence"] = json!("A successful load test would change my mind.");
+        }
+        json!({"contestId":CONTEST,"stepId":uuid(80),"completed":generation(),"voter":voter,"ballot":{"votes":[item]}})
+    };
+    let snapshot = ExportSnapshot {
+        events: vec![
+            event(
+                1,
+                "survey.setup",
+                json!({"contestId":CONTEST,"questionMessageId":uuid(70),"question":"Is the proposal feasible?","participants":["alpha","beta"],"answers":[{"nick":"alpha","messageId":uuid(71),"text":"It fits the capacity budget."},{"nick":"beta","messageId":uuid(72),"text":"A load test is needed."}],"collect":false}),
+            ),
+            event(
+                2,
+                "survey.claims",
+                json!({"contestId":CONTEST,"stepId":uuid(80),"completed":generation(),"extraction":{"claims":[claim]}}),
+            ),
+            event(3, "survey.vote", ballot("alpha", "AGREE", false)),
+            event(4, "survey.vote", ballot("beta", "DISAGREE", false)),
+            event(
+                5,
+                "survey.selection",
+                json!({"contestId":CONTEST,"stepId":uuid(80),"tallies":map,"claims":[{"claimId":"c1","claim":"The proposal is feasible.","agreeReasons":["Fits the budget"],"disagreeReasons":["Requires a load test"],"unsureReasons":[]}]}),
+            ),
+            event(6, "survey.revote", ballot("alpha", "DISAGREE", true)),
+            event(
+                7,
+                "survey.report",
+                json!({"contestId":CONTEST,"stepId":uuid(80),"completed":generation(),"map":map,"report":{"consensus":[],"contested":[],"loneInsights":[],"loneDissents":[],"rejectedOutliers":[{"claimId":"c1","explanation":"Likely error: verify with an independent load test.","settlingQuestion":"Which load profile matches production?"}],"limitations":"Models can share blind spots. Beta did not re-vote; its first ballot remains recorded."}}),
+            ),
+            event(
+                8,
+                "survey.state",
+                json!({"contestId":CONTEST,"state":"COMPLETE","stateVersion":9,"stepId":null,"artifactEventIds":[uuid(2),uuid(3),uuid(4),uuid(5),uuid(6),uuid(7)],"terminalReason":null}),
+            ),
+        ],
+        ..Default::default()
+    };
+    let output = render(
+        &snapshot,
+        ExportScope::Survey,
+        Some(CONTEST.parse().unwrap()),
+    )
+    .unwrap();
+    insta::assert_snapshot!("survey_committed_export", output);
+    assert_eq!(
+        render(
+            &snapshot,
+            ExportScope::Debate,
+            Some(CONTEST.parse().unwrap())
+        )
+        .unwrap_err(),
+        ExportError::ScopeMismatch
+    );
+    assert_eq!(
+        render(&snapshot, ExportScope::Survey, None).unwrap_err(),
+        ExportError::ContestIdRequired
+    );
+}
+
+#[test]
+fn typed_grill_export_retains_versions_and_attributed_appendix() {
+    let snapshot = ExportSnapshot {
+        events: vec![
+            event(
+                1,
+                "grill.setup",
+                json!({"contestId":CONTEST,"leader":"alpha","grillers":["beta"],"sourceMessageId":uuid(70),"initialPlan":"Original plan","focus":"Costs","totalRounds":2}),
+            ),
+            event(
+                2,
+                "grill.plan",
+                json!({"contestId":CONTEST,"leader":"alpha","round":0,"version":1,"text":"Original plan"}),
+            ),
+            event(
+                3,
+                "grill.question",
+                json!({"contestId":CONTEST,"round":1,"turn":0,"griller":"beta","leader":"alpha","planVersion":1,"angle":"cost","questions":["Who pays?"]}),
+            ),
+            event(
+                4,
+                "grill.answer",
+                json!({"contestId":CONTEST,"round":1,"turn":0,"leader":"alpha","questionEventId":uuid(3),"answers":[{"questionIndex":0,"answer":"Users pay","planChanges":"Add pricing"}]}),
+            ),
+            event(
+                5,
+                "grill.plan",
+                json!({"contestId":CONTEST,"leader":"alpha","round":1,"version":2,"text":"Updated plan with pricing"}),
+            ),
+            event(
+                6,
+                "grill.complete",
+                json!({"contestId":CONTEST,"finalPlanEventId":uuid(5),"finalPlanVersion":2,"appendix":[{"questionEventId":uuid(3),"questionIndex":0,"griller":"beta","question":"Who pays?","answer":"Users pay","planChanges":"Add pricing"}]}),
+            ),
+        ],
+        ..Default::default()
+    };
+    let text = render(
+        &snapshot,
+        ExportScope::Grill,
+        Some(CONTEST.parse().unwrap()),
+    )
+    .unwrap();
+    for expected in [
+        "Plan v1",
+        "Plan v2",
+        "Original plan",
+        "Updated plan with pricing",
+        "@beta",
+        "Who pays?",
+        "Users pay",
+        "Add pricing",
+        "FINAL PLAN",
+    ] {
+        assert!(text.contains(expected), "{expected}");
+    }
+    assert!(!text.contains("winner"));
+    assert!(
+        render(
+            &snapshot,
+            ExportScope::Debate,
+            Some(CONTEST.parse().unwrap())
+        )
+        .is_err()
+    );
 }

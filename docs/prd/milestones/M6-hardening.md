@@ -147,33 +147,33 @@
   - [ ] M6.P2.L1.T3 — Verify `--bus-log`, explicit body capture, and F12 inspection against the owning contract in `crates/squad-cli/tests/debug.rs` and `crates/squad-tui/tests/debug.rs`.
   - [ ] M6.P2.L1.T4 — Add boundary checks for message size, queues, context selection, bounded delivery, and durable paging in `crates/squad-core/tests/limits.rs`.
   - [ ] M6.P2.L1.T5 — Verify `STORAGE_LIMIT`, history preservation, and transactional `/clear` followed by `VACUUM` in `crates/squad-store/tests/storage.rs`.
-  - [ ] M6.P2.L1.T6 — Add repeatable latency and whole-process memory measurements in `crates/squad-cli/tests/performance.rs`.
+  - [x] M6.P2.L1.T6 — Add repeatable latency and whole-process memory measurements in `crates/squad-cli/tests/performance.rs`.
   - [ ] M6.P2.L1.T7 — Record streaming and transcript memory results for `squad-cli` and `squad-tui` in `docs/performance.md`.
   - [ ] M6.P2.L1.T8 — Run the 12-stream latency and memory gate with `SQUAD_FX=full` in `crates/squad-cli/tests/performance.rs` and record results for `squad-cli` and `squad-tui` in `docs/performance.md`.
-  - [ ] M6.P2.L1.T9 — Verify the frame-budget governor sheds effects under load and that `SQUAD_FX=off` and `NO_COLOR` each produce no animation frames when idle in `crates/squad-tui/tests/effects.rs`.
-  - [ ] M6.P2.L1.T10 — Verify capacity-1 synchronous mailbox `try_send`, Full as a pending wake-up, no router waits on agent-owned channels, bounded ingress, and feed-lag recovery from the last cursor in `crates/squad-core/tests/limits.rs`.
+  - [x] M6.P2.L1.T9 — Verify the frame-budget governor sheds effects under load and that `SQUAD_FX=off` and `NO_COLOR` each produce no animation frames when idle in `crates/squad-tui/tests/effects.rs`.
+  - [x] M6.P2.L1.T10 — Verify capacity-1 synchronous mailbox `try_send`, Full as a pending wake-up, no router waits on agent-owned channels, bounded ingress, and feed-lag recovery from the last cursor in `crates/squad-core/tests/limits.rs`.
   - [ ] M6.P2.L1.T11 — Verify work lease expiry and 20-second renewals under the 60-second lease contract in `crates/squad-core/tests/recovery.rs`.
-  - [ ] M6.P2.L1.T12 — Verify the single TUI event loop’s effect-driven timer, 60 Hz cap, idle disarming, input priority, and feed batches of at most 256 in `crates/squad-tui/tests/event_loop.rs`.
+  - [x] M6.P2.L1.T12 — Verify the single TUI event loop’s effect-driven timer, 60 Hz cap, idle disarming, input priority, and feed batches of at most 256 in `crates/squad-tui/tests/event_loop.rs`.
   - [ ] M6.P2.L1.T13 — Verify palette ownership, internal live/replay tagging, inline settling, colour-only clear, resolved-state roster effects, verdict timing, and unset-only automatic lite mode in `crates/squad-tui/tests/effects.rs`.
   - [ ] M6.P2.L1.T14 — Verify new-mode tracing correlates script steps, work attempts, barriers, and reports without default body capture or reasoning disclosure in `crates/squad-core/tests/observability.rs`.
   - [ ] M6.P2.L1.T15 — Exercise maximum census passes, a capped crosscheck grid, 25 survey claims, and a 12-member probe while verifying paging, bounded delivery, context-fit failures, responsive input, and effects shedding in `crates/squad-core/tests/limits.rs` and `crates/squad-tui/tests/effects.rs`.
 
 - **M6.P2.L2 — Daily spending enforcement**
-  - [ ] M6.P2.L2.T1 — Verify idempotent reservation reconciliation using the owning accounting contract in `crates/squad-core/tests/budget.rs`.
+  - [x] M6.P2.L2.T1 — Verify idempotent reservation reconciliation using the owning accounting contract in `crates/squad-core/tests/budget.rs`.
   - [ ] M6.P2.L2.T2 — Test concurrent reservations, permitted attempts, interrupted requests, and retained uncertain charges in `crates/squad-core/tests/budget.rs`.
-  - [ ] M6.P2.L2.T3 — Verify round-count and model-call estimates, threshold auto-confirmation, explicit confirmation, cancellation, changed plans, and 10-minute plan expiry in `crates/squad-core/tests/budget.rs`.
+  - [x] M6.P2.L2.T3 — Verify round-count and model-call estimates, threshold auto-confirmation, explicit confirmation, cancellation, changed plans, and 10-minute plan expiry in `crates/squad-core/tests/budget.rs`.
   - [ ] M6.P2.L2.T4 — Verify `squad send --yes` and TUI confirmation behavior in `crates/squad-cli/tests/send.rs` and `crates/squad-tui/tests/budget.rs`.
-  - [ ] M6.P2.L2.T5 — Test `DAILY_MAX_REACHED`, prevention of queued or subsequent dispatch, and continued completion of in-flight calls in `crates/squad-core/tests/budget.rs`.
+  - [x] M6.P2.L2.T5 — Test `DAILY_MAX_REACHED`, prevention of queued or subsequent dispatch, and continued completion of in-flight calls in `crates/squad-core/tests/budget.rs`.
   - [ ] M6.P2.L2.T6 — Verify today’s spent, reserved, remaining, and unknown-call amounts after replay and restart in `crates/squad-core/tests/budget.rs` and `crates/squad-tui/tests/budget.rs`.
-  - [ ] M6.P2.L2.T7 — Verify preflight includes one round-scoring call per round and reservations cover two attempts, accumulated judge context, low reasoning effort with its 1,024-token budget, and the 512-token visible ceiling at `ROUNDS` default 10, min 1, and max 20 in `crates/squad-core/tests/budget.rs`.
-  - [ ] M6.P2.L2.T8 — Verify no round-scoring reservations for debates without automatic judging, no retroactive scoring charges for later `/judge`, and correct reconciliation after failed or cancelled round scoring in `crates/squad-core/tests/budget.rs`.
-  - [ ] M6.P2.L2.T9 — Verify actual reported costs, including billed failed and cancelled calls, update `spend_daily` atomically with completion events and never double count on replay in `crates/squad-store/tests/spend_daily.rs` and `crates/squad-core/tests/budget.rs`.
+  - [x] M6.P2.L2.T7 — Verify preflight includes one round-scoring call per round and reservations cover two attempts, accumulated judge context, low reasoning effort with its 1,024-token budget, and the 512-token visible ceiling at `ROUNDS` default 10, min 1, and max 20 in `crates/squad-core/tests/budget.rs`.
+  - [x] M6.P2.L2.T8 — Verify no round-scoring reservations for debates without automatic judging, no retroactive scoring charges for later `/judge`, and correct reconciliation after failed or cancelled round scoring in `crates/squad-core/tests/budget.rs`.
+  - [x] M6.P2.L2.T9 — Verify actual reported costs, including billed failed and cancelled calls, update `spend_daily` atomically with completion events and never double count on replay in `crates/squad-store/tests/spend_daily.rs` and `crates/squad-core/tests/budget.rs`.
   - [ ] M6.P2.L2.T10 — Verify local calendar-day rollover, shared totals across rooms, restart persistence, and `/clear` preserving daily accounting in `crates/squad-store/tests/spend_daily.rs` and `crates/squad-core/tests/budget.rs`.
   - [ ] M6.P2.L2.T11 — Verify missing-cost reconciliation, retained uncertain reservations, `cost unknown`, the bar’s `~` prefix, and doctor counts in `crates/squad-core/tests/budget.rs`, `crates/squad-tui/tests/budget.rs`, and `crates/squad-cli/tests/doctor.rs`.
   - [ ] M6.P2.L2.T12 — Verify supported reasoning budgets are priced alongside visible output, unavailable pricing blocks dispatch with `COST_UNKNOWN`, and no pricing override bypass exists in `crates/squad-core/tests/budget.rs`.
-  - [ ] M6.P2.L2.T13 — Verify the always-visible spend bar, lighter pending segment replaced by actual cost, 75% and 90% colour thresholds, configured max, and narrow-layout status-line placement in `crates/squad-tui/tests/budget.rs`.
+  - [x] M6.P2.L2.T13 — Verify the always-visible spend bar, lighter pending segment replaced by actual cost, 75% and 90% colour thresholds, configured max, and narrow-layout status-line placement in `crates/squad-tui/tests/budget.rs`.
   - [ ] M6.P2.L2.T14 — Verify tournament and grill model-call counts, retry and replay reservations, no grill judge cost, and question-first collection charges excluded from post-pick estimates in `crates/squad-core/tests/budget.rs`.
-  - [ ] M6.P2.L2.T15 — Verify the exact daily-max message, preflight refusal above remaining capacity, equality boundaries, and new-request eligibility after a local-day change or raised max in `crates/squad-core/tests/budget.rs` and `crates/squad-cli/tests/send.rs`.
+  - [x] M6.P2.L2.T15 — Verify the exact daily-max message, preflight refusal above remaining capacity, equality boundaries, and new-request eligibility after a local-day change or raised max in `crates/squad-core/tests/budget.rs` and `crates/squad-cli/tests/send.rs`.
   - [ ] M6.P2.L2.T16 — Verify script-derived new-mode counts for participant bounds and default fixtures: census 14 per pass and 28 for two passes, crosscheck 16 or 17 with extraction, survey 20 or 14 with reused answers, and probe 10 after sit-out resolution in `crates/squad-core/tests/budget.rs`.
   - [ ] M6.P2.L2.T17 — Verify new-mode judge reservations use medium supported reasoning budgets, 4,096 visible tokens, actual script evidence, and permitted repair attempts without adding calls for app-only moves in `crates/squad-core/tests/budget.rs`.
   - [ ] M6.P2.L2.T18 — Verify plan patches, later census passes, early quiet completion, skipped members, optional extraction, survey reuse, and report variants adjust remaining work and reservations without charging twice in `crates/squad-core/tests/budget.rs`.
@@ -183,29 +183,29 @@
 
 - **M6.P3.L1 — Recovery**
   - [ ] M6.P3.L1.T1 — Verify OpenRouter 429, 5xx, timeout, partial-stream, and single-model failures against the owning attempt policies in `crates/squad-core/tests/provider_failures.rs`.
-  - [ ] M6.P3.L1.T2 — Inject SQLite busy, corrupt, and disk-full failures and verify failed commits remain unacknowledged in `crates/squad-store/tests/failures.rs`.
+  - [x] M6.P3.L1.T2 — Inject SQLite busy, corrupt, and disk-full failures and verify failed commits remain unacknowledged in `crates/squad-store/tests/failures.rs`.
   - [ ] M6.P3.L1.T3 — Verify atomic recovery after crashes before, during, and after commit, including lost post-commit wake-ups, in `crates/squad-core/tests/recovery.rs`.
-  - [ ] M6.P3.L1.T4 — Verify debate recovery at dispatch, result acceptance, and barrier boundaries in `crates/squad-core/tests/recovery.rs`.
-  - [ ] M6.P3.L1.T5 — Verify global and targeted stopping, late-result rejection, ordinary retry actions, and later manual judging in `crates/squad-core/tests/cancellation.rs`.
-  - [ ] M6.P3.L1.T6 — Verify the exact same-room lock message and concurrent read-only export in `crates/squad-cli/tests/room_lock.rs`.
+  - [x] M6.P3.L1.T4 — Verify debate recovery at dispatch, result acceptance, and barrier boundaries in `crates/squad-core/tests/recovery.rs`.
+  - [x] M6.P3.L1.T5 — Verify global and targeted stopping, late-result rejection, ordinary retry actions, and later manual judging in `crates/squad-core/tests/cancellation.rs`.
+  - [x] M6.P3.L1.T6 — Verify the exact same-room lock message and concurrent read-only export in `crates/squad-cli/tests/room_lock.rs`.
   - [ ] M6.P3.L1.T7 — Verify terminal closure during streaming, terminal restoration, and recovery on the next start in `crates/squad-cli/tests/pty.rs`.
-  - [ ] M6.P3.L1.T8 — Verify round-scoring recovery preserves attempt counts, accepted scores, tallies, and final-judge gating without duplicate committed effects in `crates/squad-core/tests/recovery.rs`.
-  - [ ] M6.P3.L1.T9 — Verify `/stop` cancels outstanding round-scoring work, rejects late results, and later `/judge` uses existing scores without retroactive scoring in `crates/squad-core/tests/cancellation.rs`; verify `COMPLETE_UNJUDGED` debates create no round-scoring work in `crates/squad-core/tests/judge_workflows.rs`.
-  - [ ] M6.P3.L1.T10 — Verify `OpenMode::Interactive` and `OpenMode::OneShot`, unrelated-work preservation, models and doctor avoiding room open, and `--no-wait` printing the accepted cursor and deferring execution in `crates/squad-core/tests/recovery.rs` and `crates/squad-cli/tests/send.rs`.
+  - [x] M6.P3.L1.T8 — Verify round-scoring recovery preserves attempt counts, accepted scores, tallies, and final-judge gating without duplicate committed effects in `crates/squad-core/tests/recovery.rs`.
+  - [x] M6.P3.L1.T9 — Verify `/stop` cancels outstanding round-scoring work, rejects late results, and later `/judge` uses existing scores without retroactive scoring in `crates/squad-core/tests/cancellation.rs`; verify `COMPLETE_UNJUDGED` debates create no round-scoring work in `crates/squad-core/tests/judge_workflows.rs`.
+  - [x] M6.P3.L1.T10 — Verify `OpenMode::Interactive` and `OpenMode::OneShot`, unrelated-work preservation, models and doctor avoiding room open, and `--no-wait` printing the accepted cursor and deferring execution in `crates/squad-core/tests/recovery.rs` and `crates/squad-cli/tests/send.rs`.
   - [ ] M6.P3.L1.T11 — Verify tournament and grill recovery at dispatch, result, elimination, plan-version, and terminal boundaries, with no duplicate trophy, result, history, or accounting effects, in `crates/squad-core/tests/recovery.rs`.
-  - [ ] M6.P3.L1.T12 — Verify router recovery spawns case executors for unfinished work, preserves attempt-scoped repair data, and retires finished executors under the owning lifecycle contract in `crates/squad-core/tests/recovery.rs`.
+  - [x] M6.P3.L1.T12 — Verify router recovery spawns case executors for unfinished work, preserves attempt-scoped repair data, and retires finished executors under the owning lifecycle contract in `crates/squad-core/tests/recovery.rs`.
   - [ ] M6.P3.L1.T13 — Crash before, during, and after every new-mode step and barrier; verify committed artifacts, state, attempt counts, histories, reports, and accounting recover atomically in `crates/squad-core/tests/recovery.rs`.
   - [ ] M6.P3.L1.T14 — Verify census plan versions and lenses, crosscheck cell assignments and audit samples, survey claim provenance and votes, and probe roles and locked predictions survive restart without resampling or duplicate dispatch of completed work in `crates/squad-core/tests/recovery.rs`.
   - [ ] M6.P3.L1.T15 — Verify member retry exhaustion skips and names the failed step, missing evidence is not fabricated, judge schema-repair exhaustion follows the script, and accepted artifacts remain available in `crates/squad-core/tests/provider_failures.rs`.
   - [ ] M6.P3.L1.T16 — Verify `/stop`, targeted cancellation, and confirmed Escape at each new-mode step reject late results, preserve partial evidence and charges, release holds and admission, and never produce a false successful stop indication in `crates/squad-core/tests/cancellation.rs`.
 
 - **M6.P3.L2 — Terminal and credential safety**
-  - [ ] M6.P3.L2.T1 — Test escape-sequence and OSC 52 sanitisation, including split chunks and alternate control encodings, in `crates/squad-tui/tests/terminal_safety.rs` and `crates/squad-cli/tests/output_safety.rs`.
-  - [ ] M6.P3.L2.T2 — Verify that model output and pasted content cannot trigger key actions in `crates/squad-tui/tests/interaction.rs`.
-  - [ ] M6.P3.L2.T3 — Verify database mode 0600 and private SQLite auxiliary files in `crates/squad-store/tests/permissions.rs`.
-  - [ ] M6.P3.L2.T4 — Verify sentinel-key absence from artifacts, logs, SQLite, debug output, doctor output, and exports in `crates/squad-cli/tests/credential_safety.rs`.
-  - [ ] M6.P3.L2.T5 — Verify that logging and accounting never forward reasoning text or emit telemetry in `crates/squad-core/tests/privacy.rs`.
-  - [ ] M6.P3.L2.T6 — Verify the exact shipped example and Foundations setup requirements for `squad-cli` using `.env.example` and `setup.sh`.
-  - [ ] M6.P3.L2.T7 — Verify Escape dismisses the topmost transient first, contest stopping requires a second Escape within 2 s, expired confirmation does not stop, and animation skipping consumes no Escape or input keys in `crates/squad-tui/tests/interaction.rs`.
+  - [x] M6.P3.L2.T1 — Test escape-sequence and OSC 52 sanitisation, including split chunks and alternate control encodings, in `crates/squad-tui/tests/terminal_safety.rs` and `crates/squad-cli/tests/output_safety.rs`.
+  - [x] M6.P3.L2.T2 — Verify that model output and pasted content cannot trigger key actions in `crates/squad-tui/tests/interaction.rs`.
+  - [x] M6.P3.L2.T3 — Verify database mode 0600 and private SQLite auxiliary files in `crates/squad-store/tests/permissions.rs`.
+  - [x] M6.P3.L2.T4 — Verify sentinel-key absence from artifacts, logs, SQLite, debug output, doctor output, and exports in `crates/squad-cli/tests/credential_safety.rs`.
+  - [x] M6.P3.L2.T5 — Verify that logging and accounting never forward reasoning text or emit telemetry in `crates/squad-core/tests/privacy.rs`.
+  - [x] M6.P3.L2.T6 — Verify the exact shipped example and Foundations setup requirements for `squad-cli` using `.env.example` and `setup.sh`.
+  - [x] M6.P3.L2.T7 — Verify Escape dismisses the topmost transient first, contest stopping requires a second Escape within 2 s, expired confirmation does not stop, and animation skipping consumes no Escape or input keys in `crates/squad-tui/tests/interaction.rs`.
   - [ ] M6.P3.L2.T8 — Inject routing instructions, forged author metadata, terminal controls, automatic risk acceptance, and executable-looking checks into new-mode artifacts; verify they cannot grant visibility, authorize spending, accept risks, execute checks, or control the terminal in `crates/squad-core/tests/isolation.rs` and `crates/squad-tui/tests/terminal_safety.rs`.
 

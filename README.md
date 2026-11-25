@@ -11,7 +11,7 @@ Squad is a terminal chat room where you talk to several LLMs at once through Ope
 
 ## Status
 
-🚧 **Design phase, building in public.** There is no runnable code yet. The product requirements document lands here first, then the code, milestone by milestone.
+The Rust implementation is in progress. The live room runtime, debate and crosscheck are available; additional contest modes follow the milestones.
 
 ## The plan
 
@@ -20,6 +20,25 @@ Squad is a terminal chat room where you talk to several LLMs at once through Ope
 - Configuration is one `.env` file: your OpenRouter key, the debate length, and one line per model. See [`.env.example`](.env.example).
 - History in a local SQLite file per room.
 
+## Crosscheck
+
+Build an independent coverage grid for a pasted plan:
+
+```text
+@all $crosscheck Deploy one region, verify it, then expand.
+--
+Keep service available; use the existing staff.
+```
+
+A selected quote or `@nick $crosscheck <goal and constraints>` can supply the plan instead. Without a goal-and-constraints brief, the judge extracts it before any inventory work. At six members, preflight shows 16 calls with a brief or 17 with extraction. Cost confirmation and `--yes` authorize those calls; they do not accept residual risks.
+
+Inventory writers cannot see the plan. Reviewers receive only their assigned cells and cannot review their own inventory contributions. Two fresh auditors inspect persisted closure samples. Reports retain omissions, failures and open gaps; COMPLETE means the script finished, not that its bounded stop rule passed.
+
+Use `/accept <cellId…> -- <reason>` on a COMPLETE run to record explicit, version-bound human acceptance. F5 toggles cell details in the TUI. Export the committed ledger with `/export crosscheck <contestId>` or `squad export crosscheck <contestId>`; export does not call models or change coverage. See [implementation and verification notes](docs/crosscheck-implementation.md).
+
 ## Licence
 
 [Apache License 2.0](LICENSE)
+
+
+Census runs blind omission hunts and anonymous ratings over a plan: `@all $census <plan text>`, or `@nick $census` to use that member's latest eligible reply with the room's members. It requires at least three members. `SQUAD_CENSUS_PASSES` seeds `CENSUS_PASSES` (default 2, range 1–5) only when no persisted value exists; `/set CENSUS_PASSES=3` changes the room value. Each six-member pass uses 14 normal calls. Between passes, `/continue` retains the plan and `/continue "replacement plan"` creates a new plan version; larger inputs receive a revised preflight. Ordinary member holds are released while waiting, while the contest claim remains active. `/stop` releases that claim before a `$grill` handoff. `/export census <contest-id>` retains plan versions, evidence, missing participation, finder attribution, Chao1 provenance and the discovery curve. Estimate bounds remain unavailable until the range rule is resolved, and the engine cannot assert quiet from the point estimate alone.

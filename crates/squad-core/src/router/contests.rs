@@ -18,6 +18,9 @@ impl Router {
         envelope_id: EventId,
         submission: ContestTransitionSubmission,
     ) -> Result<CommitOutcome> {
+        if submission.kind == ContestKind::Census {
+            return self.census_transition(envelope_id, submission);
+        }
         self.contest_request(InternalRequest::Transition {
             envelope_id,
             submission,
@@ -54,7 +57,32 @@ impl Router {
                     InternalRequest::Transition {
                         envelope_id,
                         submission,
-                    } => super::debates::transition(tx, group, envelope_id, submission)?,
+                    } => {
+                        if let ContestTransition::Crosscheck(signal) = &submission.transition {
+                            if submission.kind != ContestKind::Crosscheck {
+                                return Err(super::debates::invalid());
+                            }
+                            let state = squad_store::crosscheck::state(tx, submission.contest_id)?;
+                            if state.state_version != submission.expected_state_version {
+                                return Err(super::debates::invalid());
+                            }
+                            let setup: CrosscheckSetup =
+                                super::crosscheck::map(tx, state.contest_id, "crosscheck.setup")?;
+                            let next = crate::orchestrator::crosscheck::advance(
+                                &state,
+                                signal,
+                                setup.goal.is_none(),
+                            )
+                            .map_err(|_| super::debates::invalid())?;
+                            super::crosscheck::save(tx, group, &next, Some(state.state_version))?;
+                        } else if submission.kind == ContestKind::Survey {
+                            super::survey::transition(tx, group, envelope_id, submission)?;
+                        } else if submission.kind == ContestKind::Probe {
+                            super::probe::transition(tx, group, envelope_id, submission)?;
+                        } else {
+                            super::debates::transition(tx, group, envelope_id, submission)?;
+                        }
+                    }
                     InternalRequest::Produce { envelope } => {
                         if let EnvelopePayload::DebatePreflight(plan) = envelope.content {
                             return super::preflight::propose(tx, group, id, plan, max, threshold);
@@ -304,6 +332,15 @@ fn barrier(
     commit: BarrierCommit,
     bindings: &std::collections::BTreeMap<String, ExecutorBinding>,
 ) -> Result<()> {
+    if squad_store::schema::validate_contest_kind(tx, commit.contest_id, ContestKind::Crosscheck)? {
+        return super::crosscheck::barrier(tx, group, commit);
+    }
+    if super::survey::is_survey(tx, commit.contest_id)? {
+        return super::survey::barrier(tx, group, commit.barrier_event.base.correlation_id, commit);
+    }
+    if squad_store::schema::validate_contest_kind(tx, commit.contest_id, ContestKind::Probe)? {
+        return super::probe::barrier(tx, group, commit.barrier_event.base.correlation_id, commit);
+    }
     let state = squad_store::contests::debate(tx, commit.contest_id)?;
     if state.state_version != commit.expected_state_version
         || state.state.is_terminal()
@@ -398,6 +435,19 @@ impl Router {
         work: Vec<Work>,
         private_maps: std::collections::BTreeMap<String, serde_json::Value>,
     ) -> Result<CommitOutcome> {
+        if self.store.call({
+            let id = step.contest_id;
+            move |db| super::survey::is_survey(db, id)
+        })? {
+            return super::survey::allocate(
+                self,
+                request_id,
+                step,
+                projections,
+                work,
+                private_maps,
+            );
+        }
         let digest = squad_store::commit::digest(&(&step, &projections, &work, &private_maps))?;
         let bindings = self.bindings.clone();
         self.store.commit(
@@ -405,6 +455,32 @@ impl Router {
             "contest-engine".into(),
             digest,
             move |tx, group| {
+                if squad_store::schema::validate_contest_kind(
+                    tx,
+                    step.contest_id,
+                    ContestKind::Crosscheck,
+                )? {
+                    super::crosscheck::allocate(
+                        tx,
+                        group,
+                        step,
+                        projections,
+                        work,
+                        private_maps,
+                        &bindings,
+                    )?;
+                    return Ok(group.accepted(request_id));
+                }
+                if squad_store::schema::validate_contest_kind(
+                    tx,
+                    step.contest_id,
+                    ContestKind::Probe,
+                )? {
+                    if !projections.is_empty() || !private_maps.is_empty() {
+                        return Err(super::authorization::forbidden());
+                    }
+                    return super::probe::allocate(tx, group, request_id, step, work, &bindings);
+                }
                 let state = squad_store::contests::debate(tx, step.contest_id)?;
                 if state.state.is_terminal()
                     || (!work.is_empty()
@@ -552,7 +628,7 @@ impl Router {
     }
 }
 
-fn queued(tx: &Transaction<'_>, group: &mut CommitGroup, work: &Work) -> Result<()> {
+pub(crate) fn queued(tx: &Transaction<'_>, group: &mut CommitGroup, work: &Work) -> Result<()> {
     group.push(
         tx,
         super::envelope(

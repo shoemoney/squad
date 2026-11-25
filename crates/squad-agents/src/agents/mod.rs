@@ -1,5 +1,9 @@
 //! Per-kind executors share attempt-scoped streaming and ingress fencing.
+pub mod census;
+pub mod crosscheck;
 pub mod member;
+pub mod probe;
+pub mod survey;
 use crate::{
     accounting::{AttemptAccounting, acknowledged},
     openrouter::*,
@@ -43,13 +47,36 @@ pub async fn stream_attempt(
     forward_deltas: bool,
 ) -> Result<StreamOutput, ExecutionError> {
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
+        WorkKind::CensusHunt | WorkKind::CensusRate => DeadlineClass::DebateTurn,
+        WorkKind::CensusMerge | WorkKind::CensusFinal => DeadlineClass::FinalJudge,
+        WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit => {
+            DeadlineClass::DebateTurn
+        }
+        WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
+            DeadlineClass::FinalJudge
+        }
+        WorkKind::SurveyExtract | WorkKind::SurveyReport => DeadlineClass::FinalJudge,
+        WorkKind::SurveyVote | WorkKind::SurveyRevote => DeadlineClass::Ordinary,
+        WorkKind::GrillQuestion | WorkKind::GrillAnswer | WorkKind::GrillRebuild => {
+            DeadlineClass::DebateTurn
+        }
         WorkKind::Reply => DeadlineClass::Ordinary,
+        WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => {
+            DeadlineClass::DebateTurn
+        }
+        WorkKind::ProbeReport => DeadlineClass::FinalJudge,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,
+        WorkKind::JudgeTournament => DeadlineClass::TournamentJudge,
         WorkKind::JudgeRound => DeadlineClass::RoundJudge,
     });
     request.model = grant.binding.model.to_string();
-    request.reasoning_effort = if grant.work.kind == WorkKind::JudgeRound {
+    request.reasoning_effort = if matches!(
+        grant.work.kind,
+        WorkKind::SurveyExtract | WorkKind::SurveyReport
+    ) {
+        ReasoningEffort::Medium
+    } else if grant.work.kind == WorkKind::JudgeRound {
         ReasoningEffort::Low
     } else {
         grant.binding.effort
@@ -220,3 +247,5 @@ pub async fn failed(
             .await,
     )
 }
+
+pub mod tournament;

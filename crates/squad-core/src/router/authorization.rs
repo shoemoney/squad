@@ -35,8 +35,69 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
         return Err(forbidden());
     }
     let generation = match payload {
+        EnvelopePayload::TournamentEntry(e)
+            if work.kind == WorkKind::Reply && work.round.is_some() =>
+        {
+            if work.contest_id != Some(e.contest_id)
+                || work.round != Some(e.round)
+                || work.replay != Some(e.replay)
+                || work.target != Target::Member(e.entrant.clone())
+                || !matches!(e.outcome, DebateTurnOutcome::Completed { .. })
+            {
+                return Err(forbidden());
+            }
+            &e.generation
+        }
+        EnvelopePayload::TournamentJudgment(j) if work.kind == WorkKind::JudgeTournament => {
+            if work.contest_id != Some(j.contest_id)
+                || work.round != Some(j.round)
+                || work.replay != Some(j.replay)
+                || work.case_id != Some(j.case_id)
+            {
+                return Err(forbidden());
+            }
+            &j.generation
+        }
+
+        EnvelopePayload::SurveyClaims(v)
+            if work.kind == WorkKind::SurveyExtract
+                && work.contest_id == Some(v.contest_id)
+                && work.step_id == Some(v.step_id) =>
+        {
+            &v.completed.generation
+        }
+        EnvelopePayload::SurveyVote(v) | EnvelopePayload::SurveyRevote(v)
+            if ((matches!(payload, EnvelopePayload::SurveyVote(_))
+                && work.kind == WorkKind::SurveyVote)
+                || (matches!(payload, EnvelopePayload::SurveyRevote(_))
+                    && work.kind == WorkKind::SurveyRevote))
+                && work.contest_id == Some(v.contest_id)
+                && work.step_id == Some(v.step_id)
+                && work.target == Target::Member(v.voter.clone()) =>
+        {
+            &v.completed.generation
+        }
+        EnvelopePayload::SurveyReport(v)
+            if work.kind == WorkKind::SurveyReport
+                && work.contest_id == Some(v.contest_id)
+                && work.step_id == Some(v.step_id) =>
+        {
+            &v.completed.generation
+        }
+        EnvelopePayload::ProbeExplanation(v) if work.kind == WorkKind::ProbeExplain => {
+            &v.completed.generation
+        }
+        EnvelopePayload::ProbeCheck(v) if work.kind == WorkKind::ProbeCheck => {
+            &v.completed.generation
+        }
+        EnvelopePayload::ProbePrediction(v) if work.kind == WorkKind::ProbePredict => {
+            &v.completed.generation
+        }
+        EnvelopePayload::ProbeReport(v) if work.kind == WorkKind::ProbeReport => {
+            &v.completed.generation
+        }
         EnvelopePayload::AgentReply(reply) | EnvelopePayload::MessageFinal(reply)
-            if work.kind == WorkKind::Reply =>
+            if work.kind == WorkKind::Reply && work.round.is_none() =>
         {
             if Some(reply.in_reply_to_message_id) != work.in_reply_to_message_id {
                 return Err(forbidden());

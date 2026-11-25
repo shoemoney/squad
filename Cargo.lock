@@ -3133,6 +3133,7 @@ dependencies = [
  "chrono",
  "figlet-rs",
  "insta",
+ "regex",
  "rusqlite",
  "serde",
  "serde_json",
@@ -3145,6 +3146,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "unicode-width",
+ "uuid",
  "wiremock",
 ]
 
@@ -3161,6 +3163,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "tempfile",
  "tokio",
  "tokio-util",
  "uuid",
@@ -3190,6 +3193,7 @@ dependencies = [
  "proptest",
  "pulldown-cmark",
  "ratatui",
+ "serde_json",
  "squad-core",
  "squad-protocol",
  "syntect",

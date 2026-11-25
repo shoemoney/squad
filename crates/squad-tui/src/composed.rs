@@ -37,13 +37,18 @@ pub struct Composed {
 }
 #[derive(Clone, Default)]
 pub struct Graphics {
+    pub tournament: Option<widgets::tournament::TournamentRects>,
     pub banners: Vec<(squad_core::banner::Banner, Rect)>,
+    pub probe_connectors: Vec<(u16, u16)>,
     pub versus: Rect,
     pub scores: Vec<(u32, MemberNick, Rect)>,
     pub tug: Rect,
     pub verdict: Rect,
     pub winner: Rect,
     pub totals: Vec<Rect>,
+    pub census_estimate: Rect,
+    pub crosscheck_cells: Vec<(CellId, usize, Rect)>,
+    pub survey: Vec<(String, Rect)>,
 }
 fn identity(id: impl ToString) -> MessageId {
     id.to_string().parse().expect("protocol UUID")
@@ -67,6 +72,9 @@ fn rows(buffer: &Buffer, height: usize) -> Vec<Line<'static>> {
         .collect()
 }
 impl Composed {
+    pub fn invalidate_artifacts(&mut self) {
+        self.artifact_signature = None;
+    }
     pub fn toggle_verdict(&mut self) {
         self.verdict_expanded = !self.verdict_expanded;
         if let Some((&id, _)) = self
@@ -265,6 +273,26 @@ impl Composed {
                     models.push(model);
                 }
             }
+            for (id, source) in &session.census {
+                let mut view = source.clone();
+                view.details_expanded = self.verdict_expanded;
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 2048));
+                let shapes = widgets::census::render(&view, scratch.area, &mut scratch, palette);
+                self.graphics.insert(
+                    identity(id),
+                    Graphics {
+                        banners: vec![(squad_core::banner::Banner::Census, shapes.banner)],
+                        census_estimate: shapes.estimate_graphic,
+                        ..Default::default()
+                    },
+                );
+                let height = (0..2048)
+                    .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                    .map_or(0, |y| usize::from(y) + 1);
+                let mut model = TranscriptMessage::new(identity(id), "CENSUS", "");
+                model.widget_rows = rows(&scratch, height);
+                models.push(model);
+            }
             for (id, view) in &session.cases {
                 let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 512));
                 let rect = scratch.area;
@@ -282,7 +310,126 @@ impl Composed {
                 model.widget_rows = rows(&scratch, geometry.content_height);
                 models.push(model);
             }
+            for (id, view) in &session.tournaments {
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                let geometry =
+                    widgets::tournament::render(view, scratch.area, &mut scratch, palette);
+                let height = (0..scratch.area.height)
+                    .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                    .map_or(0, |y| usize::from(y) + 1);
+                let mut model = TranscriptMessage::new(identity(id), "TOURNAMENT", "");
+                model.widget_rows = rows(&scratch, height);
+                self.graphics.insert(
+                    model.id,
+                    Graphics {
+                        tournament: Some(geometry),
+                        ..Default::default()
+                    },
+                );
+                models.push(model);
+            }
+            for (id, view) in &session.grills {
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                let area = scratch.area;
+                widgets::grill::render(view, area, &mut scratch, palette);
+                let height = (0..area.height)
+                    .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                    .map_or(0, |y| usize::from(y) + 1);
+                let mut model = TranscriptMessage::new(identity(id), "GRILL", "");
+                model.widget_rows = rows(&scratch, height);
+                models.push(model);
+            }
+            for (id, source) in &session.probes {
+                let mut view = source.clone();
+                view.banner_art = Some(
+                    self.banners.get(
+                        "PROBE",
+                        view.banner_mode
+                            .unwrap_or(squad_core::banner::BannerMode::On),
+                        body_width,
+                    ),
+                );
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                let geometry = widgets::probe::render(&view, scratch.area, &mut scratch, palette);
+                let mut model = TranscriptMessage::new(identity(id), "PROBE", "");
+                model.widget_rows = rows(&scratch, geometry.content_height);
+                self.graphics.insert(
+                    model.id,
+                    Graphics {
+                        banners: vec![(squad_core::banner::Banner::Probe, geometry.banner)],
+                        probe_connectors: geometry.connectors,
+                        ..Default::default()
+                    },
+                );
+                models.push(model);
+            }
             for (id, contest) in &session.contests {
+                if contest.crosscheck.state.is_some() {
+                    let height = contest
+                        .crosscheck
+                        .lines()
+                        .iter()
+                        .map(|line| line.width().div_ceil(usize::from(body_width.max(1))) * 2 + 1)
+                        .sum::<usize>()
+                        .min(usize::from(u16::MAX)) as u16;
+                    let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, height));
+                    widgets::crosscheck::render(
+                        &contest.crosscheck,
+                        scratch.area,
+                        &mut scratch,
+                        palette,
+                    );
+                    let height = (0..scratch.area.height)
+                        .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                        .map_or(0, |y| usize::from(y) + 1);
+                    let mut cells = vec![];
+                    if body_width >= 36
+                        && let Some(grid) = &contest.crosscheck.grid
+                    {
+                        let headers = (0..scratch.area.height)
+                            .filter_map(|y| {
+                                let key = (0..36)
+                                    .map(|x| scratch[(x, y)].symbol())
+                                    .collect::<String>();
+                                key.parse::<CellId>().ok().map(|id| (id, y))
+                            })
+                            .collect::<BTreeMap<_, _>>();
+                        for (index, cell) in grid.cells.iter().enumerate() {
+                            if let Some(y) = headers.get(&cell.cell_id) {
+                                cells.push((cell.cell_id, index, Rect::new(0, *y, body_width, 1)));
+                            }
+                        }
+                    }
+                    self.graphics.insert(
+                        identity(id),
+                        Graphics {
+                            crosscheck_cells: cells,
+                            ..Default::default()
+                        },
+                    );
+                    let mut model = TranscriptMessage::new(identity(id), "CROSSCHECK", "");
+                    model.widget_rows = rows(&scratch, height);
+                    models.push(model);
+                    continue;
+                }
+                if let Some(view) = &contest.survey {
+                    let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                    let area = scratch.area;
+                    let (height, banner, survey) =
+                        widgets::survey::render_geometry(view, area, &mut scratch);
+                    self.graphics.insert(
+                        identity(id),
+                        Graphics {
+                            banners: vec![(squad_core::banner::Banner::Survey, banner)],
+                            survey,
+                            ..Default::default()
+                        },
+                    );
+                    let mut model = TranscriptMessage::new(identity(id), "SURVEY", "");
+                    model.widget_rows = rows(&scratch, height);
+                    models.push(model);
+                    continue;
+                }
                 if let Some(ContestState::Generic(state)) = &contest.state {
                     let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 128));
                     let rect = scratch.area;

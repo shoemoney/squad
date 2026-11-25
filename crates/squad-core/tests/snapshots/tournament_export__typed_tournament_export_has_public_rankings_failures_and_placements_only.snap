@@ -1,0 +1,49 @@
+---
+source: crates/squad-core/tests/tournament_export.rs
+expression: output
+---
+# Squad transcript
+
+```text
+ _____ ___  _   _ ____  _   _    _    __  __ _____ _   _ _____
+|_   _/ _ \| | | |  _ \| \ | |  / \  |  \/  | ____| \ | |_   _|
+  | || | | | | | | |_) |  \| | / _ \ | |\/| |  _| |  \| | | |
+  | || |_| | |_| |  _ <| |\  |/ ___ \| |  | | |___| |\  | | |
+  |_| \___/ \___/|_| \_\_| \_/_/   \_\_|  |_|_____|_| \_| |_|
+```
+
+## Tournament 01900000-0000-7000-8000-000000000001
+
+Design a bridge.
+
+Entrants: fable, grok, gemini · judge fixture/judge · 2 rounds
+
+## Tournament Failed · round 1 · replay 0
+
+Judging exhausted; retained failed evidence
+
+## Accepted ranking · round 1 · replay 1
+
+1. fable · 8/10 · Supported design
+
+2. grok · 8/10 · Supported design
+
+3. gemini · forfeit · No critique (forfeit) · ELIMINATED
+
+Eliminated: gemini · placement 3
+
+```text
+  ____ _   _    _    __  __ ____ ___ ___  _   _
+ / ___| | | |  / \  |  \/  |  _ \_ _/ _ \| \ | |
+| |   | |_| | / _ \ | |\/| | |_) | | | | |  \| |
+| |___|  _  |/ ___ \| |  | |  __/| | |_| | |\  |
+ \____|_| |_/_/   \_\_|  |_|_|  |___\___/|_| \_|
+```
+
+## Champion: fable · trophies 1
+
+1. fable
+
+2. grok
+
+3. gemini

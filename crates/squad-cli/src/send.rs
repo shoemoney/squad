@@ -283,6 +283,9 @@ async fn execute<R: RoomApi>(
                             EnvelopePayload::DebatePreflight(p) => {
                                 Some(PendingPreflight::Debate(p))
                             }
+                            EnvelopePayload::CrosscheckPreflight(p) => {
+                                Some(PendingPreflight::Contest(p.base))
+                            }
                             EnvelopePayload::ContestPreflight(p) => {
                                 Some(PendingPreflight::Contest(p))
                             }

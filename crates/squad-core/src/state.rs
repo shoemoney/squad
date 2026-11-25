@@ -145,10 +145,23 @@ pub fn snapshot(
         let (kind, json, active, plan, expires) = row?;
         // Owning stores may persist either the shared tagged carrier or its inner state.
         let state = serde_json::from_str::<ContestState>(&json).or_else(|_| {
-            if kind == "debate" {
+            if kind == "tournament" {
+                serde_json::from_str(&json).map(ContestState::Tournament)
+            } else if kind == "crosscheck" {
+                serde_json::from_str::<CrosscheckState>(&json)
+                    .map(|s| ContestState::Generic(s.generic()))
+            } else if kind == "debate" {
                 serde_json::from_str(&json)
                     .map(ContestState::Debate)
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
+            } else if kind == "census" {
+                serde_json::from_str(&json)
+                    .map(ContestState::Census)
+                    .or_else(|_| serde_json::from_str(&json).map(ContestState::Generic))
+            } else if kind == "survey" {
+                serde_json::from_str(&json).map(ContestState::Survey)
+            } else if kind == "probe" {
+                serde_json::from_str(&json).map(ContestState::Probe)
             } else {
                 serde_json::from_str(&json)
                     .map(ContestState::Selection)
@@ -158,18 +171,32 @@ pub fn snapshot(
         if let ContestState::Debate(debate) = &state {
             debates.push(debate.clone());
         }
+        let probe_pending =
+            matches!(&state,ContestState::Probe(p) if p.state==ProbeStatus::Preflight);
         if active {
-            active_contest = Some(state);
+            active_contest = Some(state.clone());
         }
-        if let Some(plan) = plan {
+        if let Some(plan) = plan.filter(|_| {
+            (kind != "probe" || probe_pending) && active && (kind != "census"
+                || matches!(&state,ContestState::Census(s) if s.status==CensusStatus::Preflight)) && (kind != "survey" || matches!(&state,ContestState::Survey(s) if s.state==SurveyStatus::Preflight))
+        }) {
             let unexpired = expires.as_ref().is_none_or(|at| {
                 at.parse::<chrono::DateTime<chrono::Utc>>()
                     .is_ok_and(|at| at > chrono::Utc::now())
             });
-            if unexpired {
+            if unexpired && (kind != "crosscheck" || expires.is_some()) {
                 let plan = serde_json::from_str::<PendingPreflight>(&plan).or_else(|_| {
-                    if kind == "debate" {
+                    if kind == "tournament" {
+                        serde_json::from_str::<TournamentPreflight>(&plan)
+                            .map(|p| PendingPreflight::Contest(p.base))
+                    } else if kind == "crosscheck" {
+                        serde_json::from_str::<CrosscheckPreflight>(&plan)
+                            .map(|p| PendingPreflight::Contest(p.base))
+                    } else if kind == "debate" {
                         serde_json::from_str(&plan).map(PendingPreflight::Debate)
+                    } else if kind == "probe" {
+                        serde_json::from_str::<ProbePreflight>(&plan)
+                            .map(|p| PendingPreflight::Contest(p.base))
                     } else {
                         serde_json::from_str(&plan).map(PendingPreflight::Contest)
                     }

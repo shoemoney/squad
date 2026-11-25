@@ -7,13 +7,17 @@
 
 mod embedded;
 pub mod inputs;
+pub mod inputs_crosscheck;
+pub mod inputs_grill;
+pub mod inputs_probe;
+pub mod inputs_survey;
 mod load;
 mod render;
 
 use std::collections::BTreeMap;
 use std::fmt;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub use render::{Inputs, RenderedComposition};
@@ -51,7 +55,7 @@ impl fmt::Display for PromptError {
 
 impl std::error::Error for PromptError {}
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Manifest {
     pub version: String,
     pub templates: Vec<TemplateSpec>,
@@ -59,7 +63,7 @@ pub struct Manifest {
     pub rules: BTreeMap<String, Value>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TemplateSpec {
     pub id: String,
     pub file: String,
@@ -67,7 +71,7 @@ pub struct TemplateSpec {
 }
 
 /// Manifest metadata remains available to the work/provenance adapter.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CompositionSpec {
     pub id: String,
     pub system: Vec<String>,
@@ -83,7 +87,7 @@ pub struct CompositionSpec {
     pub metadata: BTreeMap<String, Value>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TemplateSelection {
     pub template: String,
     pub start_marker: String,
@@ -92,7 +96,7 @@ pub struct TemplateSelection {
     pub required_matches: usize,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SystemTransform {
     pub operation: String,
     pub template: String,
@@ -101,7 +105,7 @@ pub struct SystemTransform {
     pub required_matches: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromptPack {
     manifest: Manifest,
     templates: BTreeMap<String, String>,
@@ -194,3 +198,6 @@ impl squad_protocol::PromptRenderer for PromptPack {
         }
     }
 }
+pub mod inputs_tournament;
+
+pub mod inputs_census;

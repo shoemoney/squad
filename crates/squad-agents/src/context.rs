@@ -123,6 +123,8 @@ pub async fn member_messages(
 ) -> Result<Vec<ChatMessage>, ContextError> {
     let history = read_history(context, grant).await?;
     if grant.work.kind == WorkKind::Reply
+        && grant.work.round.is_none()
+        && grant.work.step_id.is_none()
         && !history.iter().any(|entry| {
             matches!(
                 entry.meta,
@@ -138,16 +140,35 @@ pub async fn member_messages(
     let ExecutorKey::Member(nick) = &grant.owner else {
         return Err(ContextError::InvalidWork);
     };
-    let system = context
+    let mut system = context
         .render
         .render(&prompt.system, &prompt.values(grant)?)?;
+    let tournament = grant.work.kind == WorkKind::Reply && grant.work.round.is_some();
+    if tournament {
+        let values = context
+            .work
+            .prompt_values_for_work(grant.work.work_id)
+            .await?;
+        system = values
+            .get("tournament_frozen_system")
+            .ok_or(ContextError::InvalidWork)?
+            .clone();
+        system.push_str("\n\n");
+        system.push_str(
+            values
+                .get("tournament_frozen_instruction")
+                .ok_or(ContextError::InvalidWork)?,
+        );
+    }
     let mut messages = vec![ChatMessage {
         role: "system".into(),
         name: None,
         content: system,
     }];
     messages.extend(history.iter().map(|h| member_message(h, nick)));
-    if let Some(prompt_ref) = &grant.work.prompt_ref {
+    if let Some(prompt_ref) = &grant.work.prompt_ref
+        && !tournament
+    {
         let values = context
             .work
             .prompt_values_for_work(grant.work.work_id)

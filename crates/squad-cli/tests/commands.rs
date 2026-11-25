@@ -74,6 +74,8 @@ fn invoke(root: &Path, args: &[&str], key: Option<&str>) -> Output {
     command
         .env_clear()
         .env("HOME", root)
+        .env("HTTPS_PROXY", "http://127.0.0.1:9")
+        .env("HTTP_PROXY", "http://127.0.0.1:9")
         .current_dir(root)
         .stdin(Stdio::null())
         .args(args);
@@ -436,11 +438,7 @@ fn all_export_scopes_are_visible_typed_and_preserve_renderer_errors() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            if matches!(scope, "census" | "crosscheck" | "survey" | "probe") {
-                "export scope is not implemented"
-            } else {
-                "could not read export snapshot"
-            }
+            "could not read export snapshot"
         );
     }
     assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);
@@ -535,4 +533,37 @@ fn json_startup_failures_have_error_records_without_fabricated_request_ids() {
     );
     assert!(value.get("requestId").is_none());
     assert!(value.get("cursor").is_none());
+}
+
+#[test]
+fn missing_credentials_fail_before_opening_the_room() {
+    let temp = tempfile::tempdir().unwrap();
+    let data = temp.path().join("explicit-data");
+    for args in [
+        vec![],
+        vec!["send", "hello"],
+        vec!["send", "hello", "--data-dir", data.to_str().unwrap()],
+    ] {
+        let output = invoke(temp.path(), &args, None);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("OPENROUTER_API_KEY is required"));
+    }
+    assert!(!data.exists());
+}
+
+#[test]
+fn quoted_reference_flags_preserve_message_arguments() {
+    use clap::Parser;
+    for args in [
+        vec!["squad", "send", "--quote", "1", "--quote", "2", "hello"],
+        vec!["squad", "send", "--quote", "1,2", "hello"],
+    ] {
+        let cli = squad_cli::args::Cli::try_parse_from(args).unwrap();
+        let Some(squad_cli::args::Command::Send(send)) = cli.command else {
+            panic!("send expected")
+        };
+        assert_eq!(send.message, "hello");
+        assert_eq!(send.quote, [1, 2]);
+    }
 }

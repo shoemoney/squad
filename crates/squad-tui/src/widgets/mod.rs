@@ -13,3 +13,9 @@ pub mod preflight;
 pub mod tournament;
 pub mod transcript;
 pub mod verdict;
+
+pub mod census;
+pub mod crosscheck;
+pub mod probe;
+pub mod survey;
+mod tournament_events;

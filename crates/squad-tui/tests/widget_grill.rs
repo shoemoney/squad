@@ -131,3 +131,145 @@ fn generic_state_updates_preserve_plan_and_reject_other_identity_or_mode() {
     s.kind = ContestKind::Tournament;
     assert!(!v.apply_state(&s));
 }
+
+fn committed(
+    payload: squad_protocol::EnvelopePayload,
+    sequence: i64,
+) -> squad_protocol::CommittedEnvelope {
+    use squad_protocol::*;
+    let time: DateTime = std::time::SystemTime::now().into();
+    CommittedEnvelope {
+        base: EnvelopeBase {
+            version: 1,
+            id: EventId::new(),
+            room_id: MainRoom::Main,
+            correlation_id: EventId::new(),
+            causation_id: None,
+            sender: Actor::System,
+            recipients: vec![Recipient::Me],
+            created_at: time,
+        },
+        commit: CommitFields {
+            seq: Cursor::new(sequence).unwrap(),
+            accepted_at: time,
+            commit_index: 0,
+            commit_size: 1,
+        },
+        content: payload,
+    }
+}
+#[test]
+fn typed_committed_floor_drives_widget_and_replay_suppresses_effects() {
+    use squad_protocol::*;
+    use squad_tui::{
+        fx::{FeedOrigin, FxQueue},
+        session::Session,
+    };
+    use std::time::Duration;
+    let id = ContestId::new();
+    let leader = Nick::new("alpha").unwrap();
+    let griller = Nick::new("beta").unwrap();
+    let setup = committed(
+        EnvelopePayload::GrillSetup(GrillSetup {
+            contest_id: id,
+            leader: leader.clone(),
+            grillers: vec![griller.clone()],
+            source_message_id: MessageId::new(),
+            initial_plan: "Original plan".into(),
+            focus: "Costs".into(),
+            total_rounds: 2,
+        }),
+        1,
+    );
+    let plan = committed(
+        EnvelopePayload::GrillPlan(GrillPlan {
+            contest_id: id,
+            round: 0,
+            version: 1,
+            leader: leader.clone(),
+            text: "Original plan".into(),
+        }),
+        2,
+    );
+    let state = committed(
+        EnvelopePayload::GrillState(GrillState {
+            contest_id: id,
+            state: GrillStatus::Questioning,
+            state_version: 1,
+            round: 1,
+            total_rounds: 2,
+            leader: leader.clone(),
+            griller_order: vec![griller.clone()],
+            turn: 0,
+            plan_version: 1,
+            questions_asked: 0,
+            passed: 0,
+            terminal_reason: None,
+        }),
+        3,
+    );
+    let question = committed(
+        EnvelopePayload::GrillQuestion(GrillQuestion {
+            contest_id: id,
+            round: 1,
+            turn: 0,
+            griller: griller.clone(),
+            leader: leader.clone(),
+            plan_version: 1,
+            angle: "cost".into(),
+            questions: vec!["Who pays?".into()],
+        }),
+        4,
+    );
+    let answer = committed(
+        EnvelopePayload::GrillAnswer(GrillAnswer {
+            contest_id: id,
+            round: 1,
+            turn: 0,
+            leader,
+            question_event_id: question.base.id,
+            answers: vec![GrillAnswerItem {
+                question_index: 0,
+                answer: "Users pay".into(),
+                plan_changes: "Add pricing".into(),
+            }],
+        }),
+        5,
+    );
+    let mut session = Session::default();
+    let mut queue = FxQueue::new();
+    let events = [setup, plan, state, question, answer];
+    for e in &events {
+        session.reduce(
+            FeedItem::Committed(e.clone()),
+            FeedOrigin::Live,
+            Duration::ZERO,
+            &mut queue,
+        );
+    }
+    assert_eq!(queue.len(), 2);
+    let before = session.grills[&id].clone();
+    for e in &events {
+        session.reduce(
+            FeedItem::Committed(e.clone()),
+            FeedOrigin::Live,
+            Duration::ZERO,
+            &mut queue,
+        );
+    }
+    assert_eq!(session.grills[&id], before);
+    assert_eq!(queue.len(), 2);
+    insta::assert_snapshot!("typed_grill_question_answer", screen(&before, 80, 30).0);
+    let mut replay = Session::default();
+    let mut replay_queue = FxQueue::new();
+    for e in events {
+        replay.reduce(
+            FeedItem::Committed(e),
+            FeedOrigin::Replay,
+            Duration::ZERO,
+            &mut replay_queue,
+        );
+    }
+    assert_eq!(replay.grills[&id], before);
+    assert!(replay_queue.is_empty());
+}

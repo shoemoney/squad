@@ -20,6 +20,9 @@ tokio-util = "0.7"
 chrono = "0.4"
 rusqlite = { version = "0.38", features = ["bundled"] }
 tracing.workspace = true
+uuid = { workspace = true, features = ["v4"] }
+
+regex = "1"
 
 [dev-dependencies]
 tracing-subscriber = { workspace = true, features = ["fmt"] }

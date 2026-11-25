@@ -10,6 +10,8 @@ pub mod identities;
 pub mod parser;
 pub use errors::ErrorCode;
 pub mod contest;
+pub mod crosscheck;
+pub use crosscheck::*;
 pub mod requests;
 
 pub mod capabilities;
@@ -17,6 +19,9 @@ pub mod constants;
 pub mod cursor;
 pub mod debate;
 pub mod envelopes;
+pub mod probe;
+#[cfg(feature = "mode-survey")]
+pub mod survey;
 pub mod validation;
 pub mod verdict;
 pub mod work;
@@ -30,7 +35,17 @@ pub use parser::{
     ExportScope, ParseContext, ParsedInput, RecordSummary, SubmissionMeta, VariableName,
     VariableUpdate, parse,
 };
+pub use probe::*;
 pub use requests::*;
+#[cfg(feature = "mode-survey")]
+pub use survey::*;
 pub use work::*;
 pub type MemberNick = Nick;
 pub type DateTime = chrono::DateTime<chrono::Utc>;
+
+pub mod tournament;
+pub use tournament::*;
+pub mod census;
+pub use census::*;
+pub mod grill;
+pub use grill::*;
