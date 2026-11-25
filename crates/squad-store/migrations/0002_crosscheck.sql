@@ -50,7 +50,8 @@ CREATE TABLE events_crosscheck (
         'crosscheck.review',
         'crosscheck.audit',
         'crosscheck.acceptance',
-        'crosscheck.report'
+        'crosscheck.report',
+        'crosscheck.ruling'
     )),
     correlation_id TEXT NOT NULL,
     causation_id TEXT,

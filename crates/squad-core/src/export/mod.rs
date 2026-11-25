@@ -3,6 +3,7 @@
 //! Store adapters must load all events and public artifact projections in one read
 //! transaction. Neither this renderer nor `ExportSource` opens the room runtime.
 //! Opaque generic artifact/report data is deliberately never serialized here.
+mod crosscheck;
 use crate::banner::{Banner, render_default};
 use squad_protocol::*;
 use std::collections::{BTreeMap, BTreeSet};
@@ -119,7 +120,7 @@ fn check_scope(scope: &ExportScope, id: Option<ContestId>) -> Result<(), ExportE
     }
     if matches!(
         scope,
-        ExportScope::Census | ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
+        ExportScope::Census | ExportScope::Survey | ExportScope::Probe
     ) {
         return Err(ExportError::UnsupportedScope);
     }
@@ -186,6 +187,7 @@ pub fn render(
             ExportScope::Debate => ContestKind::Debate,
             ExportScope::Tournament => ContestKind::Tournament,
             ExportScope::Grill => ContestKind::Grill,
+            ExportScope::Crosscheck => ContestKind::Crosscheck,
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -269,6 +271,10 @@ pub fn render(
             && !matches!(&e.content, EnvelopePayload::CaseRuling(s) if cases.contains(&s.case_id))
             && !matches!(&e.content, EnvelopePayload::UserMessage(s) if s.case_id.is_some_and(|case| cases.contains(&case)))
         {
+            continue;
+        }
+        if let Some(text) = crosscheck::render(&e.content) {
+            out.push_str(&text);
             continue;
         }
         match &e.content {
@@ -520,6 +526,8 @@ pub fn render(
 }
 fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
     Some(match p {
+        EnvelopePayload::CrosscheckSetup(s) => (s.contest_id, ContestKind::Crosscheck),
+        EnvelopePayload::CrosscheckState(s) => (s.contest_id, ContestKind::Crosscheck),
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -537,6 +545,15 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         return Some(id);
     }
     match p {
+        EnvelopePayload::CrosscheckGoal(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckInventory(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckGrid(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckReview(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckAudit(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckRuling(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckAcceptance(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckReport(s) => Some(s.contest_id),
+        EnvelopePayload::CrosscheckPreflight(s) => Some(s.base.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

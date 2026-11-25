@@ -145,7 +145,10 @@ pub fn snapshot(
         let (kind, json, active, plan, expires) = row?;
         // Owning stores may persist either the shared tagged carrier or its inner state.
         let state = serde_json::from_str::<ContestState>(&json).or_else(|_| {
-            if kind == "debate" {
+            if kind == "crosscheck" {
+                serde_json::from_str::<CrosscheckState>(&json)
+                    .map(|s| ContestState::Generic(s.generic()))
+            } else if kind == "debate" {
                 serde_json::from_str(&json)
                     .map(ContestState::Debate)
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
@@ -166,9 +169,12 @@ pub fn snapshot(
                 at.parse::<chrono::DateTime<chrono::Utc>>()
                     .is_ok_and(|at| at > chrono::Utc::now())
             });
-            if unexpired {
+            if unexpired && (kind != "crosscheck" || expires.is_some()) {
                 let plan = serde_json::from_str::<PendingPreflight>(&plan).or_else(|_| {
-                    if kind == "debate" {
+                    if kind == "crosscheck" {
+                        serde_json::from_str::<CrosscheckPreflight>(&plan)
+                            .map(|p| PendingPreflight::Contest(p.base))
+                    } else if kind == "debate" {
                         serde_json::from_str(&plan).map(PendingPreflight::Debate)
                     } else {
                         serde_json::from_str(&plan).map(PendingPreflight::Contest)

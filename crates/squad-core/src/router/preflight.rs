@@ -117,9 +117,9 @@ pub fn resolve(
     plan_id: PlanId,
     cancel: bool,
 ) -> Result<RequestResult> {
-    if squad_store::schema::validate_contest_kind(tx,debate,ContestKind::Crosscheck)? {
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Crosscheck)? {
         let max: i64 = tx.query_row("SELECT json_extract(pending_request_json,'$.dailyMax') FROM contests WHERE contest_id=?",[debate.to_string()],|r|r.get(0))?;
-        return super::crosscheck::resolve(tx,group,id,debate,plan_id,cancel,max);
+        return super::crosscheck::resolve(tx, group, id, debate, plan_id, cancel, max);
     }
     let mut state = squad_store::contests::debate(tx, debate)?;
     let (raw, pending): (Option<String>, Option<String>) = tx.query_row(

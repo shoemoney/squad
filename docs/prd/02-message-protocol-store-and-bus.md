@@ -2973,7 +2973,13 @@ The human feed retains all accepted room activity. This is the sole projection t
 | Judge repair | Next authorized attempt, same case and work only | Previous `rejectedOutput`, `validationErrors`; never ordinary history |
 | Grill (M5.P6) | Declared shared floor only | Shared-floor rule; exact step field rows added in M5.P6 |
 | Census (M5.P7) | Isolated assigned step/case only | Blind hunts; raters receive gap id, omission and consequence only, with plan, no lenses, finders or counts; exact field rows added in M5.P7 |
-| Crosscheck (M5.P8) | Isolated assigned step/case only | Inventory hides plan; reviews exclude self-origin items; fresh audits hide reviewer identities; exact field rows added in M5.P8 |
+| Crosscheck goal extraction | Fresh contest-bound judge case only | Frozen `plan`; response `goal`, `constraints`, `uncertainties`; no ordinary history |
+| Crosscheck inventory | Fresh assigned member step only | `goal`, `constraints`, `uncertainties`, privately assigned `lens`; no plan, inventory peers or ordinary history |
+| Crosscheck normalization | Fresh contest-bound judge case only | Goal/constraints and inventory event references, lens and three local item IDs/text/rationale per accepted inventory; no plan |
+| Crosscheck review | Assigned member step only | Frozen `plan` and assigned `cells[].{cellId,items}`; no originators, reviewer map, unassigned cells or prior history |
+| Crosscheck audit | Selected auditor in fresh step only | Frozen `plan`, anonymous `grid[].{cellId,items}` and persisted sampled `cellId,status,citation,reason,proposedFix`; no reviewer/originator identities or previous contexts |
+| Crosscheck ruling | Fresh contest-bound judge case only | Frozen `plan`, retained grid, accepted reviews and audits with case references; no unrelated histories |
+| Crosscheck report and explicit acceptance | Human only | Full coverage ledger, cap omissions, residual risks, failures and version-bound acceptance; no automatic working-history entry |
 | Tournament (M5.P5) | Own entrant context or blind case only | Own answers/results; anonymous judging; final placements shared; exact field rows added in M5.P5 |
 | Survey (M5.P9) | Isolated assigned ballot/case only | Unattributed claims and barrier-bundled anonymous reasons, no source answers, authors or counts; exact field rows added in M5.P9 |
 | Probe (M5.P10) | Isolated role/step/case only | Blind proposals; own explanation and frozen anonymous checks for prediction; exact field rows added in M5.P10 |

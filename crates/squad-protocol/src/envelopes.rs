@@ -145,7 +145,9 @@ pub enum EnvelopePayload {
     #[serde(rename = "crosscheck.preflight")]
     CrosscheckPreflight(CrosscheckPreflight),
     #[serde(rename = "crosscheck.goal")]
-    CrosscheckGoal(CrosscheckGoal),
+    CrosscheckGoal(CrosscheckGoalRecord),
+    #[serde(rename = "crosscheck.ruling")]
+    CrosscheckRuling(CrosscheckRulingRecord),
     #[serde(rename = "crosscheck.inventory")]
     CrosscheckInventory(CrosscheckInventory),
     #[serde(rename = "crosscheck.grid")]
@@ -684,7 +686,13 @@ fn validate_envelope(
         EnvelopePayload::CrosscheckState(v) => v.validate()?,
         EnvelopePayload::CrosscheckPreflight(v) => v.validate()?,
         EnvelopePayload::CrosscheckInventory(v) => v.response.validate()?,
-        EnvelopePayload::CrosscheckGoal(_) | EnvelopePayload::CrosscheckGrid(_) | EnvelopePayload::CrosscheckReview(_) | EnvelopePayload::CrosscheckAudit(_) | EnvelopePayload::CrosscheckAcceptance(_) | EnvelopePayload::CrosscheckReport(_) => {},
+        EnvelopePayload::CrosscheckRuling(_)
+        | EnvelopePayload::CrosscheckGoal(_)
+        | EnvelopePayload::CrosscheckGrid(_)
+        | EnvelopePayload::CrosscheckReview(_)
+        | EnvelopePayload::CrosscheckAudit(_)
+        | EnvelopePayload::CrosscheckAcceptance(_)
+        | EnvelopePayload::CrosscheckReport(_) => {}
         EnvelopePayload::DebateState(state) => state.validate()?,
         EnvelopePayload::DebateTurn(turn) => {
             generation(&turn.generation)?;
@@ -787,7 +795,11 @@ fn validate_envelope(
             )?,
         },
         EnvelopePayload::ContestTransition(submission) => ensure(
-            matches!((&submission.kind, &submission.transition), (ContestKind::Debate, ContestTransition::Debate(_)) | (ContestKind::Crosscheck, ContestTransition::Crosscheck(_))),
+            matches!(
+                (&submission.kind, &submission.transition),
+                (ContestKind::Debate, ContestTransition::Debate(_))
+                    | (ContestKind::Crosscheck, ContestTransition::Crosscheck(_))
+            ),
             "transition kind mismatch",
         )?,
         EnvelopePayload::ContestPreflight(preflight) => {

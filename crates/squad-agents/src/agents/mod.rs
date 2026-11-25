@@ -1,6 +1,6 @@
 //! Per-kind executors share attempt-scoped streaming and ingress fencing.
-pub mod member;
 pub mod crosscheck;
+pub mod member;
 use crate::{
     accounting::{AttemptAccounting, acknowledged},
     openrouter::*,

@@ -109,8 +109,13 @@ impl WorkReader for ScopedReaders {
             let work = record.executable.ok_or(ReaderError::NotRunnable)?;
             let mut values = std::collections::BTreeMap::new();
             if matches!(work.kind, WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge) {
+                let state=crate::crosscheck::state(db,work.contest_id.ok_or(ReaderError::Forbidden)?).map_err(map_error)?;
+                let valid:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE work_id=? AND lease_owner=? AND lease_until>?)",rusqlite::params![id.to_string(),serde_json::to_string(owner).map_err(|_|ReaderError::Forbidden)?,chrono::Utc::now().to_rfc3339()],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                if state.status.is_terminal() || state.step_id!=work.step_id || !valid {return Err(ReaderError::StaleWork);}
+
                 let material: String = db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key=?",rusqlite::params![work.contest_id.ok_or(ReaderError::Forbidden)?.to_string(),format!("crosscheck.input:{}",id)],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
-                values.insert("crosscheck_material_json".into(),material);
+                let material:serde_json::Value=serde_json::from_str(&material).map_err(|_|ReaderError::Forbidden)?;
+                values.insert("crosscheck_material_json".into(),material["value"].to_string());
                 return Ok(values);
             }
             if let Some(case) = work.case_id {

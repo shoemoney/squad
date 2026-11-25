@@ -32,6 +32,20 @@ pub fn apply(
                 tx.execute("UPDATE contests SET state_json=?,state_version=?,active=0,updated_seq=?,pending_request_json=json_set(COALESCE(pending_request_json,'{}'),'$.terminalReason','pick_cancelled') WHERE contest_id=?",params![serde_json::to_string(&state)?,state.state_version as i64,seq.get(),contest])?;
                 stopped_contest = Some(state.contest_id);
             }
+        } else if let Ok(mut state) = serde_json::from_str::<CrosscheckState>(&raw) {
+            let setup: CrosscheckSetup =
+                super::crosscheck::map(tx, state.contest_id, "crosscheck.setup")?;
+            if target
+                .as_ref()
+                .is_none_or(|n| setup.participants.contains(n))
+            {
+                let version = state.state_version;
+                state.state_version += 1;
+                state.status = CrosscheckStatus::Stopped;
+                state.terminal_reason = Some(Text::new("stopped").expect("literal"));
+                super::crosscheck::save(tx, group, &state, Some(version))?;
+                stopped_contest = Some(state.contest_id);
+            }
         } else if let Ok(mut state) = serde_json::from_str::<DebateState>(&raw)
             && target.as_ref().is_none_or(|n| state.debaters.contains(n))
         {

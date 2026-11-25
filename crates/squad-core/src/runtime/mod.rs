@@ -1,8 +1,8 @@
 //! Private member workers and dynamically discovered case executors.
 pub mod contexts;
+mod crosscheck;
 mod judge;
 mod member;
-mod crosscheck;
 use crate::{bus::InProcessBus, prompts::PromptPack};
 use squad_agents::{openrouter::OpenRouterClient, resolver::ResolutionSnapshot};
 use squad_protocol::*;
@@ -272,7 +272,12 @@ fn launch_mode(
                     case,
                     squad_agents::worker::spawn(
                         context,
-                        Arc::new(judge::Executor { ordinary: squad_agents::judge::JudgeExecutor {runner:judge.clone()}, crosscheck:judge.clone() }),
+                        Arc::new(judge::Executor {
+                            ordinary: squad_agents::judge::JudgeExecutor {
+                                runner: judge.clone(),
+                            },
+                            crosscheck: judge.clone(),
+                        }),
                     ),
                 ));
             }

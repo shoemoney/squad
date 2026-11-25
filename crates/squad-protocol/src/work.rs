@@ -83,9 +83,26 @@ impl Work {
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
             WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge => {
-                ensure(self.contest_id.is_some() && self.step_id.is_some() && self.debate_id.is_none() && self.round.is_none(), "crosscheck requires contest step")?;
-                ensure((self.kind == WorkKind::CrosscheckJudge) == (self.target == Target::Judge), "crosscheck target mismatch")?;
-                ensure(self.attempt <= if self.kind == WorkKind::CrosscheckJudge {3} else {2}, "crosscheck attempt limit")?;
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.round.is_none(),
+                    "crosscheck requires contest step",
+                )?;
+                ensure(
+                    (self.kind == WorkKind::CrosscheckJudge) == (self.target == Target::Judge),
+                    "crosscheck target mismatch",
+                )?;
+                ensure(
+                    self.attempt
+                        <= if self.kind == WorkKind::CrosscheckJudge {
+                            3
+                        } else {
+                            2
+                        },
+                    "crosscheck attempt limit",
+                )?;
             }
             WorkKind::Reply => {
                 ensure(
@@ -152,7 +169,8 @@ impl Work {
             }
         }
         let ceiling = match self.kind {
-            WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge => 4096,
+            WorkKind::CrosscheckMember => 2048,
+            WorkKind::CrosscheckJudge => 4096,
             WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,

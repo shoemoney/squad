@@ -81,12 +81,23 @@ pub fn insert(
             |r| r.get(0),
         )?;
         if let Some(raw) = raw {
-            let (plan_id, reserved_usd, calls) = if matches!(work.kind, WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge) {
+            let (plan_id, reserved_usd, calls) = if matches!(
+                work.kind,
+                WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge
+            ) {
                 let plan: CrosscheckPreflight = decode(raw)?;
-                (plan.base.plan_id, plan.base.estimate.reserved_usd, plan.reserved_attempts)
+                (
+                    plan.base.plan_id,
+                    plan.base.estimate.reserved_usd,
+                    plan.reserved_attempts,
+                )
             } else {
                 let plan: DebatePreflight = decode(raw)?;
-                (plan.plan_id, plan.estimate.reserved_usd, plan.reserved_calls())
+                (
+                    plan.plan_id,
+                    plan.estimate.reserved_usd,
+                    plan.reserved_calls(),
+                )
             };
             let total = crate::accounting::reservation_micros(reserved_usd)
                 .map_err(|_| invalid("Invalid plan reservation"))?;

@@ -8,6 +8,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+regex = "1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 squad-protocol = { workspace = true }

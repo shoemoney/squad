@@ -122,7 +122,11 @@ pub fn failure_policy(
         AttemptDecision::Retry {
             work_id,
             next_attempt: attempt + 1,
-            repair: invalid && matches!(kind, WorkKind::Judge | WorkKind::JudgeRound | WorkKind::CrosscheckJudge),
+            repair: invalid
+                && matches!(
+                    kind,
+                    WorkKind::Judge | WorkKind::JudgeRound | WorkKind::CrosscheckJudge
+                ),
         }
     } else {
         match kind {

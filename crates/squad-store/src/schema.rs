@@ -10,18 +10,24 @@ pub fn configure(connection: &Connection) -> rusqlite::Result<()> {
 pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
     configure(connection)?;
     let version: i64 = connection.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    if version > 2 { return Err(rusqlite::Error::InvalidQuery); }
+    if version > 2 {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
     // SQLite's documented table-rebuild procedure preserves incoming FKs.
     connection.pragma_update(None, "foreign_keys", false)?;
     let result = (|| {
         let tx = connection.transaction()?;
-        if version == 0 { tx.execute_batch(INITIAL)?; }
+        if version == 0 {
+            tx.execute_batch(INITIAL)?;
+        }
         if version < 2 {
             tx.execute_batch(include_str!("../migrations/0002_crosscheck.sql"))?;
             tx.pragma_update(None, "user_version", 2)?;
         }
         let violations: bool = tx.prepare("PRAGMA foreign_key_check")?.exists([])?;
-        if violations { return Err(rusqlite::Error::InvalidQuery); }
+        if violations {
+            return Err(rusqlite::Error::InvalidQuery);
+        }
         tx.commit()
     })();
     connection.pragma_update(None, "foreign_keys", true)?;
