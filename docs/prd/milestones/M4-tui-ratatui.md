@@ -32,11 +32,11 @@
 
 - **M4.P1.L2 — Build the application loop and terminal lifecycle**
   - [ ] M4.P1.L2.T1 — Declare Ratatui 0.30.x, crossterm, tokio, Markdown, highlighting, and Unicode dependencies in `crates/squad-tui/Cargo.toml`.
-  - [ ] M4.P1.L2.T2 — Implement `App` in `crates/squad-tui/src/app.rs` and the single `tokio::select!` loop in `crates/squad-tui/src/event_loop.rs`, prioritizing terminal input, draining at most 256 feed items per iteration, and arming the frame timer from `FxManager::next_wake()` and pending UI deadlines, capped at 60 Hz and disarmed when idle.
+  - [x] M4.P1.L2.T2 — Implement `App` in `crates/squad-tui/src/app.rs` and the single `tokio::select!` loop in `crates/squad-tui/src/event_loop.rs`, prioritizing terminal input, draining at most 256 feed items per iteration, and arming the frame timer from `FxManager::next_wake()` and pending UI deadlines, capped at 60 Hz and disarmed when idle.
   - [ ] M4.P1.L2.T3 — Implement pure render functions and both viewport geometries in `crates/squad-tui/src/ui.rs` and `crates/squad-tui/src/layout.rs`.
   - [x] M4.P1.L2.T4 — Implement terminal setup, capability queries, synchronized-output closure, and cleanup on exit or failure in `crates/squad-tui/src/terminal.rs`.
   - [x] M4.P1.L2.T5 — Implement missing-key, room-locked, and terminal-too-small presentation in `crates/squad-tui/src/screens.rs`.
-  - [ ] M4.P1.L2.T6 — Expose the post-render effects pass and effects manager hook in `crates/squad-tui/src/event_loop.rs` and `crates/squad-tui/src/ui.rs`, following TUI effects and motion while keeping static rendering complete and correct with effects off.
+  - [x] M4.P1.L2.T6 — Expose the post-render effects pass and effects manager hook in `crates/squad-tui/src/event_loop.rs` and `crates/squad-tui/src/ui.rs`, following TUI effects and motion while keeping static rendering complete and correct with effects off.
 
 - **M4.P1.L3 — Spike and implement grapheme-aware input**
   - [x] M4.P1.L3.T1 — Compare a custom input prototype with compatible textarea candidates for soft wrap, Unicode cursor movement, selection, paste, and resize in `crates/squad-tui/examples/input_spike.rs`; record the evidence for writing Squad's widget in `crates/squad-tui/README.md`.
@@ -46,16 +46,16 @@
   - [x] M4.P1.L3.T5 — Verify pasted code preservation, UTF-8 byte validation, and grapheme-boundary editing in `crates/squad-tui/tests/input.rs`.
 
 - **M4.P1.L4 — Integrate completion and shared validation**
-  - [ ] M4.P1.L4.T1 — Connect the shared parser, exact errors, and recipient preview in `crates/squad-tui/src/validation.rs`.
-  - [ ] M4.P1.L4.T2 — Implement six-row caret-aware mention, exclusion, variable, and command completion in `crates/squad-tui/src/widgets/completion.rs`.
-  - [ ] M4.P1.L4.T3 — Implement Ctrl+R recipient recall, pending variable display, and rejected-draft preservation in `crates/squad-tui/src/app.rs`.
-  - [ ] M4.P1.L4.T4 — Verify protected code, assignments, invalid exclusions, completion replacement, and recipient previews in `crates/squad-tui/tests/completion.rs`.
+  - [x] M4.P1.L4.T1 — Connect the shared parser, exact errors, and recipient preview in `crates/squad-tui/src/validation.rs`.
+  - [x] M4.P1.L4.T2 — Implement six-row caret-aware mention, exclusion, variable, and command completion in `crates/squad-tui/src/widgets/completion.rs`.
+  - [x] M4.P1.L4.T3 — Implement Ctrl+R recipient recall, pending variable display, and rejected-draft preservation in `crates/squad-tui/src/app.rs`.
+  - [x] M4.P1.L4.T4 — Verify protected code, assignments, invalid exclusions, completion replacement, and recipient previews in `crates/squad-tui/tests/completion.rs`.
 
 - **M4.P1.L5 — Integrate contest input and safe dismissal**
-  - [ ] M4.P1.L5.T1 — Add `$tournament`, `$grill`, and `GRILL_ROUNDS` completion and authoritative assignment display in `crates/squad-tui/src/widgets/completion.rs` and `crates/squad-tui/src/validation.rs`, consuming the shared parser's UTF-8 spans and Rust `Result`.
-  - [ ] M4.P1.L5.T2 — Implement eligible-first mention completion and pending-pick input placeholders in `crates/squad-tui/src/widgets/completion.rs` and `crates/squad-tui/src/widgets/input.rs`.
-  - [ ] M4.P1.L5.T3 — Implement transient-first Escape, the confirming second Escape within 2 s during a contest, input-preserving animation dispatch, and `q` shutdown outside input in `crates/squad-tui/src/input_events.rs` and `crates/squad-tui/src/app.rs`.
-  - [ ] M4.P1.L5.T4 — Verify contest completion, variable confirmation, ordinary input during picks, transient dismissal without stopping, stop-confirmation expiry, and shutdown keys in `crates/squad-tui/tests/input.rs` and `crates/squad-tui/tests/completion.rs`.
+  - [x] M4.P1.L5.T1 — Add `$tournament`, `$grill`, and `GRILL_ROUNDS` completion and authoritative assignment display in `crates/squad-tui/src/widgets/completion.rs` and `crates/squad-tui/src/validation.rs`, consuming the shared parser's UTF-8 spans and Rust `Result`.
+  - [x] M4.P1.L5.T2 — Implement eligible-first mention completion and pending-pick input placeholders in `crates/squad-tui/src/widgets/completion.rs` and `crates/squad-tui/src/widgets/input.rs`.
+  - [x] M4.P1.L5.T3 — Implement transient-first Escape, the confirming second Escape within 2 s during a contest, input-preserving animation dispatch, and `q` shutdown outside input in `crates/squad-tui/src/input_events.rs` and `crates/squad-tui/src/app.rs`.
+  - [x] M4.P1.L5.T4 — Verify contest completion, variable confirmation, ordinary input during picks, transient dismissal without stopping, stop-confirmation expiry, and shutdown keys in `crates/squad-tui/tests/input.rs` and `crates/squad-tui/tests/completion.rs`.
 
 - **M4.P1.L6 — Integrate the four new mode commands**
   - [ ] M4.P1.L6.T1 — Add `$census`, `$crosscheck`, `$survey`, `$probe`, `$CENSUS_PASSES`, and `$CENSUS_PASSES=` completion in `crates/squad-tui/src/widgets/completion.rs` using the shared parser's recognized forms.
@@ -66,9 +66,9 @@
 ## Phase M4.P2 — Transcript, Markdown, and room state
 
 - **M4.P2.L1 — Integrate RoomHandle**
-  - [ ] M4.P2.L1.T1 — Implement subscription, state initialization, request acknowledgements, submission gating, and shutdown integration in `crates/squad-tui/src/session.rs`.
-  - [ ] M4.P2.L1.T2 — Implement durable paging, canonical identity reconciliation, feed-lag recovery, and pending-request preservation in `crates/squad-tui/src/session.rs`.
-  - [ ] M4.P2.L1.T3 — Verify initialization races, repeated events, invalid-cursor presentation, and authoritative room reset in `crates/squad-tui/tests/session.rs`.
+  - [x] M4.P2.L1.T1 — Implement subscription, state initialization, request acknowledgements, submission gating, and shutdown integration in `crates/squad-tui/src/session.rs`.
+  - [x] M4.P2.L1.T2 — Implement durable paging, canonical identity reconciliation, feed-lag recovery, and pending-request preservation in `crates/squad-tui/src/session.rs`.
+  - [x] M4.P2.L1.T3 — Verify initialization races, repeated events, invalid-cursor presentation, and authoritative room reset in `crates/squad-tui/tests/session.rs`.
 
 - **M4.P2.L2 — Implement virtualised history and stable streaming**
   - [ ] M4.P2.L2.T1 — Implement visible-row rendering, bounded overscan, wrapped-height caches, and cumulative height lookup in `crates/squad-tui/src/widgets/transcript.rs`.
@@ -93,18 +93,18 @@
 - **M4.P2.L5 — Display participants, accounting, and color**
   - [ ] M4.P2.L5.T1 — Render nick-adjacent versions, complete model detail, presence, queues, contest participation, usage, cost, win-loss records, and tournament trophies in `crates/squad-tui/src/widgets/participants.rs`.
   - [ ] M4.P2.L5.T2 — Render today's spending, pending reservations, daily max, remaining daily amount, and unavailable values in `crates/squad-tui/src/widgets/budget.rs`.
-  - [ ] M4.P2.L5.T3 — Implement the effects-owned palette's stable author colors, specified 16-colour mapping, default-foreground body text, gold chrome, and Foundations no-color behavior in `crates/squad-tui/src/theme.rs`.
+  - [x] M4.P2.L5.T3 — Implement the effects-owned palette's stable author colors, specified 16-colour mapping, default-foreground body text, gold chrome, and Foundations no-color behavior in `crates/squad-tui/src/theme.rs`.
   - [ ] M4.P2.L5.T4 — Verify 12-member navigation, long nicks, persona-based duplicate models, human naming, and repeated accounting events in `crates/squad-tui/tests/participants.rs`.
 
 - **M4.P2.L6 — Display authoritative daily spend**
-  - [ ] M4.P2.L6.T1 — Add `DailySpendView` and consume authoritative daily spend, reservations, unknown-call count, effective max, and local-day changes in `crates/squad-tui/src/app.rs` and `crates/squad-tui/src/session.rs` without computing totals from transcript events.
+  - [x] M4.P2.L6.T1 — Add `DailySpendView` and consume authoritative daily spend, reservations, unknown-call count, effective max, and local-day changes in `crates/squad-tui/src/app.rs` and `crates/squad-tui/src/session.rs` without computing totals from transcript events.
   - [ ] M4.P2.L6.T2 — Implement the always-visible spend bar, lighter pending segment, `~` unknown-cost prefix, explicit amounts, footer-to-status placement, and undersized-terminal display in `crates/squad-tui/src/widgets/budget.rs`, `crates/squad-tui/src/layout.rs`, and `crates/squad-tui/src/screens.rs`.
   - [ ] M4.P2.L6.T3 — Present `DAILY_MAX_REACHED`, the exact effective-max message, refused preflight, continued in-flight work, and 75% and 90% heat hooks in `crates/squad-tui/src/widgets/budget.rs` and `crates/squad-tui/src/widgets/preflight.rs`.
   - [ ] M4.P2.L6.T4 — Verify actual-cost replacement, billed failures and cancellations, unknown costs, duplicate events, day rollover, a raised max, limit boundaries, no-color labels, and persistent visibility in `crates/squad-tui/tests/daily_spend.rs`.
   - [ ] M4.P2.L6.T5 — Verify authoritative room clearing preserves billed daily totals and that judge usage remains distinct from member `fable` in `crates/squad-tui/tests/daily_spend.rs`.
 
 - **M4.P2.L7 — Restore contest views and tag feed origin**
-  - [ ] M4.P2.L7.T1 — Add `ContestView`, `PickView`, and the TUI-internal `FeedOrigin` tag in `crates/squad-tui/src/app.rs` and `crates/squad-tui/src/session.rs`, restoring static contest presentation without changing protocol feed items.
+  - [x] M4.P2.L7.T1 — Add `ContestView`, `PickView`, and the TUI-internal `FeedOrigin` tag in `crates/squad-tui/src/app.rs` and `crates/squad-tui/src/session.rs`, restoring static contest presentation without changing protocol feed items.
   - [ ] M4.P2.L7.T2 — Extend presentation caches for tournament rankings, grill plans and appendix, pick candidates, and contest expansion in `crates/squad-tui/src/widgets/transcript.rs`.
   - [ ] M4.P2.L7.T3 — Verify restart and lag recovery restore active contests, pending picks without expiry, trophies, elimination markers, and plan versions without duplicate effects or lost anchors in `crates/squad-tui/tests/session.rs`.
 
@@ -129,7 +129,7 @@
 
 - **M4.P3.L2 — Render verdicts and judge cases**
   - [ ] M4.P3.L2.T1 — Render actual judge identity, the exact substitution warning, accepted scores, weighted totals, winner, reasoning, and loser takeaways in `crates/squad-tui/src/widgets/verdict.rs`.
-  - [ ] M4.P3.L2.T2 — Implement quote previews, removal, attachment count, limits, and shared quote submission in `crates/squad-tui/src/quotes.rs`.
+  - [x] M4.P3.L2.T2 — Implement quote previews, removal, attachment count, limits, and shared quote submission in `crates/squad-tui/src/quotes.rs`.
   - [ ] M4.P3.L2.T3 — Render standalone free-form rulings, case identity, and verdict-linked follow-ups in `crates/squad-tui/src/widgets/case.rs`.
   - [ ] M4.P3.L2.T4 — Connect shared judging requests and verbatim judge-validation errors in `crates/squad-tui/src/session.rs`.
   - [ ] M4.P3.L2.T5 — Render accepted `roundTally`, non-null `tallyOverrideReason`, and available per-round scores with unscored markers in `crates/squad-tui/src/widgets/verdict.rs`, preserving core validation and verdict-only participant win/loss updates.
@@ -140,7 +140,7 @@
   - [ ] M4.P3.L3.T2 — Render incomplete output, superseded replies, replacement work, and authoritative clear results in `crates/squad-tui/src/transcript.rs`.
   - [ ] M4.P3.L3.T3 — Connect Foundations command presentation, help, roster detail, and export destination handling in `crates/squad-tui/src/actions.rs`.
   - [ ] M4.P3.L3.T4 — Implement the F12 debug pane using shared redacted diagnostics in `crates/squad-tui/src/widgets/debug.rs`.
-  - [ ] M4.P3.L3.T5 — Obtain shared Markdown through `RoomHandle::export(scope, id) -> String`, write it to the selected destination, and report success only after writing in `crates/squad-tui/src/actions.rs`, preserving core-rendered scores, reasons, unscored markers, tallies, override reasons, and default-font fenced banners.
+  - [x] M4.P3.L3.T5 — Obtain shared Markdown through `RoomHandle::export(scope, id) -> String`, write it to the selected destination, and report success only after writing in `crates/squad-tui/src/actions.rs`, preserving core-rendered scores, reasons, unscored markers, tallies, override reasons, and default-font fenced banners.
 
 - **M4.P3.L4 — Render ASCII round banners**
   - [ ] M4.P3.L4.T1 — Integrate the M3 core-owned in-process banner renderer and embedded fonts in `crates/squad-tui/src/widgets/banner.rs` without adding a TUI font copy or moving banner generation out of `squad-core`.
@@ -283,13 +283,13 @@
   - [x] M4.P5.L1.T4 — `squad-tui/src/fx/caps.rs`: test unset versus explicit `full`, `lite` and `off` over SSH and without synchronized output; assert the canonical six-member ANSI mapping and default-foreground human body text.
 - **M4.P5.L2 — Clock, effects manager and cue queue**
   - [x] M4.P5.L2.T1 — `squad-tui/src/fx/clock.rs`: `Clock` trait, `SystemClock`, `ManualClock`.
-  - [ ] M4.P5.L2.T2 — `squad-tui/src/fx/cue.rs`: `FxCue` enum and bounded queue; `squad-tui/src/feed.rs` emits cues for internally tagged `Live` delivery only, without adding an origin field to Protocol's `FeedItem`.
+  - [x] M4.P5.L2.T2 — `squad-tui/src/fx/cue.rs`: `FxCue` enum and bounded queue; `squad-tui/src/feed.rs` emits cues for internally tagged `Live` delivery only, without adding an origin field to Protocol's `FeedItem`.
   - [x] M4.P5.L2.T3 — `squad-tui/src/fx/manager.rs`: `FxManager::{pre, post, next_wake}`, `FxKey` replacement, 48-effect cap, 2 s stale-cue drop, protected-rect clipping.
   - [x] M4.P5.L2.T4 — `squad-tui/Cargo.toml`: add `tachyonfx = "0.25"`; `squad-tui/src/fx/pass.rs` adapter wrapping `tachyonfx::Effect`. Consume banner text from `squad-core`; `figlet-rs` and embedded fonts belong to that crate.
   - [ ] M4.P5.L2.T5 — `squad-tui/src/fx/cue.rs` and `squad-tui/src/feed.rs`: add the daily-spend, tournament, grill and pick cues; derive persistent markers from reduced state and suppress entrances during replay.
 - **M4.P5.L3 — Frame-budget governor and idle halt**
   - [x] M4.P5.L3.T1 — `squad-tui/src/fx/governor.rs`: EWMA, byte-rate input, G0 to G3 thresholds, 3 s hysteresis, table-driven tests.
-  - [ ] M4.P5.L3.T2 — `squad-tui/src/event_loop.rs`: integrate `next_wake()` with the TUI-owned event loop; test zero draws over 5 s after idle effects end and continued drawing during bounded feed batches.
+  - [x] M4.P5.L3.T2 — `squad-tui/src/event_loop.rs`: integrate `next_wake()` with the TUI-owned event loop; test zero draws over 5 s after idle effects end and continued drawing during bounded feed batches.
   - [x] M4.P5.L3.T3 — `squad-tui/benches/fx_frame.rs`: 12 streams plus verdict at 200x60 under 6 ms.
 - **M4.P5.L4 — Test harness**
   - [x] M4.P5.L4.T1 — `squad-tui/tests/fx_support/mod.rs`: `render_at(cues, t)` helper over `TestBackend` and `ManualClock`.

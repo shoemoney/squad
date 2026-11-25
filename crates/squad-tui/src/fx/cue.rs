@@ -186,3 +186,36 @@ impl FxQueue {
         self.cues.clear();
     }
 }
+
+impl FxQueue {
+    /// Translate the original event's wall time into the shared monotonic epoch.
+    /// Backlogged live deliveries retain their age so manager stale-drop works;
+    /// replay is suppressed before it can trigger any entrance.
+    pub fn from_feed(
+        &mut self,
+        origin: FeedOrigin,
+        event_id: EventId,
+        created_at: squad_protocol::DateTime,
+        wall_now: squad_protocol::DateTime,
+        now: Duration,
+        cue: FxCue,
+    ) {
+        let age = wall_now
+            .signed_duration_since(created_at)
+            .to_std()
+            .unwrap_or_default();
+        // Events predating the application epoch cannot be represented by a
+        // negative Duration. Suppress them when already beyond the stale window.
+        if age > now && age > Duration::from_secs(2) {
+            return;
+        }
+        self.push(
+            origin,
+            TimedCue {
+                event_id,
+                at: now.saturating_sub(age),
+                cue,
+            },
+        );
+    }
+}
