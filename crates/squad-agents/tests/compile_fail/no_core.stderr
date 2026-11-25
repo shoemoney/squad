@@ -1,0 +1,7 @@
+error[E0433]: cannot find module or crate `squad_core` in this scope
+ --> tests/compile_fail/no_core.rs:2:35
+  |
+2 |     let _ = std::any::type_name::<squad_core::bus::InProcessBus>();
+  |                                   ^^^^^^^^^^ use of unresolved module or unlinked crate `squad_core`
+  |
+  = help: if you wanted to use a crate named `squad_core`, use `cargo add squad_core` to add it to your `Cargo.toml`

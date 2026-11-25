@@ -1,0 +1,11 @@
+error[E0599]: no method named `subscribe` found for struct `Arc<(dyn ExecutorSubmit + 'static)>` in the current scope
+ --> tests/compile_fail/no_feed_or_private_maps.rs:2:28
+  |
+2 |     let _ = context.submit.subscribe();
+  |                            ^^^^^^^^^ method not found in `Arc<(dyn ExecutorSubmit + 'static)>`
+
+error[E0599]: no method named `private_map` found for struct `Arc<(dyn WorkReader + 'static)>` in the current scope
+ --> tests/compile_fail/no_feed_or_private_maps.rs:3:26
+  |
+3 |     let _ = context.work.private_map("labels");
+  |                          ^^^^^^^^^^^ method not found in `Arc<(dyn WorkReader + 'static)>`

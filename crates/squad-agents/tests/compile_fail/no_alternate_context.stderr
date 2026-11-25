@@ -1,0 +1,5 @@
+error[E0599]: no method named `for_context` found for reference `&dyn HistoryReader` in the current scope
+ --> tests/compile_fail/no_alternate_context.rs:2:20
+  |
+2 |     let _ = reader.for_context(squad_protocol::ContextId("someone_else".into()));
+  |                    ^^^^^^^^^^^ method not found in `&dyn HistoryReader`
