@@ -1,0 +1,14 @@
+2026-11-25T03:17:36.778159-06:00
+ 03:17:36 up 6 days, 12:25,  1 user,  load average: 1.49, 3.72, 4.49
+    Finished `release` profile [optimized] target(s) in 0.13s
+     Running tests/m6_performance.rs (target/release/deps/m6_performance-423814bf6a05951f)
+
+running 1 test
+M6 workers=6 samples=100 fake_provider_delay_ms=100 accept_p95_us=94080 first_delta_p95_us=204788 replay_100_us=1158 peak_rss_kib=59112
+M6 workers=12 samples=100 fake_provider_delay_ms=100 accept_p95_us=189183 first_delta_p95_us=304778 replay_100_us=1596 peak_rss_kib=93192
+test deterministic_first_delta_and_replay_measurements_six_and_twelve_workers ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 47.15s
+
+EXIT_STATUS=0
+ 03:18:24 up 6 days, 12:26,  1 user,  load average: 1.24, 3.30, 4.30

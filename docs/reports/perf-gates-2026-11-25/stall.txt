@@ -1,0 +1,2 @@
+    PID     ELAPSED COMMAND
+1899710       04:31 /home/shoemoney/.t3/worktrees/Squad/perf-gates-43be34be5473304b/target/debug/deps/m6_operational-9a66809339e94ec8

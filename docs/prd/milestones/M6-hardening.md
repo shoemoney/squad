@@ -23,6 +23,25 @@
 - Census, crosscheck, survey, and probe pass their blind-step canary gates, tally and report checks, retry and skip paths, stopping, restart recovery, and exports.
 - New-mode medium-reasoning judge requests, script-derived preflights, daily reservations, banners, report layouts, and reduced-effects behavior pass.
 
+## Release measurement follow-up — 2026-11-25
+
+On dev3, three release latency runs passed: first-delta p95 min/median/max was
+203.921/204.788/216.170 ms (6 workers) and 301.917/304.778/307.108 ms (12),
+against 500 ms. Replay and sampled RSS also passed. Initial uptime load was
+0.41/4.19/4.74; one-minute load was below 2 before each gate invocation.
+The third latency run ended at 3.16; a subsequent separate build was allowed to
+finish before TUI measurement. Three full 300-second-per-viewport real-widget,
+12-stream full-effects release runs passed at 140x42, 80x24 and 200x60, after
+repairing stale input-cell and undersized-resize assumptions in the harness.
+The missing-cost reservation check failed all three explicit release runs and
+remains ignored pending ordinary dispatch/pricing integration. No release-wide
+checkbox is inferred from this narrower evidence. Commands, complete metric
+min/median/max tables, host/load qualifications, retained failures and outstanding
+scope are in [docs/performance.md](../../performance.md). Final Clippy and format
+checks passed, but workspace validation stalled in `m6_operational` and returned
+101 after that test process was terminated at 4m31s. A 90-second serial retry also
+stalled; this unresolved validation failure is retained in the report.
+
 ## Phase M6.P1 — Deterministic verification
 
 - **M6.P1.L1 — Protocol and routing coverage**

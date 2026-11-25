@@ -27,7 +27,7 @@ fn rss_kib() -> u64 {
 }
 
 #[tokio::test]
-#[ignore = "manual performance gate: six-worker first-delta p95 currently exceeds 500 ms"]
+#[ignore = "manual release performance gate: run with --release --ignored --nocapture"]
 async fn deterministic_first_delta_and_replay_measurements_six_and_twelve_workers() {
     let mut within_latency_target = true;
     for workers in [6, 12] {

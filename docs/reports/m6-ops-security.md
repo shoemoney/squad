@@ -29,6 +29,19 @@ New tests are `m6_*.rs` under CLI, core, store and TUI, with `crates/squad-core/
 
 Full workspace gates and the remaining milestone checklist are recorded in the completion report. Short performance evidence and its limits are in `docs/performance.md`.
 
+## Release follow-up (2026-11-25)
+
+The three-run optimized dev3 follow-up is recorded in
+[performance.md](../performance.md): latency/replay/RSS and all nine full TUI
+viewport windows pass their harness thresholds. The missing-cost ordinary
+reservation check still fails 3/3 and remains a release blocker; its cause and
+required dispatch/pricing work are documented there. The follow-up workspace
+run stalled in `m6_operational` and was terminated after 4m31s (overall exit 101);
+a bounded serial retry also stalled. All other targets, Clippy and formatting
+passed. This does not supersede that unresolved operational validation failure.
+The wiki is now available
+on dev3; the earlier unavailable-wiki note below describes the original unit.
+
 ## Release blockers and unchecked work
 
 - Ordinary replies and standalone cases can start without a priced reservation. Missing-cost ordinary completion persists `unknown_calls`, but can leave `reserved_usd` at zero. `m6_operational::ordinary_missing_cost_must_retain_a_positive_priced_reservation` is an ignored, executable failing release check. Missing catalog prices do not yet provide the required ordinary `COST_UNKNOWN` dispatch gate. Fixing this requires the owning dispatch/reservation integration; this unit does not invent a replacement pricing policy.

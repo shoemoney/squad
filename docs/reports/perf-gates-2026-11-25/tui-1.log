@@ -1,0 +1,14 @@
+2026-11-25T03:23:59.922949-06:00
+ 03:23:59 up 6 days, 12:32,  1 user,  load average: 1.46, 3.72, 4.29
+    Finished `bench` profile [optimized] target(s) in 0.22s
+     Running benches/composed_streams.rs (target/release/deps/composed_streams-983c0f08092b3553)
+140x42 startup_ms=1116.563
+
+thread 'main' (1842343) panicked at crates/squad-tui/benches/composed_streams.rs:259:13:
+assertion `left == right` failed: typed text must reach the actual editor
+  left: "I"
+ right: "a"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: bench failed, to rerun pass `-p squad-tui --bench composed_streams`
+EXIT_STATUS=101
+ 03:24:01 up 6 days, 12:32,  1 user,  load average: 1.46, 3.72, 4.29
