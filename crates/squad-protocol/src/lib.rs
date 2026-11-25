@@ -37,3 +37,5 @@ pub type DateTime = chrono::DateTime<chrono::Utc>;
 
 pub mod tournament;
 pub use tournament::*;
+pub mod census;
+pub use census::*;

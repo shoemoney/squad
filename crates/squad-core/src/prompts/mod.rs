@@ -195,3 +195,5 @@ impl squad_protocol::PromptRenderer for PromptPack {
     }
 }
 pub mod inputs_tournament;
+
+pub mod inputs_census;

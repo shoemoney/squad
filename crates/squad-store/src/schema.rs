@@ -13,7 +13,7 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
     let result = (|| {
         let tx = connection.transaction()?;
         let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-        if version > 2 {
+        if version > 3 {
             return Err(rusqlite::Error::InvalidQuery);
         }
         if version == 0 {
@@ -21,6 +21,9 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
         }
         if version < 2 {
             tx.execute_batch(include_str!("../migrations/0002_tournament.sql"))?;
+        }
+        if version < 3 {
+            tx.execute_batch(include_str!("../migrations/0003_census.sql"))?;
         }
         let invalid: bool = tx.query_row(
             "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
@@ -30,12 +33,13 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
         if invalid {
             return Err(rusqlite::Error::InvalidQuery);
         }
-        tx.pragma_update(None, "user_version", 2)?;
+        tx.pragma_update(None, "user_version", 3)?;
         tx.commit()
     })();
     connection.pragma_update(None, "foreign_keys", true)?;
     result
 }
+
 /// Validate a mode-specific reference against the shared contest table.
 /// Generic carriers do not confer admission or permission to execute that mode.
 pub fn validate_contest_kind(

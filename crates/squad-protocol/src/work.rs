@@ -16,6 +16,14 @@ pub enum WorkKind {
     JudgeRound,
     #[serde(rename = "judge.tournament")]
     JudgeTournament,
+    #[serde(rename = "census.hunt")]
+    CensusHunt,
+    #[serde(rename = "census.rate")]
+    CensusRate,
+    #[serde(rename = "census.merge")]
+    CensusMerge,
+    #[serde(rename = "census.final")]
+    CensusFinal,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -80,6 +88,45 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
+            WorkKind::CensusHunt
+            | WorkKind::CensusRate
+            | WorkKind::CensusMerge
+            | WorkKind::CensusFinal => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.round.is_none()
+                        && self.in_reply_to_message_id.is_none(),
+                    "census requires isolated step",
+                )?;
+                ensure(
+                    self.attempt <= if self.kind.census_judge() { 3 } else { 2 },
+                    "census attempt exceeds limit",
+                )?;
+                ensure(
+                    self.kind.census_judge() == (self.target == Target::Judge),
+                    "invalid census target",
+                )?;
+                ensure(
+                    self.prompt_ref.as_ref().is_some_and(|p| {
+                        p.template_id.as_str() == self.kind.census_composition().unwrap_or_default()
+                    }),
+                    "invalid census prompt",
+                )?;
+                if let Target::Member(nick) = &self.target {
+                    ensure(
+                        self.context_id.0
+                            == format!(
+                                "contest:{}:{}:{nick}",
+                                self.contest_id.expect("checked"),
+                                self.step_id.expect("checked")
+                            )
+                            && self.case_id.is_none(),
+                        "census requires fresh member context",
+                    )?;
+                }
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -177,6 +224,8 @@ impl Work {
         }
         let ceiling = match self.kind {
             WorkKind::Judge | WorkKind::JudgeTournament => constants::FINAL_JUDGE_VISIBLE_TOKENS,
+            WorkKind::CensusMerge | WorkKind::CensusFinal => 4096,
+            WorkKind::CensusHunt | WorkKind::CensusRate => 2048,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
             WorkKind::DebateTurn => constants::DEBATE_TURN_VISIBLE_TOKENS,
@@ -208,5 +257,20 @@ impl Work {
                 && self.round.is_none_or(|r| r <= total_rounds),
             "round exceeds admitted rounds",
         )
+    }
+}
+
+impl WorkKind {
+    pub fn census_composition(&self) -> Option<&'static str> {
+        match self {
+            Self::CensusHunt => Some("census.hunt"),
+            Self::CensusRate => Some("census.rate"),
+            Self::CensusMerge => Some("census.merge"),
+            Self::CensusFinal => Some("census.final"),
+            _ => None,
+        }
+    }
+    pub fn census_judge(&self) -> bool {
+        matches!(self, Self::CensusMerge | Self::CensusFinal)
     }
 }

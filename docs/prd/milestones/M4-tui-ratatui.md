@@ -182,11 +182,11 @@
   - [ ] M4.P3.L8.T6 — Integrate fixtures in D71 order—debate, grill, census, crosscheck, tournament, survey, probe—while preserving existing task IDs and the existing modes' presentation behavior in `crates/squad-tui/tests/conversation.rs`.
 
 - **M4.P3.L9 — Render census**
-  - [ ] M4.P3.L9.T1 — Implement plan-source preview, participating members, pass count, per-pass plan references, assigned lenses, and hunt, merge, rate, and finalise step presentation in `crates/squad-tui/src/widgets/census.rs`.
-  - [ ] M4.P3.L9.T2 — Render ranked ledger rows, singleton labels, consequences, lenses, finder counts, ratings, additions, and covered citations with a human-only member-by-gap drilldown in `crates/squad-tui/src/widgets/census.rs`.
-  - [ ] M4.P3.L9.T3 — Render the exact authoritative estimate-range line, adjacent shared-blind-spots caveat, discovery curve, and per-pass plan versions in `crates/squad-tui/src/widgets/census.rs`, without calculating bounds or finder counts locally.
-  - [ ] M4.P3.L9.T4 — Present between-pass continuation, patched-plan quote preparation, the singleton-to-grill hint, and core-supplied quiet guidance separately from pass-limit completion in `crates/squad-tui/src/widgets/census.rs` and `crates/squad-tui/src/actions.rs`.
-  - [ ] M4.P3.L9.T5 — Expose census banner and estimate count-down hooks for M4.P5 in `crates/squad-tui/src/widgets/census.rs`, retaining the complete static ledger and final estimate with effects off.
+  - [x] M4.P3.L9.T1 — Implement plan-source preview, participating members, pass count, per-pass plan references, assigned lenses, and hunt, merge, rate, and finalise step presentation in `crates/squad-tui/src/widgets/census.rs`.
+  - [x] M4.P3.L9.T2 — Render ranked ledger rows, singleton labels, consequences, lenses, finder counts, ratings, additions, and covered citations with a human-only member-by-gap drilldown in `crates/squad-tui/src/widgets/census.rs`.
+  - [x] M4.P3.L9.T3 — Render the exact authoritative estimate-range line, adjacent shared-blind-spots caveat, discovery curve, and per-pass plan versions in `crates/squad-tui/src/widgets/census.rs`, without calculating bounds or finder counts locally.
+  - [x] M4.P3.L9.T4 — Present between-pass continuation, patched-plan quote preparation, the singleton-to-grill hint, and core-supplied quiet guidance separately from pass-limit completion in `crates/squad-tui/src/widgets/census.rs` and `crates/squad-tui/src/actions.rs`.
+  - [x] M4.P3.L9.T5 — Expose census banner and estimate count-down hooks for M4.P5 in `crates/squad-tui/src/widgets/census.rs`, retaining the complete static ledger and final estimate with effects off.
 
 - **M4.P3.L10 — Render crosscheck**
   - [ ] M4.P3.L10.T1 — Implement plan, goal, and constraint preview, optional extraction progress, plan-hidden inventory labels, lens assignments, normalization, and grid-building presentation in `crates/squad-tui/src/widgets/crosscheck.rs`.
@@ -252,8 +252,8 @@
   - [ ] M4.P4.L5.T4 — Record final full-effects hardware, versions, measurement methods, results, and the completed M4.P5 dependency in `crates/squad-tui/README.md`; block M4 exit until both platforms pass.
 
 - **M4.P4.L6 — Verify census and crosscheck presentation**
-  - [ ] M4.P4.L6.T1 — Snapshot census source previews, pass and lens labels, ranked ledger, singletons, covered citations, member-by-gap details, skipped members, and collapsed reports at both viewports in `crates/squad-tui/tests/census.rs`.
-  - [ ] M4.P4.L6.T2 — Verify exact authoritative census range text, adjacent caveat, discovery curve, plan-version changes, quiet guidance, and distinct pass-limit, stopped, and failed completion in `crates/squad-tui/tests/census.rs`, without testing estimate arithmetic in the TUI.
+  - [x] M4.P4.L6.T1 — Snapshot census source previews, pass and lens labels, ranked ledger, singletons, covered citations, member-by-gap details, skipped members, and collapsed reports at both viewports in `crates/squad-tui/tests/census.rs`.
+  - [x] M4.P4.L6.T2 — Verify exact authoritative census range text, adjacent caveat, discovery curve, plan-version changes, quiet guidance, and distinct pass-limit, stopped, and failed completion in `crates/squad-tui/tests/census.rs`, without testing estimate arithmetic in the TUI.
   - [ ] M4.P4.L6.T3 — Snapshot crosscheck optional extraction, blind-inventory labels, grid summaries, retained count and trimming, every cell disposition, citations, exclusions, gaps, fixes, and skipped reviews in `crates/squad-tui/tests/crosscheck.rs`.
   - [ ] M4.P4.L6.T4 — Verify auditor sample and challenge details, accepted rulings, retained cells, explicit risk-acceptance acknowledgement, and bounded stop guidance in `crates/squad-tui/tests/crosscheck.rs`.
   - [ ] M4.P4.L6.T5 — Verify census and crosscheck display the authoritative call counts, pass count, optional extraction call, estimates, and remaining daily amount from M5 fixtures in `crates/squad-tui/tests/census.rs` and `crates/squad-tui/tests/crosscheck.rs`.

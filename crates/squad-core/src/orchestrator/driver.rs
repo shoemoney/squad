@@ -109,6 +109,7 @@ impl Router {
             Ok(q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?)
         })?;
         let mut outcomes = self.drive_tournaments()?;
+        outcomes.extend(self.drive_census()?);
         for id in ids {
             let id = id.parse().map_err(|_| StoreError::Unavailable)?;
             if self

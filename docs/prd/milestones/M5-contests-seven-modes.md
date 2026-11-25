@@ -208,10 +208,10 @@
 
 - **M5.P3.L7 — Add census prompts**
   - [ ] M5.P3.L7.T1 — Add root `prompts/census.hunt.md`, `prompts/census.merge.md`, `prompts/census.rate.md`, and `prompts/census.final.md` with the complete task text, canonical schemas, assigned-lens inputs, citations, source references, and majority-decision framing.
-  - [ ] M5.P3.L7.T2 — Map census pass, current plan version, assigned lens, private hunt references, anonymous rating ledger, accepted ratings, additions, and computed majority decisions in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
-  - [ ] M5.P3.L7.T3 — Capture census requests to verify independent hunts, no finder identities or counts in rating payloads, no rating additions treated as hunt captures, preserved covered citations, and no model-computed estimate in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
-  - [ ] M5.P3.L7.T4 — Verify accepted-ledger report rendering uses the application's range, finder counts, singleton flags, discovery curve, exact headline, shared-blind-spots caveat, quiet notice, skipped-member records, and singleton-to-grill hint without another provider call in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
-  - [ ] M5.P3.L7.T5 — Test patched-plan version changes, lens rotation inputs, canonical gap coverage and reference validation, malformed ratings, repair isolation, and restart-frozen census compositions in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
+  - [x] M5.P3.L7.T2 — Map census pass, current plan version, assigned lens, private hunt references, anonymous rating ledger, accepted ratings, additions, and computed majority decisions in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
+  - [x] M5.P3.L7.T3 — Capture census requests to verify independent hunts, no finder identities or counts in rating payloads, no rating additions treated as hunt captures, preserved covered citations, and no model-computed estimate in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
+  - [x] M5.P3.L7.T4 — Verify accepted-ledger report rendering uses the application's range, finder counts, singleton flags, discovery curve, exact headline, shared-blind-spots caveat, quiet notice, skipped-member records, and singleton-to-grill hint without another provider call in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
+  - [x] M5.P3.L7.T5 — Test patched-plan version changes, lens rotation inputs, canonical gap coverage and reference validation, malformed ratings, repair isolation, and restart-frozen census compositions in `squad-core` at `crates/squad-core/tests/census_prompts.rs`.
 
 - **M5.P3.L8 — Add crosscheck prompts**
   - [ ] M5.P3.L8.T1 — Add root `prompts/crosscheck.inventory.md`, `prompts/crosscheck.normalize.md`, `prompts/crosscheck.cell.md`, `prompts/crosscheck.audit.md`, and `prompts/crosscheck.rule.md`, including complete goal-extraction and inventory-normalization compositions.
@@ -394,35 +394,35 @@
 ## Phase M5.P7 — Census
 
 - **M5.P7.L1 — Admit plans and schedule blind passes**
-  - [ ] M5.P7.L1.T1 — Implement quoted, pasted and latest-member plan selection, minimum participation and frozen `CENSUS_PASSES` in `crates/squad-core/src/orchestrator/census.rs`.
-  - [ ] M5.P7.L1.T2 — Persist plan versions, pass numbers and rotating lens assignments and derive the `p × (2m + 2)` normal-call and `p × (4m + 6)` reserved-attempt counts.
-  - [ ] M5.P7.L1.T3 — Execute hunt and anonymous rating fanouts with barriers using `census.hunt.md` and `census.rate.md`.
+  - [x] M5.P7.L1.T1 — Implement quoted, pasted and latest-member plan selection, minimum participation and frozen `CENSUS_PASSES` in `crates/squad-core/src/orchestrator/census.rs`.
+  - [x] M5.P7.L1.T2 — Persist plan versions, pass numbers and rotating lens assignments and derive the `p × (2m + 2)` normal-call and `p × (4m + 6)` reserved-attempt counts.
+  - [x] M5.P7.L1.T3 — Execute hunt and anonymous rating fanouts with barriers using `census.hunt.md` and `census.rate.md`.
 
 - **M5.P7.L2 — Finalize ledgers and estimates**
-  - [ ] M5.P7.L2.T1 — Integrate `census.merge.md` and `census.final.md`, preserving distinct blind finder sets, rating-stage origins, majority exclusions and covered citations.
-  - [ ] M5.P7.L2.T2 — Implement app-computed finder counts, `f1`, `f2`, both Chao1 branches, singleton markers and cross-pass discovery identities.
+  - [x] M5.P7.L2.T1 — Integrate `census.merge.md` and `census.final.md`, preserving distinct blind finder sets, rating-stage origins, majority exclusions and covered citations.
+  - [x] M5.P7.L2.T2 — Implement app-computed finder counts, `f1`, `f2`, both Chao1 branches, singleton markers and cross-pass discovery identities.
   - [ ] M5.P7.L2.T3 — Resolve the estimate-range rule, implement its bounds and shared-blind-spot caveat, and gate the exact quiet message on complete qualifying evidence.
-  - [ ] M5.P7.L2.T4 — Support between-pass continuation, quoted replacement plans, revised preflight when needed and claim-releasing handoff to grill.
+  - [x] M5.P7.L2.T4 — Support between-pass continuation, quoted replacement plans, revised preflight when needed and claim-releasing handoff to grill.
 
 - **M5.P7.L3 — Report and recover census**
-  - [ ] M5.P7.L3.T1 — Assemble the ranked ledger, human finder table, covered citations, estimate line, singleton hint and discovery curve in `crates/squad-core/src/orchestrator/census.rs`.
-  - [ ] M5.P7.L3.T2 — Recover each step and between-pass wait without duplicate hunts, ratings, estimates or deliveries; fence all work on stop.
-  - [ ] M5.P7.L3.T3 — Verify 14-call passes, 28-call defaults, failed-member reporting, majority arithmetic, duplicate finder handling, zero-doubleton estimates, plan revisions and markdown export in `crates/squad-core/tests/orchestrator/census.rs`.
+  - [x] M5.P7.L3.T1 — Assemble the ranked ledger, human finder table, covered citations, estimate line, singleton hint and discovery curve in `crates/squad-core/src/orchestrator/census.rs`.
+  - [x] M5.P7.L3.T2 — Recover each step and between-pass wait without duplicate hunts, ratings, estimates or deliveries; fence all work on stop.
+  - [x] M5.P7.L3.T3 — Verify 14-call passes, 28-call defaults, failed-member reporting, majority arithmetic, duplicate finder handling, zero-doubleton estimates, plan revisions and markdown export in `crates/squad-core/tests/orchestrator/census.rs`.
 
 - **M5.P7.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P7.L4.T1 — Declare census statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/census.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P7.L4.T2 — Add the census tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P7.L4.T3 — Implement the census setup, state, plan, hunt, ledger, rating, report and case-material types with exhaustive envelope registration in crate `squad-protocol`, file `crates/squad-protocol/src/census.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T2.)
-  - [ ] M5.P7.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P7.L4.T5 — Commit census plan versions, hunt artifacts, finder sets, ledgers, ratings and reports with distinct initial-find and addition provenance in crate `squad-store`, file `crates/squad-store/src/census.rs`. (Deferred from M1.P3.L7.T4.)
-  - [ ] M5.P7.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P7.L4.T7 — Prove census hunters cannot read peer finds, raters cannot read finder identities or counts, and later additions cannot alter initial finder sets in crate `squad-store`, file `crates/squad-store/tests/census.rs`. (Deferred from M1.P4.L5.T2.)
-  - [ ] M5.P7.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P7.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P7.L4.T1 — Declare census statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/census.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P7.L4.T2 — Add the census tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P7.L4.T3 — Implement the census setup, state, plan, hunt, ledger, rating, report and case-material types with exhaustive envelope registration in crate `squad-protocol`, file `crates/squad-protocol/src/census.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T2.)
+  - [x] M5.P7.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P7.L4.T5 — Commit census plan versions, hunt artifacts, finder sets, ledgers, ratings and reports with distinct initial-find and addition provenance in crate `squad-store`, file `crates/squad-store/src/census.rs`. (Deferred from M1.P3.L7.T4.)
+  - [x] M5.P7.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P7.L4.T7 — Prove census hunters cannot read peer finds, raters cannot read finder identities or counts, and later additions cannot alter initial finder sets in crate `squad-store`, file `crates/squad-store/tests/census.rs`. (Deferred from M1.P4.L5.T2.)
+  - [x] M5.P7.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P7.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
   - [ ] M5.P7.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P7.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P7.L4.T12 — Add the exact census per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P7.L4.T13 — Persist private random lens permutation/tie-break seed; exclude lenses and finder metadata from ratings; store nullable estimateLow/estimateHigh with Chao1 inputs and validate only Chao1 until the range rule is settled. Implement `/continue`, hold release at WAITING_FOR_PLAN, and reacquisition/draining on continue.
+  - [x] M5.P7.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P7.L4.T12 — Add the exact census per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P7.L4.T13 — Persist private random lens permutation/tie-break seed; exclude lenses and finder metadata from ratings; store nullable estimateLow/estimateHigh with Chao1 inputs and validate only Chao1 until the range rule is settled. Implement `/continue`, hold release at WAITING_FOR_PLAN, and reacquisition/draining on continue.
 
 ## Phase M5.P8 — Crosscheck
 

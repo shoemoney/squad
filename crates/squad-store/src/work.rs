@@ -87,7 +87,18 @@ pub fn insert(
         )?;
         if let Some(raw) = raw {
             let value: serde_json::Value = decode(raw)?;
-            let (plan_id, reserved, calls) = if value.get("base").is_some() {
+            let (plan_id, reserved, calls) = if work.kind.census_composition().is_some() {
+                let plan: ContestPreflight = serde_json::from_value(value)?;
+                let setup = crate::census::setup(db, contest)?;
+                (
+                    plan.plan_id,
+                    plan.estimate.reserved_usd,
+                    plan.settings["reservedCalls"]
+                        .as_u64()
+                        .map(|v| v as u32)
+                        .unwrap_or_else(|| setup.reserved_calls()),
+                )
+            } else if value.get("base").is_some() {
                 let p: TournamentPreflight = serde_json::from_value(value)?;
                 (
                     p.base.plan_id,

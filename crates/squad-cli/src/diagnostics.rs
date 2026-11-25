@@ -54,3 +54,36 @@ pub fn identities(data_dir: &Path) -> Result<String, String> {
     }
     Ok(text)
 }
+
+pub fn census_passes(
+    data_dir: &Path,
+    seed: Option<u8>,
+    seed_source: &str,
+) -> Result<String, String> {
+    use rusqlite::OptionalExtension;
+    let stored = if data_dir.join("squad.db").exists() {
+        let db = open_readonly(data_dir).map_err(|_| "Could not read CENSUS_PASSES.".to_owned())?;
+        db.query_row(
+            "SELECT value FROM vars WHERE name='CENSUS_PASSES'",
+            [],
+            |r| r.get::<_, u8>(0),
+        )
+        .optional()
+        .map_err(|_| "Could not read CENSUS_PASSES.".to_owned())?
+    } else {
+        None
+    };
+    let effective = stored.or(seed).map_or_else(
+        || "unavailable (configuration invalid)".into(),
+        |v| v.to_string(),
+    );
+    let source = if stored.is_some() {
+        "persisted room value"
+    } else {
+        seed_source
+    };
+    Ok(format!(
+        "CENSUS_PASSES: effective {effective}; source {source}; SQUAD_CENSUS_PASSES seed {}; default 2; range 1..=5; persisted room value takes precedence.\n",
+        seed.map_or_else(|| "unavailable".into(), |v| v.to_string())
+    ))
+}

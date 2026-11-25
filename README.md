@@ -23,3 +23,6 @@ Squad is a terminal chat room where you talk to several LLMs at once through Ope
 ## Licence
 
 [Apache License 2.0](LICENSE)
+
+
+Census runs blind omission hunts and anonymous ratings over a plan: `@all $census <plan text>`, or `@nick $census` to use that member's latest eligible reply with the room's members. It requires at least three members. `SQUAD_CENSUS_PASSES` seeds `CENSUS_PASSES` (default 2, range 1–5) only when no persisted value exists; `/set CENSUS_PASSES=3` changes the room value. Each six-member pass uses 14 normal calls. Between passes, `/continue` retains the plan and `/continue "replacement plan"` creates a new plan version; larger inputs receive a revised preflight. Ordinary member holds are released while waiting, while the contest claim remains active. `/stop` releases that claim before a `$grill` handoff. `/export census <contest-id>` retains plan versions, evidence, missing participation, finder attribution, Chao1 provenance and the discovery curve. Estimate bounds remain unavailable until the range rule is resolved, and the engine cannot assert quiet from the point estimate alone.

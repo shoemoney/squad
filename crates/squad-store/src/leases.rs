@@ -31,7 +31,7 @@ pub fn eligible(db: &Connection) -> Result<Vec<WorkRecord>> {
     eligible_at(db, chrono::Utc::now())
 }
 pub fn eligible_at(db: &Connection, now: DateTime) -> Result<Vec<WorkRecord>> {
-    let mut query = db.prepare("SELECT work_id FROM work WHERE status IN ('queued','running') AND runnable=1 AND held_by_contest_id IS NULL AND epoch=(SELECT epoch FROM room_meta) AND (execution_deadline IS NULL OR execution_deadline>?1) AND (status='running' OR attempt<CASE kind WHEN 'judge.round' THEN 2 WHEN 'judge.tournament' THEN 3 WHEN 'judge' THEN 3 ELSE 2 END) ORDER BY trigger_event_seq,rowid")?;
+    let mut query = db.prepare("SELECT work_id FROM work WHERE status IN ('queued','running') AND runnable=1 AND held_by_contest_id IS NULL AND epoch=(SELECT epoch FROM room_meta) AND (execution_deadline IS NULL OR execution_deadline>?1) AND (status='running' OR attempt<CASE kind WHEN 'judge.round' THEN 2 WHEN 'judge.tournament' THEN 3 WHEN 'census.merge' THEN 3 WHEN 'census.final' THEN 3 WHEN 'judge' THEN 3 ELSE 2 END) ORDER BY trigger_event_seq,rowid")?;
     let ids = query
         .query_map([now.to_rfc3339()], |r| r.get::<_, String>(0))?
         .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -77,7 +77,7 @@ pub fn claim(
         return Ok(None);
     }
     let lease = now + chrono::Duration::milliseconds(constants::WORK_LEASE_MS as i64);
-    let changed=db.execute("UPDATE work SET status='running',attempt=attempt+1,provider_may_have_started=0,history_through=COALESCE(history_through,?1),lease_owner=?2,lease_fence=lease_fence+1,lease_until=?3 WHERE work_id=?4 AND status='queued' AND runnable=1 AND held_by_contest_id IS NULL AND epoch=(SELECT epoch FROM room_meta) AND (execution_deadline IS NULL OR execution_deadline>?5) AND attempt<CASE kind WHEN 'judge.tournament' THEN 3 WHEN 'judge' THEN 3 ELSE 2 END AND NOT EXISTS(SELECT 1 FROM work prior WHERE (?6 IS NULL OR prior.work_id IN (SELECT value FROM json_each(?6))) AND json_type(prior.scheduling_meta,'$.openModeDormant') IS NULL AND prior.context_id=work.context_id AND prior.runnable=1 AND prior.held_by_contest_id IS NULL AND prior.status IN ('queued','running') AND (prior.trigger_event_seq<work.trigger_event_seq OR (prior.trigger_event_seq=work.trigger_event_seq AND prior.rowid<work.rowid)))",params![boundary,serde_json::to_string(key)?,lease.to_rfc3339(),id.to_string(),now.to_rfc3339(),scope])?;
+    let changed=db.execute("UPDATE work SET status='running',attempt=attempt+1,provider_may_have_started=0,history_through=COALESCE(history_through,?1),lease_owner=?2,lease_fence=lease_fence+1,lease_until=?3 WHERE work_id=?4 AND status='queued' AND runnable=1 AND held_by_contest_id IS NULL AND epoch=(SELECT epoch FROM room_meta) AND (execution_deadline IS NULL OR execution_deadline>?5) AND attempt<CASE kind WHEN 'judge.tournament' THEN 3 WHEN 'census.merge' THEN 3 WHEN 'census.final' THEN 3 WHEN 'judge' THEN 3 ELSE 2 END AND NOT EXISTS(SELECT 1 FROM work prior WHERE (?6 IS NULL OR prior.work_id IN (SELECT value FROM json_each(?6))) AND json_type(prior.scheduling_meta,'$.openModeDormant') IS NULL AND prior.context_id=work.context_id AND prior.runnable=1 AND prior.held_by_contest_id IS NULL AND prior.status IN ('queued','running') AND (prior.trigger_event_seq<work.trigger_event_seq OR (prior.trigger_event_seq=work.trigger_event_seq AND prior.rowid<work.rowid)))",params![boundary,serde_json::to_string(key)?,lease.to_rfc3339(),id.to_string(),now.to_rfc3339(),scope])?;
     if changed == 0 {
         return Ok(None);
     }

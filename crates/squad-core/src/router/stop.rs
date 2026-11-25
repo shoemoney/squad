@@ -39,6 +39,18 @@ pub fn apply(
                 state.state = TournamentStatus::Stopped;
                 state.terminal_reason = Some("stopped".into());
                 super::tournaments::save(tx, group, id, &state, Some(old))?;
+            }
+        } else if let Ok(mut state) = serde_json::from_str::<CensusState>(&raw) {
+            let setup = squad_store::census::setup(tx, state.contest_id)?;
+            if target
+                .as_ref()
+                .is_none_or(|n| setup.participants.contains(n))
+            {
+                let version = state.state_version;
+                state.state_version += 1;
+                state.status = CensusStatus::Stopped;
+                state.terminal_reason = Some(Text::new("stopped").expect("reason"));
+                super::census::save(tx, group, id, &state, Some(version))?;
                 stopped_contest = Some(state.contest_id);
             }
         } else if let Ok(mut state) = serde_json::from_str::<DebateState>(&raw)

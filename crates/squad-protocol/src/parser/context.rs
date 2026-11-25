@@ -53,6 +53,7 @@ impl ParseContext {
             ContestState::Selection(s) => s.kind,
             ContestState::Debate(_) => ContestKind::Debate,
             ContestState::Tournament(_) => ContestKind::Tournament,
+            ContestState::Census(_) => ContestKind::Census,
         });
         // A parallel batch is one human question, never a union of latest replies.
         let latest_question = records
@@ -227,6 +228,9 @@ pub(crate) fn validate_control(
 
 pub(crate) fn waiting_census(ctx: &ParseContext) -> Option<(ContestId, u64)> {
     match ctx.active_contest.as_ref()? {
+        ContestState::Census(s) if s.status == crate::CensusStatus::WaitingForPlan => {
+            Some((s.contest_id, s.state_version))
+        }
         ContestState::Generic(s)
             if s.kind == ContestKind::Census && s.status.as_str() == "WAITING_FOR_PLAN" =>
         {

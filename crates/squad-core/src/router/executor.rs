@@ -136,6 +136,16 @@ pub fn failed(
         // receives a repair attempt. The shared policy still chooses the outcome.
         let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
         let decision=if work.kind==WorkKind::JudgeTournament && attempt<3 { crate::orchestrator::types::AttemptDecision::Retry{work_id,next_attempt:attempt+1,repair:failure_class==crate::orchestrator::types::FailureClass::InvalidOutput} } else { crate::orchestrator::rounds::failure_policy(work_id,&work.kind,attempt,budget,repair_used,failure_class) };
+        if work.kind.census_composition().is_some() && attempt < if work.kind.census_judge(){3}else{2} && !(work.kind.census_judge() && repair_used && failure.code==ErrorCode::JUDGE_INVALID_MODE_OUTPUT) {
+            if let Some(repair)=repair {
+                if !work.kind.census_judge() || repair.attempt!=attempt+1 || failure.code!=ErrorCode::JUDGE_INVALID_MODE_OUTPUT {return Err(super::authorization::forbidden());}
+                tx.execute("UPDATE work SET attempt=? WHERE work_id=?",params![repair.attempt,work_id.to_string()])?;
+                squad_store::judge_repairs::save(tx,work_id,work.case_id.ok_or(StoreError::Unavailable)?,&repair)?;
+                tx.execute("UPDATE work SET attempt=? WHERE work_id=?",params![attempt,work_id.to_string()])?;
+            }
+            tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL WHERE work_id=?",[work_id.to_string()])?;
+            return Ok(group.accepted(id));
+        }
         if let Some(mut repair) = repair {
             if work.kind==WorkKind::JudgeTournament {
                 let raw:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='tournament.identities'",[work.contest_id.ok_or(StoreError::Unavailable)?.to_string()],|r|r.get(0))?;

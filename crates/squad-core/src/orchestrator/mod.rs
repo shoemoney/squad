@@ -15,4 +15,5 @@ pub mod types;
 
 pub mod driver;
 
+pub mod census;
 pub mod tournament;

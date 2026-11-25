@@ -112,6 +112,7 @@ pub enum ContestState {
     Selection(ContestSelectionState),
     Debate(DebateState),
     Tournament(TournamentState),
+    Census(CensusState),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -229,6 +230,7 @@ pub struct ContestTransitionSubmission {
 pub enum ContestTransition {
     Debate(DebateTransition),
     Tournament(TournamentTransition),
+    Census(CensusTransition),
 }
 impl ContestKind {
     pub fn as_str(self) -> &'static str {
@@ -243,7 +245,7 @@ impl ContestKind {
         }
     }
     pub fn is_built(self) -> bool {
-        matches!(self, Self::Debate | Self::Tournament)
+        matches!(self, Self::Debate | Self::Tournament | Self::Census)
     }
 }
 impl ContestTransitionSubmission {

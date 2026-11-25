@@ -3,6 +3,7 @@
 //! Store adapters must load all events and public artifact projections in one read
 //! transaction. Neither this renderer nor `ExportSource` opens the room runtime.
 //! Opaque generic artifact/report data is deliberately never serialized here.
+pub mod census;
 mod tournament;
 use crate::banner::{Banner, render_default};
 use squad_protocol::*;
@@ -120,7 +121,7 @@ fn check_scope(scope: &ExportScope, id: Option<ContestId>) -> Result<(), ExportE
     }
     if matches!(
         scope,
-        ExportScope::Census | ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
+        ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
     ) {
         return Err(ExportError::UnsupportedScope);
     }
@@ -187,6 +188,7 @@ pub fn render(
             ExportScope::Debate => ContestKind::Debate,
             ExportScope::Tournament => ContestKind::Tournament,
             ExportScope::Grill => ContestKind::Grill,
+            ExportScope::Census => ContestKind::Census,
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -270,6 +272,9 @@ pub fn render(
             && !matches!(&e.content, EnvelopePayload::CaseRuling(s) if cases.contains(&s.case_id))
             && !matches!(&e.content, EnvelopePayload::UserMessage(s) if s.case_id.is_some_and(|case| cases.contains(&case)))
         {
+            continue;
+        }
+        if census::render(&mut out, &e.content) {
             continue;
         }
         match &e.content {
@@ -537,6 +542,11 @@ fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
         EnvelopePayload::ContestState(ContestState::Tournament(s)) => {
             (s.contest_id, ContestKind::Tournament)
         }
+        EnvelopePayload::CensusSetup(s) => (s.contest_id, ContestKind::Census),
+        EnvelopePayload::CensusState(s)
+        | EnvelopePayload::ContestState(ContestState::Census(s)) => {
+            (s.contest_id, ContestKind::Census)
+        }
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -559,6 +569,11 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         EnvelopePayload::TournamentRanking(s) => Some(s.contest_id),
         EnvelopePayload::TournamentResult(s) => Some(s.contest_id),
         EnvelopePayload::TournamentChampion(s) => Some(s.contest_id),
+        EnvelopePayload::CensusPlan(s) => Some(s.contest_id),
+        EnvelopePayload::CensusHunt(s) => Some(s.contest_id),
+        EnvelopePayload::CensusLedger(s) => Some(s.contest_id),
+        EnvelopePayload::CensusRating(s) => Some(s.contest_id),
+        EnvelopePayload::CensusReport(s) => Some(s.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

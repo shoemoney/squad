@@ -14,4 +14,5 @@ pub mod tournament;
 pub mod transcript;
 pub mod verdict;
 
+pub mod census;
 mod tournament_events;

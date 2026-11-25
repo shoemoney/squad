@@ -24,7 +24,10 @@ fn selection_state_and_generic_preflights_have_one_shared_shape() {
     ] {
         assert_eq!(
             kind.is_built(),
-            matches!(kind, ContestKind::Debate | ContestKind::Tournament)
+            matches!(
+                kind,
+                ContestKind::Debate | ContestKind::Tournament | ContestKind::Census
+            )
         );
     }
     let v = json!({"contestId":ID,"kind":"debate","expectedStateVersion":3,"transition":{"kind":"debate","transition":{"kind":"round_score_accepted","scoreEventId":ID}}});

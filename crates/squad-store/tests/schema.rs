@@ -49,11 +49,7 @@ fn initial_schema_is_atomic_complete_and_reopenable() {
     ] {
         assert!(names.iter().any(|n| n == table), "{table}");
     }
-    assert!(
-        !names
-            .iter()
-            .any(|n| n.starts_with("census_") || n.starts_with("grill_"))
-    );
+    assert!(!names.iter().any(|n| n.starts_with("grill_")));
     assert_eq!(
         db.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
             .unwrap(),
@@ -90,7 +86,7 @@ fn active_claims_json_shapes_and_future_work_are_constrained() {
         })
         .unwrap();
     assert!(work_sql.contains("judge.round"));
-    assert!(!work_sql.contains("census.hunt"));
+    assert!(work_sql.contains("census.hunt"));
     assert!(
         db.query_row(
             "SELECT sql FROM sqlite_master WHERE name='work_round_judge_idx'",

@@ -1,0 +1,116 @@
+---
+source: crates/squad-tui/tests/census.rs
+expression: result
+---
+width=45, details=false
+CENSUS
+Estimate unavailable
+Members: member0, member1, member2 · 2 passes
+· 16 normal calls · 36 reserved attempts
+Plan 1: Build a database.
+Sources: 01900000-0000-7000-8000-000000000002
+Plan 2: Revised database plan.
+Sources: 01900000-0000-7000-8000-000000000002
+Pass 1 · @member0 · lens failure modes · 0
+findings
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule
+unresolved.
+Models share blind spots; the true number
+still unfound is at least this estimate.
+- Confirmed: Missing rollback — A failed
+release may cause an outage
+Finders (1): F7: member-by-gap details ·
+lens: failure modes · accepted ratings: 3
+(covered 1, trivial 0)
+Priority: Prevent a prolonged outage
+Singleton: the other members missed this gap.
+Covered citation · Recovery section: Restore
+from backup
+Missing: @member2 · census.hunt
+Chao1 provenance: f1=1, f2=0,
+branch=zero_doubletons, unrounded U=0; input
+gaps: g1
+Discovery curve
+Pass 1 · plan 1: new 1, cumulative 1,
+singletons 1
+Send singletons to $grill. Stop census first
+to release its active-contest claim.
+width=45, details=true
+CENSUS
+Estimate unavailable
+Members: member0, member1, member2 · 2 passes
+· 16 normal calls · 36 reserved attempts
+Plan 1: Build a database.
+Sources: 01900000-0000-7000-8000-000000000002
+Plan 2: Revised database plan.
+Sources: 01900000-0000-7000-8000-000000000002
+Pass 1 · @member0 · lens failure modes · 0
+findings
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule
+unresolved.
+Models share blind spots; the true number
+still unfound is at least this estimate.
+- Confirmed: Missing rollback — A failed
+release may cause an outage
+Finders (1): member0 · lens: failure modes ·
+accepted ratings: 3 (covered 1, trivial 0)
+Priority: Prevent a prolonged outage
+Singleton: the other members missed this gap.
+Covered citation · Recovery section: Restore
+from backup
+Missing: @member2 · census.hunt
+Chao1 provenance: f1=1, f2=0,
+branch=zero_doubletons, unrounded U=0; input
+gaps: g1
+Discovery curve
+Pass 1 · plan 1: new 1, cumulative 1,
+singletons 1
+Send singletons to $grill. Stop census first
+to release its active-contest claim.
+width=90, details=false
+CENSUS
+Estimate unavailable
+Members: member0, member1, member2 · 2 passes · 16 normal calls · 36 reserved attempts
+Plan 1: Build a database.
+Sources: 01900000-0000-7000-8000-000000000002
+Plan 2: Revised database plan.
+Sources: 01900000-0000-7000-8000-000000000002
+Pass 1 · @member0 · lens failure modes · 0 findings
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+- Confirmed: Missing rollback — A failed release may cause an outage
+Finders (1): F7: member-by-gap details · lens: failure modes · accepted ratings: 3
+(covered 1, trivial 0)
+Priority: Prevent a prolonged outage
+Singleton: the other members missed this gap.
+Covered citation · Recovery section: Restore from backup
+Missing: @member2 · census.hunt
+Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; input gaps: g1
+Discovery curve
+Pass 1 · plan 1: new 1, cumulative 1, singletons 1
+Send singletons to $grill. Stop census first to release its active-contest claim.
+width=90, details=true
+CENSUS
+Estimate unavailable
+Members: member0, member1, member2 · 2 passes · 16 normal calls · 36 reserved attempts
+Plan 1: Build a database.
+Sources: 01900000-0000-7000-8000-000000000002
+Plan 2: Revised database plan.
+Sources: 01900000-0000-7000-8000-000000000002
+Pass 1 · @member0 · lens failure modes · 0 findings
+CENSUS · pass 1 · plan version 1
+Estimate range unavailable; range rule unresolved.
+Models share blind spots; the true number still unfound is at least this estimate.
+- Confirmed: Missing rollback — A failed release may cause an outage
+Finders (1): member0 · lens: failure modes · accepted ratings: 3 (covered 1, trivial 0)
+Priority: Prevent a prolonged outage
+Singleton: the other members missed this gap.
+Covered citation · Recovery section: Restore from backup
+Missing: @member2 · census.hunt
+Chao1 provenance: f1=1, f2=0, branch=zero_doubletons, unrounded U=0; input gaps: g1
+Discovery curve
+Pass 1 · plan 1: new 1, cumulative 1, singletons 1
+Send singletons to $grill. Stop census first to release its active-contest claim.

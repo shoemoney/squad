@@ -81,7 +81,7 @@ impl PromptRenderer for Renderer {
             .collect();
         values.retain(|key, _| required.contains(&key.as_str()));
         let rendered = self.pack.render(prompt, &values)?;
-        if composition {
+        if composition && !id.starts_with("census.") {
             let rendered: crate::prompts::RenderedComposition =
                 serde_json::from_str(&rendered).map_err(|_| unavailable())?;
             Ok(rendered.user)
@@ -115,6 +115,17 @@ impl squad_agents::worker::WorkExecutor for Executor {
             let request = registry
                 .work_request(Some(&self.member), model, &grant)
                 .map_err(|_| ReaderError::NotRunnable)?;
+            if grant.work.kind.census_composition().is_some() {
+                let executor = squad_agents::agents::census::CensusExecutor {
+                    client: self.client.clone(),
+                    request,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
             let executor = squad_agents::agents::member::MemberExecutor {
                 client: self.client.clone(),
                 request,
