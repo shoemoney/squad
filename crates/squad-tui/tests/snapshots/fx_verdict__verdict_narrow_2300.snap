@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/fx_verdict.rs
+expression: "text(&render(&fx, ms, width, height))"
+---
+╔══ VERDICT ═══════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║  claude                               gemini                                 ║
+║                                                                              ║
+║  fit  8 : 7 / 10                                                             ║
+║  feasibility  7 : 9 / 10                                                     ║
+║  originality  9 : 6 / 10                                                     ║
+║  survivedAttacks  8 : 8 / 10                                                 ║
+║                                                                              ║
+║  TOTAL  63 : 63                                                              ║
+║  Round tally  1 : 1                                                          ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝

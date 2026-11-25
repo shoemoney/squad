@@ -1,0 +1,44 @@
+---
+source: crates/squad-tui/tests/fx_verdict.rs
+expression: "text(&render(&fx, ms, width, height))"
+---
+╔══ VERDICT ═══════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║▪                                                                                                                    ●║
+║  claude                                                   gemini                                                     ║
+║                                                                                                                      ║
+║  fit  8 : 7 / 10                  ▰▰▰▰▰▰▰▰▰▰╋▰▰▰▰▰▰▰▰                                                                ║
+║  feasibility  7 : 9 / 10            ▰▰▰▰▰▰▰▰╋▰▰▰▰▰▰▰▰▰▰▰                                                             ║
+║  originality  9 : 6 / 10         ▰▰▰▰▰▰▰▰▰▰▰╋▰▰▰▰▰▰▰                                                                 ║
+║  survivedAttacks  8 : 8 / 10      ▰▰▰▰▰▰▰▰▰▰╋▰▰▰▰▰▰▰▰▰▰                                                              ║
+║                                                                                                                      ║
+║  TOTAL  82 : 79                                                                                                      ║
+║  Round tally  1 : 1                                                                                                  ║
+║                                                                                                                      ║
+║  ♛ WINNER · claude                                                                                                   ║
+║    ___ _      _   _   _ ___  ___                                                                                     ║
+║   / __| |    /_\ | | | |   \| __|                                                                                    ║
+║   \___|____/_/ \_\___/|___/|___|                                                                                     ║
+║                                                                                                                      ║
+║  The focused plan survives the strongest objections.                                                                 ║
+║  Tally override: Better fit despite equal scored rounds.                                                             ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝

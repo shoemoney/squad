@@ -1,0 +1,44 @@
+---
+source: crates/squad-tui/tests/fx_verdict.rs
+expression: "text(&render(&fx, ms, width, height))"
+---
+╔══ VERDICT ═══════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                                      ║
+║  claude                                                   gemini                                                     ║
+║                                                                                                                      ║
+║  fit  0 : 0 / 10                            ╋                                                                        ║
+║  feasibility  0 : 0 / 10                    ╋                                                                        ║
+║  originality  0 : 0 / 10                    ╋                                                                        ║
+║  survivedAttacks  0 : 0 / 10                ╋                                                                        ║
+║                                                                                                                      ║
+║  TOTAL  0 : 0                                                                                                        ║
+║  Round tally  1 : 1                                                                                                  ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║  ✦ respect · what to steal from gemini                                                                               ║
+║  The staged rollout and rollback criteria.                                                                           ║
+║  Best: feasibility 9                                                                                                 ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+║                                                                                                                      ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
