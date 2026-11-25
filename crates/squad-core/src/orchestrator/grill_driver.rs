@@ -7,6 +7,9 @@ use std::collections::BTreeMap;
 impl Router {
     pub(crate) fn drive_grills(&mut self) -> Result<Vec<CommitOutcome>> {
         let ids=self.store.call(|db|{let mut q=db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='grill' AND json_type(state_json,'$.leader')='text'")?;Ok(q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?)})?;
+        if ids.is_empty() {
+            self.grill_active = false;
+        }
         let mut outcomes = vec![];
         for raw in ids {
             let id: ContestId = raw.parse().map_err(|_| StoreError::Unavailable)?;
@@ -18,6 +21,7 @@ impl Router {
                     .store
                     .call(move |db| squad_store::grill::state(db, id))?;
                 if state.state.is_terminal() {
+                    self.grill_active = false;
                     break;
                 }
                 if state.state == GrillStatus::Preflight {

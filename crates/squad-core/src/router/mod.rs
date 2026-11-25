@@ -37,6 +37,7 @@ pub struct Router {
     pub variable_defaults: squad_store::clear::Defaults,
     confirmation_threshold: f64,
     pub ephemeral: ephemeral::Ephemeral,
+    pub(crate) grill_active: bool,
 }
 pub fn envelope(
     correlation: EventId,
@@ -102,7 +103,15 @@ impl Router {
                 "Invalid router configuration",
             ));
         }
+        let grill_active = store.call(|db| {
+            Ok(db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM contests WHERE active=1 AND kind='grill')",
+                [],
+                |r| r.get(0),
+            )?)
+        })?;
         Ok(Self {
+            grill_active,
             store,
             engine_config: None,
             engine_scope: None,
@@ -129,10 +138,11 @@ impl Router {
         request: Request,
         owner: Option<ExecutorKey>,
     ) -> Result<CommitOutcome> {
-        let grill_tick = matches!(
-            &request,
-            Request::Internal(InternalRequest::Executor(ExecutorRequest::Presence(_)))
-        );
+        let grill_tick = self.grill_active
+            && matches!(
+                &request,
+                Request::Internal(InternalRequest::Executor(ExecutorRequest::Presence(_)))
+            );
         let human = owner.is_none();
         let original_id = request_id(&request);
         let mut outcome = self.process_request(request, owner)?;
@@ -159,6 +169,11 @@ impl Router {
                 if let EnvelopePayload::ProbeState(s) = &event.content {
                     scope.insert(s.contest_id);
                 }
+            }
+        }
+        for event in &outcome.events {
+            if let EnvelopePayload::GrillState(s) = &event.content {
+                self.grill_active = !s.state.is_terminal();
             }
         }
         let initial = outcome.events.len();
@@ -208,6 +223,11 @@ impl Router {
             event_ids.extend(outcome.events[initial..].iter().map(|e| e.base.id));
             if let Some(last) = outcome.events.last() {
                 *cursor = Some(last.commit.seq);
+            }
+        }
+        for event in &outcome.events {
+            if let EnvelopePayload::GrillState(s) = &event.content {
+                self.grill_active = !s.state.is_terminal();
             }
         }
         if human && !outcome.duplicate && self.engine_config.is_some() {
