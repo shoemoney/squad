@@ -1128,7 +1128,9 @@ async fn interrupting_a_running_contest_cleans_up_and_leaves_exportable_state() 
     }
     command.args([
         "send",
-        "@all $probe Noise when charging, fan ruled out, inspect the indicator only",
+        // Unique topic: sibling tests run similar probes in parallel, and the
+        // interrupter must signal only this process.
+        "@all $probe Noise when charging, fan ruled out, inspect the indicator only interrupt-test",
         "--yes",
         "--json",
         "--data-dir",
@@ -1138,7 +1140,7 @@ async fn interrupting_a_running_contest_cleans_up_and_leaves_exportable_state() 
         watcher.await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         let pid = std::process::Command::new("pgrep")
-            .args(["-n", "-f", "send @all .probe Noise"])
+            .args(["-n", "-f", "indicator only interrupt-test"])
             .output()
             .unwrap();
         let pid = String::from_utf8(pid.stdout).unwrap().trim().to_owned();
