@@ -43,7 +43,9 @@ pub type RoomFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T, RoomError>> +
 pub trait RoomRuntime: Send + Sync {
     fn ready(&mut self) -> RoomFuture<'_, ()>;
     fn wake(&self, work_ids: &[WorkId]);
-    fn pause(&mut self) -> RoomFuture<'_, ()> { Box::pin(async { Ok(()) }) }
+    fn pause(&mut self) -> RoomFuture<'_, ()> {
+        Box::pin(async { Ok(()) })
+    }
     fn reset(&mut self) -> RoomFuture<'_, ()> {
         Box::pin(async { Ok(()) })
     }
@@ -99,7 +101,12 @@ impl RoomRuntime for LiveRuntime {
         self.handle.as_ref().expect("runtime").wake(ids);
     }
     fn pause(&mut self) -> RoomFuture<'_, ()> {
-        Box::pin(async { if let Some(handle)=self.handle.take(){handle.shutdown().await.map_err(runtime_error)?;} Ok(()) })
+        Box::pin(async {
+            if let Some(handle) = self.handle.take() {
+                handle.shutdown().await.map_err(runtime_error)?;
+            }
+            Ok(())
+        })
     }
     fn reset(&mut self) -> RoomFuture<'_, ()> {
         Box::pin(async {
@@ -274,7 +281,6 @@ impl RoomHandle {
             RoomError::new(code, e.to_string())
         })?;
         launcher.recover_on_open_mode(&store, mode.clone(), chrono::Utc::now())?;
-        let mut models = Vec::new();
         let mut bindings = BTreeMap::new();
         for (index, pinned) in resolution
             .members
@@ -286,24 +292,6 @@ impl RoomHandle {
                 continue;
             };
             let judge = index == config.agents.len();
-            let actor = if judge {
-                Actor::Judge
-            } else {
-                Actor::Member(config.agents[index].nick.clone())
-            };
-            models.push(Model {
-                nick: actor,
-                requested_slug: Text::new(pinned.configured.clone()).map_err(|_| {
-                    RoomError::new(ErrorCode::CONFIG_INVALID, "Invalid configured model")
-                })?,
-                resolved_slug: Text::new(model.id.clone()).map_err(|_| {
-                    RoomError::new(ErrorCode::CONFIG_INVALID, "Invalid resolved model")
-                })?,
-                roster_order: (!judge).then_some(index as u32),
-                context_length: u64::from(model.context_length),
-                pricing: model.pricing.clone(),
-                resolved_at: chrono::Utc::now(),
-            });
             let effort = if judge {
                 config.judge.reasoning_effort
             } else {
@@ -321,20 +309,6 @@ impl RoomHandle {
                 },
             );
         }
-        store.call(move |db| {
-            let tx = db.transaction()?;
-            let members: Vec<_> = models
-                .iter()
-                .filter(|m| matches!(m.nick, Actor::Member(_)))
-                .cloned()
-                .collect();
-            squad_store::models::save_roster(&tx, &members).map_err(|_| StoreError::Unavailable)?;
-            for model in models.iter().filter(|m| m.nick == Actor::Judge) {
-                squad_store::models::save_model(&tx, model).map_err(|_| StoreError::Unavailable)?;
-            }
-            tx.commit()?;
-            Ok(())
-        })?;
         let roster: Vec<_> = config.agents.iter().map(|a| a.nick.clone()).collect();
         let mut router = Router::new(store.clone(), roster.clone(), bindings, daily_max)?
             .with_confirmation_threshold(config.budget.debate_confirm_usd)?;
@@ -448,7 +422,12 @@ impl RoomHandle {
             if let Some(mut resources) = resources {
                 let stopped = resources.runtime.pause().await;
                 *self.resources.lock().expect("room resources") = Some(resources);
-                if let Err(error) = stopped { return RequestResult::Rejected { request_id: id, error: crate::router::error(error.code, error.message) }; }
+                if let Err(error) = stopped {
+                    return RequestResult::Rejected {
+                        request_id: id,
+                        error: crate::router::error(error.code, error.message),
+                    };
+                }
             }
         }
         let result = bus.send(request).await;

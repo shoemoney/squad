@@ -75,9 +75,38 @@ impl Fixture {
             })
             .unwrap()
     }
+    fn assert_ledger(&self) {
+        let mut db = self.db();
+        let tx = db.transaction().unwrap();
+        let (spent,reserved,unknown):(i64,i64,i64)=tx.query_row("SELECT COALESCE(SUM(spent_micros),0),COALESCE(SUM(reserved_micros),0),COALESCE(SUM(unknown_calls),0) FROM spend_daily",[],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).unwrap();
+        let actual: i64 = tx
+            .query_row(
+                "SELECT COALESCE(SUM(reported_cost_micros),0) FROM attempts",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let held: i64 = tx
+            .query_row(
+                "SELECT COALESCE(SUM(amount_micros),0) FROM reservations",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let pending: i64 = tx
+            .query_row(
+                "SELECT COUNT(*) FROM attempts WHERE unresolved=1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!((spent, reserved, unknown), (actual, held, pending));
+        assert!(spent >= 0 && reserved >= 0);
+    }
     async fn wait(&self, check: impl Fn() -> bool) {
         tokio::time::timeout(Duration::from_secs(15), async {
             while !check() {
+                self.assert_ledger();
                 tokio::time::sleep(Duration::from_millis(20)).await;
             }
         })
@@ -216,81 +245,253 @@ async fn room_full_debate() {
     assert_eq!(f.count("debate.round_score"), 2);
     assert_eq!(f.count("debate.turn"), 6);
     assert_eq!(f.fake.captured_bodies().await.len(), 9);
-    let events=room.events_after(None,500).await.unwrap();
-    let verdict=events.iter().find_map(|e|if let EnvelopePayload::Verdict(v)=&e.content{Some(v)}else{None}).unwrap();
-    assert!(verdict.verdict.weighted_totals.iter().all(|t|t.total==5.0));
-    assert!(verdict.verdict.round_tally.values().all(|t|*t==14));
-    let state=room.state().await;
-    assert_eq!(state.daily_spend.spent_usd,9.*0.000045);
-    assert_eq!(state.daily_spend.reserved_usd,0.);
-    assert_eq!(state.daily_spend.unknown_calls,0);
-    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM reservations",[],|r|r.get::<_,i64>(0)).unwrap(),0);
-    assert_eq!(f.db().query_row("SELECT SUM(reported_cost_micros) FROM attempts",[],|r|r.get::<_,i64>(0)).unwrap(),405);
+    f.assert_ledger();
+    let events = room.events_after(None, 500).await.unwrap();
+    let verdict = events
+        .iter()
+        .find_map(|e| {
+            if let EnvelopePayload::Verdict(v) = &e.content {
+                Some(v)
+            } else {
+                None
+            }
+        })
+        .unwrap();
+    assert!(
+        verdict
+            .verdict
+            .weighted_totals
+            .iter()
+            .all(|t| t.total == 5.0)
+    );
+    assert!(verdict.verdict.round_tally.values().all(|t| *t == 14));
+    let state = room.state().await;
+    assert_eq!(state.daily_spend.spent_usd, 0.000405);
+    assert_eq!(state.daily_spend.reserved_usd, 0.);
+    assert_eq!(state.daily_spend.unknown_calls, 0);
+    assert_eq!(
+        f.db()
+            .query_row("SELECT COUNT(*) FROM reservations", [], |r| r
+                .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    assert_eq!(
+        f.db()
+            .query_row("SELECT SUM(reported_cost_micros) FROM attempts", [], |r| {
+                r.get::<_, i64>(0)
+            })
+            .unwrap(),
+        405
+    );
     for body in f.fake.captured_bodies().await {
-        if body["model"]!="fixture/judge" { assert!(!body.to_string().contains("roundTally")); }
+        if body["model"] != "fixture/judge" {
+            assert!(!body.to_string().contains("roundTally"));
+        }
     }
     room.shutdown().await.unwrap();
 }
 
 #[tokio::test]
 async fn one_shot_debate_wakes_every_dependent_call_and_leaves_unrelated_work_dormant() {
-    let f=Fixture::new().await;
-    let room=f.open(OpenMode::OneShot).await;
-    let unrelated=request(&f.config,"@member5 dormant canary");
-    assert!(matches!(room.submit_commit_only(unrelated).await,RequestResult::Accepted{..}));
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::OneShot).await;
+    let unrelated = request(&f.config, "@member5 dormant canary");
+    assert!(matches!(
+        room.submit_commit_only(unrelated).await,
+        RequestResult::Accepted { .. }
+    ));
     room.shutdown().await.unwrap();
-    let room=f.open(OpenMode::OneShot).await;
-    assert!(matches!(room.submit(request(&f.config,"@member0 @member1 $debate $ROUNDS=2 @judge Compare designs")).await,RequestResult::Accepted{..}));
-    f.wait(||f.count("verdict")==1).await;
-    assert_eq!(f.fake.captured_bodies().await.len(),9);
+    let room = f.open(OpenMode::OneShot).await;
+    assert!(matches!(
+        room.submit(request(
+            &f.config,
+            "@member0 @member1 $debate $ROUNDS=2 @judge Compare designs"
+        ))
+        .await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| f.count("verdict") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 9);
     assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work WHERE target='member5' AND status='queued' AND attempt=0",[],|r|r.get::<_,i64>(0)).unwrap(),1);
     room.shutdown().await.unwrap();
-    let room=f.open(OpenMode::Interactive).await;
-    f.wait(||f.count("message.final")==1).await;
-    assert_eq!(f.fake.captured_bodies().await.len(),10);
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| f.count("message.final") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 10);
     room.shutdown().await.unwrap();
 }
 
 #[tokio::test]
 async fn restart_pending_debate_reuses_committed_sources_without_duplicate_calls() {
-    let mut f=Fixture::new().await;f.config.budget.debate_confirm_usd=0.;
-    let room=f.open(OpenMode::Interactive).await;
-    room.submit(request(&f.config,"@member0 @member1 Compare designs")).await;
-    f.wait(||f.count("message.final")==2).await;
-    let command=request(&f.config,"@member0 @member1 $debate $ROUNDS=2 @judge Compare designs");
-    let RequestResult::PendingConfirmation{preflight:PendingPreflight::Debate(plan),..}=room.submit(command.clone()).await else{panic!("expected pending plan")};
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@member0 @member1 Compare designs"))
+        .await;
+    f.wait(|| f.count("message.final") == 2).await;
+    let command = request(
+        &f.config,
+        "@member0 @member1 $debate $ROUNDS=2 @judge Compare designs",
+    );
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Debate(plan),
+        ..
+    } = room.submit(command.clone()).await
+    else {
+        panic!("expected pending plan")
+    };
     assert!(!plan.opening_round_required);
-    assert_eq!(f.fake.captured_bodies().await.len(),2);
+    assert_eq!(f.fake.captured_bodies().await.len(), 2);
     room.shutdown().await.unwrap();
-    let room=f.open(OpenMode::Interactive).await;
-    assert_eq!(room.state().await.pending_preflights.len(),1);
-    let confirm=squad_protocol::Request::DebateConfirm{request_id:EventId::new(),debate_id:plan.debate_id,plan_id:plan.plan_id};
-    assert!(matches!(room.submit(confirm.clone()).await,RequestResult::Accepted{..}));
-    f.wait(||f.count("verdict")==1).await;
-    assert_eq!(f.fake.captured_bodies().await.len(),9);
-    room.submit(confirm).await;room.submit(command).await;
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(room.state().await.pending_preflights.len(), 1);
+    let confirm = squad_protocol::Request::DebateConfirm {
+        request_id: EventId::new(),
+        debate_id: plan.debate_id,
+        plan_id: plan.plan_id,
+    };
+    assert!(matches!(
+        room.submit(confirm.clone()).await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| f.count("verdict") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 9);
+    room.submit(confirm).await;
+    room.submit(command).await;
     tokio::time::sleep(Duration::from_millis(150)).await;
-    assert_eq!(f.fake.captured_bodies().await.len(),9);
-    assert_eq!(f.count("debate.turn"),4);
+    assert_eq!(f.fake.captured_bodies().await.len(), 9);
+    assert_eq!(f.count("debate.turn"), 4);
     room.shutdown().await.unwrap();
-    let room=f.open(OpenMode::Interactive).await;
-    assert_eq!(f.count("verdict"),1);
-    assert_eq!(room.state().await.scoreboard.iter().map(|s|s.wins).sum::<u64>(),1);
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(f.count("verdict"), 1);
+    assert_eq!(
+        room.state()
+            .await
+            .scoreboard
+            .iter()
+            .map(|s| s.wins)
+            .sum::<u64>(),
+        1
+    );
     room.shutdown().await.unwrap();
 }
 
 #[tokio::test]
 async fn daily_max_refuses_new_calls_and_new_contest_reservations() {
-    let mut f=Fixture::new().await;f.config.budget.daily_max_usd=0.000045;
+    let mut f = Fixture::new().await;
+    f.config.budget.daily_max_usd = 0.000045;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@member0 first")).await;
+    f.wait(|| f.count("message.final") == 1).await;
+    room.submit(request(&f.config, "@member0 over cap")).await;
+    f.wait(|| {
+        f.db()
+            .query_row("SELECT COUNT(*) FROM work WHERE status='failed'", [], |r| {
+                r.get::<_, i64>(0)
+            })
+            .unwrap()
+            == 1
+    })
+    .await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 1);
+    let result = room
+        .submit(request(
+            &f.config,
+            "@member0 @member1 $debate $ROUNDS=2 @judge Over cap",
+        ))
+        .await;
+    assert!(
+        matches!(
+            result,
+            RequestResult::Rejected {
+                error: ErrorPayload {
+                    code: ErrorCode::DAILY_MAX_REACHED,
+                    ..
+                },
+                ..
+            }
+        ),
+        "{result:?}"
+    );
+    assert_eq!(f.fake.captured_bodies().await.len(), 1);
+    assert_eq!(room.state().await.daily_spend.spent_usd, 0.000045);
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn alias_failure_degrades_one_member_and_persists_billed_probes_and_catalog_cache() {
+    use wiremock::matchers::body_partial_json;
+    let mut f = Fixture::new().await;
+    f.config.agents[0].model = "~offline-latest".into();
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(body_partial_json(
+            serde_json::json!({"model":"~offline-latest"}),
+        ))
+        .respond_with(alias_probe("unlisted/model"))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(
+        room.state().await.participants[0].status,
+        PresenceStatus::Offline
+    );
+    room.submit(request(
+        &f.config,
+        "@member0 @member1 valid member still works",
+    ))
+    .await;
+    f.wait(|| f.count("message.final") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 2);
+    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM attempts WHERE context_id='probe:member0' AND reported_cost_micros=45",[],|r|r.get::<_,i64>(0)).unwrap(),1);
+    assert_eq!(room.state().await.daily_spend.spent_usd, 0.000090);
+    room.shutdown().await.unwrap();
+    Mock::given(method("GET"))
+        .and(path("/api/v1/models"))
+        .respond_with(ResponseTemplate::new(503))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    let raw: String = f
+        .db()
+        .query_row("SELECT snapshot_json FROM startup_resolution", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    let snapshot: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(snapshot["cached"], true);
+    assert_eq!(
+        f.db()
+            .query_row(
+                "SELECT COUNT(*) FROM attempts WHERE context_id='probe:member0'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        2
+    );
+    assert_eq!(f.fake.captured_bodies().await.len(), 3);
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn admitted_debate_restarts_before_dispatch_and_finishes_without_duplicate_calls() {
+    let f=Fixture::new().await;
+    let room=f.open(OpenMode::OneShot).await;
+    let command=request(&f.config,"@member0 @member1 $debate $ROUNDS=2 @judge Compare designs");
+    let receipt=room.submit_commit_only(command.clone()).await;
+    assert!(matches!(receipt,RequestResult::Accepted{..}));
+    assert!(f.fake.captured_bodies().await.is_empty());
+    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work WHERE kind='debate.turn' AND status='queued'",[],|r|r.get::<_,i64>(0)).unwrap(),2);
+    room.shutdown().await.unwrap();
     let room=f.open(OpenMode::Interactive).await;
-    room.submit(request(&f.config,"@member0 first")).await;
-    f.wait(||f.count("message.final")==1).await;
-    room.submit(request(&f.config,"@member0 over cap")).await;
-    f.wait(||f.db().query_row("SELECT COUNT(*) FROM work WHERE status='failed'",[],|r|r.get::<_,i64>(0)).unwrap()==1).await;
-    assert_eq!(f.fake.captured_bodies().await.len(),1);
-    let result=room.submit(request(&f.config,"@member0 @member1 $debate $ROUNDS=2 @judge Over cap")).await;
-    assert!(matches!(result,RequestResult::Rejected{error:ErrorPayload{code:ErrorCode::DAILY_MAX_REACHED,..},..}),"{result:?}");
-    assert_eq!(f.fake.captured_bodies().await.len(),1);
-    assert_eq!(room.state().await.daily_spend.spent_usd,0.000045);
+    assert_eq!(room.submit(command).await,receipt);
+    f.wait(||f.count("verdict")==1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(),9);
+    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM attempts",[],|r|r.get::<_,i64>(0)).unwrap(),9);
+    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work",[],|r|r.get::<_,i64>(0)).unwrap(),9);
+    f.assert_ledger();
     room.shutdown().await.unwrap();
 }

@@ -265,11 +265,16 @@ impl Runner {
                 }
             }
         }
-        .map_err(|e| { tracing::error!(error=%e,"Judge input mapping failed"); ReaderError::NotRunnable })?;
+        .map_err(|e| {
+            tracing::error!(error=%e,"Judge input mapping failed");
+            ReaderError::NotRunnable
+        })?;
         // The frozen plan records the source template hash; executors select
         // the registered composition that combines system and user templates.
-        if let Some(reference)=&mut grant.work.prompt_ref {
-            reference.template_id=Text::new(id).map_err(|_|ReaderError::NotRunnable)?;
+        if let Some(reference) = &mut grant.work.prompt_ref {
+            if grant.work.kind != WorkKind::JudgeRound {
+                reference.template_id = Text::new(id).map_err(|_| ReaderError::NotRunnable)?;
+            }
         } else {
             grant.work.prompt_ref = Some(super::prompt(&self.pack, &self.config, id));
         }
@@ -295,7 +300,11 @@ impl Runner {
             model.supports_reasoning(),
             model.output_limit,
         )
-        .await.map_err(|e| { tracing::error!(composition=%id,error=?e,"Judge composition failed"); e })?;
+        .await
+        .map_err(|e| {
+            tracing::error!(composition=%id,error=?e,"Judge composition failed");
+            e
+        })?;
         let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
             .as_u64()
             .ok_or(ReaderError::NotRunnable)?;

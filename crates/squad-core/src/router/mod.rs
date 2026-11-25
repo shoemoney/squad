@@ -124,6 +124,7 @@ impl Router {
         owner: Option<ExecutorKey>,
     ) -> Result<CommitOutcome> {
         let human = owner.is_none();
+        let original_id=request_id(&request);
         let mut outcome = self.process_request(request, owner)?;
         if human
             && !outcome.duplicate
@@ -151,7 +152,7 @@ impl Router {
             }
             Err(e) => tracing::error!(error=%e,"Contest engine failed to advance"),
         }
-        if let RequestResult::Accepted {
+        if !outcome.duplicate && let RequestResult::Accepted {
             event_ids, cursor, ..
         } = &mut outcome.result
         {
@@ -159,6 +160,16 @@ impl Router {
             if let Some(last) = outcome.events.last() {
                 *cursor = Some(last.commit.seq);
             }
+        }
+        if human && !outcome.duplicate && self.engine_config.is_some() {
+            match &mut outcome.result {
+                RequestResult::Accepted{request_id,..}|RequestResult::PendingConfirmation{request_id,..}|RequestResult::Rejected{request_id,..}=>*request_id=original_id,
+                _=>{}
+            }
+            // Store the composed human receipt, including an automatic engine
+            // preflight, so submission retries preserve its public result.
+            let result=serde_json::to_string(&outcome.result)?;
+            self.store.call(move |db| { db.execute("UPDATE receipts SET result_json=? WHERE request_id=? AND producer_identity='me'",rusqlite::params![result,original_id.to_string()])?; Ok(()) })?;
         }
         Ok(outcome)
     }

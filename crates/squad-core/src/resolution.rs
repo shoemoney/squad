@@ -43,6 +43,20 @@ impl ResolutionStore for ResolutionPersistence {
             for model in snapshot.catalog.models.values(){
                 tx.execute("INSERT INTO catalog VALUES (?,?,?,?,?,?)",params![model.id,model.context_length,model.output_limit,model.pricing.to_string(),serde_json::to_string(&model.supported_parameters)?,chrono::DateTime::from_timestamp(snapshot.catalog.fetched_at as i64,0).ok_or(StoreError::Unavailable)?.to_rfc3339()])?;
             }
+            let mut members=Vec::new();
+            for (order,pinned) in snapshot.members.iter().enumerate() {
+                if let Some(model)=&pinned.model {
+                    members.push(Model { nick: Actor::Member(pinned.nick.parse().map_err(|_|StoreError::Unavailable)?), requested_slug: Text::new(pinned.configured.clone()).map_err(|_|StoreError::Unavailable)?, resolved_slug: Text::new(model.id.clone()).map_err(|_|StoreError::Unavailable)?, roster_order: Some(order as u32), context_length: u64::from(model.context_length), pricing:model.pricing.clone(),resolved_at:chrono::Utc::now() });
+                }
+            }
+            // Offline members keep their configured roster position in the
+            // snapshot, so available model rows can have gaps in roster_order.
+            tx.execute("DELETE FROM models WHERE role='member'",[])?;
+            for member in &members { squad_store::models::save_model(&tx,member).map_err(|_|StoreError::Unavailable)?; }
+            tx.execute("DELETE FROM models WHERE role='judge'",[])?;
+            if let Some(model)=&snapshot.judge.model {
+                squad_store::models::save_model(&tx,&Model {nick:Actor::Judge,requested_slug:Text::new(snapshot.judge.configured.clone()).map_err(|_|StoreError::Unavailable)?,resolved_slug:Text::new(model.id.clone()).map_err(|_|StoreError::Unavailable)?,roster_order:None,context_length:u64::from(model.context_length),pricing:model.pricing.clone(),resolved_at:chrono::Utc::now()}).map_err(|_|StoreError::Unavailable)?;
+            }
             tx.execute("INSERT INTO startup_resolution VALUES (1,?) ON CONFLICT(id) DO UPDATE SET snapshot_json=excluded.snapshot_json",[serde_json::to_string(&snapshot)?])?;
             tx.commit()?;Ok(())
         })
