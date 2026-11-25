@@ -1,0 +1,19 @@
+//! Effect compositions (spec path squad-tui/src/fx/<name>.rs; staged here while the fx core lands, moved under fx/ at integration).
+pub mod banner;
+pub mod bubble;
+pub mod census;
+pub mod chrome;
+pub mod command;
+pub mod crosscheck;
+pub mod debate;
+pub mod dispatch;
+pub mod filter;
+pub mod grill;
+pub mod meter;
+pub mod particles;
+pub mod pick;
+pub mod probe;
+pub mod status;
+pub mod survey;
+pub mod tournament;
+pub mod verdict;

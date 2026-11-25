@@ -1,0 +1,1 @@
+//! Concrete model identity resolution.
