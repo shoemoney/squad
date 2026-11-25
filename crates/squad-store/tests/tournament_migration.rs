@@ -1,6 +1,6 @@
 use squad_store::schema;
 #[test]
-fn migration_preserves_released_rows_and_extends_only_tournament_kinds() {
+fn migration_preserves_released_rows_and_extends_registered_mode_kinds() {
     let mut db = rusqlite::Connection::open_in_memory().unwrap();
     schema::configure(&db).unwrap();
     db.execute_batch(schema::INITIAL).unwrap();
@@ -35,7 +35,32 @@ fn migration_preserves_released_rows_and_extends_only_tournament_kinds() {
         )
         .unwrap();
     assert!(events.contains("tournament.entry"));
-    assert!(!events.contains("grill.plan"));
+    for kind in [
+        "grill.plan",
+        "census.hunt",
+        "crosscheck.review",
+        "survey.vote",
+        "probe.prediction",
+    ] {
+        assert!(events.contains(kind), "missing registered kind {kind}");
+    }
+    let work: String = db
+        .query_row("SELECT sql FROM sqlite_schema WHERE name='work'", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    for constraint in [
+        "kind <> 'judge.tournament'",
+        "kind NOT IN ('grill.question'",
+        "kind NOT IN ('survey.vote'",
+        "kind NOT LIKE 'survey.%'",
+        "kind NOT LIKE 'probe.%'",
+    ] {
+        assert!(
+            work.contains(constraint),
+            "lost work constraint {constraint}"
+        );
+    }
     for table in [
         "tournament_labels",
         "tournament_rounds",

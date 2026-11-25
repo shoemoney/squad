@@ -76,9 +76,18 @@ async fn real_room_feed_lag_recovers_whole_commits_after_last_seen_cursor() {
             value: 3,
         }],
     };
-    room.submit(set()).await;
-    let FeedItem::Committed(first) = feed.recv().await.unwrap() else {
-        panic!("durable event required")
+    let result = room.submit(set()).await;
+    let RequestResult::Accepted { cursor, .. } = result else {
+        panic!("variable update must commit: {result:?}")
+    };
+    // Worker presence can arrive after subscription even in commit-only mode.
+    // Recover from the acknowledged durable update, not an ephemeral feed item.
+    let first = loop {
+        if let FeedItem::Committed(event) = feed.recv().await.unwrap() {
+            assert_eq!(Some(event.commit.seq), cursor);
+            assert!(matches!(event.content, EnvelopePayload::VarChange(_)));
+            break event;
+        }
     };
     for _ in 0..constants::FEED_CAPACITY + 1 {
         assert!(matches!(

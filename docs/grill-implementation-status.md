@@ -12,7 +12,7 @@ has been ticked. This is a foundation checkpoint, not an end-to-end mode release
   rotation, angle assignment, pass/skip distinction, rebuild/stop/failure decisions,
   and appendix assembly from committed records.
 - Separate frozen grill prompt-input adapter for the existing compositions.
-- Migration 0002_grill rebuilds the CHECK-constrained event/work tables while retaining
+- Migration 0006_grill rebuilds the CHECK-constrained event/work tables while retaining
   old rows and foreign-key references; adds grill plan/turn tables and kind triggers.
 - Store helpers retain typed floor records to exactly the declared participants and
   build compact projections retaining the latest plan, current round, and earlier
@@ -37,7 +37,16 @@ has been ticked. This is a foundation checkpoint, not an end-to-end mode release
 6. Complete TUI state/preflight/export action integration and committed-state snapshots.
    Current rendering consumes typed feed events, but no runtime emits those yet.
 
-## Validation
+## Wave 4 integration
+
+Shared registration conflicts were resolved by retaining every mode. Grill uses migration
+`0006_grill.sql`; later carrier rebuilds retain its work constraints, floor tables and
+kind triggers. Its protocol, script, prompt, store, export and widget suites pass in
+the combined workspace. The obsolete CLI expectations described below were reconciled
+with the current fake-provider command tests. The required continuation above remains
+unfinished; grill admission is intentionally disabled until those runtime paths exist.
+
+## Original branch validation
 
 Targeted protocol, script, prompt, store, export and TUI tests pass. Workspace build,
 Clippy with warnings denied and formatting pass. Full workspace tests reach all targets

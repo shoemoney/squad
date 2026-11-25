@@ -79,6 +79,8 @@ CREATE TABLE work_grill (
     ),
     completed_event_seq INTEGER REFERENCES events(seq),
     step_id TEXT REFERENCES contest_steps(step_id),
+    CHECK (kind NOT IN ('survey.vote','survey.revote') OR context_id = 'contest:' || contest_id || ':' || step_id || ':' || target),
+    CHECK (kind NOT LIKE 'survey.%' OR (contest_id IS NOT NULL AND step_id IS NOT NULL AND debate_id IS NULL AND round IS NULL)),
     CHECK (kind NOT IN ('grill.question','grill.answer','grill.rebuild') OR (contest_id IS NOT NULL AND step_id IS NOT NULL AND debate_id IS NULL AND round BETWEEN 1 AND 10 AND attempt <= 2)),
     CHECK (kind <> 'judge.tournament' OR (replay IS NOT NULL AND round IS NOT NULL AND round >= 1 AND contest_id IS NOT NULL AND debate_id IS NULL AND attempt <= 3 AND max_output_tokens IS NOT NULL AND max_output_tokens=4096)),
     CHECK (kind <> 'reply' OR round IS NULL OR replay IS NOT NULL),
