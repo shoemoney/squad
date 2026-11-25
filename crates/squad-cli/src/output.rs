@@ -10,8 +10,13 @@ pub struct Output<'a> {
 }
 impl Output<'_> {
     pub fn record(&mut self, value: Value) -> io::Result<()> {
-        serde_json::to_writer(&mut self.stdout, &value)?;
-        writeln!(self.stdout)
+        // JSON escapes C0, but serde leaves Unicode C1 controls literal. Escape
+        // those too so terminal output stays safe and decoded records stay intact.
+        writeln!(
+            self.stdout,
+            "{}",
+            terminal_json(serde_json::to_string(&value)?)
+        )
     }
     pub fn error(
         &mut self,
@@ -107,7 +112,7 @@ impl Output<'_> {
                     writeln!(
                         self.stdout,
                         "Settings: {}",
-                        serde_json::to_string_pretty(&p.settings)?
+                        terminal_json(serde_json::to_string_pretty(&p.settings)?)
                     )?;
                     if let Some(warning) = &p.warning {
                         writeln!(self.stdout, "Warning: {}", sanitize(warning.as_str()))?;
@@ -149,7 +154,7 @@ impl Output<'_> {
                     self.stdout,
                     "Round {} {status}{late}: {}",
                     score.round,
-                    serde_json::to_string_pretty(payload)?
+                    terminal_json(serde_json::to_string_pretty(payload)?)
                 );
             }
             if kind == "message.final" {
@@ -169,9 +174,22 @@ impl Output<'_> {
                 writeln!(
                     self.stdout,
                     "{author} [{kind}] {}",
-                    serde_json::to_string_pretty(payload)?
+                    terminal_json(serde_json::to_string_pretty(payload)?)
                 )
             }
         }
     }
+}
+
+fn terminal_json(json: String) -> String {
+    use std::fmt::Write as _;
+    let mut output = String::with_capacity(json.len());
+    for ch in json.chars() {
+        if ('\u{80}'..='\u{9f}').contains(&ch) {
+            let _ = write!(output, "\\u{:04x}", ch as u32);
+        } else {
+            output.push(ch);
+        }
+    }
+    output
 }

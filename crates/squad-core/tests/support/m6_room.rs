@@ -14,6 +14,9 @@ pub struct Fixture {
 }
 impl Fixture {
     pub async fn new() -> Self {
+        Self::with_roster(2).await
+    }
+    pub async fn with_roster(count: usize) -> Self {
         let dir = tempfile::tempdir().unwrap();
         let options = config::LoadOptions {
             env_file: None,
@@ -27,7 +30,7 @@ impl Fixture {
             &BTreeMap::from([("OPENROUTER_API_KEY".into(), KEY.into())]),
         )
         .unwrap();
-        config.agents = (0..2)
+        config.agents = (0..count)
             .map(|i| config::AgentConfig {
                 nick: format!("member{i}").parse().unwrap(),
                 model: format!("fixture/member{i}"),

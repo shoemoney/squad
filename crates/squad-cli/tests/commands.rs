@@ -36,34 +36,20 @@ fn help_and_version_have_no_side_effects() {
 }
 
 #[test]
-fn bound_commands_report_unavailable_runtime_without_fake_output() {
+fn missing_credentials_fail_before_opening_the_room() {
     let temp = tempfile::tempdir().unwrap();
-    for (args, expected) in [
-        (vec![], "Room runtime integration is not installed"),
-        (
-            vec!["send", "hello"],
-            "Room runtime integration is not installed",
-        ),
+    let data = temp.path().join("explicit-data");
+    for args in [
+        vec![],
+        vec!["send", "hello"],
+        vec!["send", "hello", "--data-dir", data.to_str().unwrap()],
     ] {
-        let output = invoke(temp.path(), &args, Some("sk-test-not-a-real-key"));
+        let output = invoke(temp.path(), &args, None);
         assert_eq!(output.status.code(), Some(1));
         assert!(output.stdout.is_empty());
-        assert_eq!(String::from_utf8(output.stderr).unwrap().trim(), expected);
+        assert!(String::from_utf8_lossy(&output.stderr).contains("OPENROUTER_API_KEY is required"));
     }
-    // Inspect the actual --data-dir independent of platform defaults.
-    let data = temp.path().join("explicit-data");
-    let output = invoke(
-        temp.path(),
-        &["send", "hello", "--data-dir", data.to_str().unwrap()],
-        Some("fixture"),
-    );
-    assert_eq!(output.status.code(), Some(1));
-    assert!(data.is_dir());
-    let entries: Vec<_> = std::fs::read_dir(&data)
-        .unwrap()
-        .map(|e| e.unwrap().file_name())
-        .collect();
-    assert_eq!(entries, [std::ffi::OsString::from("logs")]);
+    assert!(!data.exists());
 }
 
 #[test]
@@ -200,15 +186,11 @@ fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
         let text = String::from_utf8(output.stdout).unwrap();
         assert!(text.contains("Data directory: writable"), "{text}");
         assert!(text.contains("Data directory mode: 0755"));
-        let output = invoke(
-            temp.path(),
-            &["send", "hello", "--data-dir", path],
-            Some("fixture"),
-        );
+        let output = invoke(temp.path(), &["send", "hello", "--data-dir", path], None);
         assert_eq!(output.status.code(), Some(1));
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            "Room runtime integration is not installed"
+            "OPENROUTER_API_KEY is required. Add it to .env or the process environment."
         );
         assert_eq!(
             std::fs::metadata(&data).unwrap().permissions().mode() & 0o777,
@@ -238,17 +220,17 @@ fn no_home_requires_explicit_data_directory() {
 
 #[test]
 fn quoted_references_do_not_consume_the_message() {
-    let temp = tempfile::tempdir().unwrap();
+    use clap::Parser;
     for args in [
-        vec!["send", "--quote", "1", "--quote", "2", "hello"],
-        vec!["send", "--quote", "1,2", "hello"],
+        vec!["squad", "send", "--quote", "1", "--quote", "2", "hello"],
+        vec!["squad", "send", "--quote", "1,2", "hello"],
     ] {
-        let output = invoke(temp.path(), &args, Some("fixture"));
-        assert_eq!(output.status.code(), Some(1));
-        assert!(
-            String::from_utf8_lossy(&output.stderr)
-                .contains("Room runtime integration is not installed")
-        );
+        let cli = squad_cli::args::Cli::try_parse_from(args).unwrap();
+        let Some(squad_cli::args::Command::Send(send)) = cli.command else {
+            panic!("send expected")
+        };
+        assert_eq!(send.message, "hello");
+        assert_eq!(send.quote, [1, 2]);
     }
 }
 

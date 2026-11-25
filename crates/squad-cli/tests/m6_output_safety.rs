@@ -20,7 +20,7 @@ fn human_final_and_errors_strip_terminal_controls() {
 
 #[test]
 fn json_final_remains_roundtrippable_without_raw_escape_bytes() {
-    let event = support::reply(1, "before\x1b]52;c;data\x07after");
+    let event = support::reply(1, "before\x1b]52;c;data\x07\u{9d}52;c;data\u{9c}after");
     let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
     Output {
         json: true,
@@ -30,6 +30,11 @@ fn json_final_remains_roundtrippable_without_raw_escape_bytes() {
     .event(&event)
     .unwrap();
     assert!(!stdout.contains(&0x1b));
+    assert!(
+        !String::from_utf8_lossy(&stdout)
+            .chars()
+            .any(|c| ('\u{80}'..='\u{9f}').contains(&c))
+    );
     let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(value["event"], serde_json::to_value(event).unwrap());
 }

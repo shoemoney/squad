@@ -244,3 +244,19 @@ async fn credentials_and_provider_reasoning_never_reach_feed_export_debug_or_sql
         }
     }
 }
+
+// Executable release blockers. Keep their milestone checkboxes unticked until
+// ordinary dispatch prices and atomically reserves all permitted attempts.
+#[tokio::test]
+#[ignore = "ordinary dispatch currently starts without creating a priced reservation"]
+async fn ordinary_missing_cost_must_retain_a_positive_priced_reservation() {
+    let f = Fixture::new().await;
+    f.fake.completions(vec![missing_cost()]).await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(f.request("@member0 retain uncertain charge"))
+        .await;
+    f.finals(1).await;
+    let state = room.state().await;
+    room.shutdown().await.unwrap();
+    assert!(state.daily_spend.reserved_usd > 0.);
+}
