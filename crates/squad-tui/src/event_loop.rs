@@ -133,6 +133,10 @@ fn reduce(app: &mut App, delivery: FeedDelivery) {
     let now = app.now();
     let old_pick = app.session.pick.as_ref().map(|p| p.request.contest_id);
     let was_active = app.session.active_contest();
+    // Successful completion is the result reveal's trigger, not a cancellation.
+    let completed = matches!(&delivery.item, squad_protocol::FeedItem::Committed(event)
+        if matches!(&event.content, squad_protocol::EnvelopePayload::DebateState(state)
+            if state.state == squad_protocol::DebateStatus::Completed));
     app.dirty |= app
         .session
         .reduce(delivery.item, delivery.origin, now, app.fx.queue_mut());
@@ -145,7 +149,7 @@ fn reduce(app: &mut App, delivery: FeedDelivery) {
     {
         app.fx.settle_contest(&id.to_string());
     }
-    if was_active && !app.session.active_contest() {
+    if was_active && !app.session.active_contest() && !completed {
         app.fx.settle();
     }
     app.feed_items += 1;
@@ -169,4 +173,58 @@ pub fn synchronized_draw<T>(
     draw: impl FnOnce() -> io::Result<T>,
 ) -> io::Result<T> {
     terminal::synchronized_output(writer, supported, |_| draw())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        fx::{CatalogueEffect, FeedOrigin, FxCue, TerminalCaps},
+        session::{FakeRoom, RoomPort},
+    };
+    use squad_protocol::{DebateStatus, EnvelopePayload, FeedItem};
+
+    #[tokio::test(start_paused = true)]
+    async fn completed_debate_preserves_queued_result_reveal() {
+        let room = FakeRoom::new();
+        room.start_demo().await.unwrap();
+        let mut snapshot = room.state().await;
+        let start = snapshot
+            .events
+            .iter()
+            .position(|e| matches!(e.content, EnvelopePayload::Verdict(_)))
+            .unwrap();
+        let events = snapshot.events.split_off(start);
+        snapshot.context.active_contest = None;
+        snapshot.context.pending_pick = None;
+        let mut app = App::new(TerminalCaps::resolve(|_| None, true, (80, 24).into()).unwrap());
+        app.session.restore(snapshot);
+        for event in events {
+            let completed = matches!(&event.content, EnvelopePayload::DebateState(s) if s.state == DebateStatus::Completed);
+            reduce(
+                &mut app,
+                FeedDelivery {
+                    item: FeedItem::Committed(event),
+                    origin: FeedOrigin::Live,
+                },
+            );
+            if completed {
+                break;
+            }
+        }
+        let mut reveal = false;
+        while let Some(cue) = app.fx.queue_mut().pop_front() {
+            reveal |= matches!(
+                cue.cue,
+                FxCue::Catalogue {
+                    effect: CatalogueEffect::Verdict,
+                    ..
+                }
+            );
+        }
+        assert!(
+            reveal,
+            "completion discarded the verdict animation before the next frame"
+        );
+    }
 }

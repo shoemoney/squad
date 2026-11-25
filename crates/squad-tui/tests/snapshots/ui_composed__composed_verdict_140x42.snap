@@ -4,19 +4,21 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
-claude · 4.5         │▌    recovery and responsive presentation should share one test harness.
-idle W1 L0           │
-fable · 4.1          │Round 2 · claude 8 : 7 openai · total 16 : 14
-idle W0 L0           │── Round 3 / 3 · Closing ──
-openai · 5.1         │▌  @claude · complete
-idle W0 L1           │▌    Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
-gemini · 3-pro       │▌    reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the
-idle W0 L0           │▌    delivery contract: durability is the foundation, and latency is how people experience it.
-grok · 4             │
+claude · 4.5         │▌  Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve
+idle W1 L0           │▌  replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery
+fable · 4.1          │▌  and responsive presentation should share one test harness.
+idle W0 L0           │
+openai · 5.1         │Round 2 · claude 8 : 7 openai · total 16 : 14
+idle W0 L1           │── Round 3 / 3 · Closing ──
+gemini · 3-pro       │▌  @claude · complete
+idle W0 L0           │▌  Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
+grok · 4             │▌  reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery
+idle W0 L0           │▌  contract: durability is the foundation, and latency is how people experience it.
+muse · 3             │
 idle W0 L0           │▌  @openai · complete
-muse · 3             │▌    Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
-idle W0 L0           │▌    release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove
-                     │▌    the product before a real provider is connected.
+                     │▌  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
+                     │▌  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
+                     │▌  product before a real provider is connected.
                      │
                      │Round 3 · claude 8 : 7 openai · total 24 : 21
                      │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
@@ -25,9 +27,7 @@ idle W0 L0           │▌    release if either regresses. Keep the writer smal
                      │                                       \ \ / /|  _| | |_) | | | | | |     | |
                      │                                        \ V / | |___|  _ <| |_| | | |___  | |
                      │                                         \_/  |_____|_| \_\____/___\____| |_|
-                     │Judging complete
 
-                     │JUDGE
                      │╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
                      ││Winner: @claude                                                                                                     │
                      ││claude 8.00 : 7.00 openai                                                                                           │

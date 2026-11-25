@@ -230,7 +230,7 @@ pub fn attach(
                     let versus = app
                         .composed
                         .graphic_rect(id, shapes.versus, top, transcript);
-                    let opening = *n <= 1;
+                    let opening = *n == 0 || (*n == 1 && !view.rounds.iter().any(|r| r.round == 0));
                     Pass::catalogue(
                         key,
                         transcript,
@@ -239,7 +239,7 @@ pub fn attach(
                         move |elapsed, buf, _| {
                             tint_prepared(buf, rect, elapsed, colors[0], level);
                             if opening {
-                                tint_prepared(buf, versus, elapsed, colors[1], level);
+                                versus_entrance(buf, versus, elapsed, colors, level);
                             }
                         },
                     )
@@ -422,6 +422,90 @@ fn tint_prepared(
     }
 }
 
+/// Count the accepted totals into their own cells, then land the winner accent.
+#[allow(clippy::too_many_arguments)]
+fn reveal_decision(
+    buf: &mut ratatui::buffer::Buffer,
+    cells: &[Rect],
+    totals: [f64; 2],
+    colors: [Color; 2],
+    winner: Rect,
+    hue: Color,
+    elapsed: Duration,
+    level: fx::FxLevel,
+) {
+    if level == fx::FxLevel::Off {
+        return;
+    }
+    let ms = elapsed.as_millis() as f64;
+    let duration = if level == fx::FxLevel::Lite {
+        400.
+    } else {
+        900.
+    };
+    let progress = (ms / duration).clamp(0., 1.);
+    let eased = 1. - (1. - progress).powi(3);
+    for (i, cell) in cells.iter().enumerate().take(2) {
+        if cell.is_empty() {
+            continue;
+        }
+        buf.set_stringn(
+            cell.x,
+            cell.y,
+            format!("{:.2}", totals[i] * eased),
+            cell.width as usize,
+            Style::default()
+                .fg(colors[i])
+                .add_modifier(ratatui::style::Modifier::BOLD),
+        );
+    }
+    let style = if progress < 1. {
+        Style::default().add_modifier(ratatui::style::Modifier::DIM)
+    } else if ms < duration + 350. {
+        Style::default()
+            .fg(hue)
+            .add_modifier(ratatui::style::Modifier::BOLD | ratatui::style::Modifier::REVERSED)
+    } else {
+        Style::default()
+            .fg(hue)
+            .add_modifier(ratatui::style::Modifier::BOLD)
+    };
+    buf.set_style(winner.intersection(buf.area), style);
+}
+
+/// A single opposing accent sweep over the compact matchup. It settles without
+/// changing transcript geometry or moving the topic under the reader.
+fn versus_entrance(
+    buf: &mut ratatui::buffer::Buffer,
+    area: Rect,
+    elapsed: Duration,
+    colors: [Color; 2],
+    level: fx::FxLevel,
+) {
+    if level == fx::FxLevel::Off || elapsed >= Duration::from_millis(700) {
+        return;
+    }
+    let area = area.intersection(buf.area);
+    let progress = (elapsed.as_secs_f32() / 0.28).min(1.);
+    let reach = (f32::from(area.width) * 0.5 * progress) as u16;
+    for y in area.y..area.bottom() {
+        for x in area.x..area.right() {
+            let side = usize::from(x >= area.x + area.width / 2);
+            let distance = if side == 0 {
+                x - area.x
+            } else {
+                area.right() - 1 - x
+            };
+            if distance <= reach {
+                buf[(x, y)]
+                    .set_fg(colors[side])
+                    .modifier
+                    .insert(ratatui::style::Modifier::BOLD);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -480,55 +564,4 @@ mod tests {
             assert_eq!(original[(0, 0)], frame[(0, 0)]);
         }
     }
-}
-
-/// Count the accepted totals into their own cells, then land the winner accent.
-#[allow(clippy::too_many_arguments)]
-fn reveal_decision(
-    buf: &mut ratatui::buffer::Buffer,
-    cells: &[Rect],
-    totals: [f64; 2],
-    colors: [Color; 2],
-    winner: Rect,
-    hue: Color,
-    elapsed: Duration,
-    level: fx::FxLevel,
-) {
-    if level == fx::FxLevel::Off {
-        return;
-    }
-    let ms = elapsed.as_millis() as f64;
-    let duration = if level == fx::FxLevel::Lite {
-        400.
-    } else {
-        900.
-    };
-    let progress = (ms / duration).clamp(0., 1.);
-    let eased = 1. - (1. - progress).powi(3);
-    for (i, cell) in cells.iter().enumerate().take(2) {
-        if cell.is_empty() {
-            continue;
-        }
-        buf.set_stringn(
-            cell.x,
-            cell.y,
-            format!("{:.2}", totals[i] * eased),
-            cell.width as usize,
-            Style::default()
-                .fg(colors[i])
-                .add_modifier(ratatui::style::Modifier::BOLD),
-        );
-    }
-    let style = if progress < 1. {
-        Style::default().add_modifier(ratatui::style::Modifier::DIM)
-    } else if ms < duration + 350. {
-        Style::default()
-            .fg(hue)
-            .add_modifier(ratatui::style::Modifier::BOLD | ratatui::style::Modifier::REVERSED)
-    } else {
-        Style::default()
-            .fg(hue)
-            .add_modifier(ratatui::style::Modifier::BOLD)
-    };
-    buf.set_style(winner.intersection(buf.area), style);
 }

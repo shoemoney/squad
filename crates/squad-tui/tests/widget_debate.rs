@@ -349,5 +349,5 @@ fn narrow_banners_are_single_rows_and_state_labels_are_readable() {
     assert!(!output.contains("RoundRunning"));
     assert!(!output.contains("Press Esc again"));
     assert!(output.contains("A topic supplied by committed opening"));
-    assert_eq!(geometry.versus_card.height, 1);
+    assert_eq!(geometry.versus_card.height, 2);
 }

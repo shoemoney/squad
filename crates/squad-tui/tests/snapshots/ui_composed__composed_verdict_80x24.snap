@@ -4,11 +4,11 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
-claude · 4.5     │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
-idle W1 L0       │                           VERDICT
-fable · 4.1      │Judging complete
-idle W0 L0
-openai · 5.1     │JUDGE
+claude · 4.5     │
+idle W1 L0       │Round 3 · claude 8 : 7 openai · total 24 : 21
+fable · 4.1      │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
+idle W0 L0       │                           VERDICT
+openai · 5.1
 idle W0 L1       │╭────────────────────────────────────────────────────────────╮
 gemini · 3-pro   ││Winner: @claude                                             │
 idle W0 L0       ││claude 8.00 : 7.00 openai                                   │

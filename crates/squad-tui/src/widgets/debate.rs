@@ -419,7 +419,6 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
         out.content_height = c.row;
         return out;
     }
-    let start = c.row;
     let topic = view
         .setup
         .as_ref()
@@ -427,7 +426,7 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
         .or(view.topic.as_deref())
         .unwrap_or("Topic unavailable");
     c.line(topic, Style::default().add_modifier(Modifier::DIM));
-    out.versus_card = c.span(start, c.row);
+    out.versus_card = c.span(0, c.row);
     if let Some(setup) = &view.setup {
         for solution in &setup.solutions {
             c.line(
@@ -495,7 +494,9 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
                     palette.tier == crate::fx::ColorTier::NoColor,
                 ));
             } else {
-                c.line(&format!("  @{nick} · waiting"), style);
+                c.area.x += 2;
+                c.area.width = c.area.width.saturating_sub(2);
+                c.line(&format!("@{nick} · waiting"), style);
             }
             c.area = original;
             let rail = c.span(start, c.row);
@@ -545,10 +546,10 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
                                 .add_modifier(Modifier::BOLD),
                         );
                         out.score_cells.push((round.round, nicks[i].clone(), cell));
-                        if round.reasons_expanded {
-                            if let Some(value) = scores.get(&nicks[i]) {
-                                c.line(&format!("{}: {}", nicks[i], value.reason), body);
-                            }
+                        if round.reasons_expanded
+                            && let Some(value) = scores.get(&nicks[i])
+                        {
+                            c.line(&format!("{}: {}", nicks[i], value.reason), body);
                         }
                     }
                     let control = row;
@@ -594,7 +595,7 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
         out.tug_bar.height,
     )
     .intersection(out.tug_bar);
-    if view.verdict_entered {
+    if view.verdict_entered && view.state.state == DebateStatus::Completed {
         let art = view.banner(Banner::Verdict, c.area.width);
         out.banners.push((Banner::Verdict, c.art(&art, accent)));
     }
@@ -606,16 +607,9 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
     if let Some(reason) = &view.state.terminal_reason {
         c.line(reason, body);
     }
-    c.line(
-        if view.state.state == DebateStatus::Judging {
-            "Judging · awaiting verdict"
-        } else if view.state.state == DebateStatus::Completed {
-            "Judging complete"
-        } else {
-            "Judging follows closing statements"
-        },
-        body,
-    );
+    if view.state.state == DebateStatus::Judging {
+        c.line("Judging · awaiting verdict", body);
+    }
     let start = c.row;
     if view.can_judge {
         c.line(

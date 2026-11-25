@@ -12,6 +12,25 @@ boundary rather than a private TUI JSON schema. The network-free script takes
 Page Up/Down and the mouse wheel scroll history; End outside the editor resumes
 following the room. Mouse scrolling over the roster scrolls that panel separately.
 
+### Decision presentation (2026-11-25)
+
+The accepted verdict is a bounded winner-coloured card with paired weighted
+scores, compact tally/judge metadata, reasoning and takeaway. Live totals count
+up before the winner accent lands; successful debate completion preserves this
+queued reveal. Effects off and history replay show the accepted final values.
+
+The roster uses two rows per member, so all six fit at 80×24. It shows the
+resolved model's short version from startup, activity and W–L record. F8 opens
+the focused member's full model/accounting details; Up/Down changes the member.
+The demo supplies six representative model identities before any replies arrive.
+
+Debates have one combined heading and a compact topic summary. The opposing
+accent entrance runs once, rounds keep single-row dividers, and permanent FIGlet
+art appears only with the completed result. Each score uses a paired round/total
+row and the sticky matchup retains the latest committed tally. Turns use coloured
+rails, a shared body column and one blank row between speakers. Prose soft wraps
+consume delimiter whitespace; code and editor whitespace remain preserved.
+
 `benches/composed_streams.rs` exercises the actual `App`, feed reducer, Markdown,
 widgets and catalogue painters at `SQUAD_FX=full`, with 10,000 prepared historical
 messages, twelve streams at 40 deltas/s each, editor mutations, scrolling,

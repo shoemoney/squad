@@ -4,19 +4,20 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
-claude · 4.5         │▌    release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove
-idle W1 L0           │▌    the product before a real provider is connected.
-fable · 4.1          │
-idle W0 L0           │Round 3 · claude 8 : 7 openai · total 24 : 21
-openai · 5.1         │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
-idle W0 L1           │                                      __     _______ ____  ____ ___ ____ _____
-gemini · 3-pro       │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
-idle W0 L0           │                                       \ \ / /|  _| | |_) | | | | | |     | |
-grok · 4             │                                        \ V / | |___|  _ <| |_| | | |___  | |
-idle W0 L0           │                                         \_/  |_____|_| \_\____/___\____| |_|
-muse · 3             │Judging complete
-idle W0 L0
-                     │JUDGE
+claude · 4.5         │
+idle W1 L0           │▌  @openai · complete
+fable · 4.1          │▌  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
+idle W0 L0           │▌  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
+openai · 5.1         │▌  product before a real provider is connected.
+idle W0 L1           │
+gemini · 3-pro       │Round 3 · claude 8 : 7 openai · total 24 : 21
+idle W0 L0           │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
+grok · 4             │                                      __     _______ ____  ____ ___ ____ _____
+idle W0 L0           │                                      \ \   / / ____|  _ \|  _ \_ _/ ___|_   _|
+muse · 3             │                                       \ \ / /|  _| | |_) | | | | | |     | |
+idle W0 L0           │                                        \ V / | |___|  _ <| |_| | | |___  | |
+                     │                                         \_/  |_____|_| \_\____/___\____| |_|
+
                      │╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
                      ││Winner: @claude                                                                                                     │
                      ││claude 8.00 : 7.00 openai                                                                                           │
@@ -32,7 +33,6 @@ idle W0 L0
                      │  Grill me on this plan: ship one writer, one reducer, and a twelve-stream release gate. Ask what happens when the
                      │  writer stalls; my answer is bounded backpressure and visible pending receipts, never a frozen keyboard.
 
-                     │PICK
                      │CHOOSE WHO GETS GRILLED
                      │Type one name, e.g. @grok · Esc to cancel
                      │

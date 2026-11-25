@@ -350,7 +350,7 @@ impl Composed {
         let Some(start) = self.transcript.start_row(id) else {
             return Rect::default();
         };
-        let y = start + 1 + usize::from(local.y);
+        let y = start + usize::from(local.y);
         let bottom = y + usize::from(local.height);
         let clipped_top = y.max(top);
         let clipped_bottom = bottom.min(top + usize::from(area.height));
