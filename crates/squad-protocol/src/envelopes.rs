@@ -136,6 +136,20 @@ pub struct Completion {
 #[serde(tag = "kind", content = "payload")]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum EnvelopePayload {
+    #[serde(rename = "probe.setup")]
+    ProbeSetup(ProbeSetup),
+    #[serde(rename = "probe.state")]
+    ProbeState(ProbeState),
+    #[serde(rename = "probe.preflight")]
+    ProbePreflight(ProbePreflight),
+    #[serde(rename = "probe.explanation")]
+    ProbeExplanation(ProbeOutput<ProbeExplanation>),
+    #[serde(rename = "probe.check")]
+    ProbeCheck(ProbeOutput<ProbeCheck>),
+    #[serde(rename = "probe.prediction")]
+    ProbePrediction(ProbeOutput<ProbePrediction>),
+    #[serde(rename = "probe.report")]
+    ProbeReport(ProbeOutput<ProbeReport>),
     #[serde(rename = "user.message")]
     UserMessage(UserMessage),
     #[serde(rename = "crosscheck.setup")]
@@ -496,6 +510,7 @@ pub enum CaseMaterial {
     Survey {
         material: SurveyCaseMaterial,
     },
+    Probe(ProbeCaseMaterial),
     Standalone {
         messages: Vec<ResolvedQuote>,
         question: Text,
@@ -954,6 +969,10 @@ fn validate_envelope(
                         "survey case identity mismatch",
                     )?;
                 }
+                CaseMaterial::Probe(_) => ensure(
+                    case.contest_id.is_some() && case.debate_id.is_none(),
+                    "invalid probe case",
+                )?,
                 CaseMaterial::Standalone { messages, .. } => ensure(
                     !messages.is_empty() && messages.len() <= 12 && case.debate_id.is_none(),
                     "invalid standalone case",
@@ -1070,9 +1089,54 @@ fn validate_envelope(
                 "invalid generic setup",
             )?;
         }
+        EnvelopePayload::ProbeSetup(v) => v.validate()?,
+        EnvelopePayload::ProbeState(v) => v.validate()?,
+        EnvelopePayload::ProbePreflight(v) => v.validate()?,
+        EnvelopePayload::ProbeCheck(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+            v.data.validate()?;
+        }
+        EnvelopePayload::ProbeExplanation(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+        }
+        EnvelopePayload::ProbePrediction(v) => {
+            ensure(
+                human_only && matches!(base.sender, Actor::Member(_)),
+                "probe member output must be human-only",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+        }
+        EnvelopePayload::ProbeReport(v) => {
+            ensure(
+                human_only && base.sender == Actor::Judge,
+                "probe report must be judge-to-human",
+            )?;
+            generation(&v.completed.generation)?;
+            if let Some(usage) = &v.completed.usage {
+                validate_usage(usage)?;
+            }
+        }
         EnvelopePayload::ContestState(state) => match state {
             #[cfg(feature = "mode-survey")]
             ContestState::Survey(state) => state.validate()?,
+            ContestState::Probe(state) => state.validate()?,
             ContestState::Debate(state) => state.validate()?,
             ContestState::Tournament(state) => state.validate()?,
             ContestState::Census(state) => state.validate()?,
@@ -1094,6 +1158,7 @@ fn validate_envelope(
         EnvelopePayload::ContestTransition(submission) => {
             let kind = match &submission.transition {
                 ContestTransition::Debate(_) => ContestKind::Debate,
+                ContestTransition::Probe(_) => ContestKind::Probe,
                 ContestTransition::Grill(_) => ContestKind::Grill,
                 ContestTransition::Tournament(_) => ContestKind::Tournament,
                 ContestTransition::Census(_) => ContestKind::Census,

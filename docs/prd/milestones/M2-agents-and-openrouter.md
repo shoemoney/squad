@@ -155,10 +155,10 @@
   - [x] M2.P2.L10.T4 — Test reuse of an existing parallel answer set without replacement calls, step-bound voting contexts, frozen revote inputs, and no broadcast of private report provenance in crate `squad-core`, file `crates/squad-core/tests/agents_survey.rs`.
 
 - **M2.P2.L11 — Execute probe work**
-  - [ ] M2.P2.L11.T1 — Execute probe explanation, check, and prediction Work using the committed role assignment and owning templates in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L11.T2 — Execute probe report Work from the locked explanations, checks, and prediction matrix through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L11.T3 — Capture requests to verify mutually blind initial proposals, own-explanation-plus-all-checks prediction inputs, explicit inability to predict, and no rival explanation or prediction leakage in crate `squad-agents`, file `crates/squad-agents/tests/agents_probe.rs`.
-  - [ ] M2.P2.L11.T4 — Test committed role delivery, no generation for the member sitting out, frozen prediction inputs, and absence of executor-run checks or role reshuffling in crate `squad-core`, file `crates/squad-core/tests/agents_probe.rs`.
+  - [x] M2.P2.L11.T1 — Execute probe explanation, check, and prediction Work using the committed role assignment and owning templates in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L11.T2 — Execute probe report Work from the locked explanations, checks, and prediction matrix through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L11.T3 — Capture requests to verify mutually blind initial proposals, own-explanation-plus-all-checks prediction inputs, explicit inability to predict, and no rival explanation or prediction leakage in crate `squad-agents`, file `crates/squad-agents/tests/agents_probe.rs`.
+  - [x] M2.P2.L11.T4 — Test committed role delivery, no generation for the member sitting out, frozen prediction inputs, and absence of executor-run checks or role reshuffling in crate `squad-core`, file `crates/squad-core/tests/agents_probe.rs`.
 
 ## Phase M2.P3 — OpenRouter execution
 

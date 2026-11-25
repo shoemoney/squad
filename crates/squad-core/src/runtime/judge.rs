@@ -25,7 +25,8 @@ impl squad_agents::worker::WorkExecutor for Executor {
         grant: ExecutionGrant,
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
-        if grant.work.kind.census_judge()
+        if grant.work.kind == WorkKind::ProbeReport
+            || grant.work.kind.census_judge()
             || matches!(
                 grant.work.kind,
                 WorkKind::SurveyExtract | WorkKind::SurveyReport
@@ -117,6 +118,18 @@ impl JudgeAttemptRunner for Runner {
                 };
                 return squad_agents::worker::WorkExecutor::execute(
                     &executor, context, grant, cancel,
+                )
+                .await;
+            }
+            if grant.work.kind == WorkKind::ProbeReport {
+                return super::probe::execute(
+                    context,
+                    grant,
+                    cancel,
+                    &self.config,
+                    &self.pack,
+                    &self.models,
+                    &self.client,
                 )
                 .await;
             }
@@ -416,6 +429,7 @@ impl Runner {
                     .map(|inputs| ("judge.tournament", inputs)),
 
                 CaseMaterial::Survey { .. } => return Err(ReaderError::Forbidden),
+                CaseMaterial::Probe(_) => return Err(ReaderError::NotRunnable),
                 CaseMaterial::Standalone { messages, question } => self.pack.judge_inputs(
                     &self.config,
                     &grant.work,

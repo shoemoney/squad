@@ -107,6 +107,7 @@ pub fn attempt_limit(kind: &WorkKind) -> u8 {
         | WorkKind::CrosscheckNormalize
         | WorkKind::CrosscheckRule => constants::FINAL_JUDGE_ATTEMPTS,
         WorkKind::SurveyExtract | WorkKind::SurveyReport => 3,
+        WorkKind::ProbeReport => constants::FINAL_JUDGE_ATTEMPTS,
         _ => constants::DEBATE_TURN_ATTEMPTS,
     }
 }
@@ -141,12 +142,13 @@ pub fn failure_policy(
                         | WorkKind::CrosscheckRule
                         | WorkKind::SurveyExtract
                         | WorkKind::SurveyReport
+                        | WorkKind::ProbeReport
                 ),
         }
     } else {
         match kind {
             WorkKind::JudgeRound => AttemptDecision::Unscored(work_id),
-            WorkKind::Judge => AttemptDecision::JudgeFailed(work_id),
+            WorkKind::Judge | WorkKind::ProbeReport => AttemptDecision::JudgeFailed(work_id),
             _ => AttemptDecision::Forfeit(work_id),
         }
     }

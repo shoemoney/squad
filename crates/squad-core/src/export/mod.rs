@@ -5,6 +5,7 @@
 //! Opaque generic artifact/report data is deliberately never serialized here.
 pub mod census;
 mod crosscheck;
+mod probe;
 pub mod survey;
 mod tournament;
 use crate::banner::{Banner, render_default};
@@ -121,9 +122,6 @@ fn check_scope(scope: &ExportScope, id: Option<ContestId>) -> Result<(), ExportE
     if id.is_none() {
         return Err(ExportError::ContestIdRequired);
     }
-    if matches!(scope, ExportScope::Probe) {
-        return Err(ExportError::UnsupportedScope);
-    }
     Ok(())
 }
 
@@ -190,6 +188,7 @@ pub fn render(
             ExportScope::Census => ContestKind::Census,
             ExportScope::Crosscheck => ContestKind::Crosscheck,
             ExportScope::Survey => ContestKind::Survey,
+            ExportScope::Probe => ContestKind::Probe,
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -305,6 +304,9 @@ pub fn render(
         }
         if let Some(text) = survey::render(&e.content) {
             out.push_str(&text);
+            continue;
+        }
+        if probe::render(&mut out, &e.content) {
             continue;
         }
         match &e.content {
@@ -692,6 +694,10 @@ fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
         EnvelopePayload::GrillPass(s) => (s.contest_id, ContestKind::Grill),
         EnvelopePayload::GrillPlan(s) => (s.contest_id, ContestKind::Grill),
         EnvelopePayload::GrillComplete(s) => (s.contest_id, ContestKind::Grill),
+        EnvelopePayload::ProbeSetup(s) => (s.contest_id, ContestKind::Probe),
+        EnvelopePayload::ProbeState(s) | EnvelopePayload::ContestState(ContestState::Probe(s)) => {
+            (s.contest_id, ContestKind::Probe)
+        }
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -732,6 +738,11 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         EnvelopePayload::SurveyVote(s) | EnvelopePayload::SurveyRevote(s) => Some(s.contest_id),
         EnvelopePayload::SurveySelection(s) => Some(s.contest_id),
         EnvelopePayload::SurveyReport(s) => Some(s.contest_id),
+        EnvelopePayload::ProbeExplanation(s) => Some(s.contest_id),
+        EnvelopePayload::ProbeCheck(s) => Some(s.contest_id),
+        EnvelopePayload::ProbePrediction(s) => Some(s.contest_id),
+        EnvelopePayload::ProbeReport(s) => Some(s.contest_id),
+        EnvelopePayload::ProbePreflight(s) => Some(s.setup.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

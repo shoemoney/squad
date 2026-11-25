@@ -203,11 +203,11 @@
   - [x] M4.P3.L11.T4 — Expose survey banner and bar-splitting hooks for M4.P5 in `crates/squad-tui/src/widgets/survey.rs`, retaining all bands, counts, reasons, and no-winner presentation with effects off.
 
 - **M4.P3.L12 — Render probe**
-  - [ ] M4.P3.L12.T1 — Implement brief preview, authoritative random role split, odd-member sit-out notice, and separate blind explanation and check groups in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T2 — Render explanation assumptions, exact check measurements and outcomes, prediction-locking progress, accepted predictions, cannot-predict entries, and skipped work in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T3 — Render the accepted decision tree with box characters, wrapped branch conditions, remaining explanations, next checks, and a visible unexpected-result branch in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T4 — Render the expandable prediction matrix, dropped-check reasons, and inseparable explanations without declaring one explanation true or executing checks in `crates/squad-tui/src/widgets/probe.rs`.
-  - [ ] M4.P3.L12.T5 — Expose probe banner and branch-drawing hooks for M4.P5 in `crates/squad-tui/src/widgets/probe.rs`, retaining the full static tree and matrix with effects off.
+  - [x] M4.P3.L12.T1 — Implement brief preview, authoritative random role split, odd-member sit-out notice, and separate blind explanation and check groups in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T2 — Render explanation assumptions, exact check measurements and outcomes, prediction-locking progress, accepted predictions, cannot-predict entries, and skipped work in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T3 — Render the accepted decision tree with box characters, wrapped branch conditions, remaining explanations, next checks, and a visible unexpected-result branch in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T4 — Render the expandable prediction matrix, dropped-check reasons, and inseparable explanations without declaring one explanation true or executing checks in `crates/squad-tui/src/widgets/probe.rs`.
+  - [x] M4.P3.L12.T5 — Expose probe banner and branch-drawing hooks for M4.P5 in `crates/squad-tui/src/widgets/probe.rs`, retaining the full static tree and matrix with effects off.
 
 ## Phase M4.P4 — Verification
 
@@ -261,8 +261,8 @@
 - **M4.P4.L7 — Verify survey and probe presentation**
   - [x] M4.P4.L7.T1 — Snapshot survey question-first and existing-answer paths, stable claim IDs, vote reasons and confidence, selected re-vote claims, five bands including empty bands, switchers, and settling questions at both viewports in `crates/squad-tui/tests/survey.rs`.
   - [x] M4.P4.L7.T2 — Verify survey's authoritative counts and band assignments, first-vote/re-vote comparison, missing-vote distinction, rejected-outlier wording, and absence of winner or scoreboard changes in `crates/squad-tui/tests/survey.rs`.
-  - [ ] M4.P4.L7.T3 — Snapshot probe role split, odd-member sit-out, explanation assumptions, check measurements, locked predictions, cannot-predict and skipped entries, tree, matrix, and unexpected-result branch at both viewports in `crates/squad-tui/tests/probe.rs`.
-  - [ ] M4.P4.L7.T4 — Verify probe branch wrapping, dropped-check reasons, inseparable explanations, authoritative participating count, and absence of execution or truth declarations in `crates/squad-tui/tests/probe.rs`.
+  - [x] M4.P4.L7.T3 — Snapshot probe role split, odd-member sit-out, explanation assumptions, check measurements, locked predictions, cannot-predict and skipped entries, tree, matrix, and unexpected-result branch at both viewports in `crates/squad-tui/tests/probe.rs`.
+  - [x] M4.P4.L7.T4 — Verify probe branch wrapping, dropped-check reasons, inseparable explanations, authoritative participating count, and absence of execution or truth declarations in `crates/squad-tui/tests/probe.rs`.
   - [ ] M4.P4.L7.T5 — Verify survey's new-answer and existing-answer preflight counts and probe's adjusted participant count and estimate against M5 fixtures in `crates/squad-tui/tests/survey.rs` and `crates/squad-tui/tests/probe.rs`.
 
 - **M4.P4.L8 — Verify shared new-mode interaction and recovery**

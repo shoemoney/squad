@@ -74,6 +74,8 @@ fn invoke(root: &Path, args: &[&str], key: Option<&str>) -> Output {
     command
         .env_clear()
         .env("HOME", root)
+        .env("HTTPS_PROXY", "http://127.0.0.1:9")
+        .env("HTTP_PROXY", "http://127.0.0.1:9")
         .current_dir(root)
         .stdin(Stdio::null())
         .args(args);
@@ -436,11 +438,7 @@ fn all_export_scopes_are_visible_typed_and_preserve_renderer_errors() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            if matches!(scope, "probe") {
-                "export scope is not implemented"
-            } else {
-                "could not read export snapshot"
-            }
+            "could not read export snapshot"
         );
     }
     assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 0);

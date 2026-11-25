@@ -110,6 +110,9 @@ pub fn render(view: &CaseView, area: Rect, buf: &mut Buffer, palette: &Palette) 
             };
             c.line(&format!("Survey · {}", setup.question), body);
         }
+        CaseMaterial::Probe(material) => {
+            c.line(&format!("Probe · {}", material.brief.observation), body);
+        }
         CaseMaterial::Standalone { messages, question } => {
             c.line(&format!("Question: {question}"), accent);
             for quote in messages {

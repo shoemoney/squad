@@ -2,6 +2,7 @@
 pub mod census;
 pub mod crosscheck;
 pub mod member;
+pub mod probe;
 pub mod survey;
 use crate::{
     accounting::{AttemptAccounting, acknowledged},
@@ -60,6 +61,10 @@ pub async fn stream_attempt(
             DeadlineClass::DebateTurn
         }
         WorkKind::Reply => DeadlineClass::Ordinary,
+        WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => {
+            DeadlineClass::DebateTurn
+        }
+        WorkKind::ProbeReport => DeadlineClass::FinalJudge,
         WorkKind::DebateTurn => DeadlineClass::DebateTurn,
         WorkKind::Judge => DeadlineClass::FinalJudge,
         WorkKind::JudgeTournament => DeadlineClass::TournamentJudge,

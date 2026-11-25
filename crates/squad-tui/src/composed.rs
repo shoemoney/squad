@@ -39,6 +39,7 @@ pub struct Composed {
 pub struct Graphics {
     pub tournament: Option<widgets::tournament::TournamentRects>,
     pub banners: Vec<(squad_core::banner::Banner, Rect)>,
+    pub probe_connectors: Vec<(u16, u16)>,
     pub versus: Rect,
     pub scores: Vec<(u32, MemberNick, Rect)>,
     pub tug: Rect,
@@ -336,6 +337,30 @@ impl Composed {
                     .map_or(0, |y| usize::from(y) + 1);
                 let mut model = TranscriptMessage::new(identity(id), "GRILL", "");
                 model.widget_rows = rows(&scratch, height);
+                models.push(model);
+            }
+            for (id, source) in &session.probes {
+                let mut view = source.clone();
+                view.banner_art = Some(
+                    self.banners.get(
+                        "PROBE",
+                        view.banner_mode
+                            .unwrap_or(squad_core::banner::BannerMode::On),
+                        body_width,
+                    ),
+                );
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                let geometry = widgets::probe::render(&view, scratch.area, &mut scratch, palette);
+                let mut model = TranscriptMessage::new(identity(id), "PROBE", "");
+                model.widget_rows = rows(&scratch, geometry.content_height);
+                self.graphics.insert(
+                    model.id,
+                    Graphics {
+                        banners: vec![(squad_core::banner::Banner::Probe, geometry.banner)],
+                        probe_connectors: geometry.connectors,
+                        ..Default::default()
+                    },
+                );
                 models.push(model);
             }
             for (id, contest) in &session.contests {

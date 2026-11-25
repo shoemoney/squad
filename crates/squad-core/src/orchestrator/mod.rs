@@ -24,3 +24,4 @@ pub mod survey;
 
 pub mod blind;
 pub mod grill;
+pub mod probe;

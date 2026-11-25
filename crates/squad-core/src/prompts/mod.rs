@@ -9,6 +9,7 @@ mod embedded;
 pub mod inputs;
 pub mod inputs_crosscheck;
 pub mod inputs_grill;
+pub mod inputs_probe;
 pub mod inputs_survey;
 mod load;
 mod render;

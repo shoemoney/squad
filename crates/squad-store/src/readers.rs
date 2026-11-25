@@ -161,6 +161,17 @@ impl WorkReader for ScopedReaders {
                     let raw:String=db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key=?",rusqlite::params![contest.to_string(),format!("survey.work:{}",work.work_id)],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
                     return serde_json::from_str(&raw).map_err(|_|ReaderError::Forbidden);
             }
+            if work.kind.is_probe() {
+                values.insert("mode_data_json".into(), crate::probe::input(db,&work).map_err(map_error)?.to_string());
+                let raw:String=db.query_row("SELECT plan_json FROM contests WHERE contest_id=?",[work.contest_id.ok_or(ReaderError::NotRunnable)?.to_string()],|r|r.get(0)).map_err(|_|ReaderError::NotFound)?;
+                let plan:ProbePreflight=serde_json::from_str(&raw).map_err(|_|ReaderError::NotRunnable)?;
+                // Only the selected composition and public word limits cross the capability.
+                let id=work.kind.probe_composition().ok_or(ReaderError::NotRunnable)?;
+                values.insert("probe_prompt_json".into(),plan.base.settings["prompts"][id].to_string());
+                values.insert("room_words".into(),plan.base.settings["roomWords"].to_string());
+                values.insert("plan_words".into(),plan.base.settings["planWords"].to_string());
+                return Ok(values);
+            }
             if let Some(case) = work.case_id {
                 if !matches!(owner, ExecutorKey::Case(owned) if *owned == case) { return Err(ReaderError::Forbidden); }
                 let (material, state): (String, String) = db.query_row("SELECT material_json,state_json FROM cases WHERE case_id=? AND epoch=(SELECT epoch FROM room_meta)", [case.to_string()], |r| Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::NotFound)?;

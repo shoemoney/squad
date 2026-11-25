@@ -81,6 +81,18 @@ pub fn apply(
                 super::survey::save(tx, group, id, &state, version)?;
                 stopped_contest = Some(state.contest_id);
             }
+        } else if let Ok(mut state) = serde_json::from_str::<ProbeState>(&raw) {
+            let setup = squad_store::probe::setup(tx, state.contest_id)?;
+            if target
+                .as_ref()
+                .is_none_or(|n| setup.participants.contains(n))
+            {
+                state.state = ProbeStatus::Stopped;
+                state.state_version += 1;
+                state.terminal_reason = Some(Text::new("Stopped").expect("literal"));
+                super::probe::save(tx, group, id, &state)?;
+                stopped_contest = Some(state.contest_id);
+            }
         } else if let Ok(mut state) = serde_json::from_str::<DebateState>(&raw)
             && target.as_ref().is_none_or(|n| state.debaters.contains(n))
         {

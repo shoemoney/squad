@@ -54,6 +54,14 @@ pub enum WorkKind {
     CensusMerge,
     #[serde(rename = "census.final")]
     CensusFinal,
+    #[serde(rename = "probe.explain")]
+    ProbeExplain,
+    #[serde(rename = "probe.check")]
+    ProbeCheck,
+    #[serde(rename = "probe.predict")]
+    ProbePredict,
+    #[serde(rename = "probe.report")]
+    ProbeReport,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -270,6 +278,34 @@ impl Work {
                     "grill prompt mismatch",
                 )?;
             }
+            WorkKind::ProbeExplain
+            | WorkKind::ProbeCheck
+            | WorkKind::ProbePredict
+            | WorkKind::ProbeReport => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.round.is_none(),
+                    "probe requires contest and step",
+                )?;
+                ensure(
+                    self.prompt_ref.as_ref().is_some_and(|p| {
+                        Some(p.template_id.as_str()) == self.kind.probe_composition()
+                    }),
+                    "probe requires its owning composition",
+                )?;
+                ensure(
+                    if self.kind == WorkKind::ProbeReport {
+                        self.target == Target::Judge && self.attempt <= 3
+                    } else {
+                        matches!(self.target, Target::Member(_))
+                            && self.case_id.is_none()
+                            && self.attempt <= 2
+                    },
+                    "invalid probe owner or attempt",
+                )?;
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -383,6 +419,10 @@ impl Work {
                 constants::DEBATE_TURN_VISIBLE_TOKENS
             }
             WorkKind::GrillRebuild => constants::PLAN_VISIBLE_TOKENS,
+            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => {
+                constants::DEBATE_TURN_VISIBLE_TOKENS
+            }
+            WorkKind::ProbeReport => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
             WorkKind::DebateTurn => constants::DEBATE_TURN_VISIBLE_TOKENS,
@@ -444,5 +484,20 @@ impl WorkKind {
     }
     pub fn is_crosscheck(&self) -> bool {
         self.is_crosscheck_member() || self.is_crosscheck_judge()
+    }
+    pub fn is_probe(&self) -> bool {
+        matches!(
+            self,
+            Self::ProbeExplain | Self::ProbeCheck | Self::ProbePredict | Self::ProbeReport
+        )
+    }
+    pub fn probe_composition(&self) -> Option<&'static str> {
+        match self {
+            Self::ProbeExplain => Some("probe.explain"),
+            Self::ProbeCheck => Some("probe.check"),
+            Self::ProbePredict => Some("probe.predict"),
+            Self::ProbeReport => Some("probe.report"),
+            _ => None,
+        }
     }
 }

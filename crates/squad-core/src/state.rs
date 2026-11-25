@@ -160,6 +160,8 @@ pub fn snapshot(
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Generic))
             } else if kind == "survey" {
                 serde_json::from_str(&json).map(ContestState::Survey)
+            } else if kind == "probe" {
+                serde_json::from_str(&json).map(ContestState::Probe)
             } else {
                 serde_json::from_str(&json)
                     .map(ContestState::Selection)
@@ -169,11 +171,13 @@ pub fn snapshot(
         if let ContestState::Debate(debate) = &state {
             debates.push(debate.clone());
         }
+        let probe_pending =
+            matches!(&state,ContestState::Probe(p) if p.state==ProbeStatus::Preflight);
         if active {
             active_contest = Some(state.clone());
         }
         if let Some(plan) = plan.filter(|_| {
-            active && (kind != "census"
+            (kind != "probe" || probe_pending) && active && (kind != "census"
                 || matches!(&state,ContestState::Census(s) if s.status==CensusStatus::Preflight)) && (kind != "survey" || matches!(&state,ContestState::Survey(s) if s.state==SurveyStatus::Preflight))
         }) {
             let unexpired = expires.as_ref().is_none_or(|at| {
@@ -190,6 +194,9 @@ pub fn snapshot(
                             .map(|p| PendingPreflight::Contest(p.base))
                     } else if kind == "debate" {
                         serde_json::from_str(&plan).map(PendingPreflight::Debate)
+                    } else if kind == "probe" {
+                        serde_json::from_str::<ProbePreflight>(&plan)
+                            .map(|p| PendingPreflight::Contest(p.base))
                     } else {
                         serde_json::from_str(&plan).map(PendingPreflight::Contest)
                     }

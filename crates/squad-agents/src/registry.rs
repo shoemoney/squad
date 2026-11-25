@@ -91,6 +91,10 @@ impl<'a> Registry<'a> {
             }
             WorkKind::GrillRebuild => (TaskKind::Plan, DeadlineClass::DebateTurn),
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
+            WorkKind::ProbeExplain | WorkKind::ProbeCheck | WorkKind::ProbePredict => {
+                (TaskKind::Plan, DeadlineClass::DebateTurn)
+            }
+            WorkKind::ProbeReport => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),
             WorkKind::JudgeTournament => {

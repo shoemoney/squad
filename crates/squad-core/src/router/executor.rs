@@ -155,21 +155,21 @@ pub fn failed(
 
             if !matches!(decision, crate::orchestrator::types::AttemptDecision::Retry { repair: true, .. }) { return Err(super::authorization::forbidden()); }
             let limit = u32::from(if work.kind == WorkKind::JudgeRound { constants::ROUND_JUDGE_ATTEMPTS } else { constants::FINAL_JUDGE_ATTEMPTS });
-            if !matches!(owner, ExecutorKey::Case(_)) || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament | WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule | WorkKind::SurveyExtract | WorkKind::SurveyReport) || !matches!(failure.code,ErrorCode::JUDGE_INVALID_VERDICT|ErrorCode::JUDGE_INVALID_MODE_OUTPUT) || repair.attempt != attempt + 1 || attempt >= limit {
+            if !matches!(owner, ExecutorKey::Case(_)) || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament | WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule | WorkKind::SurveyExtract | WorkKind::SurveyReport | WorkKind::ProbeReport) || !matches!(failure.code,ErrorCode::JUDGE_INVALID_VERDICT|ErrorCode::JUDGE_INVALID_MODE_OUTPUT) || repair.attempt != attempt + 1 || attempt >= limit {
                 return Err(super::authorization::forbidden());
             }
             let started:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM attempts WHERE work_id=? AND attempt=? AND epoch=?)",params![work_id.to_string(),attempt,epoch as i64],|r|r.get(0))?;
             if !started { return Err(StoreError::Domain(ErrorCode::INVALID_STATE_TRANSITION,"Repair requires a durable provider start")); }
             // Consume the old attempt and authorize the repair atomically. Its
             // rejected body lives exclusively in this private table.
-            tx.execute("UPDATE work SET status='queued',attempt=?,lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL WHERE work_id=?", params![repair.attempt, work_id.to_string()])?;
+            tx.execute("UPDATE work SET status='queued',attempt=?,lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL,execution_deadline=CASE WHEN kind LIKE 'probe.%' THEN NULL ELSE execution_deadline END WHERE work_id=?", params![repair.attempt, work_id.to_string()])?;
             squad_store::judge_repairs::save(tx, work_id, work.case_id.ok_or(StoreError::Unavailable)?, &repair)?;
             // claim() increments attempt, so retain the consumed attempt count.
             tx.execute("UPDATE work SET attempt=? WHERE work_id=?", params![attempt, work_id.to_string()])?;
             return Ok(group.accepted(id));
         }
         if work.contest_id.is_some() && matches!(decision, crate::orchestrator::types::AttemptDecision::Retry { repair: false, .. }) {
-            tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL WHERE work_id=?",[work_id.to_string()])?;
+            tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL,execution_deadline=CASE WHEN kind LIKE 'probe.%' THEN NULL ELSE execution_deadline END WHERE work_id=?",[work_id.to_string()])?;
             return Ok(group.accepted(id));
         }
         terminal(tx, group, id, &work, failure)?;

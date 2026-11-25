@@ -148,6 +148,7 @@ pub struct Session {
     pub pick: Option<PickView>,
     pub seen: BTreeSet<EventId>,
     pub last_error: Option<String>,
+    pub probes: BTreeMap<ContestId, crate::widgets::probe::ProbeView>,
     pub debates: BTreeMap<ContestId, crate::widgets::debate::DebateView>,
     pub tournaments: BTreeMap<ContestId, crate::widgets::tournament::TournamentView>,
     pub debate_messages: BTreeSet<MessageId>,
@@ -159,6 +160,26 @@ pub struct Session {
     pub stream_rates: BTreeMap<Nick, f64>,
 }
 impl Session {
+    pub fn probe_participant_status(&self, nick: &MemberNick) -> Option<String> {
+        self.probes.values().find_map(|view| {
+            let state = view.state.as_ref()?;
+            if state.state.is_terminal() {
+                return None;
+            }
+            let setup = view.setup.as_ref()?;
+            let role = if setup.sitting_out.as_ref() == Some(nick) {
+                "sitting out"
+            } else if setup.explainers.contains(nick) {
+                "explainer"
+            } else if setup.checkers.contains(nick) {
+                "checker"
+            } else {
+                return None;
+            };
+            Some(format!("probe · {role} · {:?}", state.state))
+        })
+    }
+
     pub fn restore(&mut self, mut snapshot: RoomSnapshot) {
         self.presentation_epoch = self.presentation_epoch.wrapping_add(1);
         let anchor = self.transcript.anchor;
@@ -170,6 +191,7 @@ impl Session {
         self.debates.clear();
         self.tournaments.clear();
         self.grills.clear();
+        self.probes.clear();
         self.debate_streams.clear();
         self.debate_messages.clear();
         self.cases.clear();
@@ -226,6 +248,7 @@ impl Session {
             ContestState::Generic(s) => s.contest_id,
             ContestState::Census(s) => s.contest_id,
             ContestState::Survey(s) => s.contest_id,
+            ContestState::Probe(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Tournament(s) => s.contest_id,
             ContestState::Selection(s) => {
@@ -309,6 +332,19 @@ impl Session {
             && let Some(v) = &mut c.survey
         {
             v.apply(content);
+        }
+        if committed.is_none()
+            && matches!(
+                content,
+                EnvelopePayload::ProbeSetup(_)
+                    | EnvelopePayload::ProbeState(_)
+                    | EnvelopePayload::ProbeExplanation(_)
+                    | EnvelopePayload::ProbeCheck(_)
+                    | EnvelopePayload::ProbePrediction(_)
+                    | EnvelopePayload::ProbeReport(_)
+            )
+        {
+            return false;
         }
         let generation = match content {
             EnvelopePayload::MessageFinal(m) | EnvelopePayload::AgentReply(m) => {
@@ -816,13 +852,74 @@ impl Session {
                         None
                     };
             }
+            EnvelopePayload::ProbeSetup(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                cue = Some(FxCue::ModeBannerReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    mode: crate::fx::ReportMode::Probe,
+                });
+            }
+            EnvelopePayload::ProbeState(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                self.restore_contest(ContestState::Probe(s.clone()));
+                if s.state.is_terminal() {
+                    self.snapshot.preflights.retain(
+                        |p| !matches!(p,PendingPreflight::Contest(p) if p.contest_id==s.contest_id),
+                    );
+                }
+                self.snapshot.context.active_contest = if s.state.is_terminal() {
+                    None
+                } else {
+                    Some(ContestState::Probe(s.clone()))
+                };
+            }
+            EnvelopePayload::ProbeExplanation(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbeCheck(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbePrediction(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbeReport(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                cue = Some(FxCue::ProbeTreeReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                });
+            }
             EnvelopePayload::DebateSetup(s) => {
                 if let Some(view) = self.debates.get_mut(&s.debate_id) {
                     *view = view.clone().with_setup(s, true);
                 }
             }
             EnvelopePayload::CaseOpened(c) => {
-                self.cases.insert(c.case_id, c.into());
+                if let (Some(id), CaseMaterial::Probe(_)) = (c.contest_id, &c.material) {
+                    self.probes
+                        .entry(id)
+                        .or_default()
+                        .apply_payload(content, &base.sender);
+                } else {
+                    self.cases.insert(c.case_id, c.into());
+                }
             }
             EnvelopePayload::CaseRuling(r) => {
                 if let Some(c) = self.cases.get_mut(&r.case_id) {
@@ -1035,6 +1132,7 @@ impl Session {
                 self.debates.clear();
                 self.tournaments.clear();
                 self.grills.clear();
+                self.probes.clear();
                 self.debate_streams.clear();
                 self.debate_messages.clear();
                 self.cases.clear();
@@ -1105,6 +1203,7 @@ pub fn contest_active(s: &ContestState) -> bool {
         ContestState::Tournament(s) => !s.state.is_terminal(),
         ContestState::Census(s) => !s.status.is_terminal(),
         ContestState::Survey(s) => !s.state.is_terminal(),
+        ContestState::Probe(p) => !p.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing

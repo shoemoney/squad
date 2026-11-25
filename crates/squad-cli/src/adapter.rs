@@ -139,6 +139,7 @@ impl RoomApi for RoomHandle {
         let mut census = BTreeMap::new();
         let mut crosschecks = BTreeMap::new();
         let mut surveys = BTreeMap::new();
+        let mut probes = BTreeMap::new();
         let mut addressed = BTreeSet::new();
         let mut terminal = BTreeSet::new();
         let mut failed = false;
@@ -233,11 +234,23 @@ impl RoomApi for RoomHandle {
                 EnvelopePayload::SurveyState(s) => {
                     surveys.insert(s.contest_id, s.state);
                 }
+                EnvelopePayload::ProbeState(p) => {
+                    probes.insert(p.contest_id, p.state);
+                }
                 EnvelopePayload::DebateState(d) => {
                     debates.insert(d.debate_id, d.state.clone());
                 }
                 _ => (),
             }
+        }
+        if !probes.is_empty() {
+            return if probes.values().any(|s| !s.is_terminal()) {
+                Progress::Running
+            } else if probes.values().all(|s| *s == ProbeStatus::Complete) {
+                Progress::Succeeded
+            } else {
+                Progress::Failed
+            };
         }
         if !surveys.is_empty() && surveys.values().all(|s| s.is_terminal()) {
             return if surveys.values().all(|s| *s == SurveyStatus::Complete) {

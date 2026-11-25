@@ -19,6 +19,7 @@ pub mod constants;
 pub mod cursor;
 pub mod debate;
 pub mod envelopes;
+pub mod probe;
 #[cfg(feature = "mode-survey")]
 pub mod survey;
 pub mod validation;
@@ -34,6 +35,7 @@ pub use parser::{
     ExportScope, ParseContext, ParsedInput, RecordSummary, SubmissionMeta, VariableName,
     VariableUpdate, parse,
 };
+pub use probe::*;
 pub use requests::*;
 #[cfg(feature = "mode-survey")]
 pub use survey::*;

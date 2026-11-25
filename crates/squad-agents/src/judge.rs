@@ -239,6 +239,7 @@ impl JudgeExecutor {
                         | WorkKind::JudgeTournament
                         | WorkKind::SurveyExtract
                         | WorkKind::SurveyReport
+                        | WorkKind::ProbeReport
                 )
             {
                 return forbidden();

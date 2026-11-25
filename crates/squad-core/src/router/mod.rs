@@ -11,6 +11,7 @@ pub mod ephemeral;
 pub mod executor;
 pub mod picks;
 pub mod preflight;
+pub mod probe;
 pub mod recovery;
 pub mod references;
 pub mod regen;
@@ -147,6 +148,9 @@ impl Router {
                 } else if let EnvelopePayload::SurveyState(s) = &event.content {
                     scope.insert(s.contest_id);
                 }
+                if let EnvelopePayload::ProbeState(s) = &event.content {
+                    scope.insert(s.contest_id);
+                }
             }
         }
         let initial = outcome.events.len();
@@ -281,6 +285,10 @@ impl Router {
                         return tournaments::prepare(tx,group,id,input,conversation,entrants,prompt,&bindings,tournament_max,tournament_threshold,tournament_config.as_ref(),preconfirmed);
                     }
                     if matches!(parsed,ParsedInput::Crosscheck{..}) { return crosscheck::prepare(tx,group,id,input,parsed,&bindings,max,self_threshold,preconfirmed,engine_config.as_ref()); }
+                    if let ParsedInput::Probe {input:conversation,participants,brief}=&parsed {
+                        variables::apply(tx,group,id,&conversation.variable_updates)?;
+                        return probe::prepare(tx,group,id,input,participants.clone(),brief.clone(),&bindings,max,threshold,preconfirmed,engine_config.as_ref());
+                    }
                     if let ParsedInput::Debate {input:conversation,..}=&parsed {
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
                         let request=Request::UserMessage {input,parsed,preconfirmed};
@@ -322,6 +330,7 @@ impl Router {
                         let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING','WAITING_FOR_ENTRANTS','ANSWERING','ELIMINATING') AND EXISTS(SELECT 1 FROM json_each(COALESCE(json_extract(state_json,'$.debaters'),json_extract(state_json,'$.survivors'))) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?;
                         let held=if held.is_some(){held}else{tx.query_row("SELECT c.contest_id FROM contests c JOIN census_runs r ON r.contest_id=c.contest_id WHERE c.active=1 AND json_extract(c.state_json,'$.status') NOT IN ('PREFLIGHT','WAITING_FOR_PLAN') AND EXISTS(SELECT 1 FROM json_each(json_extract(r.setup_json,'$.participants')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?};
                         let held=if held.is_some(){held}else{tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND kind='survey' AND json_extract(state_json,'$.state')<>'PREFLIGHT' AND EXISTS(SELECT 1 FROM survey_sources s,json_each(s.setup_json,'$.participants') p WHERE s.contest_id=contests.contest_id AND p.value=?)",[nick.as_str()],|r|r.get(0)).optional()?};
+                        let held=if held.is_some(){held}else{tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND kind='probe' AND json_extract(state_json,'$.state')<>'PREFLIGHT' AND EXISTS(SELECT 1 FROM probe_roles WHERE probe_roles.contest_id=contests.contest_id AND nick=? AND role<>'sitting_out')",[nick.as_str()],|r|r.get(0)).optional()?};
                         let held=held.map(|id|id.parse().map_err(|_|StoreError::Unavailable)).transpose()?;
                         let projection=squad_store::history::attributed(&event,ContextId(nick.to_string()),"ordinary.input",HistoryRole::User,None,content.clone());
                         if let Some(contest)=held {squad_store::history::defer(tx,contest,&projection)?;}else{squad_store::history::project(tx,&projection)?;}
@@ -329,6 +338,8 @@ impl Router {
                         squad_store::work::insert(tx,&work,&bindings[nick.as_str()],held)?;
                     }
                 }
+                Request::ContestConfirm {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,false,max),
+                Request::ContestCancel {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,true,max),
                 Request::CrosscheckAccept {contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason,..}=>crosscheck::accept(tx,group,id,contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason)?,
                 Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>{
                     if survey::is_survey(tx,debate_id)? { return survey::resolve(tx,group,id,debate_id,plan_id,false); }
@@ -502,6 +513,7 @@ impl Router {
                         for claim in &mut claims.extraction.claims {claim.id=uuid::Uuid::new_v4().to_string();}
                     }
                     if matches!(work.kind,WorkKind::SurveyExtract|WorkKind::SurveyVote|WorkKind::SurveyRevote|WorkKind::SurveyReport) {survey::validate_output(tx,&work,&output)?;}
+                    if work.kind.is_probe() {squad_store::probe::validate_output(tx,&work,&output)?;}
                     if let EnvelopePayload::AgentReply(reply) = output {
                         output = EnvelopePayload::MessageFinal(reply);
                     }
@@ -599,6 +611,7 @@ impl Router {
                             let mut state=squad_store::survey::state(tx,work.contest_id.ok_or(StoreError::Unavailable)?)?;
                             let version=state.state_version;state.state_version+=1;state.artifact_event_ids.push(event.base.id);survey::save(tx,group,id,&state,version)?;
                         },
+                        EnvelopePayload::ProbeExplanation(_) | EnvelopePayload::ProbeCheck(_) | EnvelopePayload::ProbePrediction(_) | EnvelopePayload::ProbeReport(_) => squad_store::probe::accept(tx,&work,&output,seq)?,
                         _ => return Err(authorization::forbidden()),
                     }
                     let status=if matches!(&output,EnvelopePayload::DebateRoundScore(score) if score.scores.is_none()){WorkStatus::Failed}else{WorkStatus::Completed};
@@ -958,6 +971,8 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
         } else {
             ctx.active_contest = if let Ok(state) = serde_json::from_str::<CrosscheckState>(&raw) {
                 Some(ContestState::Generic(state.generic()))
+            } else if let Ok(state) = serde_json::from_str::<ProbeState>(&raw) {
+                Some(ContestState::Probe(state))
             } else {
                 Some(ContestState::Debate(serde_json::from_str(&raw)?))
             };
