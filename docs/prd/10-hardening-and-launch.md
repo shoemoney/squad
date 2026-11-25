@@ -21,57 +21,14 @@ Shared contracts retain their owners:
 | `SquadConfig`, environment variables, and `./setup.sh` | Foundations |
 | `RoomHandle`, process lifecycle, room locking, and CLI commands | Room API and CLI |
 | Ordinary reply execution, queueing, context assembly, model resolution, and accounting | Agents and OpenRouter |
-| Shared contest engine, all seven mode scripts, states, setup, results, attempts, deadlines, admission, and recovery | Contests: debate, tournament, grill |
+| Shared contest engine, all seven mode scripts, states, setup, results, attempts, deadlines, admission, and recovery | Contests |
 | Prompt text, placeholders, limits, and overrides | Prompt pack |
 | Interaction, readability, key handling, and terminal output | TUI (Ratatui) |
 | Effects, motion, and frame-budget governor | TUI effects and motion |
 
 M6 tests these contracts without introducing alternative schemas, error names, retry policies, or limits.
 
-### Canonical numbers and configuration
-
-| Thing | Value |
-|---|---|
-| Members | 1 to 12; nick pattern `^[a-z][a-z0-9_]{0,31}$`; reserved `me`, `all`, `judge`, `system`, `squad` |
-| `ROUNDS` | Default 10, min 1, max 20 |
-| Prompt-enforced word limits | `roomWords` 500, `turnWords` 400, `finalTurnWords` 500 |
-| Visible output token ceilings | 2,048 for room replies, tournament entries and debate turns, 4,096 for final judge calls and rebuilt grill plans, 512 for `judge.round` calls |
-| Reasoning effort | Medium by default for members, configurable per member; low for `judge.round`, high for final judge calls; reasoning text never forwarded |
-| Ordinary reply | Timeouts 15 s connect / 90 s first token / 30 s idle / 300 s total; 2 attempts, then an error event with a retry action |
-| Debate turn | 180 s deadline; 2 attempts, the second issued by the orchestrator; then forfeit |
-| Judge call | 3 attempts including schema-repair attempts for final judging |
-| Per-agent queue | 20 items, then `AGENT_QUEUE_FULL` |
-| User message size | 1 to 32,768 UTF-8 bytes |
-| Daily max and confirmation | `SQUAD_DAILY_MAX_USD` default 20; debate confirmation threshold `budget.debateConfirmUsd` = 2 |
-| Quotes per message | Max 12 |
-| Durable storage ceiling | Fixed 1 GiB, following the Foundations configuration contract |
-| Round judge call | 2 attempts including schema-repair attempts; then record the round as unscored |
-| Reasoning token budgets | Low 1,024; medium 4,096; high 8,192 |
-| Final judge call deadline | 300 s |
-| `judge.round` and `judge.tournament` deadline | 120 s |
-| Preflight plan expiry | 10 min |
-| Work lease | 60 s, renewed every 20 s |
-| Ingress channel capacity | 256 |
-| Mailbox capacity | 1; wake-up pending flag, synchronous `try_send` |
-| Feed broadcast capacity | 4,096; lag recovers from the events table after the last seen cursor |
-| Active contests | One per room, including answer collection and a pending pick |
-| Tournament entrants | At least 3; with k entrants, k−1 elimination rounds |
-| Tournament judging | 3 attempts including schema repair; on exhaustion replay the round once, then stop with an error if judging still fails |
-| `GRILL_ROUNDS` | Default 2, min 1, max 10 |
-| Grill question turn | Up to 3 questions, 200 words |
-| Grill answer turn | `SQUAD_TURN_WORDS`, default 400 words |
-| Rebuilt grill plan | `SQUAD_PLAN_WORDS`, default 1,200 words; visible output ceiling 4,096 tokens |
-| `CENSUS_PASSES` | Default 2, min 1, max 5 |
-| Census participants and hunt | At least 3 members; one assigned lens and up to 8 gaps per member per pass |
-| Census calls | `2k + 2` per pass for k members; 14 for six, 28 for two six-member passes |
-| Crosscheck inventory and grid | 3 items per member; single-item cells and every cross-lens pair; cap 200 cells |
-| Crosscheck audit | 2 randomly chosen members, each in fresh context, each checking 5 sampled closures and proposing one missing case |
-| Crosscheck calls | `2k + 4`; 16 for six members, plus one call if goal and constraints must be extracted |
-| Survey claims and revote | Up to 25 claims; up to 5 most evenly split claims selected for revoting; confidence 1 to 5 |
-| Survey calls | `3k + 2` with answer collection, `2k + 2` with existing answers; 20 or 14 for six members |
-| Probe participants | An even active count of at least 4; with an odd addressed count, the last member sits out and is told in the transcript |
-| Probe calls | `k + k/2 + 1` for k active members; 10 for six |
-| Census, crosscheck, survey, and probe judge calls | Judge system prompt plus mode-specific task prompt and strict JSON schema; medium reasoning effort; 4,096 visible output tokens |
+Canonical values are defined in [Protocol’s canonical numbers and configuration](02-message-protocol-store-and-bus.md#canonical-numbers-and-configuration).
 
 Every output token ceiling limits visible output. For models whose catalog entry lists reasoning support, send `max_tokens = visible ceiling + reasoning budget` and an explicit `reasoning.max_tokens` equal to that budget. For unsupported models, omit reasoning parameters; only an explicitly configured unsupported reasoning setting raises `MODEL_PARAMETER_UNSUPPORTED`. Verify request bodies and reservations against **Agents and OpenRouter**.
 
@@ -116,7 +73,7 @@ The M4 spike uses a throwaway renderer without effects. The full-effects gate ru
 Enforce canonical limits through their owning sections. TUI validation provides immediate feedback; router validation remains authoritative.
 
 - Queueing and context selection follow **Agents and OpenRouter**. This section adds no fixed input-token cap.
-- Contest admission, busy participants, context-fit checks, and held ordinary work follow **Contests: debate, tournament, grill**.
+- Contest admission, busy participants, context-fit checks, and held ordinary work follow **Contests**.
 - Bounded ingress, mailbox wake-ups, feed delivery, and durable paging follow **Protocol, store and bus** and **Room API and CLI**.
 - The TUI loads recent events first and pages older events on scroll through `RoomHandle.page_events`.
 - At the storage ceiling, reject new work with `STORAGE_LIMIT`, preserve history, and provide markdown export and `/clear` guidance.
@@ -142,7 +99,7 @@ Isolation is the centrepiece of the release gate. Exercise actual router commits
 2. Compare mailbox wake-ups, durable work, private histories, and serialized provider requests against independently maintained recipient expectations.
 3. Assert that unauthorized canaries remain absent after retry, restart, context trimming, regeneration, and durable replay.
 4. Verify that ordinary replies remain private to their author and the human. Human-triggered quotes deliver only the selected text, labelled with its original author, to the addressed recipients.
-5. Verify debate setup, opening positions, turns, forfeits, and verdict visibility using **Contests: debate, tournament, grill**. Uninvolved members receive no debate content.
+5. Verify debate setup, opening positions, turns, forfeits, and verdict visibility using **Contests**. Uninvolved members receive no debate content.
 6. Complete parallel turns in both arrival orders. Verify that the round barrier preserves same-round isolation and commits ordered events and history entries without duplicate identifiers.
 7. Verify that each agent receives exactly the capabilities in `AgentContext { mailbox, history: HistoryReader, work: WorkReader, submit: IngressSender, cancel }`. Its readers remain bound to one context and expose no operation for choosing another context, reading the room event log, or subscribing to the feed.
 8. Use compile-fail tests in `squad-agents` against the public API to reject attempts to select another context through either reader, access their backing database, or obtain the room feed through `AgentContext`. Verify that `squad-agents` has no dependency on `squad-store` or `rusqlite`. Runtime canary tests verify the construction-time binding.
@@ -236,7 +193,7 @@ Use the daily spending configuration owned by **Foundations**, including `SQUAD_
 
 Before dispatch, require an atomic reservation covering estimated input, visible output and supported reasoning budgets, growing contest context where relevant, and every permitted provider attempt. Use resolved model prices and label estimates clearly. Block paid dispatch with `COST_UNKNOWN` when pricing is unavailable. There is no configured pricing override in v1.
 
-Contest admission and reservation creation belong to **Contests: debate, tournament, grill**. Every preflight states the number of model calls and the estimate. `debate.preflight` is always emitted and states the debaters, round count, whether judging is requested, and whether an opening round is required, using the canonical payload contract from **Protocol, store and bus**. Estimates at or below the threshold auto-confirm; higher estimates wait for `debate.confirm` or `debate.cancel`. `squad send --yes` pre-confirms through the same contract. Changed or expired plans follow the owning preflight rules, including the 10-minute expiry. M6 verifies these behaviors without defining confirmation types or interactions.
+Contest admission and reservation creation belong to **Contests**. Every preflight states the number of model calls and the estimate. `debate.preflight` is always emitted and states the debaters, round count, whether judging is requested, and whether an opening round is required, using the canonical payload contract from **Protocol, store and bus**. Estimates at or below the threshold auto-confirm; higher estimates wait for `debate.confirm` or `debate.cancel`. `squad send --yes` pre-confirms through the same contract. Changed or expired plans follow the owning preflight rules, including the 10-minute expiry. M6 verifies these behaviors without defining confirmation types or interactions.
 
 For debates with automatic judging, preflight includes one `judge.round` call per round, excluding round 0, in addition to the final verdict call. Reserve for both permitted round-scoring attempts, accumulated judge context, low reasoning effort with its 1,024-token budget, and a 512-token visible output ceiling per attempt. Final judging retains high reasoning effort with its 8,192-token budget and its existing visible ceiling and attempt policy. Verify estimates at `ROUNDS` default 10, min 1, and max 20. Debates without automatic judging reserve no round-scoring calls, and later `/judge` adds no retroactive round scoring.
 
@@ -278,13 +235,13 @@ Model output cannot execute commands, change variables, route messages, summon p
 | SQLite corrupt | Fail room opening or stop further durable work when detected. Surface the store failure, preserve the database for recovery, and never silently replace it with an empty room. |
 | Disk full | Reject writes that cannot commit, prevent further paid dispatch requiring persistence, preserve committed history, and retain uncertain reservations. Do not delete history automatically or report success for failed writes. |
 | Crash mid-commit | SQLite recovery exposes either the complete transaction or none of it. Verify atomic events, history, work, receipts, contest state, daily accounting, and scores. Notifications occur only after commit. An interactive restart reconstructs state and re-wakes unfinished work, including work whose notification was lost after commit. One-shot opens never re-wake work they did not create. |
-| Crash mid-debate | Resume using **Contests: debate, tournament, grill** recovery rules. An interrupted attempt consumes an attempt; uncertain charges remain reserved. Test dispatch, result acceptance, and round-barrier boundaries. |
-| OpenRouter 429, 5xx, or timeout | Follow **Agents and OpenRouter** for ordinary work and **Contests: debate, tournament, grill** for contest and judge work. Honor `Retry-After` within the owning deadline. |
+| Crash mid-debate | Resume using **Contests** recovery rules. An interrupted attempt consumes an attempt; uncertain charges remain reserved. Test dispatch, result acceptance, and round-barrier boundaries. |
+| OpenRouter 429, 5xx, or timeout | Follow **Agents and OpenRouter** for ordinary work and **Contests** for contest and judge work. Honor `Retry-After` within the owning deadline. |
 | Partial stream fails | Replace obsolete provisional output using the owning attempt rules. Persist only accepted completion or terminal failure records. |
 | One model unavailable | Other addressed models continue. Report its availability or execution failure. An admitted contest follows the owning retry and forfeit rules. |
 | Terminal closed mid-stream | The process lifecycle follows **Room API and CLI**. Handled termination cancels active requests and shuts down the room. Abrupt termination is recovered on the next start. Preserve committed content and uncertain reservations; missed token deltas are unavailable. |
 | Second process opens the same room | The exclusive advisory lock rejects it with `Room main is already open in another squad process (pid N).` It must not dispatch provider calls or mutate the room. Read-only `squad export` remains allowed. |
-| User stops generation | Apply global or targeted cancellation through the owning execution contracts. A stopped debate retains its transcript, reaches `STOPPED`, and skips automatic judging. Later `/judge` follows **Contests: debate, tournament, grill**. |
+| User stops generation | Apply global or targeted cancellation through the owning execution contracts. A stopped debate retains its transcript, reaches `STOPPED`, and skips automatic judging. Later `/judge` follows **Contests**. |
 | TUI falls behind the feed | Follow the feed and paging contracts owned by **Protocol, store and bus** and **Room API and CLI**. Durable finals remain available through event paging; ephemeral deltas are not durable history. |
 | Storage ceiling reached | Reject new work with `STORAGE_LIMIT`; retain history and offer markdown export and `/clear` guidance. |
 | Round scoring is late or fails | Continue subsequent rounds without waiting. After two failed attempts, commit an unscored round under the owning contract. Final judge work waits until all round-scoring work has completed or been given up. `/stop` cancels outstanding round-scoring work; later `/judge` uses existing scores without scoring retroactively. |

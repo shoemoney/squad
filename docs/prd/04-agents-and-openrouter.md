@@ -12,43 +12,11 @@ Use the **Protocol, store and bus** section’s `Work` record, envelopes, `Error
 
 `squad-agents` depends on `squad-protocol` and the opaque reader, prompt-rendering, and submit traits supplied through the shared contracts. It never depends on `squad-store`, `rusqlite`, or `squad-core`, including in tests. `squad-core` constructs context-bound capabilities and passes them to executors. Prompt rendering remains in `squad-core`; executors consume it through the injected contract. Compile-fail tests in `squad-agents` verify that executors cannot construct foreign readers or access store APIs. Tests requiring temporary SQLite databases live in `squad-core`.
 
-**Contests: debate, tournament, grill** owns contest admission, states, round scheduling, barriers, judge selection, verdict and ranking validation, schema repair, and contest and judge attempt limits. **Prompt pack** owns prompt text, template IDs, placeholders, rendering rules, and overrides. Executors consume those contracts without defining alternatives.
+**Contests** owns contest admission, states, round scheduling, barriers, judge selection, verdict and ranking validation, schema repair, and contest and judge attempt limits. **Prompt pack** owns prompt text, template IDs, placeholders, rendering rules, and overrides. Executors consume those contracts without defining alternatives.
 
 The same ownership extends to census, crosscheck, survey, and probe. All seven modes are scripts over one contest engine’s `collect`, `pick`, `fanout`, `turns`, `judge`, `tally`, `barrier`, and `report` moves, with one active contest per room. Agents execute the authorized model calls for those moves. The engine owns payload selection, participant selection, delivery barriers, tallies, reports, and state transitions. A move does not create another executor-owned scheduler. The build order is debate, grill, census, crosscheck, tournament, survey, probe.
 
-### Canonical numbers
-
-| Thing | Value |
-|---|---|
-| Members | 1 to 12; nick pattern `^[a-z][a-z0-9_]{0,31}$`; reserved `me`, `all`, `judge`, `system`, `squad` |
-| `ROUNDS` | default 10, min 1, max 20 |
-| Word limits, enforced through Prompt pack | `roomWords` 500, `turnWords` 400, `finalTurnWords` 500 |
-| Visible output token ceilings | 2,048 for room replies, debate turns, tournament entries, grill questions, and grill answers; 4,096 for `judge`, `judge.tournament`, and `grill.rebuild`; 512 for `judge.round` |
-| Reasoning effort | medium by default for members, low for `judge.round`, high by default for `judge` and `judge.tournament`; reasoning text never forwarded |
-| Reasoning budgets | low 1,024 tokens; medium 4,096 tokens; high 8,192 tokens; used only when the resolved model supports reasoning |
-| Ordinary reply | timeouts 15 s connect / 90 s first token / 30 s idle / 300 s total; 2 attempts, one automatic retry, then an error event with a retry action |
-| Debate turn | 180 s deadline; 2 attempts, the second issued by the orchestrator; then forfeit |
-| Judge call | 300 s deadline; 3 attempts including schema-repair attempts |
-| Per-agent queue | 20 items, then `AGENT_QUEUE_FULL` |
-| User message size | 1 to 32,768 UTF-8 bytes |
-| Daily spend and confirmation | daily max `SQUAD_DAILY_MAX_USD` = 20; contest confirmation threshold `budget.debateConfirmUsd` = 2 |
-| Quotes per message | max 12 |
-| Round-score call | 120 s deadline; 2 attempts including schema-repair attempts; scheduled by the orchestrator |
-| Tournament judge call | 120 s deadline; 3 attempts including schema-repair attempts; round replay and exhaustion follow the contest contract |
-| `GRILL_ROUNDS` | default 2, min 1, max 10 |
-| Grill word limits | question 200; answer `turnWords`; rebuilt plan `planWords` 1,200 |
-| Preflight plan expiry | 10 min |
-| Work lease | 60 s, renewed every 20 s |
-| Ingress channel capacity | 256 |
-| Mailbox capacity | 1; wake-up pending flag using synchronous `try_send` |
-| Feed broadcast capacity | 4,096; lag is recovered by re-reading the events table at the last seen cursor |
-| Alias probe | `max_tokens: 16`, lowest accepted reasoning setting; one retry on HTTP 400 with `max_tokens: 2048` |
-| `CENSUS_PASSES` | default 2, min 1, max 5 |
-| Census, crosscheck, survey, and probe judge calls | medium reasoning effort; visible output ceiling 4,096; strict JSON schema |
-| Census hunt output | at most 8 gaps per member, each with the consequence if ignored |
-| Crosscheck inventory output | 3 concrete items per member |
-| Crosscheck auditor output | review 5 sampled closures and name one case the grid may have missed |
-| Survey output bounds | at most 25 extracted claims; confidence 1 to 5; revote on the 5 most evenly split claims |
+Canonical values are defined in [Protocol’s canonical numbers and configuration](02-message-protocol-store-and-bus.md#canonical-numbers-and-configuration).
 
 Timeouts, attempt counts, queue depth, visible output token ceilings, reasoning budgets, plan expiry, lease timings, channel capacities, probe caps, and message size limits are compile-time constants in `squad-protocol`. They are not configurable in v1.
 
@@ -75,7 +43,7 @@ The roster consists of the `SQUAD_MODEL_<NICK>` variables in file order, subject
 
 Roster additions, removals, renames, personas, and model selections take effect on restart. Concrete slugs select a specific model; aliases track releases at startup. There is no pattern-based model selection or substitution of a historical slug.
 
-`SQUAD_JUDGE_MODEL` configures the judge separately and defaults to `~anthropic/claude-fable-latest`. Judge selection and fallback policy remain owned by **Contests: debate, tournament, grill**. Conflicts for debates and standalone judging compare resolved concrete models. Unconfigured default fallbacks, participants, and fallbacks sharing a conflicting concrete model are skipped; only explicitly configured fallback entries require configuration validation. Blind tournament judging never swaps the judge model.
+`SQUAD_JUDGE_MODEL` configures the judge separately and defaults to `~anthropic/claude-fable-latest`. Judge selection and fallback policy remain owned by **Contests**. Conflicts for debates and standalone judging compare resolved concrete models. Unconfigured default fallbacks, participants, and fallbacks sharing a conflicting concrete model are skipped; only explicitly configured fallback entries require configuration validation. Blind tournament judging never swaps the judge model.
 
 Validate request parameters against the resolved model’s capabilities. A member’s optional `SQUAD_REASONING_EFFORT_<NICK>` overrides `SQUAD_REASONING_EFFORT`; the default is medium. `SQUAD_JUDGE_REASONING_EFFORT` defaults to high for `judge` and `judge.tournament`. `judge.round` always uses low reasoning effort, independently of `SQUAD_JUDGE_REASONING_EFFORT`. Send `reasoning.effort` and `reasoning.max_tokens` only when the catalog lists reasoning support. An explicitly configured reasoning value for an unsupported model raises `MODEL_PARAMETER_UNSUPPORTED`; an implicit default is omitted. Reject explicit unsupported parameters rather than silently dropping them. Omit optional parameters when the shared configuration contract specifies omission.
 
@@ -95,7 +63,7 @@ For each configured model:
 2. For a concrete slug, use that exact catalog entry.
 3. For an alias, probe through the alias with `max_tokens: 16` and the lowest reasoning setting the model accepts. On HTTP 400, retry once with `max_tokens: 2048`. Take the response’s `model` field as its concrete identity and validate it against the catalog. The alias itself need not appear in the catalog.
 
-A probe that fails or returns no valid concrete target does not justify guessing the target. Report the resolution failure through the shared error contract and mark the affected member `offline`. Other valid members remain usable. Apply normal credential protection, daily dispatch guards, and accounting to probe calls.
+A probe that fails or returns no valid concrete target does not justify guessing the target. Report the resolution failure through the shared error contract and mark the affected member `offline`. Other valid members remain usable. Apply normal credential protection, daily dispatch guards, and accounting to probe calls. Alias probes run only during room open, under a router-created synthetic `workId` with `contextId = "probe:{nick}"`; the same attempt ledger accounts for successful, failed and retried probes. `squad models` and `squad doctor` read the `models` cache and never probe.
 
 Persist the normalized catalog, fetch timestamp, and resolution snapshot through the router and store interfaces, using an atomic transaction. Use the Protocol section’s `catalog` table and role-aware `models` records for members and judge selections.
 
@@ -107,9 +75,9 @@ Resolution occurs only at startup. The concrete identity recorded for display re
 
 `crates/squad-agents/src/worker.rs` creates one tokio task per configured member.
 
-Each task receives exactly the bus section’s `AgentContext { mailbox, history: HistoryReader, work: WorkReader, submit: IngressSender, cancel }`. The history and work readers are bound to that task’s `context_id` at construction by `squad-core`. They expose no access to another context, the `events` table, or the feed. Workers cannot enumerate foreign histories or fetch source text from shared contest storage.
+Each task receives the Protocol-owned `AgentContext`, bound to `ExecutorKey::Member(nick)`. Its `WorkReader` enumerates that member’s work across ordinary and step contexts; `HistoryReader::for_work` verifies ownership and binds the read to the selected work’s own frozen context. `squad-core` constructs every context and injects the Protocol-owned `PromptRenderer` and `ExecutorSubmit` capabilities. Workers cannot enumerate foreign histories, read `events`, or subscribe to the feed.
 
-The router commits canonical `Work` before sending a mailbox wake-up. Each mailbox is an in-process capacity-1 `mpsc` channel carrying wake-ups only. `wake_mailbox` uses synchronous `try_send`; `Full` means a wake-up is already pending. The router never awaits a channel owned by an agent. Workers read durable jobs through their context-bound `WorkReader`.
+The router commits canonical `Work` before sending a mailbox wake-up. Each mailbox is an in-process capacity-1 `mpsc` channel carrying wake-ups only. `wake_mailbox` uses synchronous `try_send`; `Full` means a wake-up is already pending. The router never awaits a channel owned by an agent. Workers read durable jobs through their executor-bound `WorkReader`.
 
 On startup, establish the mailbox receiver before scanning pending work. Recover unfinished work authorized by the **Room API and CLI** open-mode contract, deduplicate wake-ups by `workId`, and obey lease and cancellation fences. `OpenMode::OneShot` never re-wakes work it did not create; `--no-wait` work remains pending until the next interactive open. Never scan conversational history for control records.
 
@@ -117,10 +85,10 @@ Each member has one active generation and a FIFO queue. Different members execut
 
 Queued execution must include completed earlier replies while excluding user messages after its triggering message. Use the router-supplied `Work.historyThrough` and `triggerEventId` boundaries for context assembly. Do not substitute the current event position or an unrestricted history read.
 
-Contest scheduling follows **Contests: debate, tournament, grill**:
+Contest scheduling follows **Contests**:
 
 - Existing ordinary work drains while the contest is waiting for its participants.
-- Ordinary work addressed to a held participant remains queued until the contest reaches a terminal state. The router defers writing those messages and their quotes into that participant’s private history until the hold is released.
+- Ordinary work addressed to a held participant remains queued until the contest releases its hold (including census `WAITING_FOR_PLAN`). The router defers writing those messages and their quotes into that participant’s private history until the hold is released.
 - Contest work does not wait behind newly queued ordinary work.
 - Other members continue ordinary chat.
 - A direct `$debate` command creates no ordinary `reply` work.
@@ -198,7 +166,7 @@ Retain the system prompt, current request, and mandatory contest or case materia
 
 If mandatory material cannot fit, return `CONTEXT_TOO_LARGE` with estimated and allowed tokens. Judge requests retain all material required by the case contract, including the complete debate transcript where applicable.
 
-Expose this estimator and effective model limits to **Contests: debate, tournament, grill**. Its preparing step rejects a contest when the worst-case mandatory material would exceed a participant’s or the judge’s context budget. Include accumulated round scores, unscored-round notices, and the verdict announcement’s score material in the applicable budgets. For a reasoning-capable `judge.round` model, reserve the effective visible ceiling up to 512 tokens plus the low reasoning budget of 1,024 tokens. Include attempt-scoped rejected output and validation errors when budgeting a repair. Context assembly must not silently discard mandatory evidence after admission.
+Expose this estimator and effective model limits to **Contests**. Its preparing step rejects a contest when the worst-case mandatory material would exceed a participant’s or the judge’s context budget. Include accumulated round scores, unscored-round notices, and the verdict announcement’s score material in the applicable budgets. For a reasoning-capable `judge.round` model, reserve the effective visible ceiling up to 512 tokens plus the low reasoning budget of 1,024 tokens. Include attempt-scoped rejected output and validation errors when budgeting a repair. Context assembly must not silently discard mandatory evidence after admission.
 
 Apply the same estimator to each census, crosscheck, survey, and probe step’s authorized projection. Mandatory material includes the current plan version where permitted, the complete assigned ledger or cell batch, required claims and reasons, checks and predictions, and the judge evidence declared by the script. A cell batch is one member payload, not permission to create a provider call per cell. Executors cannot shrink a grid, omit ledger entries, drop claims, or split work into extra calls to make a request fit. Return the owning context error to the engine.
 
@@ -212,7 +180,7 @@ The router spawns an executor for every case with authorized unfinished work, in
 
 Initial summons start without prior judge or member history. The judge never reads room-member `fable` history, even when it uses the same concrete model.
 
-The executor supports the three judge paths defined by **Command grammar and parser** and **Contests: debate, tournament, grill**:
+The executor supports the three judge paths defined by **Command grammar and parser** and **Contests**:
 
 - A debate judge receives its router-committed adjudication bundle and returns output governed by the owning verdict schema.
 - A standalone summon with `@judge` as sole recipient and at least one quote creates a new case. Its evidence is exactly the selected quoted messages plus the user’s question. Its ruling is free-form text.
@@ -234,13 +202,13 @@ Use the judge-specific Prompt pack instructions, `SQUAD_JUDGE_REASONING_EFFORT`,
 
 Repair attempts read the rejected answer and validation errors from the Protocol section’s attempt-scoped record keyed by `(work_id, attempt)`, accessible only through the case-bound `WorkReader`. Rejected output never becomes conversational history. Consume the owning two-pass validation result: strict JSON Schema validation with `additionalProperties: false` and required nullable fields, followed by deserialization. The executor does not define another verdict or ranking validator.
 
-Judge model selection, conflict warnings, automatic judging eligibility, `/judge`, attempt scheduling, and schema repair belong to **Contests: debate, tournament, grill**. The executor makes one provider call per authorized attempt and returns its result through the authorized result path. It does not add transport retries outside that section’s attempt allowance or summon itself after an unjudged or stopped debate.
+Judge model selection, conflict warnings, automatic judging eligibility, `/judge`, attempt scheduling, and schema repair belong to **Contests**. The executor makes one provider call per authorized attempt and returns its result through the authorized result path. It does not add transport retries outside that section’s attempt allowance or summon itself after an unjudged or stopped debate.
 
 The same case-bound executor executes the Protocol section’s census merge and finalization, crosscheck normalization and audit ruling, survey extraction and report, and probe report Work kinds. Crosscheck’s optional goal-and-constraints extraction is also an authorized judge call. These are structured mode tasks, separate from standalone free-form rulings and debate verdicts. Each uses its owning schema, medium effort, the 4,096-token visible ceiling, and the existing case-bound repair path. Only the engine may schedule a repair or advance the script after validation.
 
 ### Tournament and grill execution
 
-The executor consumes the new Work kinds and visibility rules from **Protocol, store and bus** and the scheduling contracts from **Contests: debate, tournament, grill**:
+The executor consumes the new Work kinds and visibility rules from **Protocol, store and bus** and the scheduling contracts from **Contests**:
 
 | Work | Execution contract |
 |---|---|
@@ -248,7 +216,7 @@ The executor consumes the new Work kinds and visibility rules from **Protocol, s
 | `judge.tournament` | One blind ranking request per authorized attempt on the tournament case context; 120 s deadline; judge visible output ceiling and configured judge effort |
 | `grill.question` | Current plan, current-round floor, prior-question list, assigned angle, and owning question template; at most 200 words and three questions, or exact `PASS` |
 | `grill.answer` | Authorized question and shared floor through the Work boundary; `turnWords` limit; direct answers and “Plan changes” |
-| `grill.rebuild` | Latest plan and current-round floor through the Work boundary; `planWords` limit, default 1,200; visible output ceiling 4,096 |
+| `grill.rebuild` | Latest plan and current-round floor through the Work boundary; Prompt pack’s `plan_words` limit; visible output ceiling 4,096 |
 
 Tournament entrant requests consume `tournament.entrant.md`. From round 2, the authorized material includes only that entrant’s own previous rank, score, critique, and survival result. They never receive another entrant’s answer, rank, score, or critique. Consume `tournament.result.md` for the entrant’s own result and `tournament.final.md` for the final placing list, which contains nicks and placements only.
 
@@ -264,33 +232,15 @@ Question-first collection uses ordinary reply execution and does not require a s
 
 ### Census, crosscheck, survey, and probe execution
 
-Consume the Protocol section’s canonical Work kinds for the following tasks. The task names below identify execution responsibilities and template mappings; Protocol owns their representation. Member tasks run through the member adapter and judge tasks through the case adapter. Prompt pack owns all prompt text, placeholders, output schemas, and word limits.
+Consume the Protocol section’s canonical Work kinds for the following tasks. The task names below identify execution responsibilities and template mappings; Protocol owns their representation. Member tasks run through the member adapter and judge tasks through the case adapter. Prompt pack owns prompt text, placeholders and word limits; Contests owns each mode’s output schema and typed payloads, added to `squad-protocol` in its M5 phase.
 
-| Authorized task | Executor and template | Delivered input |
-|---|---|---|
-| Census hunt | Member; `census.hunt.md` | Current plan version and that member’s one assigned lens; no other member’s hunt |
-| Census merge | Judge; `census.merge.md` | Committed hunt outputs and authorized provenance needed to merge duplicates and retain finder information |
-| Census rating | Member; `census.rate.md` | Current plan and anonymised ledger; no finder names or counts |
-| Census finalization | Judge; `census.final.md` | Merged ledger, ratings, covered citations, and proposed additions |
-| Crosscheck inventory | Member; `crosscheck.inventory.md` | Goal, constraints, and that member’s assigned lens; no plan or other inventory |
-| Crosscheck normalization | Judge; `crosscheck.normalize.md` | Committed inventories and authorized provenance for normalization and priority ordering |
-| Crosscheck cell review | Member; `crosscheck.cell.md` | Plan and only that member’s assigned cells |
-| Crosscheck audit | Fresh member context; `crosscheck.audit.md` | Plan, grid, and that auditor’s sampled closure evidence; no reviewer identities |
-| Crosscheck ruling | Judge; `crosscheck.rule.md` | Coverage evidence, audit challenges, and proposed additions |
-| Survey extraction | Judge; `survey.extract.md` | Question and selected parallel answers, with private provenance retained for the report |
-| Survey vote | Member; `survey.vote.md` | Question and neutral, unattributed atomic claims; no other whole answers or vote counts |
-| Survey revote | Member; `survey.revote.md` | Selected contested claims and authorized anonymous reasons from both sides; no authorship or vote counts |
-| Survey report | Judge; `survey.report.md` | Claims, private origins, committed votes, reasons, confidence, revotes, and application-computed tallies |
-| Probe explanation | Member; `probe.explain.md` | Human’s observation, ruled-out possibilities, and available inspections; no other proposals |
-| Probe check | Member; `probe.check.md` | The same brief; no explanations or other checks |
-| Probe prediction | Explainer; `probe.predict.md` | That explainer’s committed explanation and all checks; no rival explanations or predictions |
-| Probe report | Judge; `probe.report.md` | Committed explanations, checks, and prediction matrix |
+Step payload visibility is defined only by [Protocol’s visibility and prompt authority contract](02-message-protocol-store-and-bus.md#visibility-and-prompt-authority); each mode adds its projection rows in its M5 phase.
 
 Census hunters return up to eight omissions with consequences. Rating work returns `real`, `covered`, or `trivial` for each ledger gap, with a plan citation for `covered`, and any proposed additions. The engine assigns and rotates lenses, merges accepted artifacts through its validation paths, computes finder counts and the unseen-gap estimate, and applies the quiet rule. Executors do not calculate an authoritative estimate or expose the human’s member-by-gap table to members. A later pass uses the plan version committed for that pass, including a human-supplied patch; retries retain the original pass’s frozen plan and lens.
 
 Crosscheck inventory work must start without plan-bearing history. The router supplies the goal and constraints directly, or first schedules the owning judge extraction task when they are absent. Executors do not obtain the plan themselves to infer missing inventory inputs. Cell assignments are committed by the engine and exclude cells built from that reviewer’s own inventory items. The reviewer receives only its assigned batch and returns the owning citation, justified-inapplicability, or gap-with-fix result for each cell. It cannot fetch the rest of the grid or another reviewer’s findings.
 
-The engine randomly selects two crosscheck auditors and commits each auditor’s closure sample before dispatch. `squad-core` constructs a fresh `AgentContext` for each audit step, with readers bound only to that audit context. The configured member supplies the resolved model and accounting identity, but its ordinary conversation, inventory, review work, and previous audit conversation are absent. Each auditor receives the plan, grid, and sampled evidence without reviewer identities. Audit retries reuse the same sample and frozen inputs. The executor neither resamples evidence nor selects replacement auditors. The judge’s ruling passes through the owning validator; executors cannot drop a cell or accept a residual risk for the human.
+The engine randomly selects two crosscheck auditors and commits each auditor’s closure sample before dispatch. `squad-core` constructs a fresh audit history context for each step; the member executor receives its work through the same `ExecutorKey::Member` capabilities and `HistoryReader::for_work` binds the read to that audit context. The configured member supplies the resolved model and accounting identity, but its ordinary conversation, inventory, review work, and previous audit conversation are absent. Each auditor receives the plan, grid, and sampled evidence without reviewer identities. Audit retries reuse the same sample and frozen inputs. The executor neither resamples evidence nor selects replacement auditors. The judge’s ruling passes through the owning validator; executors cannot drop a cell or accept a residual risk for the human.
 
 Survey collection, when required, produces ordinary mutually invisible replies. The engine selects the answer set and delivers it only to the extraction case. Voting contexts receive the extracted claims rather than the whole answers, including when a voter originally wrote one of those answers. Revoting contexts receive only the script-authorized claims and anonymous reasons, without another member’s votes, authorship, or counts. Return the owning vote enum, one-line reason, confidence, and revote evidence fields. The engine computes splits and switches and supplies the report case with private provenance. The full five-band report is not broadcast into voting contexts.
 
@@ -324,7 +274,7 @@ Retry transient network failures, 429 responses, and 5xx responses once. Use exp
 
 After the permitted ordinary attempts fail, submit a shared error event with the supported retry action. A user-requested retry schedules new reply work through the **Room API and CLI** and router contracts; it does not modify or duplicate the original human message. Failure of one recipient remains local to that recipient.
 
-A debate worker makes exactly one provider call per authorized attempt. It reports timeout or provider error to the orchestrator, which alone issues the second attempt and records any forfeit. Judge attempts and repairs similarly remain under **Contests: debate, tournament, grill**, with three attempts for `judge` and `judge.tournament` and two for `judge.round`, including schema repairs. Tournament entries and grill work consume their owning attempt and failure contracts without adding retries or round replays in the adapter.
+A debate worker makes exactly one provider call per authorized attempt. It reports timeout or provider error to the orchestrator, which alone issues the second attempt and records any forfeit. Judge attempts and repairs similarly remain under **Contests**, with three attempts for `judge` and `judge.tournament` and two for `judge.round`, including schema repairs. Tournament entries and grill work consume their owning attempt and failure contracts without adding retries or round replays in the adapter.
 
 Census, crosscheck, survey, and probe tasks follow the same engine-owned attempt scheduling. Member failure after the permitted retry is returned for a skip and report entry. Judge exhaustion follows the script’s failure rule. A retry cannot change a lens, plan version, assigned cells, audit sample, claim list, role assignment, or locked prediction input. No transport retry or schema-repair call occurs outside an authorized attempt.
 
@@ -333,7 +283,7 @@ Use `tokio_util::sync::CancellationToken` through `AgentContext.cancel`. Cancell
 - `/stop` and the TUI’s confirmed global stop action cancel all active and queued generation through the shared control path, including outstanding judge and contest work.
 - Escape closes the topmost transient element first. With nothing open, it requests a global stop; during a contest, the TUI requires a confirming second Escape within two seconds.
 - `/stop @nick` targets that member.
-- Cancellation involving a contest follows **Contests: debate, tournament, grill**, preserving its committed transcript and applying the owning terminal-state and judging rules.
+- Cancellation involving a contest follows **Contests**, preserving its committed transcript and applying the owning terminal-state and judging rules.
 
 The router serializes cancellation against result acceptance. The first accepted terminal transition wins, and fencing rejects late results. Canceled partial text remains uncommitted. Billing information for a canceled or fenced attempt still follows the accounting path.
 
@@ -367,7 +317,7 @@ Every dispatch uses the router’s daily reservation and admission checks. Reser
 
 At the daily max, reject new generation requests with `DAILY_MAX_REACHED` and the message `Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.`, formatting the amount from the configured max. Do not send queued or subsequent calls until the next local day or a raised max permits them. In-flight calls finish and their actual cost is recorded; reaching the max does not cancel them.
 
-Contest preflight and threshold confirmation belong to **Contests: debate, tournament, grill** and use the Protocol section’s canonical preflight payloads. Every preflight states the number of model calls and the estimated cost against the remaining daily amount. For automatically judged debates, the estimate includes one judge call per scored round in addition to the final verdict; round-score reservations cover both permitted attempts. Tournament estimates include every surviving-entry round and its judging; grill estimates include each question, answer, and rebuild. Question-first collection replies have already been charged as ordinary work and are excluded from the later estimate. Executors begin only after authorized Work becomes runnable. Uncertain provider charges remain reserved until reconciled.
+Contest preflight and threshold confirmation belong to **Contests** and use the Protocol section’s canonical preflight payloads. Every preflight states the number of model calls and the estimated cost against the remaining daily amount. For automatically judged debates, the estimate includes one judge call per scored round in addition to the final verdict; round-score reservations cover both permitted attempts. Tournament estimates include every surviving-entry round and its judging; grill estimates include each question, answer, and rebuild. Question-first collection replies have already been charged as ordinary work and are excluded from the later estimate. Executors begin only after authorized Work becomes runnable. Uncertain provider charges remain reserved until reconciled.
 
 Include every census, crosscheck, survey, and probe member and judge call in the same accounting path, including optional crosscheck goal extraction, fresh audits, retries, repairs, and survey collection. Preserve contest, step, pass, member or judge identity, work, and attempt attribution supplied by the owning contracts. A fresh context does not create a new untracked billing identity. Application-only tallies, barriers, picks, and report assembly create no provider charges; an authorized judge report call does. The engine computes preflight call counts from its script, and the adapter supplies the same model limits, pricing, and output reservations used at dispatch.
 

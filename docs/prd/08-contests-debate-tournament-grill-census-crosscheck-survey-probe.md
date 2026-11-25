@@ -6,7 +6,7 @@
 
 Squad is one self-contained Rust binary running one process, with one TUI front end per room. The orchestrator coordinates contests and judge cases. The router is the only writer of durable events, contest state, transcripts, private histories, work, budget reservations, and score records.
 
-This section owns the shared contest engine, all seven state machines and mode scripts, admission, preflight estimates, contest event payloads, `DebateState`, the `debate.setup` payload, the verdict schema, contest deadlines, and contest attempt limits. Shared serde types with validation live in `crates/squad-protocol` and are implemented in M1. Orchestration lives in `crates/squad-core/src/orchestrator/`.
+This section owns the shared contest engine, all seven state machines and mode scripts, admission, preflight estimates, contest event payloads, `DebateState`, the `debate.setup` payload, the verdict schema, contest deadlines, and contest attempt limits. This section owns each mode’s typed payloads. Once a mode is built, its Rust types in `squad-protocol` are the normative contract. M1 implements the core and debate typed contracts only; grill, census, crosscheck, tournament, survey and probe payloads, statuses, mode-specific tables and visibility tests are added in their respective M5 phases. Protocol (02) owns generic carriers and shared interfaces. Orchestration lives in `crates/squad-core/src/orchestrator/`.
 
 Other contracts retain their owners:
 
@@ -17,48 +17,31 @@ Other contracts retain their owners:
 - **Agents and OpenRouter:** model resolution, ordinary work queues, context assembly, provider transport, and accounting.
 - **Prompt pack:** prompt text, template IDs, placeholders, and overrides. The prompt renderer and template loading are implemented in M2.
 
-Lifecycle signals are orchestrator-to-router submissions using the standard envelope `id` and an expected state version. They are committed as kind-specific state events rather than introducing a separate envelope kind for each transition.
+Lifecycle signals use Protocol’s `ContestTransitionSubmission { contestId, kind, expectedStateVersion, transition }` through `InternalRequest::Transition`, with the standard submission identity. Each mode adds its typed `ContestTransition` variant in its M5 phase. They are committed as kind-specific state events rather than introducing a separate envelope kind for each transition.
 
 The router uses the transactional API in `squad-store`. A dedicated writer thread accesses SQLite in WAL mode using `rusqlite` with its `bundled` feature. Live communication uses the in-process `Bus` implementation and tokio channels. Events, history, work, and state commit before feed publication or mailbox wake-ups.
 
 The workspace contains six crates: `squad-protocol`, `squad-store`, `squad-agents`, `squad-core`, `squad-tui`, and `squad-cli`. Executors, the OpenRouter client, and the model registry live in `squad-agents`. That crate depends on `squad-protocol` and reader/submit traits, never on `squad-store` or `rusqlite`. `squad-core` constructs context-bound capabilities and hands them to executors. Compile-fail tests enforcing this boundary live in `squad-agents`.
 
-### Canonical numbers and configuration
+Canonical values are defined in [Protocol’s canonical numbers and configuration](02-message-protocol-store-and-bus.md#canonical-numbers-and-configuration).
 
-| Thing | Value |
+### Execution limits
+
+Mode deadlines and attempt policies are owned here; visible ceilings, reasoning budgets and general limits come from [Protocol’s canonical table](02-message-protocol-store-and-bus.md#canonical-numbers-and-configuration). Prompt word limits are owned by Prompt pack.
+
+| Call | Deadline and attempts |
 |---|---|
-| Members | 1 to 12; nick pattern `^[a-z][a-z0-9_]{0,31}$`; reserved `me`, `all`, `judge`, `system`, `squad` |
-| `ROUNDS` | default 10, min 1, max 20 |
-| Word limits, prompt-enforced through `prompts.limits` | `roomWords` 500, `turnWords` 400, `finalTurnWords` 500 |
-| Visible output token ceilings | 2,048 for room replies, debate turns, tournament entries, grill questions and grill answers; 4,096 for final judge calls, `judge.tournament`, and rebuilt plans; 512 for `judge.round` |
-| Reasoning effort | medium for members by default, configurable per member; low for `judge.round`; high for the final judge and `judge.tournament`; reasoning text never forwarded |
-| Reasoning token budgets | low 1,024; medium 4,096; high 8,192 |
-| Ordinary reply and tournament entry | timeouts 15 s connect / 90 s first token / 30 s idle / 300 s total; 2 attempts, one automatic retry |
-| Debate turn | 180 s deadline; 2 attempts, the second issued by the orchestrator; then forfeit |
-| Final judge call | 300 s deadline; 3 attempts including schema-repair attempts |
-| Per-agent queue | 20 items, then `AGENT_QUEUE_FULL` |
-| User message size | 1 to 32,768 UTF-8 bytes |
-| Daily spending | `SQUAD_DAILY_MAX_USD` default 20; debate confirmation threshold `budget.debateConfirmUsd` = 2 |
-| Quotes per message | max 12 |
-| Round judge call | 120 s deadline; 2 attempts including schema-repair attempts; then record the round as unscored |
-| Tournament | minimum 3 entrants; with k entrants, k−1 elimination rounds |
-| Tournament judge call | 120 s deadline; 3 attempts including schema repair; one replay of a round after exhausted judging |
-| `GRILL_ROUNDS` | default 2, min 1, max 10 |
-| Grill limits | at most 3 questions and 200 words per griller turn; answers use `turnWords`; rebuilt plans use `planWords`, default 1,200 |
-| Grill call | 180 s deadline; 2 attempts, the second issued by the orchestrator |
-| Preflight plan expiry | 10 min |
-| Work lease | 60 s, renewed every 20 s |
-| Ingress channel capacity | 256 |
-| Mailbox capacity | 1; synchronous `try_send`, with Full meaning a wake-up is already pending |
-| Feed broadcast capacity | 4,096; lag recovery rereads events after the last seen cursor |
-| `CENSUS_PASSES` | default 2, min 1, max 5; at least 3 census members |
-| Census hunt | one assigned lens and at most 8 omissions per member per pass |
-| Crosscheck inventory and grid | 3 items per member; every single item and cross-lens pair; at most 200 retained cells |
-| Crosscheck audit | 2 randomly selected members in fresh contexts; 5 randomly sampled closures per auditor when available |
-| Survey | at most 25 atomic claims; up to 5 claims selected for a second vote; confidence integers 1 through 5 |
-| Probe | an even participating count of at least 4; an odd roster leaves its last member out |
-| New-mode member calls | `roomWords`; 2,048 visible tokens; 180 s deadline; 2 attempts including any schema repair |
-| New-mode judge calls | `planWords`, default 1,200; 4,096 visible tokens; medium reasoning with a 4,096-token reasoning budget; 300 s deadline; 3 attempts including transport retries and at most one schema repair |
+| Debate turn | 180 s; 2 attempts, the second issued by the orchestrator, then forfeit |
+| Final judge | 300 s; 3 attempts including transport retries and at most one schema repair |
+| `judge.round` | 120 s; 2 attempts including repair, then unscored |
+| `judge.tournament` | 120 s; 3 attempts including repair; one round replay after exhaustion |
+| Grill | 180 s; 2 attempts, the second issued by the orchestrator |
+| Census, crosscheck, survey and probe member calls | 180 s; 2 attempts; the second is a plain retry without repair data |
+| Census, crosscheck, survey and probe judge calls | 300 s; 3 attempts including transport retries and at most one schema repair |
+
+### Blind text redaction
+
+Projections replace, case-insensitively and on word boundaries, every roster nick, configured and resolved slug, slug provider and model-family token, and persona text with `[redacted]`. The human transcript is unchanged. Build the token set from the startup roster and model snapshots; match longer phrases before shorter tokens with Unicode word boundaries. Apply this deterministic replacement before rendering every blind answer, claim, reason, check and projected citation, as well as its metadata allowlist. Persist private lens permutations and tie-break seeds outside prompt-readable storage. Mode M5 fixtures cover case variants, provider/family tokens, multiword personas, punctuation boundaries, overlapping tokens and unchanged human originals.
 
 Every output ceiling limits visible output. For a model whose catalog entry lists reasoning support, the request sends `max_tokens` equal to the visible ceiling plus the selected reasoning budget and sends that budget as `reasoning.max_tokens`. Reasoning parameters are omitted for models without reasoning support; an explicitly configured unsupported reasoning setting follows the Agents section’s `MODEL_PARAMETER_UNSUPPORTED` contract. Estimates and context checks include both visible and reasoning token allowances.
 
@@ -89,7 +72,7 @@ The storage layout for contests and their event associations is owned by **Proto
 | Move | Execution | Model calls |
 |---|---|---|
 | `collect` | Addressed members answer one prompt in parallel, mutually invisible. | One per member. |
-| `pick` | The human chooses k members from those who answered, using the F4 picking flow. | None. |
+| `pick` | The human chooses k members from those who answered, using the inline picking flow. | None. |
 | `fanout` | Each addressed member receives its own authorized payload and acts in parallel. Payloads may contain assigned lenses, assigned cells, or that member’s own results. | One per member. |
 | `turns` | Members act sequentially in a persisted order, seeing only the material the script delivers. | One per turn. |
 | `judge` | One structured call on the contest’s judge case context, with strict schema validation and repair. | One. |
@@ -143,83 +126,7 @@ These scripts preserve the detailed behavior specified below.
 | Elimination and own-result delivery | `tally`, then `barrier`; human sees full ranking, each entrant sees only its own result using `tournament.result.md`. | Validated ranks, elimination and `TournamentResult`; no additional model call. | Exactly one elimination per accepted round; failed judging commits none. |
 | Champion | `report` and `barrier` using `tournament.final.md`; original entrants receive final placements only. | `TournamentChampion`; no model call. | Champion, placements and trophy commit once. |
 
-The common identity and pre-pick contracts are:
-
-```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ContestKind {
-    Debate,
-    Tournament,
-    Grill,
-    Census,
-    Crosscheck,
-    Survey,
-    Probe,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ContestSelectionStatus {
-    CollectingAnswers,
-    AwaitingPick,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContestAnswer {
-    pub nick: MemberNick,
-    pub message_id: EventId,
-    pub text: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContestCollecting {
-    pub contest_id: EventId,
-    pub kind: ContestKind,
-    pub question_message_id: EventId,
-    pub question: String,
-    pub addressed: Vec<MemberNick>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContestPickRequested {
-    pub contest_id: EventId,
-    pub kind: ContestKind,
-    pub question_message_id: EventId,
-    pub eligible: Vec<MemberNick>,
-    pub required_picks: u8,
-    pub banner: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContestPicked {
-    pub contest_id: EventId,
-    pub kind: ContestKind,
-    pub nicks: Vec<MemberNick>,
-    pub source_message_ids: Vec<EventId>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContestSelectionState {
-    pub contest_id: EventId,
-    pub kind: ContestKind,
-    pub state: ContestSelectionStatus,
-    pub state_version: u64,
-    pub question_message_id: EventId,
-    pub addressed: Vec<MemberNick>,
-    pub answers: Vec<ContestAnswer>,
-    pub required_picks: u8,
-}
-```
-
-These types use the protocol owner’s canonical `MemberNick` and `EventId`; no alternative `Nick` or `DebateId` types are introduced. Common envelope fields remain outside the payloads. Answer snapshots retain their source identities. `requiredPicks` is two for debate and one for grill. A tournament never has selection state.
-
-`contest.collecting`, `contest.pick_requested`, and `contest.picked` use these payloads. Selection events are human-facing control records and do not copy candidates’ answers into another member’s history. `contest.pick_requested` is addressed to `me`. The protocol-owned `ContestPick { contestId, nicks }` Request submits a pick through `RoomHandle::submit()`.
+The common identity, selection and generic carrier types (`ContestKind`, `ContestSelectionStatus`, `ContestAnswer`, `ContestCollecting`, `ContestPickRequested`, `ContestPicked`, `ContestSelectionState`) are declared once in [Protocol’s shared contest contract](02-message-protocol-store-and-bus.md#shared-contest-protocol). `requiredPicks` is two for debate and one for grill. A tournament never has selection state.
 
 ### Question-first contests and picking
 
@@ -306,7 +213,7 @@ pub enum DebateStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DebateState {
-    pub debate_id: EventId,
+    pub debate_id: DebateId,
     pub state: DebateStatus,
     pub debaters: [MemberNick; 2],
     pub round: u32,
@@ -314,9 +221,9 @@ pub struct DebateState {
     pub judge_model: String,
     pub judge_requested: bool,
     pub state_version: u64,
-    pub terminal_reason: Option<String>,
-    pub case_id: Option<EventId>,
-    pub case_ids: Vec<EventId>,
+    pub terminal_reason: Option<String>, // nullable
+    pub case_id: Option<CaseId>, // nullable
+    pub case_ids: Vec<CaseId>,
 }
 ```
 
@@ -398,7 +305,7 @@ pub enum DebateTransition {
         score_event_id: EventId,
     },
     RoundScoreExhausted {
-        work_id: EventId,
+        work_id: WorkId,
     },
     RoundScoringFinished,
     JudgeOnlyRequested,
@@ -410,7 +317,7 @@ pub enum DebateTransition {
 }
 ```
 
-Transitions use the protocol-owned submission wrapper with `debateId` and `expectedStateVersion`. Referenced result records must belong to the current fenced work, attempt, debate, and round. The stored plan supplies frozen inputs; transition messages do not carry a second copy of conversational evidence.
+Transitions use Protocol’s `ContestTransitionSubmission`, with `contestId` equal to the debate’s `DebateId`, `kind = Debate`, and `ContestTransition::Debate` carrying the discriminant. Referenced result records must belong to the current fenced work, attempt, debate, and round. The stored plan supplies frozen inputs; transition messages do not carry a second copy of conversational evidence.
 
 Terminal states are `COMPLETED`, `COMPLETE_UNJUDGED`, `STOPPED`, `FAILED`, `REJECTED`, `CANCELLED`, and `EXPIRED`. An eligible terminal debate may re-enter judge preparation through `/judge`.
 
@@ -449,7 +356,7 @@ For automatic judging, preflight includes one `judge.round` call per numbered ro
 
 For a debate with r numbered rounds and an opening indicator o of zero or one, the normal call count is `2 × (r + o)`, plus `r + 1` when automatic judging is requested. The reservation covers `4 × (r + o)` member attempts, plus `2 × r + 3` judge attempts when requested. Judge-only preflight shows one planned final judge call with up to three attempts.
 
-`debate.preflight` is always emitted for a valid plan. The threshold comparison uses `estimate.estimatedUsd`. If it is at or below `budget.debateConfirmUsd`, the orchestrator auto-confirms. Above the threshold, it waits for a matching confirmation or cancellation. `squad send --yes` pre-confirms through the same admission path.
+`debate.preflight` is always emitted for a valid plan. The threshold comparison uses `estimate.estimatedUsd`. If it is at or below `SQUAD_DEBATE_CONFIRM_USD`, the orchestrator auto-confirms. Above the threshold, it waits for a matching confirmation or cancellation. `squad send --yes` pre-confirms through the same admission path.
 
 The same confirmation threshold applies to tournament, grill, census, crosscheck, survey and probe preflights. Their estimates include the mode-specific counts below; reservations include retries, repairs, and the tournament replay allowance. Confirmation rechecks the remaining daily amount atomically with admission.
 
@@ -475,7 +382,7 @@ pub struct DebateSolution {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DebateSetup {
-    pub debate_id: EventId,
+    pub debate_id: DebateId,
     pub topic_message_id: EventId,
     pub topic_text: String,
     pub solutions: [DebateSolution; 2],
@@ -749,13 +656,13 @@ pub struct JudgeScore {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct JudgeVerdict {
     pub winner: MemberNick,
     pub scores: Vec<JudgeScore>,
     pub reasoning: String,
     pub what_to_steal_from_loser: Vec<String>,
-    pub tally_override_reason: Option<String>,
+    pub tally_override_reason: Option<String>, // nullable
 }
 ```
 
@@ -821,15 +728,7 @@ Round-scoring invocations use their separate two-attempt allowance. Exhaustion r
 
 **Protocol, store and bus** owns schema validation, implemented in M1. The judge repair executor lives in `squad-agents`; the **Prompt pack** owns repair prompt text. Judge integration consumes those implementations and enforces the shared attempt allowance.
 
-The router atomically:
-
-1. Accepts the fenced judge result and validates any required tally override explanation against its own computed `roundTally`.
-2. Commits the verdict to the human log, both debaters’ histories, and its case. The verdict announcement includes `roundTally` and the per-round scores or unscored outcomes; this is the first delivery of round-scoring material to the debaters.
-3. Seals the verdict and associates its `caseId` with the debate.
-4. Increments the winner’s wins and loser’s losses in `scores`.
-5. Enters `COMPLETED` and releases unused reservation and member holds.
-
-These changes occur in one SQLite transaction, including the corresponding contest state and event-association updates. Feed publication and mailbox wake-ups follow the commit.
+The router applies the single normative [12-step commit pipeline](02-message-protocol-store-and-bus.md#commit-transaction). The accepted verdict transaction validates the app-computed tally, seals the case, updates wins/losses, delivers the first round-score announcement, enters `COMPLETED`, and releases holds and unused reservations.
 
 The scoreboard update is idempotent per committed debate verdict. Replayed events, duplicate submissions, case follow-ups, and standalone rulings cannot increment it again. Records belong to member nicks, including when two members use the same model. `/clear` clears them. **Room API and CLI** and the TUI expose the result through their owned state and participant contracts.
 
@@ -850,6 +749,18 @@ Confirmed judge-only work enters `JUDGING` directly and creates a fresh case. It
 A debate with an accepted verdict retains that sealed result. Repeating `/judge` returns the existing result and case rather than creating another scored verdict. Questions about that result use case follow-ups.
 
 ### Tournament execution
+
+The following typed contracts land in this mode’s M5 phase; Protocol’s generic carriers are available in M1.
+- `TournamentSetup` — Frozen prompt, entrants and resolved judge.
+- `TournamentState` — Round, replay, survivors and terminal state.
+- `TournamentPreflight` — Shared ContestPreflight base plus round and replay settings.
+- `TournamentTransition` — Typed lifecycle discriminants for `ContestTransitionSubmission`, added when the mode is built.
+- `TournamentEntry` — One entrant’s completed answer or forfeit.
+- `TournamentRanking` — Validated ranking decoded for the human.
+- `TournamentResult` — One entrant’s rank and nullable forfeit score/critique.
+- `TournamentChampion` — Final placements, champion and resulting trophy count.
+- `TournamentCaseMaterial` — Blind labeled entries and ranking instructions.
+
 
 `@all $tournament <prompt>` or a named subset starts a tournament. `@all -nick` uses the parser’s resolved recipient list. There must be at least three distinct entrants; otherwise return:
 
@@ -923,8 +834,8 @@ pub enum TournamentStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentSetup {
-    pub contest_id: EventId,
-    pub prompt_message_id: EventId,
+    pub contest_id: ContestId,
+    pub prompt_message_id: MessageId,
     pub prompt: String,
     pub entrants: Vec<MemberNick>,
     pub judge_model: String,
@@ -934,20 +845,20 @@ pub struct TournamentSetup {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentState {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub state: TournamentStatus,
     pub state_version: u64,
     pub round: u32,
     pub replay: u8,
     pub survivors: Vec<MemberNick>,
     pub eliminated: Vec<MemberNick>,
-    pub terminal_reason: Option<String>,
+    pub terminal_reason: Option<String>, // nullable
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentEntry {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub round: u32,
     pub replay: u8,
     pub entrant: MemberNick,
@@ -973,16 +884,16 @@ pub struct TournamentJudgeResponse {
 pub struct TournamentRank {
     pub nick: MemberNick,
     pub rank: u32,
-    pub score: u8,
-    pub critique: String,
+    pub score: Option<u8>, // nullable
+    pub critique: Option<String>, // nullable
     pub forfeited: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentRanking {
-    pub contest_id: EventId,
-    pub case_id: EventId,
+    pub contest_id: ContestId,
+    pub case_id: CaseId,
     pub round: u32,
     pub replay: u8,
     pub ranking: Vec<TournamentRank>,
@@ -991,13 +902,13 @@ pub struct TournamentRanking {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentResult {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub round: u32,
     pub entrant: MemberNick,
     pub rank: u32,
     pub remaining_before: u32,
-    pub score: u8,
-    pub critique: String,
+    pub score: Option<u8>, // nullable
+    pub critique: Option<String>, // nullable
     pub survived: bool,
 }
 
@@ -1011,7 +922,8 @@ pub struct TournamentPlacement {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentChampion {
-    pub contest_id: EventId,
+    pub trophies: u64,
+    pub contest_id: ContestId,
     pub champion: MemberNick,
     pub placements: Vec<TournamentPlacement>,
 }
@@ -1019,14 +931,7 @@ pub struct TournamentChampion {
 
 `TournamentEntry.outcome` reuses the protocol-owned completed-or-forfeit shape; generation identity, usage, and envelope fields follow the canonical work/result contract. Tournament entry work is reply-like work carrying a contest identity. It is not debate-turn work.
 
-| Event | Delivery and history effect |
-|---|---|
-| `tournament.setup` | Human sees setup; each entrant receives the prompt and its tournament notice without other entrants’ answers. |
-| `tournament.state` | Human control record; no member-history delivery. |
-| `tournament.entry` | Human and author only; other entrants receive nothing. |
-| `tournament.ranking` | Addressed to `me`; full decoded ranking with nicks never enters an entrant’s history. |
-| `tournament.result` | Human and the named entrant only; includes only that entrant’s rank, score, critique, and survival result. |
-| `tournament.champion` | Human and every original entrant; final nicks and placements only, without answer text, scores, or critiques. |
+Tournament delivery uses [Protocol’s sole visibility table](02-message-protocol-store-and-bus.md#visibility-and-prompt-authority); exact tournament projected-field rows are added in M5.P5.
 
 The final placement is fixed when an entrant is eliminated: elimination with N remaining assigns placement N. The champion receives placement one. The router commits champion, final placement delivery, terminal state, and the champion’s trophy increment atomically and idempotently. Tournament trophies are separate from debate wins and losses. Grill updates neither.
 
@@ -1035,6 +940,18 @@ The normal preflight counts `k + (k−1) + ... + 2` entry calls plus `k−1` jud
 The TUI owns `TOURNAMENT`, `ROUND r · N REMAIN`, `FINAL`, and `CHAMPION` banners, ranking presentation, and eliminated participant markers. Effects owns the bottom-up ranking reveal, eliminated stamp, and champion celebration. Exports retain all entry attempts, accepted rankings, eliminations, final placements, and champion, with failed replay runs identified as such.
 
 ### Grill execution
+
+The following typed contracts land in this mode’s M5 phase; Protocol’s generic carriers are available in M1.
+- `GrillSetup` — Selected plan, focus and declared shared floor.
+- `GrillState` — Round, turn, plan version and terminal state.
+- `GrillPreflight` — Shared ContestPreflight base plus rounds and floor settings.
+- `GrillTransition` — Typed lifecycle discriminants for `ContestTransitionSubmission`, added when the mode is built.
+- `GrillQuestion` — One scheduled griller’s question turn.
+- `GrillAnswer` — Leader responses and plan changes.
+- `GrillPass` — Voluntary pass or exhausted griller slot.
+- `GrillPlan` — Immutable rebuilt plan version.
+- `GrillComplete` — Last good plan and attributed appendix.
+
 
 A direct `@leader $grill [free text]` selects the leader’s most recent completed, unsuperseded ordinary reply to `me`, or the parser’s selected or quoted message authored by that leader. Grillers default to all other room members. The direct leader-first form with explicitly named grillers and no free text restricts the floor to those grillers.
 
@@ -1102,7 +1019,7 @@ pub enum GrillStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrillSetup {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub leader: MemberNick,
     pub grillers: Vec<MemberNick>,
     pub source_message_id: EventId,
@@ -1114,7 +1031,7 @@ pub struct GrillSetup {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrillState {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub state: GrillStatus,
     pub state_version: u64,
     pub round: u32,
@@ -1125,13 +1042,13 @@ pub struct GrillState {
     pub plan_version: u32,
     pub questions_asked: u32,
     pub passed: u32,
-    pub terminal_reason: Option<String>,
+    pub terminal_reason: Option<String>, // nullable
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrillQuestion {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub round: u32,
     pub turn: u32,
     pub griller: MemberNick,
@@ -1152,7 +1069,7 @@ pub struct GrillAnswerItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrillAnswer {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub round: u32,
     pub turn: u32,
     pub leader: MemberNick,
@@ -1171,7 +1088,7 @@ pub enum GrillPassReason {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrillPass {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub round: u32,
     pub turn: u32,
     pub griller: MemberNick,
@@ -1181,7 +1098,7 @@ pub struct GrillPass {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrillPlan {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub round: u32,
     pub version: u32,
     pub leader: MemberNick,
@@ -1202,7 +1119,7 @@ pub struct GrillAppendixEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GrillComplete {
-    pub contest_id: EventId,
+    pub contest_id: ContestId,
     pub final_plan_event_id: EventId,
     pub final_plan_version: u32,
     pub reason: Option<String>,
@@ -1214,7 +1131,7 @@ Question indexes are zero-based within the referenced question event. `questions
 
 `grill.setup`, `grill.question`, `grill.answer`, `grill.pass`, `grill.plan`, and `grill.complete` go to the human and exactly the grill participants. `grill.state` is a human-facing control record. The initial source is plan v1; each accepted rebuild increments the version once. Complete references the last accepted plan event and supplies the appendix without generating another model call.
 
-Question turns are prompt-limited to 200 words. Answers use `SQUAD_TURN_WORDS`. Rebuilt plans use `SQUAD_PLAN_WORDS`, default 1,200 words, and a 4,096-token visible ceiling. Work kinds are `grill.question`, `grill.answer`, and `grill.rebuild`, using canonical work records and context-bound readers.
+Question, answer and rebuilt-plan word limits are owned by [Prompt pack](09-prompt-pack.md#word-limit-defaults); visible token ceilings come from Protocol’s canonical table. Work kinds are `grill.question`, `grill.answer`, and `grill.rebuild`, using canonical work records and context-bound readers.
 
 For r rounds and g grillers, normal preflight counts `r × (g × 2 + 1)` calls. This is the no-pass path: one question and one answer per griller, plus one rebuild per round. Reservations cover both permitted attempts for every call and conservative shared-floor context growth. Passes and early completion release unused reservations.
 
@@ -1226,9 +1143,9 @@ The TUI owns `GRILL`, `GRILL ROUND r`, and `FINAL PLAN` banners, griller-to-lead
 
 Each new mode starts in `PREFLIGHT`, applies the shared confirmation and daily-admission policy, then enters `WAITING_FOR_PARTICIPANTS`. Once earlier ordinary work has drained, it enters its first script step. Waiting consumes no provider deadline. Cancellation, expiry and rejection before admission remain preflight outcomes and dispatch no mode work.
 
-Each mode has `<mode>.setup`, `<mode>.state`, one event per committed artifact, and `<mode>.report`. The protocol owner defines the canonical envelope kinds. Setup retains the source IDs and text snapshots, participant order, resolved models, prompt hashes, limits, assignments and mode settings. State retains `contestId`, `stateVersion`, current step, nullable terminal reason, and references to committed artifacts and unfinished work. Census also retains pass and plan version; crosscheck retains grid and assignment versions; survey retains ballot stage; probe retains its role assignment.
+Each mode has `<mode>.setup`, `<mode>.state`, one event per committed artifact, and `<mode>.report`. Protocol owns generic envelope registration; each mode’s M5 phase adds its typed kinds and validators. Non-debate preflights and outcomes use the durable `contest.preflight` and `contest.preflight.result` carriers, not `<mode>.state`. Setup retains the source IDs and text snapshots, participant order, resolved models, prompt hashes, limits, assignments and mode settings. State retains `contestId`, `stateVersion`, current step, nullable terminal reason, and references to committed artifacts and unfinished work. Census also retains pass and plan version; crosscheck retains grid and assignment versions; survey retains ballot stage; probe retains its role assignment.
 
-All generated objects use strict JSON schemas with unknown properties rejected, required nullable fields explicitly required, bounded arrays, unique local IDs, and validated references to the supplied inputs. The **Prompt pack** owns the full schemas and prompt text; **Protocol, store and bus** implements their shared validation. Prose string fields together use the step’s word budget. Identifiers, enums and numeric fields do not count as prose.
+All generated objects use Protocol’s nullable/omitted `Option` rule. All generated objects use strict JSON schemas with unknown properties rejected, required nullable fields explicitly required, bounded arrays, unique local IDs, and validated references to the supplied inputs. Contests owns the full mode payload schemas and validators, implemented in `squad-protocol` when that mode is built. The **Prompt pack** owns prompt text and rendering only; **Protocol, store and bus** owns common validation and carriers. Prose string fields together use the step’s word budget. Identifiers, enums and numeric fields do not count as prose.
 
 Member steps use `roomWords` and the new-mode member-call limits. Judge steps use `planWords` and the new-mode judge-call limits. Repairs consume the same attempt counter as transport retries. A failed member is skipped after its retry and named, with its failed step, in the human report. Missing output is never converted into an empty successful answer, a vote, a closure, or a prediction. Exhausted judge attempts enter `FAILED`; accepted partial artifacts remain exportable.
 
@@ -1242,11 +1159,41 @@ The inline report blocks use `CENSUS`, `CROSSCHECK`, `SURVEY` and `PROBE` banner
 
 ### Census execution
 
+The following typed contracts land in this mode’s M5 phase; Protocol’s generic carriers are available in M1.
+```rust
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CensusStatus {
+    Preflight,
+    WaitingForParticipants,
+    Hunting,
+    Merging,
+    Rating,
+    Finalizing,
+    WaitingForPlan,
+    Reporting,
+    Complete,
+    Stopped,
+    Failed,
+}
+```
+
+- `CensusSetup` — Frozen plan, participants and pass settings.
+- `CensusState` — Pass, plan version, current step and terminal state.
+- `CensusPreflight` — Shared ContestPreflight base plus pass and source settings.
+- `CensusTransition` — Typed lifecycle discriminants for `ContestTransitionSubmission`, added when the mode is built.
+- `CensusPlan` — Accepted replacement plan snapshot.
+- `CensusHunt` — Blind lens omissions and consequences.
+- `CensusLedger` — Merged or finalized gaps with private finder provenance.
+- `CensusRating` — Per-gap ratings, covered citations and additions.
+- `CensusReport` — Pass outcomes, Chao1 inputs/value and nullable estimate bounds.
+- `CensusCaseMaterial` — Step-scoped anonymous merge/finalization material.
+
+
 `@all $census` takes a selected or quoted plan, including a grill’s latest complete plan version. `@all $census <pasted plan>` supplies the plan directly. `@nick $census` takes that member’s latest eligible reply as the plan and runs the census with the room’s members; the single mention identifies the source, not a one-member hunt. At least three members are required.
 
 Admission freezes `CENSUS_PASSES`, default 2 and bounded from 1 through 5. Each pass freezes its current plan version. A replacement plan between passes becomes a new version and never rewrites earlier hunt evidence or citations.
 
-The lens list is ordered: stakeholders; failure modes; dependencies and sequencing; hidden assumptions; external and legal factors; the day after success. For member index i in pass p, starting at zero and one respectively, assign lens `(i + p − 1) mod 6`. More than six members repeat lenses. Fewer than six use the first lenses on pass one and rotate on subsequent passes.
+The lens list is ordered: stakeholders; failure modes; dependencies and sequencing; hidden assumptions; external and legal factors; the day after success. At admission, draw a random participant-to-lens permutation and a random tie-break seed and persist both in `contest_private_maps`. Rotate the persisted lens order between passes; repeat lenses when participants exceed lens count. Never derive assignments or tie breaks from publicly known roster order. Recovery reuses the persisted mapping and seed. Lenses remain private provenance and are excluded from the rater ledger.
 
 | State | Move and actors | Visibility, template and output | Completion and failure |
 |---|---|---|---|
@@ -1254,7 +1201,7 @@ The lens list is ordered: stakeholders; failure modes; dependencies and sequenci
 | `MERGING` | `judge`. | Plan, assigned lenses and accepted blind hunts; `census.merge.md`; deduplicated gaps with source-find references, lens and consequence. | Validate that finder references exist and duplicates do not inflate finder counts. Judge exhaustion fails the mode. |
 | `RATING` | `fanout` to every participant. | Plan and the anonymous ledger, with no finder names or counts; `census.rate.md`; exactly one `{gapId, rating, citation}` per supplied gap plus optional additions. `rating` is `real`, `covered` or `trivial`; `covered` requires a plan citation. | Barrier locks ratings before finalization. Failed ballots remain missing. |
 | `FINALIZING` | `judge`, then `tally`. | `census.final.md`; retained and rejected gap references, merged additions, citations and ranking. The app computes vote counts, finder counts and the unseen estimate. | Commit the pass ledger, estimate inputs and discovery point together. Judge cannot invent finders or count rating-stage agreement as independent discovery. |
-| `WAITING_FOR_PLAN` | Human continuation between passes. | Human sees the pass report and may keep the current plan or supply a quoted replacement. No model call. | Continue to `HUNTING` with the next persisted lens assignment; stop on human request or a satisfied quiet condition. |
+| `WAITING_FOR_PLAN` | Human continuation between passes; release participant holds and deliver queued ordinary inputs, retaining the active-contest claim. | `/continue` keeps the current plan; `/continue "<plan>"` supplies replacement text; a single quoted plan attachment may instead replace it. No model call while waiting. | On continue, reacquire holds, drain earlier ordinary work through `WAITING_FOR_PARTICIPANTS`, then enter `HUNTING` with the persisted next lens assignment. Stop on human request or a satisfied quiet condition. |
 | `REPORTING` | `report`. | Assemble ranked confirmed gaps, covered items and citations, estimate line, singleton highlights and discovery curve. | Commit `census.report`, enter `COMPLETE`, and release resources. |
 
 For each gap, finder count is the number of distinct members whose blind hunt contained that gap, after duplicate merging. Multiple finds from one member count once. Rating-stage additions retain their origin but do not acquire independent blind finder counts through later votes.
@@ -1273,7 +1220,7 @@ The report must show a range, never `U` alone:
 
 `Found {n}; estimated {lo} to {hi} still unfound.`
 
-Always state that models share blind spots and the true number still unfound is at least this estimate. The rule deriving `{lo}` and `{hi}` remains an open question; a judge must not invent bounds or imply a calibrated confidence interval.
+Always state that models share blind spots and the true number still unfound is at least this estimate. The rule deriving `{lo}` and `{hi}` remains an open question; a judge must not invent bounds or imply a calibrated confidence interval. `CensusReport` retains required nullable `estimateLow: Option<f64>` and `estimateHigh: Option<f64>` alongside the Chao1 inputs and value. While unresolved, store null bounds, validate only Chao1 and show “Estimate range unavailable; range rule unresolved.” rather than a fabricated numeric headline. The quiet message is unavailable until valid bounds exist.
 
 A singleton is a confirmed gap found by exactly one blind hunter. Highlight it as something the other members missed. The human can inspect the full member-by-gap table, finder counts, lens, consequence and retained citations. Participants never receive finder identities or counts.
 
@@ -1293,9 +1240,43 @@ For m members and p passes, normal preflight counts `p × (2m + 2)` calls: m hun
 
 ### Crosscheck execution
 
+The following typed contracts land in this mode’s M5 phase; Protocol’s generic carriers are available in M1.
+```rust
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CrosscheckStatus {
+    Preflight,
+    WaitingForParticipants,
+    Extracting,
+    Inventorying,
+    BuildingGrid,
+    Reviewing,
+    Auditing,
+    Ruling,
+    Reporting,
+    Complete,
+    Stopped,
+    Failed,
+}
+```
+
+- `CrosscheckSetup` — Frozen plan, goal, constraints and participant settings.
+- `CrosscheckState` — Grid version, current step and terminal state.
+- `CrosscheckPreflight` — Shared ContestPreflight base plus source and optional extraction settings.
+- `CrosscheckTransition` — Typed lifecycle discriminants for `ContestTransitionSubmission`, added when the mode is built.
+- `CrosscheckGoal` — Explicit or extracted goal and constraints.
+- `CrosscheckInventory` — Plan-hidden lens inventory.
+- `CrosscheckGrid` — Retained cells, trim provenance and private assignments.
+- `CrosscheckReview` — Assigned-cell evidence, exclusions or open gaps.
+- `CrosscheckAudit` — Anonymous sampled-closure findings and proposed case.
+- `CrosscheckRuling` — Challenged-closure rulings and retained additions.
+- `CrosscheckAcceptance` — Human acceptance bound to exact cells, plan and grid.
+- `CrosscheckReport` — Coverage ledger, audit outcome and residual risks.
+- `CrosscheckCaseMaterial` — Step-scoped normalization or ruling inputs.
+
+
 `@all $crosscheck` takes a selected, quoted or pasted plan as census does, plus goal and constraints in free text. If goal and constraints are absent, the judge extracts them from the plan in one extra call before inventory work. That extraction uses `crosscheck.normalize.md` with an extraction task and returns only `{goal, constraints}` for delivery to inventory writers.
 
-Inventory writers receive fresh step contexts containing only the goal, constraints and assigned lens. They receive neither the plan nor ordinary history that could reveal it. The ordered lenses are stakeholders; phases; dependencies; failure states; operating conditions; decision rights. Assign them in roster order, wrapping after six.
+Inventory writers receive fresh step contexts containing only the goal, constraints and assigned lens. They receive neither the plan nor ordinary history that could reveal it. The ordered lenses are stakeholders; phases; dependencies; failure states; operating conditions; decision rights. Assign them using a random lens permutation and tie-break seed drawn per contest, persisted in `contest_private_maps`, wrapping after six. Recovery reuses both; public roster order cannot reconstruct either assignment.
 
 | State | Move and actors | Visibility, template and output | Completion and failure |
 |---|---|---|---|
@@ -1307,7 +1288,7 @@ Inventory writers receive fresh step contexts containing only the goal, constrai
 | `RULING` | `judge`. | Plan, grid, cell evidence and audits; `crosscheck.rule.md`; challenged-cell rulings and accepted or rejected proposed additions with reasons. | The judge may reopen a closure or add a case; it may not drop a retained cell or accept a risk for the human. |
 | `REPORTING` | `tally`, then `report`. | Assemble the full coverage ledger, audit outcome, cap omissions and residual risks. | Commit `crosscheck.report`, enter `COMPLETE`, and release resources. |
 
-A normalized inventory item retains every originating member reference, even when duplicate items merge. A reviewer is ineligible for a cell if it contributed either constituent item. Assignment balances cell counts among eligible reviewers, with stable roster order breaking ties. If no eligible reviewer exists, the cell stays open and the report names the assignment hole; it is never assigned back to its author.
+A normalized inventory item retains every originating member reference, even when duplicate items merge. A reviewer is ineligible for a cell if it contributed either constituent item. Assignment balances cell counts among eligible reviewers, with the persisted private random seed breaking ties. If no eligible reviewer exists, the cell stays open and the report names the assignment hole; it is never assigned back to its author.
 
 For lens counts `n1 … nL`, let `N = Σ nl`. Before the cap, grid size is:
 
@@ -1329,7 +1310,7 @@ Select two distinct auditors randomly from participating members and persist tha
 
 Auditors identify false closures and each name one case the grid itself may have missed. The judge rules on challenges and proposed additions. An accepted addition becomes an open cell with its own proposed fix or evidence requirement; it is not silently closed by the ruling. Cap pressure cannot erase an accepted audit finding: retain it as an explicit residual gap if the grid already contains 200 cells.
 
-The coverage ledger retains every cell’s constituents, disposition, citation or exclusion reason, proposed fix, audit challenges and resolution. An explicit human acceptance binds to a cell or residual risk and the current plan version. A later plan change does not silently carry that acceptance forward.
+The coverage ledger retains every cell’s constituents, disposition, citation or exclusion reason, proposed fix, audit challenges and resolution. `/accept <cellId…> -- <reason>` is valid on a `COMPLETE` crosscheck. It appends `crosscheck.acceptance`, binds to the current plan, grid and expected state version, updates the human coverage projection, and does not rerun completed script steps. An explicit human acceptance binds to a cell or residual risk and the current plan version. A later plan change does not silently carry that acceptance forward.
 
 Display the stop rule: every retained cell is closed by evidence, excluded with justification, or explicitly accepted by the human, and the audit finds no false closure or material unresolved missing case. State this as a bounded stop, not proof of completeness. `COMPLETE` means script execution finished; it does not itself mean this stop rule passed. Failed review or audit work and cap omissions remain visible.
 
@@ -1338,6 +1319,36 @@ For m members and extraction indicator e of zero or one, normal preflight counts
 `/export crosscheck [id]` includes goal and constraints, inventory provenance, normalized items, candidate and retained grid, assignments, every review, audit samples and findings, rulings, human risk acceptances and the bounded-stop result.
 
 ### Survey execution
+
+The following typed contracts land in this mode’s M5 phase; Protocol’s generic carriers are available in M1.
+```rust
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SurveyStatus {
+    Preflight,
+    WaitingForParticipants,
+    Collecting,
+    Extracting,
+    Voting,
+    Selecting,
+    Revoting,
+    Reporting,
+    Complete,
+    Stopped,
+    Failed,
+}
+```
+
+- `SurveySetup` — Frozen question, answer set and participants.
+- `SurveyState` — Ballot stage, current step and terminal state.
+- `SurveyPreflight` — Shared ContestPreflight base plus source and optional collection settings.
+- `SurveyTransition` — Typed lifecycle discriminants for `ContestTransitionSubmission`, added when the mode is built.
+- `SurveyClaims` — Neutral claims and restricted answer provenance.
+- `SurveyVote` — Immutable first ballot with reasons and confidence.
+- `SurveySelection` — App-selected claims and bundled anonymous opposing reasons.
+- `SurveyRevote` — Second ballot and required change evidence.
+- `SurveyReport` — Five bands, switches and settling questions from stored tallies.
+- `SurveyCaseMaterial` — Frozen extraction or report inputs with authorized provenance.
+
 
 `@all $survey <question>` starts with parallel answers. `@all $survey` instead freezes the room’s most recent set of parallel answers to one question. Reuse only that set’s accepted answer snapshots, never a mixture of unrelated latest replies. A reused set creates no new answer calls. Grammar, eligibility validation and exact errors remain parser-owned.
 
@@ -1376,6 +1387,32 @@ For m members and collection indicator q of zero or one, normal preflight counts
 
 ### Probe execution
 
+The following typed contracts land in this mode’s M5 phase; Protocol’s generic carriers are available in M1.
+```rust
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ProbeStatus {
+    Preflight,
+    WaitingForParticipants,
+    Proposing,
+    Predicting,
+    Reporting,
+    Complete,
+    Stopped,
+    Failed,
+}
+```
+
+- `ProbeSetup` — Frozen brief, participants, role split and sit-out.
+- `ProbeState` — Current step, artifact references and terminal state.
+- `ProbePreflight` — Shared ContestPreflight base plus role and brief settings.
+- `ProbeTransition` — Typed lifecycle discriminants for `ContestTransitionSubmission`, added when the mode is built.
+- `ProbeExplanation` — One blind explanation and key assumption.
+- `ProbeCheck` — One blind check with measurements and outcomes.
+- `ProbePrediction` — Locked prediction or inability for every frozen check.
+- `ProbeReport` — Prediction matrix, decision tree and inseparable groups.
+- `ProbeCaseMaterial` — Locked proposals and predictions for reporting.
+
+
 `@all $probe <observation, what is ruled out, what can be inspected>` takes a diagnostic brief. Models remain text-only and do not run checks. The output tells the human what to inspect.
 
 Probe needs an even participating count of at least four. If the resolved count is odd, the last member in resolved roster order sits out. Name it in the transcript before execution and exclude it from holds, calls and role assignment. If fewer than four remain, refuse admission through the parser-owned error.
@@ -1388,7 +1425,7 @@ The application randomly splits the participating members into equally sized exp
 | `PREDICTING` | `fanout` to explainers with accepted explanations. | Own explanation and all accepted anonymous checks, no other explanations or predictions; `probe.predict.md`; one prediction or explicit inability to predict per check. | Barrier locks the prediction matrix. Failed rows remain missing. |
 | `REPORTING` | One judge-backed `report`. | Brief, locked explanations, checks and prediction matrix; `probe.report.md`; ordered distinguishing checks, decision tree, inseparable explanation groups and unexpected-result branches. | Validate references and commit `probe.report`; enter `COMPLETE` and release resources. |
 
-An explanation contains `explanation`, `keyAssumption`. A check contains `check`, `measure`, `outcomes`, `effort`, and a non-destructive procedure. The router assigns stable explanation and check IDs after acceptance.
+An explanation contains `explanation`, `keyAssumption`. A check contains `check`, `measure`, `outcomes`, `effort`, and a non-destructive procedure. The router assigns anonymous UUIDv4 explanation and check IDs, or shuffled opaque labels, at the proposal barrier after acceptance.
 
 A prediction item contains `checkId`, nullable `expectedOutcome`, and nullable `cannotPredictReason`, with exactly one of those two fields nonnull. Every accepted check appears exactly once in an explainer’s row. Unpredictable and missing are different states. A missing row cannot support elimination of an explanation.
 

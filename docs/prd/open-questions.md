@@ -3,7 +3,6 @@
 **Agents and OpenRouter**
 
 - When the catalog omits a usable context limit, which shared error and startup behavior should apply? The previous requirement for an explicit context-limit override has no equivalent among the permitted environment variables.
-- What word limits, visible output ceilings, and deadlines apply to the four new modes’ member Work kinds? FEATURES2.md fixes the new judge effort and visible ceiling, but the member limits still need values in the owning Contests and Prompt pack contracts.
 
 **Foundations, Room API and CLI**
 

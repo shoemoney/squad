@@ -1,8 +1,8 @@
 # Command grammar and parser
 
-`crates/squad-protocol/src/parser/` owns tokenization, grammar, the parser AST, variable expansion, and exact user-facing validation strings. The TUI, one-shot commands, and router use the same Rust crate within the single `squad` binary. Parsing is deterministic and has no side effects. The router repeats validation against authoritative configuration, room variables, and referenced records before acceptance.
+`crates/squad-protocol/src/parser/` owns tokenization, grammar, the parser AST, variable expansion, and exact user-facing validation strings. The TUI and one-shot commands parse with the same Rust crate within the single `squad` binary. Parsing is deterministic and has no side effects. The router revalidates the supplied AST and references against authoritative configuration, room variables, and referenced records before acceptance.
 
-Shared identifiers, envelope fields, and the complete `ErrorCode` enum belong to **Message protocol and bus**. Submission metadata and `RoomHandle` operations belong to **Room API and CLI**. `SquadConfig` and environment loading belong to **Foundations**. Source resolution, cases, admission, and contest execution belong to **Contests: debate, tournament, grill**. The parser consumes those contracts without defining alternate versions.
+Shared identifiers, envelope fields, and the complete `ErrorCode` enum belong to **Message protocol and bus**. `SubmissionMeta` and parser context types are declared in Protocol; `RoomHandle` operations belong to **Room API and CLI**. `SquadConfig` and environment loading belong to **Foundations**. Source resolution, cases, admission, and contest execution belong to **Contests**. The parser consumes those contracts without defining alternate versions.
 
 Live requests use the in-process bus, and durable room state uses SQLite. The parser receives supplied snapshots and record summaries rather than reading or changing persistent state.
 
@@ -10,44 +10,13 @@ Only human input is parsed for routing or commands. Model output, quoted text, e
 
 All seven modes use the shared contest engine under D71. The parser identifies the requested mode, resolves selectors, extracts arguments, and stages variable updates. The engine owns scripts over `collect`, `pick`, `fanout`, `turns`, `judge`, `tally`, `barrier`, and `report`, including their visibility, failure rules, and preflight call counts. Move names are not additional executable commands. The parser does not assign lenses, divide work, choose auditors, split probe roles, compute tallies, or assemble reports.
 
-### Canonical numbers
-
-The following values incorporate the binding architecture changes. Execution behavior remains defined by each contract’s owning section.
-
-| Thing | Value |
-|---|---|
-| Members | 1 to 12; nick pattern `^[a-z][a-z0-9_]{0,31}$`; reserved `me`, `all`, `judge`, `system`, `squad` |
-| `ROUNDS` | default 10, min 1, max 20 |
-| Word limits, prompt-enforced | `roomWords` 500, `turnWords` 400, `finalTurnWords` 500 |
-| Visible output token ceilings | 2,048 for room replies, tournament entries, debate turns, grill questions and grill answers; 4,096 for final judge calls, standalone judge calls, `judge.tournament`, census judge calls, crosscheck judge calls, survey judge calls, probe judge calls and rebuilt plans; 512 for `judge.round` |
-| Reasoning effort | medium for members; high for judge except low for `judge.round` and medium for census, crosscheck, survey and probe judge calls; reasoning text never forwarded |
-| Ordinary reply | timeouts 15 s connect / 90 s first token / 30 s idle / 300 s total; 2 attempts (one automatic retry), then an error event with a retry action |
-| Debate turn | 180 s deadline; 2 attempts, the second issued by the orchestrator; then forfeit |
-| Judge call | 3 attempts including schema-repair attempts |
-| Per-agent queue | 20 items, then `AGENT_QUEUE_FULL` |
-| User message size | 1 to 32,768 UTF-8 bytes |
-| Daily max and confirmation | daily max `SQUAD_DAILY_MAX_USD` = 20; contest confirmation threshold `budget.debateConfirmUsd` = 2 |
-| Quotes per message | max 12 |
-| `GRILL_ROUNDS` | default 2, min 1, max 10 |
-| Grill word limits, prompt-enforced | question turn 200; answer turn `turnWords`; rebuilt plan `planWords` 1,200 |
-| Reasoning token budgets | low 1,024; medium 4,096; high 8,192 |
-| Final judge call deadline | 300 s |
-| `judge.round` and `judge.tournament` deadline | 120 s |
-| Preflight plan expiry | 10 min |
-| Work lease | 60 s, renewed every 20 s |
-| Ingress channel capacity | 256 |
-| Mailbox capacity | 1; synchronous `try_send`; Full means a wake-up is already pending |
-| Feed broadcast capacity | 4,096; recover from lag by re-reading the events table after the last seen cursor |
-| `CENSUS_PASSES` | default 2, min 1, max 5 |
-| Census participants | at least 3 |
-| Crosscheck participants | at least 3, so a cross-lens pair can be assigned to a member who supplied neither item |
-| Probe participants | an even active count of at least 4; an odd selected count of at least 5 leaves the last selected member sitting out |
+Canonical values are defined in [Protocol’s canonical numbers and configuration](02-message-protocol-store-and-bus.md#canonical-numbers-and-configuration).
 
 Configuration comes from the single `.env` file through the environment-loading contract in **Foundations**. Process environment variables override file values. Word limits use `SQUAD_ROOM_WORDS`, `SQUAD_TURN_WORDS`, `SQUAD_FINAL_TURN_WORDS`, and optional `SQUAD_PLAN_WORDS`; spending settings use `SQUAD_DAILY_MAX_USD` and `SQUAD_DEBATE_CONFIRM_USD`. `SQUAD_GRILL_ROUNDS` seeds `GRILL_ROUNDS`. Optional `SQUAD_CENSUS_PASSES` seeds `CENSUS_PASSES` and is not included in `.env.example`. Optional `SQUAD_REASONING_EFFORT_<NICK>` overrides a member’s default effort. Timeouts, attempt counts, queue depth, visible output token ceilings, reasoning budgets, message size limits, preflight expiry, leases, and channel capacities are compile-time constants in `squad-protocol`.
 
 For models whose catalog entry lists reasoning support, the request sends `max_tokens = visible ceiling + reasoning budget` and an explicit `reasoning.max_tokens` equal to that budget. Models without reasoning support receive the visible ceiling without reasoning parameters. Default effort does not reject an unsupported model; an explicitly configured unsupported effort follows the validation contract in **Agents and OpenRouter**. Provider request construction, alias probes, and cost accounting belong to that section.
 
-The daily max uses actual reported call costs under **Message protocol and bus**. In-flight calls finish when the max is reached. New generation and contest estimates that exceed the remaining daily amount are rejected under the admission contract in **Contests: debate, tournament, grill**.
+The daily max uses actual reported call costs under **Message protocol and bus**. In-flight calls finish when the max is reached. New generation and contest estimates that exceed the remaining daily amount are rejected under the admission contract in **Contests**.
 
 ### Grammar
 
@@ -127,9 +96,11 @@ Supported escapes remove the protecting backslash in resulting text. `\@claude`,
 
 Email addresses need no escaping because their internal `@` is not at a token boundary. Use `\@` or code formatting to guarantee literal treatment in any position.
 
+The entry point is `parse(raw: &str, meta: &SubmissionMeta, ctx: &ParseContext) -> ParseResult`; `SubmissionMeta`, `ParseContext`, `RecordSummary`, `VariableName`, `VariableUpdate` and `ExportScope` are declared in [Protocol](02-message-protocol-store-and-bus.md#shared-api-value-types).
+
 ### Parsed AST
 
-`Nick`, `EventId`, `MessageId`, `DebateId`, `ContestId`, and `ErrorCode` below use the shared protocol types. Arrays and values receive runtime validation. The helper enums represent the existing literal values.
+`MemberNick`, `EventId`, `MessageId`, `DebateId`, `ContestId`, and `ErrorCode` below use the shared protocol types. Arrays and values receive runtime validation. The helper enums represent the existing literal values.
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -141,22 +112,6 @@ pub struct Span {
 } // UTF-8 byte offsets into raw; end exclusive.
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum VariableName {
-    #[serde(rename = "ROUNDS")]
-    Rounds,
-    #[serde(rename = "GRILL_ROUNDS")]
-    GrillRounds,
-    #[serde(rename = "CENSUS_PASSES")]
-    CensusPasses,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct VariableUpdate {
-    pub name: VariableName,
-    pub value: u8,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversationalInput {
     pub raw: String,
@@ -164,19 +119,6 @@ pub struct ConversationalInput {
     pub quote: Vec<EventId>,
     #[serde(default)]
     pub variable_updates: Vec<VariableUpdate>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ExportScope {
-    Room,
-    Debate,
-    Grill,
-    Tournament,
-    Census,
-    Crosscheck,
-    Survey,
-    Probe,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -206,7 +148,7 @@ pub enum PlanSource {
         event_id: EventId,
     },
     LatestReply {
-        nick: Nick,
+        nick: MemberNick,
     },
 }
 
@@ -227,7 +169,7 @@ pub enum SurveySource {
 pub struct PendingPick {
     pub contest_id: ContestId,
     pub mode: QuestionFirstMode,
-    pub eligible: Vec<Nick>,
+    pub eligible: Vec<MemberNick>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -243,7 +185,7 @@ pub enum SlashAction {
     },
     Stop {
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        nick: Option<Nick>,
+        nick: Option<MemberNick>,
     },
     Judge {
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -256,7 +198,15 @@ pub enum SlashAction {
     Export {
         scope: ExportScope,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        id: Option<String>,
+        id: Option<ContestId>,
+    },
+    Continue {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        plan: Option<String>,
+    },
+    Accept {
+        cell_ids: Vec<CellId>,
+        reason: String,
     },
     Clear,
     Who,
@@ -273,13 +223,13 @@ pub enum ParsedInput {
     Message {
         #[serde(flatten)]
         input: ConversationalInput,
-        recipients: Vec<Nick>,
+        recipients: Vec<MemberNick>,
         body: String,
     },
     Debate {
         #[serde(flatten)]
         input: ConversationalInput,
-        debaters: [Nick; 2],
+        debaters: [MemberNick; 2],
         rounds: u8,
         instruction: String,
         judge_requested: bool,
@@ -303,14 +253,14 @@ pub enum ParsedInput {
     Tournament {
         #[serde(flatten)]
         input: ConversationalInput,
-        entrants: Vec<Nick>,
+        entrants: Vec<MemberNick>,
         prompt: String,
     },
     Grill {
         #[serde(flatten)]
         input: ConversationalInput,
-        leader: Nick,
-        grillers: Vec<Nick>,
+        leader: MemberNick,
+        grillers: Vec<MemberNick>,
         rounds: u8,
         focus: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -320,7 +270,7 @@ pub enum ParsedInput {
         #[serde(flatten)]
         input: ConversationalInput,
         mode: QuestionFirstMode,
-        candidates: Vec<Nick>,
+        candidates: Vec<MemberNick>,
         question: String,
         rounds: u8,
         judge_requested: bool,
@@ -328,19 +278,19 @@ pub enum ParsedInput {
     ContestPick {
         raw: String,
         contest_id: ContestId,
-        nicks: Vec<Nick>,
+        nicks: Vec<MemberNick>,
     },
     Census {
         #[serde(flatten)]
         input: ConversationalInput,
-        participants: Vec<Nick>,
+        participants: Vec<MemberNick>,
         plan: PlanSource,
         passes: u8,
     },
     Crosscheck {
         #[serde(flatten)]
         input: ConversationalInput,
-        participants: Vec<Nick>,
+        participants: Vec<MemberNick>,
         plan: PlanSource,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         goal_constraints: Option<String>,
@@ -348,13 +298,13 @@ pub enum ParsedInput {
     Survey {
         #[serde(flatten)]
         input: ConversationalInput,
-        participants: Vec<Nick>,
+        participants: Vec<MemberNick>,
         source: SurveySource,
     },
     Probe {
         #[serde(flatten)]
         input: ConversationalInput,
-        participants: Vec<Nick>,
+        participants: Vec<MemberNick>,
         brief: String,
     },
 }
@@ -439,7 +389,7 @@ produces a direct grill with `rounds: 3` and focus `test it for 3 rounds`, provi
 
 with one eligible quoted plan produces `passes: 3` and a staged sticky value of 3.
 
-Assignments are staged data in the AST. Parsing never changes room state. Rejected submissions leave all sticky values unchanged. The router commits updates through the variable-change contract in **Message protocol and bus**. Acceptance and confirmation timing for a contest follow **Contests: debate, tournament, grill**.
+Assignments are staged data in the AST. Parsing never changes room state. Rejected submissions leave all sticky values unchanged. The router commits updates through the variable-change contract in **Message protocol and bus**. Acceptance and confirmation timing for a contest follow **Contests**.
 
 A contest freezes its applicable resolved round or pass count at admission. A question-first submission carries its resolved round count through answer collection and the pick step. Later assignments affect subsequent contests. Census plan changes between passes follow its script; they do not change the admitted pass count.
 
@@ -449,13 +399,13 @@ A human conversational submission may carry `quote` metadata under the canonical
 
 Quoted text is evidence. Mentions, commands, variables, and assignments inside it remain literal. Quotes do not add recipients or independently select debate solutions.
 
-`replyTo` is valid only on direct `$debate`, with at most two IDs. It selects original solutions rather than quoting arbitrary content. Explicit selections must satisfy the source-selection contract in **Contests: debate, tournament, grill**. A supplied invalid selection is rejected rather than silently replaced. Question-first contests use their collected answers and reject supplied solution selections.
+`replyTo` is valid only on direct `$debate`, with at most two IDs. It selects original solutions rather than quoting arbitrary content. Explicit selections must satisfy the source-selection contract in **Contests**. A supplied invalid selection is rejected rather than silently replaced. Question-first contests use their collected answers and reject supplied solution selections.
 
-For a direct grill, a selected plan is supplied through `quote`, not `replyTo`. Exactly one eligible quoted reply from the leader selects that plan and becomes `planSelection`; other quoted material remains evidence under the quote contract. Supplied quotes without an eligible leader reply, or with multiple eligible leader replies, are rejected as an ambiguous or invalid plan selection. Without quotes, `planSelection` is absent and admission resolves the leader’s most recent eligible reply to `me`. Plan eligibility and authoritative source freezing belong to **Contests: debate, tournament, grill**.
+For a direct grill, a selected plan is supplied through `quote`, not `replyTo`. Exactly one eligible quoted reply from the leader selects that plan and becomes `planSelection`; other quoted material remains evidence under the quote contract. Supplied quotes without an eligible leader reply, or with multiple eligible leader replies, are rejected as an ambiguous or invalid plan selection. Without quotes, `planSelection` is absent and admission resolves the leader’s most recent eligible reply to `me`. Plan eligibility and authoritative source freezing belong to **Contests**.
 
 Census and crosscheck accept a selected member reply or a selected grill plan version through `quote`. Exactly one eligible plan source must be present among supplied quotes. Supplied quotes with no eligible plan source or multiple eligible plan sources are rejected; the parser does not fall back to a pasted plan or latest reply. Other quoted material remains evidence under the quote contract and does not become another plan. The engine’s per-step delivery rules control which evidence reaches each actor.
 
-A quoted grill source identifies a stored plan version, not the grill’s report wrapper or question-and-answer appendix. Selecting the latest plan in the TUI supplies that version’s event ID. Source eligibility and freezing belong to **Contests: debate, tournament, grill**.
+A quoted grill source identifies a stored plan version, not the grill’s report wrapper or question-and-answer appendix. Selecting the latest plan in the TUI supplies that version’s event ID. Source eligibility and freezing belong to **Contests**.
 
 Quotes do not select survey answer batches or replace the required probe brief. Quoted, expanded, and resolved source text remains literal throughout all four modes.
 
@@ -487,7 +437,7 @@ Quote at least one message for @judge to rule on.
 
 A new standalone case supplies exactly the quoted messages and the user’s question. Its ruling is free-form text, not the scored debate verdict schema.
 
-A verdict quote invokes the sealed-case follow-up contract in **Contests: debate, tournament, grill**. That contract supplies the case material, its verdict, and its prior follow-ups. The parser does not read room-member history, allocate a case ID, or assemble judge context.
+A verdict quote invokes the sealed-case follow-up contract in **Contests**. That contract supplies the case material, its verdict, and its prior follow-ups. The parser does not read room-member history, allocate a case ID, or assemble judge context.
 
 ### Debate extraction
 
@@ -516,18 +466,18 @@ your solutions until 10 at which time @judge decides which is better
 
 Numeric prose such as `until 7` does not set the round count. An empty direct debate instruction is legal.
 
-The parser passes the instruction and optional solution selections to **Contests: debate, tournament, grill**:
+The parser passes the instruction and optional solution selections to **Contests**:
 
 - Existing solutions use that section’s latest-eligible-reply and shared-topic rules.
 - Explicit selections override recency and retain authorship, eligibility, and shared-topic validation.
 - A fresh topic is valid. If either debater lacks an eligible prior solution on the topic, the orchestrator runs opening round 0 for both. Missing inferred solutions are not a parser rejection.
 - Round 0 does not count toward `ROUNDS`. Its positions become the solutions through the `debate.setup` contract.
 
-A direct debate submission creates no ordinary reply work. Admission, `debate.preflight`, confirmation, waiting for busy debaters, and source freezing belong to **Contests: debate, tournament, grill**. Every preflight states the resolved round count, number of model calls, and estimated cost.
+A direct debate submission creates no ordinary reply work. Admission, `debate.preflight`, confirmation, waiting for busy debaters, and source freezing belong to **Contests**. Every preflight states the resolved round count, number of model calls, and estimated cost.
 
 Only one contest may be active in the room. A second contest submission receives the exact occupied-room error below. A pending pick counts as an active contest. A busy member alone does not cause that rejection; the admitted debate may wait in `WAITING_FOR_DEBATERS`.
 
-A direct debate without `@judge` ends in `COMPLETE_UNJUDGED`. `/judge` can request judging afterward. Judge-model conflict handling belongs to **Contests: debate, tournament, grill** and does not change the AST.
+A direct debate without `@judge` ends in `COMPLETE_UNJUDGED`. `/judge` can request judging afterward. Judge-model conflict handling belongs to **Contests** and does not change the AST.
 
 ### Tournament extraction
 
@@ -535,7 +485,7 @@ A direct debate without `@judge` ends in `COMPLETE_UNJUDGED`. `/judge` can reque
 
 Remove `$tournament`, active entrant selectors and exclusions, active assignments, and any active `@judge` token to extract the prompt. Expand variables, decode escapes, preserve protected code, normalize whitespace across removed tokens, and trim surrounding whitespace.
 
-Judging is implied. There is no pick step and no `ROUNDS` setting for tournament length. With `k` entrants, the tournament runs `k-1` elimination rounds under **Contests: debate, tournament, grill**. Blind judging keeps the configured judge even when its model is an entrant.
+Judging is implied. There is no pick step and no `ROUNDS` setting for tournament length. With `k` entrants, the tournament runs `k-1` elimination rounds under **Contests**. Blind judging keeps the configured judge even when its model is an entrant.
 
 The parser emits the resolved entrants and prompt. The contest engine owns entry generation, rankings, eliminations, retries, visibility, and trophies. Its preflight shows `k + (k-1) + ... + 2` entry calls plus `k-1` judge calls and the estimated cost.
 
@@ -555,7 +505,7 @@ A single-member direct form without an eligible prior or selected plan is reject
 
 For a direct grill, remove `$grill`, active participant mentions, and active assignments to extract the focus. Expand variables, decode escapes, preserve protected code, normalize whitespace across removed tokens, and trim surrounding whitespace. An empty direct focus is legal. Active `@judge` is prohibited.
 
-The parser emits the leader, grillers, focus, selected plan if supplied, and effective `GRILL_ROUNDS`. Admission freezes the source under **Contests: debate, tournament, grill**. The grill has no judge and no winner. Its shared-floor visibility, sequential turns, rotation, `PASS` handling, plan rebuilding, and final appendix belong to that section.
+The parser emits the leader, grillers, focus, selected plan if supplied, and effective `GRILL_ROUNDS`. Admission freezes the source under **Contests**. The grill has no judge and no winner. Its shared-floor visibility, sequential turns, rotation, `PASS` handling, plan rebuilding, and final appendix belong to that section.
 
 The preflight states the resolved round count, `rounds × (grillers × 2 + 1)` model calls, and estimated cost.
 
@@ -583,7 +533,7 @@ For crosscheck, source selection is:
 
 A sole-member crosscheck with a pasted plan uses a quoted source or an `@all` participant selector to avoid confusing the plan with the brief. No model call guesses which part of an unseparated pasted body is the plan.
 
-A supplied invalid quoted source is rejected rather than replaced by another source. Latest-reply eligibility and authoritative plan freezing use supplied record summaries and the source contract in **Contests: debate, tournament, grill**.
+A supplied invalid quoted source is rejected rather than replaced by another source. Latest-reply eligibility and authoritative plan freezing use supplied record summaries and the source contract in **Contests**.
 
 ### Census extraction
 
@@ -675,7 +625,7 @@ Pick exactly one of: {eligible}.
 
 Other input is handled normally while the pick remains pending. For example, `@claude explain your third point` is an ordinary message. Without a pending pick, mentions-only input follows ordinary-message validation and has no special meaning.
 
-Preflight and cost confirmation happen after a valid pick. The later estimate counts only the ensuing contest calls; it excludes the ordinary answers already collected and billed. A pending pick does not expire and is restored after restart under **Contests: debate, tournament, grill**.
+Preflight and cost confirmation happen after a valid pick. The later estimate counts only the ensuing contest calls; it excludes the ordinary answers already collected and billed. A pending pick does not expire and is restored after restart under **Contests**.
 
 `/stop` during a pending pick cancels the contest as `STOPPED` with reason `pick_cancelled`; the collected answers remain ordinary replies in the transcript and private histories. Escape follows the TUI contract: close the topmost transient element first; with none open, request global stop and require a confirming second Escape within 2 s during a contest.
 
@@ -686,11 +636,13 @@ This is the complete v1 slash command set. Commands are case-sensitive and consu
 | Form | Parser result and behavior |
 |---|---|
 | `/set NAME value` | Accept `NAME=ROUNDS`, `NAME=GRILL_ROUNDS`, or `NAME=CENSUS_PASSES`; emit the equivalent variable update. |
-| `/stop` | Emit a room-wide stop action under the cancellation contracts in **Agents and OpenRouter** and **Contests: debate, tournament, grill**. |
+| `/stop` | Emit a room-wide stop action under the cancellation contracts in **Agents and OpenRouter** and **Contests**. |
 | `/stop @nick` | Emit a stop action for one configured member. |
-| `/judge [debateId]` | Request judging of an eligible stopped or finished debate’s existing transcript under **Contests: debate, tournament, grill**. |
+| `/judge [debateId]` | Request judging of an eligible stopped or finished debate’s existing transcript under **Contests**. |
 | `/regen [messageId]` | Request reply regeneration under **Message protocol and bus** and **Room API and CLI**. |
 | `/export room\|debate\|grill\|tournament\|census\|crosscheck\|survey\|probe [id]` | Request a markdown export under **Room API and CLI**. The scope is required. |
+| `/continue ["<plan>"]` | Continue the active census at `WAITING_FOR_PLAN`; absent plan keeps the current plan, while a quoted string supplies replacement text. A single eligible quote attachment may supply the replacement instead. |
+| `/accept <cellId…> -- <reason>` | Explicitly accept the named residual risks on the current `COMPLETE` crosscheck, bound to its plan, grid and state version. |
 | `/clear` | Wipe the persistent room under **Message protocol and bus**. This is not a display-only action. |
 | `/who` | Show the configured roster, resolved model identities, presence, debate win/loss records, and tournament trophy counts through the shared room-state contract. |
 | `/help` | Show this grammar, supported commands, and examples without invoking a model. |
@@ -704,19 +656,25 @@ The exact usage strings are:
 /stop [@nick]
 /judge [debateId]
 /regen [messageId]
+/continue ["<plan>"]
+/accept <cellId…> -- <reason>
 /export room|debate|grill|tournament|census|crosscheck|survey|probe [id]
 /clear
 /who
 /help
 ```
 
+`/continue` accepts zero arguments or one double-quoted JSON string, decoded once without mention, variable or assignment expansion. The replacement must contain non-whitespace text. At most one eligible plan quote attachment may be supplied instead of text; both sources are rejected. It resolves the active census ID and expected state version from `ParseContext`. Continuing reacquires released holds and drains earlier ordinary work before the next pass.
+
+`/accept` requires one or more unique UUIDv4 `CellId` values, a literal `--` separator, and a non-whitespace reason consuming the remainder unchanged. It targets the latest retained `COMPLETE` crosscheck in the supplied summaries; the front end freezes its contest ID, plan/grid event IDs and expected state version in `Request::CrosscheckAccept`. The router rejects stale or unavailable targets. These controls are parsed in M1, with execution enabled only when the corresponding mode lands in M5.
+
 Argument counts are checked before argument values. For an incorrect `/set` argument count, the usage is `/set ROUNDS <1-20> | /set GRILL_ROUNDS <1-10> | /set CENSUS_PASSES <1-5>`. Optional IDs use the identifier validation defined by their owning contracts. The parser does not resolve optional targets from prose.
 
 Stopping does not require an active contest. Stop scope, queued-work cancellation, and terminal-transition arbitration follow the owning cancellation contracts. A stopped debate preserves its transcript and skips automatic judging.
 
-`/judge` targets debates only; it does not judge grills, restart tournament ranking, or start an additional ruling for census, crosscheck, survey, or probe. Judge-only admission, confirmation, cancellation, and restoration of a debate’s prior status belong to **Contests: debate, tournament, grill**.
+`/judge` targets debates only; it does not judge grills, restart tournament ranking, or start an additional ruling for census, crosscheck, survey, or probe. Judge-only admission, confirmation, cancellation, and restoration of a debate’s prior status belong to **Contests**.
 
-`/export` uses `RoomHandle::export(scope, id) -> String` under **Room API and CLI**. Markdown export and banner text live in `squad-core`; the parser does not write files.
+`/export` uses `RoomHandle::export(scope, id: Option<ContestId>) -> Result<String, RoomError>` under **Room API and CLI**. Markdown export and banner text live in `squad-core`; the parser does not write files.
 
 Models resolve at startup as defined by **Agents and OpenRouter**. `SQUAD_MODEL_<NICK>` values supply model slugs; a concrete slug selects a fixed version, and a `~...-latest` alias tracks releases under the configuration contract in **Foundations**. Every completion uses the concrete slug resolved at startup.
 
@@ -736,75 +694,83 @@ Within a category, report the leftmost text violation. For metadata checks, vali
 
 For the four new modes, selector legality and participant count precede missing body or source checks. Census and crosscheck source eligibility, latest-reply availability, and survey answer-batch availability are contextual checks in category 5. The census quoted-and-pasted conflict is an argument check in category 3. An accepted odd probe count is not an error.
 
-Placeholders are substituted without additional quoting. This table owns user-facing text, not a separate error-code enum.
+Placeholders are substituted without additional quoting. This table owns each exact string and its mapping to Protocol’s existing `ErrorCode` enum. `@me`, question-first minimums and census both-source conflicts use `INVALID_COMMAND`; ambiguous selected grill/census sources use their named source-missing code. Busy codes depend on the requested mode, not the currently active mode.
 
-| Rule | Exact user-facing error |
-|---|---|
-| Empty or whitespace-only input | `Enter a message or command.` |
-| Text exceeds the canonical byte limit | `Keep the submission within 32,768 UTF-8 bytes.` |
-| Unterminated inline code | `Close the inline code with a backtick.` |
-| Unterminated fence | `Close the code block with three backticks.` |
-| Invalid active sigil token | `Invalid token: {token}. Escape the sigil to use it literally.` |
-| Unknown `$verb` | `Unknown command: ${verb}.` |
-| Reserved future command | `Command ${verb} is reserved and unavailable in v1.` |
-| More than one `$verb` | `Use only one $ command per submission.` |
-| Unknown slash command | `Unknown slash command: /{name}.` |
-| Wrong slash argument count | `Usage: {usage}` |
-| Unknown variable, including `/set` | `Unknown variable: {name}.` |
-| Invalid `ROUNDS` value | `ROUNDS must be an integer from 1 to 20.` |
-| Invalid slash identifier | `Invalid {argument}: {value}.` |
-| Too many quotes | `Attach no more than 12 quoted messages.` |
-| Quote reference cannot be resolved | `Quoted message {id} is unavailable.` |
-| Quotes attached to a control operation | `Quotes require a conversational message.` |
-| `replyTo` outside `$debate` | `Solution selection is only allowed with $debate.` |
-| Too many solution selections | `Select no more than two solutions for $debate.` |
-| Unknown or incorrectly cased member | `Unknown recipient: @{nick}.` |
-| `@me` as recipient | `@me cannot be a recipient.` |
-| Illegal standalone `@judge` use | `Quote at least one message for @judge to rule on.` |
-| `@all` mixed with member mentions | `Use @all by itself or name individual recipients.` |
-| Exclusion names an unconfigured member | `Unknown recipient: @{nick}.` |
-| Exclusions remove every member | `@all exclusions must leave at least one recipient.` |
-| Direct debate lacks exactly two distinct members | `$debate requires exactly two distinct debaters.` |
-| Ordinary message lacks recipients | `Add at least one recipient: @nick or @all.` |
-| Ordinary message has no non-whitespace body | `Enter message text after the recipients.` |
-| Standalone judge request has no question text | `Enter message text after the recipients.` |
-| Selected solution is missing, belongs to another author, or is not an eligible reply to `me` | `Selected solution is not a reply to me from @{nick}.` |
-| Selected solutions answer different messages | `Debaters' solutions must answer the same user message.` |
-| Another contest is active | `A {kind} is already running. Stop it before starting another.` |
-| Invalid `GRILL_ROUNDS` value | `GRILL_ROUNDS must be an integer from 1 to 10.` |
-| Tournament has fewer than three entrants | `$tournament needs at least three entrants.` |
-| Tournament has no prompt | `Add a prompt after $tournament.` |
-| Direct grill has no eligible prior or selected leader plan | `@{nick} has no plan to grill yet. Ask it something first.` |
-| Direct grill has no griller | `$grill needs at least one griller.` |
-| Grill has no member selector | `$grill needs a leader or at least two candidates.` |
-| Quoted direct-grill selection lacks exactly one eligible leader reply | `Select exactly one reply from @{nick} as the plan to grill.` |
-| Active `@judge` in a grill | `@judge cannot be used with $grill.` |
-| Question-first debate has fewer than two candidates | `$debate needs at least two candidates.` |
-| Question-first grill has fewer than two candidates | `$grill needs at least two candidates.` |
-| Question-first debate has no question | `Add a question after $debate.` |
-| Question-first grill has no question | `Add a question after $grill.` |
-| Question-first contest has supplied solution selections | `Question-first contests use their collected answers; do not attach solution selections.` |
-| Pending debate pick has the wrong distinct-member count | `Pick exactly two of: {eligible}.` |
-| Pending grill pick has the wrong distinct-member count | `Pick exactly one of: {eligible}.` |
-| Pick names a member without an eligible collected answer | `@{nick} did not answer, so it cannot be picked.` |
-| Too few eligible collected answers to proceed | `Not enough answers to start. {n} of {m} members answered.` |
-| Daily max reached or contest estimate exceeds the remaining daily amount | `Daily max of ${max} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.` |
-| Invalid `CENSUS_PASSES` value | `CENSUS_PASSES must be an integer from 1 to 5.` |
-| Census has fewer than three resolved participants | `$census needs at least three participants.` |
-| Crosscheck has fewer than three resolved participants | `$crosscheck needs at least three participants.` |
-| Survey has no member selector | `Add at least one recipient: @nick or @all.` |
-| Probe has fewer than four selected members | `$probe needs at least four members; an odd selection leaves the last member out.` |
-| Census has no quoted, pasted, or latest-reply plan source | `Add a plan for $census: quote one plan, paste it, or use @nick for that member's latest reply.` |
-| Crosscheck has no quoted, pasted, or latest-reply plan source | `Add a plan for $crosscheck: quote one plan, paste it, or use @nick for that member's latest reply.` |
-| Census supplies both quotes and non-whitespace pasted-plan text | `Supply the $census plan by quote or pasted text, not both.` |
-| Census quotes lack exactly one eligible plan source | `Select exactly one member reply or grill plan version for $census.` |
-| Crosscheck quotes lack exactly one eligible plan source | `Select exactly one member reply or grill plan version for $crosscheck.` |
-| Census latest-reply shortcut has no eligible reply | `@{nick} has no plan for $census yet. Ask it something first.` |
-| Crosscheck latest-reply shortcut has no eligible reply | `@{nick} has no plan for $crosscheck yet. Ask it something first.` |
-| Survey reuse has no eligible parallel-answer set for the selected members | `No parallel answers are available for $survey. Add a question after $survey.` |
-| Probe has no non-whitespace brief | `Add an observation, what is ruled out, and what can be inspected after $probe.` |
+| Rule | Code | Exact user-facing error |
+|---|---|---|
+| Empty or whitespace-only input | `INVALID_COMMAND` | `Enter a message or command.` |
+| Text exceeds the canonical byte limit | `MESSAGE_TOO_LARGE` | `Keep the submission within 32,768 UTF-8 bytes.` |
+| Unterminated inline code | `INVALID_COMMAND` | `Close the inline code with a backtick.` |
+| Unterminated fence | `INVALID_COMMAND` | `Close the code block with three backticks.` |
+| Invalid active sigil token | `INVALID_COMMAND` | `Invalid token: {token}. Escape the sigil to use it literally.` |
+| Unknown `$verb` | `INVALID_COMMAND` | `Unknown command: ${verb}.` |
+| Reserved future command | `COMMAND_NOT_IMPLEMENTED` | `Command ${verb} is reserved and unavailable in v1.` |
+| More than one `$verb` | `INVALID_COMMAND` | `Use only one $ command per submission.` |
+| Unknown slash command | `INVALID_COMMAND` | `Unknown slash command: /{name}.` |
+| Wrong slash argument count | `INVALID_COMMAND` | `Usage: {usage}` |
+| Unknown variable, including `/set` | `INVALID_COMMAND` | `Unknown variable: {name}.` |
+| Invalid `ROUNDS` value | `INVALID_COMMAND` | `ROUNDS must be an integer from 1 to 20.` |
+| Invalid slash identifier | `INVALID_COMMAND` | `Invalid {argument}: {value}.` |
+| Too many quotes | `INVALID_REFERENCE` | `Attach no more than 12 quoted messages.` |
+| Quote reference cannot be resolved | `INVALID_REFERENCE` | `Quoted message {id} is unavailable.` |
+| Quotes attached to a control operation other than `/continue` | `INVALID_REFERENCE` | `Quotes require a conversational message.` |
+| `replyTo` outside `$debate` | `INVALID_REFERENCE` | `Solution selection is only allowed with $debate.` |
+| Too many solution selections | `INVALID_REFERENCE` | `Select no more than two solutions for $debate.` |
+| Unknown or incorrectly cased member | `UNKNOWN_RECIPIENT` | `Unknown recipient: @{nick}.` |
+| `@me` as recipient | `INVALID_COMMAND` | `@me cannot be a recipient.` |
+| Illegal standalone `@judge` use | `JUDGE_QUOTE_REQUIRED` | `Quote at least one message for @judge to rule on.` |
+| `@all` mixed with member mentions | `INVALID_COMMAND` | `Use @all by itself or name individual recipients.` |
+| Exclusion names an unconfigured member | `UNKNOWN_RECIPIENT` | `Unknown recipient: @{nick}.` |
+| Exclusions remove every member | `INVALID_COMMAND` | `@all exclusions must leave at least one recipient.` |
+| Direct debate lacks exactly two distinct members | `INVALID_COMMAND` | `$debate requires exactly two distinct debaters.` |
+| Ordinary message lacks recipients | `RECIPIENT_REQUIRED` | `Add at least one recipient: @nick or @all.` |
+| Ordinary message has no non-whitespace body | `INVALID_COMMAND` | `Enter message text after the recipients.` |
+| Standalone judge request has no question text | `INVALID_COMMAND` | `Enter message text after the recipients.` |
+| Selected solution is missing, belongs to another author, or is not an eligible reply to `me` | `DEBATE_SOURCE_MISSING` | `Selected solution is not a reply to me from @{nick}.` |
+| Selected solutions answer different messages | `DEBATE_TOPIC_MISMATCH` | `Debaters' solutions must answer the same user message.` |
+| Another contest is active | `DEBATE_BUSY for a debate request; otherwise CONTEST_BUSY` | `A {kind} is already running. Stop it before starting another.` |
+| Invalid `GRILL_ROUNDS` value | `INVALID_COMMAND` | `GRILL_ROUNDS must be an integer from 1 to 10.` |
+| Tournament has fewer than three entrants | `TOURNAMENT_ENTRANTS_REQUIRED` | `$tournament needs at least three entrants.` |
+| Tournament has no prompt | `INVALID_COMMAND` | `Add a prompt after $tournament.` |
+| Direct grill has no eligible prior or selected leader plan | `GRILL_SOURCE_MISSING` | `@{nick} has no plan to grill yet. Ask it something first.` |
+| Direct grill has no griller | `GRILL_PARTICIPANTS_REQUIRED` | `$grill needs at least one griller.` |
+| Grill has no member selector | `GRILL_PARTICIPANTS_REQUIRED` | `$grill needs a leader or at least two candidates.` |
+| Quoted direct-grill selection lacks exactly one eligible leader reply | `GRILL_SOURCE_MISSING` | `Select exactly one reply from @{nick} as the plan to grill.` |
+| Active `@judge` in a grill | `INVALID_COMMAND` | `@judge cannot be used with $grill.` |
+| Question-first debate has fewer than two candidates | `INVALID_COMMAND` | `$debate needs at least two candidates.` |
+| Question-first grill has fewer than two candidates | `INVALID_COMMAND` | `$grill needs at least two candidates.` |
+| Question-first debate has no question | `INVALID_COMMAND` | `Add a question after $debate.` |
+| Question-first grill has no question | `INVALID_COMMAND` | `Add a question after $grill.` |
+| Question-first contest has supplied solution selections | `INVALID_REFERENCE` | `Question-first contests use their collected answers; do not attach solution selections.` |
+| Pending debate pick has the wrong distinct-member count | `CONTEST_PICK_INVALID` | `Pick exactly two of: {eligible}.` |
+| Pending grill pick has the wrong distinct-member count | `CONTEST_PICK_INVALID` | `Pick exactly one of: {eligible}.` |
+| Pick names a member without an eligible collected answer | `CONTEST_PICK_INVALID` | `@{nick} did not answer, so it cannot be picked.` |
+| Too few eligible collected answers to proceed | `CONTEST_NOT_ENOUGH_ANSWERS` | `Not enough answers to start. {n} of {m} members answered.` |
+| Daily max reached or contest estimate exceeds the remaining daily amount | `DAILY_MAX_REACHED` | `Daily max of ${max} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.` |
+| Invalid `CENSUS_PASSES` value | `INVALID_COMMAND` | `CENSUS_PASSES must be an integer from 1 to 5.` |
+| Census has fewer than three resolved participants | `CENSUS_PARTICIPANTS_REQUIRED` | `$census needs at least three participants.` |
+| Crosscheck has fewer than three resolved participants | `CROSSCHECK_PARTICIPANTS_REQUIRED` | `$crosscheck needs at least three participants.` |
+| Survey has no member selector | `SURVEY_PARTICIPANTS_REQUIRED` | `Add at least one recipient: @nick or @all.` |
+| Probe has fewer than four selected members | `PROBE_PARTICIPANTS_REQUIRED` | `$probe needs at least four members; an odd selection leaves the last member out.` |
+| Census has no quoted, pasted, or latest-reply plan source | `CENSUS_SOURCE_MISSING` | `Add a plan for $census: quote one plan, paste it, or use @nick for that member's latest reply.` |
+| Crosscheck has no quoted, pasted, or latest-reply plan source | `CROSSCHECK_SOURCE_MISSING` | `Add a plan for $crosscheck: quote one plan, paste it, or use @nick for that member's latest reply.` |
+| Census supplies both quotes and non-whitespace pasted-plan text | `INVALID_COMMAND` | `Supply the $census plan by quote or pasted text, not both.` |
+| Census quotes lack exactly one eligible plan source | `CENSUS_SOURCE_MISSING` | `Select exactly one member reply or grill plan version for $census.` |
+| Crosscheck quotes lack exactly one eligible plan source | `CROSSCHECK_SOURCE_MISSING` | `Select exactly one member reply or grill plan version for $crosscheck.` |
+| Census latest-reply shortcut has no eligible reply | `CENSUS_SOURCE_MISSING` | `@{nick} has no plan for $census yet. Ask it something first.` |
+| Crosscheck latest-reply shortcut has no eligible reply | `CROSSCHECK_SOURCE_MISSING` | `@{nick} has no plan for $crosscheck yet. Ask it something first.` |
+| Survey reuse has no eligible parallel-answer set for the selected members | `SURVEY_SOURCE_MISSING` | `No parallel answers are available for $survey. Add a question after $survey.` |
+| Probe has no non-whitespace brief | `PROBE_INPUT_REQUIRED` | `Add an observation, what is ruled out, and what can be inspected after $probe.` |
+| Invalid `/continue` quoted text, empty replacement, or both attachment and text | `INVALID_COMMAND` | `Usage: /continue ["<plan>"]` |
+| `/continue` has no waiting census or no remaining pass | `INVALID_STATE_TRANSITION` | `No census is waiting for a plan.` |
+| `/continue` quote cannot select one eligible plan | `CENSUS_SOURCE_MISSING` | `Select exactly one member reply or grill plan version for /continue.` |
+| `/accept` has missing cells, duplicate cells, no separator, or empty reason | `INVALID_COMMAND` | `Usage: /accept <cellId…> -- <reason>` |
+| `/accept` has no retained COMPLETE crosscheck | `CONTEST_NOT_FOUND` | `No complete crosscheck is available for acceptance.` |
+| `/accept` references stale plan, grid, state or cell | `CROSSCHECK_ACCEPTANCE_STALE` | `Crosscheck acceptance is stale. Refresh the coverage ledger.` |
 
-For invalid slash identifiers, `{argument}` is exactly `debateId`, `messageId`, or `id`, as applicable.
+Invalid `/accept` cell syntax uses `INVALID_COMMAND` with `Invalid cellId: {value}.`; an unknown but well-formed cell uses `CROSSCHECK_ACCEPTANCE_STALE`.
+
+For invalid slash identifiers, `{argument}` is exactly `debateId`, `messageId`, `cellId`, or `id`, as applicable.
 
 For the occupied-room error, `{kind}` is the active contest’s lowercase kind: `debate`, `tournament`, `grill`, `census`, `crosscheck`, `survey`, or `probe`. For the daily-max error, `{max}` is formatted with two decimal places; the default produces `Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.`
 
@@ -1021,3 +987,5 @@ Source fixtures verify that survey reuse never combines unrelated questions and 
 
 Every new mode is tested against each occupied-room kind, pending picks, the single-command rule, direct-debate-only solution selections, protected syntax, implied judging, and all four new export scopes. Shared engine move names remain unknown commands unless separately reserved by the grammar.
 
+
+Continuation and acceptance fixtures cover kept and replaced plans, quoted attachments, escaped double quotes, both-source rejection, drained holds, COMPLETE-only acceptance, unique cells, required reasons, stale versions and exact codes. Execution fixtures land in M5.P7 and M5.P8.

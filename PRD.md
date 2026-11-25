@@ -52,7 +52,7 @@ time @judge decides which is better` skips the picking step.
 | Form | One Rust binary, `squad`, TUI only | Nothing to install or start besides the binary |
 | TUI | Ratatui + crossterm | Redraws from state and writes only changed cells; proven on a streaming AI chat TUI (Codex CLI); 300/300 frames at about 0.7 ms each in the one independent benchmark found |
 | Live traffic | In-process channels | One process, so no network hop and no broker |
-| History | One local SQLite file per room | Survives restarts with zero setup |
+| History | One local SQLite file | Survives restarts with zero setup |
 | Isolation | Each model has its own mailbox and its own private history, and is never handed the room feed | A model cannot leak what was never delivered to it; enforced by crate boundaries (agents cannot name the store) and by a test suite |
 | Debate turns | Both debaters write simultaneously each round | Symmetric, and half the wall-clock time |
 | Judge | A fresh Fable instance with empty context; swaps model if `fable` is debating | No memory of the room, no stake in it, never grades its own work |
@@ -71,7 +71,7 @@ time @judge decides which is better` skips the picking step.
 flowchart LR
   TUI[Ratatui TUI] -- Request --> R[router task<br/>only writer]
   CLI[squad send / export] -- Request --> R
-  R -- one transaction --> DB[(SQLite room file<br/>events · history · work · debates)]
+  R -- one transaction --> DB[(one local SQLite file<br/>events · history · work · contests)]
   R -- feed: events + token deltas --> TUI
   R -- wake --> M1[mailbox claude] --> A1[agent claude]
   R -- wake --> M2[mailbox grok] --> A2[agent grok]
@@ -81,7 +81,7 @@ flowchart LR
   O -. summons .-> J[judge: fresh Fable]
   J -- verdict --> R
   A1 & A2 & A3 & J --> OR[(OpenRouter)]
-  DB -. private history, one context each .-> A1 & A2 & A3 & J
+  DB -. scoped history for assigned work .-> A1 & A2 & A3 & J
 ```
 
 Each agent builds its prompt only from its own private history. The router is the only writer.
@@ -93,14 +93,14 @@ IDs read `M<milestone>.P<phase>.L<line item>.T<todo>`.
 | Milestone | Work breakdown | Phases | Todos |
 |---|---|---|---|
 | **M0** | [Foundations](docs/prd/milestones/M0-foundations.md) | 4 | 51 |
-| **M1** | [Protocol, store and bus](docs/prd/milestones/M1-protocol-store-and-bus.md) | 4 | 189 |
+| **M1** | [Protocol, store and bus](docs/prd/milestones/M1-protocol-store-and-bus.md) | 4 | 167 |
 | **M2** | [Agents and OpenRouter](docs/prd/milestones/M2-agents-and-openrouter.md) | 4 | 136 |
 | **M3** | [Room API and CLI](docs/prd/milestones/M3-room-api-and-cli.md) | 3 | 95 |
 | **M4** | [TUI (Ratatui)](docs/prd/milestones/M4-tui-ratatui.md) | 5 | 236 |
-| **M5** | [Contests (seven modes)](docs/prd/milestones/M5-contests-seven-modes.md) | 10 | 294 |
+| **M5** | [Contests (seven modes)](docs/prd/milestones/M5-contests-seven-modes.md) | 10 | 361 |
 | **M6** | [Hardening](docs/prd/milestones/M6-hardening.md) | 3 | 150 |
 | **M7** | [Launch](docs/prd/milestones/M7-launch.md) | 2 | 35 |
-| | **Total** | | **1186** |
+| | **Total** | | **1231** |
 
 Build order: M0 → M1 → M2 → M3, then M4 and M5 in parallel (M4 exits after M5), then M6, then M7.
 Inside M5 the modes are built in this order: debate, grill, census, crosscheck, tournament, survey, probe.

@@ -4,7 +4,7 @@
 
 Squad is one self-contained Rust binary named `squad`. It runs one process with one room, `main`, and one front end per room. The interactive interface is a TUI built with Ratatui 0.30.x and crossterm. Tokio runs the router, agent workers, contest orchestrator, and in-process bus.
 
-Durable state lives in one SQLite database per room. Use `rusqlite` with the `bundled` feature, WAL mode, and a dedicated writer thread. The router is the only logical writer. The transactional commit API, migrations, recovery, typed readers, and shared daily-spend ledger belong to Protocol, store and bus.
+Durable state lives in one local SQLite file, `<data_dir>/squad.db`. Use `rusqlite` with the `bundled` feature, WAL mode, and a dedicated writer thread. The router is the only logical writer. The transactional commit API, migrations, recovery, typed readers, and shared daily-spend ledger belong to Protocol, store and bus.
 
 The workspace uses Rust stable, edition 2024:
 
@@ -91,7 +91,7 @@ This section owns configuration, `RoomHandle`, room-state projections, command b
 | Envelopes, committed events, `Work`, `Cursor`, `ErrorCode`, requests, receipts, preflight payloads including `DebatePreflight`, transactional commits, and recovery | Protocol, store and bus |
 | Parser AST, grammar, command validation, help content, and exact user-facing command-validation strings | Command grammar and parser |
 | Model registry, model capabilities, ordinary execution, queueing, retries, and context assembly | Agents and OpenRouter |
-| Contest states, admission, preflight calculation, round 0, round scoring, verdicts, judge cases, tournament and grill execution, pick flow, and contest recovery | Contests: debate, tournament, grill |
+| Contest states, admission, preflight calculation, round 0, round scoring, verdicts, judge cases, tournament and grill execution, pick flow, and contest recovery | Contests |
 | Prompt template IDs, texts, placeholders, validation, and snapshots | Prompt pack |
 | Timeline interaction, quote selection, contest presentation, banners, search, and keyboard behavior | TUI |
 | Effects design and motion behavior | TUI effects and motion |
@@ -112,7 +112,7 @@ Configuration exposes only the variables documented below. Timeouts, attempt cou
 |---|---|
 | Room | `main` |
 | Members | 1 through 12 |
-| Nick pattern | `^[a-z][a-z0-9_]{0,31}$` |
+| MemberNick pattern | `^[a-z][a-z0-9_]{0,31}$` |
 | Reserved nicks | `me`, `all`, `judge`, `system`, `squad` |
 | `ROUNDS` | Default 10, minimum 1, maximum 20 |
 | Prompt word limits | Room 500, debate turn 400, final debate turn 500, judge 1,000 |
@@ -142,7 +142,7 @@ Configuration exposes only the variables documented below. Timeouts, attempt cou
 | `GRILL_ROUNDS` | Default 2, minimum 1, maximum 10 |
 | Grill question word limit | 200 |
 | Grill answer word limit | `SQUAD_TURN_WORDS`, default 400 |
-| Rebuilt plan word limit | `SQUAD_PLAN_WORDS`, default 1,200 |
+| Rebuilt plan word limit | `SQUAD_PLAN_WORDS`; default owned by [Prompt pack](09-prompt-pack.md#word-limit-defaults) |
 | Rebuilt plan visible output ceiling | 4,096 tokens |
 | Tournament entrants | Minimum 3 |
 | Tournament judge attempts | 3, including schema repair; one round replay after exhausted judging, then failure |
@@ -199,7 +199,7 @@ pub struct UserConfig {
 }
 
 pub struct AgentConfig {
-    pub nick: Nick,
+    pub nick: MemberNick,
     pub model: String,
     pub persona: String,
     pub reasoning_effort: Option<ReasoningEffort>,
@@ -207,7 +207,7 @@ pub struct AgentConfig {
 
 pub struct JudgeConfig {
     pub model: String,
-    pub conflict_fallbacks: Vec<Nick>,
+    pub conflict_fallbacks: Vec<MemberNick>,
     pub reasoning_effort: ReasoningEffort,
     pub reasoning_effort_explicit: bool,
 }
@@ -265,7 +265,7 @@ pub enum EffectsMode {
 }
 ```
 
-`Nick` and model validators come from their owning contracts. `room` is always `main`. The judge prompt’s 1,000-word instruction belongs to Prompt pack; there is no `judge_words` configuration field. Temperature is omitted from provider requests.
+`MemberNick` and model validators come from their owning contracts. `room` is always `main`. The judge prompt’s 1,000-word instruction belongs to Prompt pack; there is no `judge_words` configuration field. Temperature is omitted from provider requests.
 
 `AgentConfig.reasoning_effort` is `None` when no per-member override is set. The effective effort is the member override, otherwise the room default. Preserve whether global member and judge effort values were explicitly configured so unsupported defaults do not fail capability validation. `fx_explicit` records whether `SQUAD_FX` was set; automatic lite selection applies only when it was unset.
 
@@ -309,7 +309,7 @@ The six default members are used only when no `SQUAD_MODEL_*` variable exists. A
 
 Roster order follows the selected file. An environment override replaces the corresponding value without changing its position. Members supplied only through the process environment follow file members in lexicographic variable-name order.
 
-Lowercase each model-variable suffix before validating the nick. Reject duplicate declarations that normalize to the same nick. The process override of a file variable is not a duplicate declaration. Repeated nicks in an explicitly set `SQUAD_JUDGE_FALLBACKS` are invalid. An empty fallback list is permitted; selection still must satisfy Contests: debate, tournament, grill. Unconfigured default fallback nicks are skipped rather than making a custom roster fail startup.
+Lowercase each model-variable suffix before validating the nick. Reject duplicate declarations that normalize to the same nick. The process override of a file variable is not a duplicate declaration. Repeated nicks in an explicitly set `SQUAD_JUDGE_FALLBACKS` are invalid. An empty fallback list is permitted; selection still must satisfy Contests. Unconfigured default fallback nicks are skipped rather than making a custom roster fail startup.
 
 A persona suffix must identify a configured member. Multiple members may use the same model with different personas. Roster changes, concrete model selections, personas, and user naming take effect on restart. Personas never enter judge context.
 
@@ -319,7 +319,7 @@ Concrete slugs select that version and must exist in the model catalog. A `~...-
 
 For aliases, send a startup probe with `max_tokens: 16` and the lowest reasoning setting the model accepts. On a 400 response, retry once with `max_tokens: 2048`. Take the returned `model` field as the concrete version. Cache the result in the `models` table and keep the displayed version fixed until restart. Every completion uses that concrete slug. Record the response `model` for each attempt; a mismatch logs a warning and is reported by `squad doctor`. Gemini Neon and Muse Wonder use concrete default slugs that the user updates manually. Resolution, probe failures, catalog handling, and capability validation otherwise follow Agents and OpenRouter.
 
-Judge conflicts compare resolved concrete models under Contests: debate, tournament, grill. For debates and standalone judging, skip fallback members that are involved in the material being judged, share a conflicting concrete model, or are unconfigured. Tournaments are judged blind and never swap the judge. Preserve the owning warning string:
+Judge conflicts compare resolved concrete models under Contests. For debates and standalone judging, skip fallback members that are involved in the material being judged, share a conflicting concrete model, or are unconfigured. Tournaments are judged blind and never swap the judge. Preserve the owning warning string:
 
 ```text
 Judge model changed to {judge_model_slug} because @{nick} is debating.
@@ -461,11 +461,6 @@ Release preparation uses `cargo-dist` for macOS arm64 and Linux x64. Distributio
 `RoomHandle`, defined in `crates/squad-core/src/room.rs`, is the single application API used by the TUI and room-opening commands:
 
 ```rust
-pub enum OpenMode {
-    Interactive,
-    OneShot,
-}
-
 impl RoomHandle {
     pub async fn open(
         config: SquadConfig,
@@ -491,23 +486,23 @@ impl RoomHandle {
     pub async fn export(
         &self,
         scope: ExportScope,
-        id: Option<EventId>,
+        id: Option<ContestId>,
     ) -> Result<String, RoomError>;
 
     pub async fn shutdown(&self) -> Result<(), RoomError>;
 }
 ```
 
-`Request`, `RequestResult`, `FeedReceiver`, and `CommittedEnvelope` use the shared bus and protocol contracts. `RoomError` preserves the applicable shared code and exact diagnostic. It does not define another `ErrorCode` enum. Use the shared `Nick` and `EventId` types consistently rather than defining alternate member or contest identifiers here.
+`Request`, `RequestResult`, `FeedReceiver`, and `CommittedEnvelope` use the shared bus and protocol contracts. `RoomError` preserves the applicable shared code and exact diagnostic. It does not define another `ErrorCode` enum. Use the shared `MemberNick`, `ContestId`, and `EventId` types consistently rather than defining alternate member or contest identifiers here.
 
-`ExportScope` and markdown rendering live in `crates/squad-core/src/export/`. Scopes are room, debate, tournament, grill, census, crosscheck, survey, and probe. `RoomHandle::export` returns markdown text for the TUI and other callers to save. The same module exposes:
+`ExportScope` is declared in Protocol’s `squad-protocol` contract; markdown rendering lives in `crates/squad-core/src/export/`. Scopes are room, debate, tournament, grill, census, crosscheck, survey, and probe. `RoomHandle::export` returns markdown text for the TUI and other callers to save. The same module exposes:
 
 ```rust
 pub fn export_offline(
     data_dir: &std::path::Path,
     room: &str,
     scope: ExportScope,
-    id: Option<EventId>,
+    id: Option<ContestId>,
 ) -> Result<String, RoomError>;
 ```
 
@@ -515,18 +510,18 @@ The offline path takes a consistent read snapshot without opening the room runti
 
 `open` accepts only `main`. It validates configuration, creates the data directory when needed, acquires the exclusive advisory lock, opens and migrates SQLite, recovers the router, completes startup model resolution, and starts the room tasks. It returns only when the room is ready. Unknown configured slugs fail startup. Other member availability behavior follows Agents and OpenRouter.
 
-`Interactive` resumes eligible unfinished work through the recovery contract. `OneShot` never re-wakes work it did not create. Recovery may reconstruct state and inspect unfinished records without dispatching unrelated work. `squad models` and `squad doctor` do not open the room.
+`Interactive` resumes eligible unfinished work through the recovery contract. `OneShot` never re-wakes work it did not create. Recovery may reconstruct state and inspect unfinished records without dispatching unrelated work. `squad models` and `squad doctor` read the `models` cache without opening the room or issuing billed alias probes.
 
 Data lives under `--data-dir`, otherwise `SQUAD_DATA_DIR`, otherwise the OS default:
 
 ```text
 <data_dir>/
-  main.db
+  squad.db
   main.lock
   logs/
 ```
 
-The shared daily ledger’s location, aggregation across room files, and file permissions follow Protocol, store and bus. Room database and auxiliary-file creation at mode `0600` belong to the store open path.
+The shared daily ledger’s location and file permissions follow Protocol, store and bus. Room database and auxiliary-file creation at mode `0600` belong to the store open path.
 
 Hold `main.lock` for the room’s lifetime. A second process attempting to open the room exits with:
 
@@ -560,11 +555,11 @@ pub struct RoomState {
     pub vars: RoomVars,
     pub participants: Vec<Presence>,
     pub debates: Vec<DebateState>,
-    pub pending_preflights: Vec<ContestPreflight>,
+    pub pending_preflights: Vec<PendingPreflight>,
     pub models: Vec<Model>,
     pub scoreboard: Vec<Score>,
     pub daily_spend: DailySpend,
-    pub trophies: std::collections::BTreeMap<Nick, u64>,
+    pub trophies: std::collections::BTreeMap<MemberNick, u64>,
     pub active_contest: Option<ContestState>,
 }
 
@@ -590,7 +585,7 @@ pub struct DailySpend {
 }
 ```
 
-`Model` uses the registry’s configured slug and startup resolution snapshot. `Presence` supplies shared status, work identity, queue depth, observation time, and nullable error code. `Score` is the shared scoreboard type. `DebateState` and `ContestState` come directly from Contests: debate, tournament, grill. `ContestPreflight` and its debate payload, `DebatePreflight`, use the Protocol, store and bus contracts.
+`Model` uses the registry’s configured slug and startup resolution snapshot. `Presence` supplies shared status, work identity, queue depth, observation time, and optional error code. `Score` is the shared scoreboard type. `DebateState` comes from Contests; `ContestState` comes from Protocol. `PendingPreflight` holds either `DebatePreflight` or the non-debate `ContestPreflight`; all three use Protocol’s contracts.
 
 `debates` preserves debate-state projections. `activeContest` identifies the room’s at most one active debate, tournament, grill, census, crosscheck, survey, or probe, including `COLLECTING_ANSWERS`, `AWAITING_PICK`, and the new modes’ `PREFLIGHT`, `WAITING_FOR_PARTICIPANTS`, and script-step states where active under the owning contract. Determine active status using the owning contest states. Do not introduce another state machine. Preserve the owning round-score and tally projections, including late and unscored rounds, without defining alternate score types.
 
@@ -630,7 +625,7 @@ On opening the TUI, page durable events backward from the newest sequence. Load 
 
 Subscribe before capturing the initial durable high watermark. Combine the paged history and subsequent feed events without duplicate application. Durable events remain recoverable from SQLite if a receiver falls behind.
 
-`debate.round_score` is human-visible committed content addressed only to `me`. Preserve its owning payload, round identity, tally, and unscored representation through history and feed delivery. A late score belongs to its stated round regardless of arrival order. Neither history paging nor feed delivery grants an agent access to another context; debaters first receive round scores with the verdict announcement under Contests: debate, tournament, grill.
+`debate.round_score` is human-visible committed content addressed only to `me`. Preserve its owning payload, round identity, tally, and unscored representation through history and feed delivery. A late score belongs to its stated round regardless of arrival order. Neither history paging nor feed delivery grants an agent access to another context; debaters first receive round scores with the verdict announcement under Contests.
 
 Preserve committed tournament rankings, entrant results, champion events, grill questions, answers, passes, plan versions, and contest-pick events using their owning payloads and visibility rules. Human-facing history is not an agent-history reader. Never expose the blind-judge label map through ordinary transcript output or export.
 
@@ -648,7 +643,7 @@ After `/clear`, discard the old transcript, provisional streams, pending preflig
 
 Human text uses the shared parser and canonical UTF-8 byte limit. It can contain addressed messages, `$debate`, `$tournament`, `$grill`, `$census`, `$crosscheck`, `$survey`, `$probe`, sticky variable assignments, pick messages, or any supported slash command.
 
-Quotes identify committed events. The router resolves their authors and text, labels them, and writes them into each recipient’s private history as part of the human message. Callers cannot supply asserted authors or resolved quote text. Missing or ineligible references fail before acceptance. For a held contest participant, defer the private-history write until the hold is released, following Agents and OpenRouter and Contests: debate, tournament, grill. Debate-turn attempts reuse the round’s frozen boundary.
+Quotes identify committed events. The router resolves their authors and text, labels them, and writes them into each recipient’s private history as part of the human message. Callers cannot supply asserted authors or resolved quote text. Missing or ineligible references fail before acceptance. For a held contest participant, defer the private-history write until the hold is released, following Agents and OpenRouter and Contests. Debate-turn attempts reuse the round’s frozen boundary.
 
 For the four new modes, contest inputs and quotes follow the script’s delivery rules instead of automatic ordinary-message delivery. A crosscheck inventory writer receives only the goal, constraints, and assigned lens; selecting or quoting the plan must not put it into that writer’s context before inventory collection. Survey answer sources, census finder metadata, and probe explanations likewise remain behind their owning visibility boundaries. `RoomHandle` forwards validated references to the router and does not assemble member contexts.
 
@@ -662,13 +657,13 @@ Every successful debate preflight uses the shared parser and canonical UTF-8 byt
 
 Preflight estimates for debates with `@judge` include one `judge.round` call per scored round in addition to the final judge call. Round 0 is not scored. Use the owning cost and reservation rules, fixed low effort, a 1,024-token reasoning budget and 512-token visible ceiling for `judge.round`, and the configured final judge effort. Display the round count and number of model calls with the estimate. Debates without `@judge` include no round-scoring calls.
 
-Preflight creates neither a conversational message nor ordinary reply work. Confirmed admission commits the debate command once. Round 0, `WAITING_FOR_DEBATERS`, and all terminal states remain owned by Contests: debate, tournament, grill.
+Preflight creates neither a conversational message nor ordinary reply work. Confirmed admission commits the debate command once. Round 0, `WAITING_FOR_DEBATERS`, and all terminal states remain owned by Contests.
 
 Canceling a pending plan makes no provider calls and creates no conversational message. After admission, stopping uses the ordinary stop path. A debate without `@judge` ends in `COMPLETE_UNJUDGED` and has no round scoring; later `/judge` can judge its transcript.
 
-Stop without a nick stops all generation and queued work, including outstanding `judge.round` work. Stop with a nick targets that member under the owning contest rules. `/judge` on a stopped debate produces the final verdict from the transcript and existing round scores without scoring rounds retroactively. Judge-only re-entry, cancellation, expiry, and restoration of prior terminal status follow Contests: debate, tournament, grill.
+Stop without a nick stops all generation and queued work, including outstanding `judge.round` work. Stop with a nick targets that member under the owning contest rules. `/judge` on a stopped debate produces the final verdict from the transcript and existing round scores without scoring rounds retroactively. Judge-only re-entry, cancellation, expiry, and restoration of prior terminal status follow Contests.
 
-Round scoring does not block the next debate round. The final judge waits until all round-scoring work has completed or been given up, following Contests: debate, tournament, grill. Exhausted round scoring is recorded as unscored and does not by itself fail the debate.
+Round scoring does not block the next debate round. The final judge waits until all round-scoring work has completed or been given up, following Contests. Exhausted round scoring is recorded as unscored and does not by itself fail the debate.
 
 Every successful contest preflight, threshold admission, and confirmation follows the shared daily-spend and validation contracts. Preflight creates neither a conversational message nor ordinary reply work. Every mode’s preflight states the number of model calls and the estimated cost.
 
@@ -704,7 +699,7 @@ Standalone judge questions retain the shared validation error:
 Quote at least one message for @judge to rule on.
 ```
 
-Judge context and case follow-ups follow Contests: debate, tournament, grill. Front ends never assemble judge context. Standalone rulings remain free-form text.
+Judge context and case follow-ups follow Contests. Front ends never assemble judge context. Standalone rulings remain free-form text.
 
 ### Commands and flags
 
@@ -831,7 +826,7 @@ Each new mode’s export includes its committed report, skipped-member disclosur
 squad models
 ```
 
-Print the resolved roster in roster order, showing nick, configured slug, concrete resolved version, and any resolution error. Identify the separate judge selection and ordered fallback nicks.
+Read the `models` cache without alias probes or opening the room. If no startup snapshot exists, report that the room must be opened to resolve models. Print the resolved roster in roster order, showing nick, configured slug, concrete resolved version, and any resolution error. Identify the separate judge selection and ordered fallback nicks.
 
 Use the registry and startup-resolution contracts without opening the room or acquiring its exclusive runtime lock. Catalog fetches and alias probes live in `squad-agents`; this command never resumes room work.
 
@@ -848,13 +843,13 @@ Run independent checks and print one labeled result per check, followed by the o
 | Configuration | Report selected file or built-in defaults, precedence, parsing, roster, numeric values, and reference validation |
 | Credential presence | Report present or missing; never print any part of the key |
 | OpenRouter reachability | Check the configured service using the ordinary integration; sanitize failures |
-| Model resolution | Validate configured member and judge selections, alias resolution, capabilities, and required catalog data |
+| Model resolution | Validate configured selections against the cached `models` snapshot and catalog; report missing or stale resolution without probing |
 | Data directory | Check creation and writability without modifying room rows |
 | Terminal capabilities | Check whether the terminal supports the required TUI input and display operations |
 | Daily accounting | Report today’s actual spend, reservations, effective daily max, and unknown-cost call count from the shared ledger |
 | Model identity | Report recorded response-model mismatches against the concrete slug selected for each attempt |
 
-Diagnostic checks do not open the room, acquire its exclusive runtime lock, resume work, or start ordinary generation. Alias probes follow Agents and OpenRouter and are reported as such.
+Diagnostic checks do not open the room, acquire its exclusive runtime lock, resume work, or start ordinary generation. Alias probes run only at room open under synthetic accounting work; diagnostics read the `models` cache and report that a room open is needed when no resolution exists.
 
 `--env` additionally prints every supported variable, its default, effective nonsecret value, and source. Include wildcard member, persona, and per-member reasoning variables, `SQUAD_BANNERS`, `SQUAD_FX`, `SQUAD_FX_DEBUG`, `SQUAD_DAILY_MAX_USD`, `SQUAD_GRILL_ROUNDS`, `SQUAD_PLAN_WORDS`, and `SQUAD_CENSUS_PASSES`. For the key, print only `present` or `missing`. Explain that persisted `ROUNDS`, `GRILL_ROUNDS`, and `CENSUS_PASSES` override their environment seeds.
 
