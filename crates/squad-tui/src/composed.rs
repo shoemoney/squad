@@ -38,6 +38,7 @@ pub struct Composed {
 #[derive(Clone, Default)]
 pub struct Graphics {
     pub banners: Vec<(squad_core::banner::Banner, Rect)>,
+    pub probe_connectors: Vec<(u16, u16)>,
     pub versus: Rect,
     pub scores: Vec<(u32, MemberNick, Rect)>,
     pub tug: Rect,
@@ -267,6 +268,21 @@ impl Composed {
                 }
                 let mut model = TranscriptMessage::new(identity(id), "CASE", "");
                 model.widget_rows = rows(&scratch, geometry.content_height);
+                models.push(model);
+            }
+            for (id, view) in &session.probes {
+                let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                let geometry = widgets::probe::render(view, scratch.area, &mut scratch, palette);
+                let mut model = TranscriptMessage::new(identity(id), "PROBE", "");
+                model.widget_rows = rows(&scratch, geometry.content_height);
+                self.graphics.insert(
+                    model.id,
+                    Graphics {
+                        banners: vec![(squad_core::banner::Banner::Probe, geometry.banner)],
+                        probe_connectors: geometry.connectors,
+                        ..Default::default()
+                    },
+                );
                 models.push(model);
             }
             for (id, contest) in &session.contests {

@@ -1,0 +1,47 @@
+---
+source: crates/squad-tui/tests/probe.rs
+expression: rows
+---
+PROBE
+Brief: Intermittent noise; fan ruled out; inspect exterior indicator only
+Explainers: alpha, beta · Checkers: gamma, delta
+Sitting out: @epsilon
+Complete
+Skipped member: @beta
+alpha: Loose connector
+Key assumption: Connector moves with vibration
+Limit: Not verified
+gamma: Read indicator
+Procedure: Observe without opening or touching the case · Measure: Indicator
+color · Effort: One minute
+red: Red
+green: Green
+Safety: Do not open the case
+Locked predictions · alpha
+00000000-0000-4000-8000-000000000001: cannot predict · Indicator does not
+constrain the connector
+Prediction matrix
+Explanation 00000000-0000-4000-8000-000000000003
+00000000-0000-4000-8000-000000000001: cannot predict · Indicator does not
+constrain the connector
+Explanation 00000000-0000-4000-8000-000000000004
+Missing row; no elimination evidence
+Decision tree
+Result red → red
+Result green → green
+├── root: check 00000000-0000-4000-8000-000000000001; measure Indicator color
+└── green: 00000000-0000-4000-8000-000000000003,
+00000000-0000-4000-8000-000000000004 remain · Inspect brief again
+└── red: 00000000-0000-4000-8000-000000000003,
+00000000-0000-4000-8000-000000000004 remain · Inspect brief again
+└── Unexpected result · unexpected: 00000000-0000-4000-8000-000000000003,
+00000000-0000-4000-8000-000000000004 remain · Reopen the diagnostic brief and
+reassess the assumptions · reopen diagnostic brief
+Dropped check 00000000-0000-4000-8000-000000000002: Does not distinguish the
+available explanations
+Inseparable: 00000000-0000-4000-8000-000000000003,
+00000000-0000-4000-8000-000000000004 · Unknown and missing predictions cannot
+eliminate explanations
+Limitation: No checks performed
+Inspect manually. No explanation is declared true; checks have not been
+executed.

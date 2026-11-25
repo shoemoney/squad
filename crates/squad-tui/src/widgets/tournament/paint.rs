@@ -19,6 +19,9 @@ pub(crate) struct Painter<'a> {
     scroll: usize,
 }
 impl<'a> Painter<'a> {
+    pub fn height(&self) -> usize {
+        self.row
+    }
     pub fn new(area: Rect, buf: &'a mut Buffer, scroll: u16) -> Self {
         let area = area.intersection(buf.area);
         buf.set_style(area, Style::reset());

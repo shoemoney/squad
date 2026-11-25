@@ -378,6 +378,58 @@ pub fn attach(
                     move |elapsed, buf, _| bubble.apply(elapsed, buf, &[]),
                 )
             }
+            FxCue::ModeBannerReady {
+                contest_id,
+                mode: fx::ReportMode::Probe,
+            } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let rect = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|s| s.banners.first())
+                    .map(|(_, r)| app.composed.graphic_rect(id, *r, top, transcript))
+                    .unwrap_or_default();
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(850),
+                    move |elapsed, buf, _| {
+                        tint_prepared(buf, rect, elapsed, palette.chrome(), level)
+                    },
+                )
+            }
+            FxCue::ProbeTreeReady { contest_id } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let connectors = shapes
+                    .probe_connectors
+                    .iter()
+                    .filter_map(|(x, y)| {
+                        let r =
+                            app.composed
+                                .graphic_rect(id, Rect::new(*x, *y, 1, 1), top, transcript);
+                        (!r.is_empty()).then_some((r.x, r.y))
+                    })
+                    .collect();
+                let motion = fx::probe::Motion::new(level, no_color, false);
+                let effect = fx::probe::ProbeEffect::new(
+                    motion,
+                    seed,
+                    &[fx::probe::Branch { connectors }],
+                    palette.chrome(),
+                );
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(900),
+                    move |elapsed, buf, _| effect.apply(buf, elapsed, transcript),
+                )
+            }
             FxCue::DailySpendChanged => {
                 let gold = palette.chrome();
                 Pass::catalogue(

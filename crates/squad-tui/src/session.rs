@@ -146,6 +146,7 @@ pub struct Session {
     pub pick: Option<PickView>,
     pub seen: BTreeSet<EventId>,
     pub last_error: Option<String>,
+    pub probes: BTreeMap<ContestId, crate::widgets::probe::ProbeView>,
     pub debates: BTreeMap<ContestId, crate::widgets::debate::DebateView>,
     pub debate_messages: BTreeSet<MessageId>,
     pub debate_streams: BTreeMap<MessageId, Delta>,
@@ -163,6 +164,7 @@ impl Session {
         self.seen.clear();
         self.contests.clear();
         self.debates.clear();
+        self.probes.clear();
         self.debate_streams.clear();
         self.debate_messages.clear();
         self.cases.clear();
@@ -216,6 +218,7 @@ impl Session {
     fn restore_contest(&mut self, state: ContestState) {
         let id = match &state {
             ContestState::Generic(s) => s.contest_id,
+            ContestState::Probe(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Selection(s) => {
                 if s.state == ContestSelectionStatus::AwaitingPick {
@@ -292,6 +295,19 @@ impl Session {
                     .cursor
                     .map_or(commit.seq, |c| c.max(commit.seq)),
             );
+        }
+        if committed.is_none()
+            && matches!(
+                content,
+                EnvelopePayload::ProbeSetup(_)
+                    | EnvelopePayload::ProbeState(_)
+                    | EnvelopePayload::ProbeExplanation(_)
+                    | EnvelopePayload::ProbeCheck(_)
+                    | EnvelopePayload::ProbePrediction(_)
+                    | EnvelopePayload::ProbeReport(_)
+            )
+        {
+            return false;
         }
         let generation = match content {
             EnvelopePayload::MessageFinal(m) | EnvelopePayload::AgentReply(m) => {
@@ -499,13 +515,76 @@ impl Session {
                         None
                     };
             }
+            EnvelopePayload::ProbeSetup(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                cue = Some(FxCue::ModeBannerReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    mode: crate::fx::ReportMode::Probe,
+                });
+            }
+            EnvelopePayload::ProbeState(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                self.restore_contest(ContestState::Probe(s.clone()));
+                self.snapshot.context.active_contest = if s.state.is_terminal() {
+                    None
+                } else {
+                    Some(ContestState::Probe(s.clone()))
+                };
+            }
+            EnvelopePayload::ProbeExplanation(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbeCheck(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbePrediction(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+            }
+            EnvelopePayload::ProbeReport(s) => {
+                self.probes
+                    .entry(s.contest_id)
+                    .or_default()
+                    .apply_payload(content, &base.sender);
+                cue = Some(FxCue::ProbeTreeReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                });
+            }
+            EnvelopePayload::ProbePreflight(p) => {
+                if p.base.confirmation_required {
+                    self.snapshot
+                        .preflights
+                        .push(PendingPreflight::Contest(p.base.clone()));
+                }
+            }
             EnvelopePayload::DebateSetup(s) => {
                 if let Some(view) = self.debates.get_mut(&s.debate_id) {
                     *view = view.clone().with_setup(s, true);
                 }
             }
             EnvelopePayload::CaseOpened(c) => {
-                self.cases.insert(c.case_id, c.into());
+                if let (Some(id), CaseMaterial::Probe(_)) = (c.contest_id, &c.material) {
+                    self.probes
+                        .entry(id)
+                        .or_default()
+                        .apply_payload(content, &base.sender);
+                } else {
+                    self.cases.insert(c.case_id, c.into());
+                }
             }
             EnvelopePayload::CaseRuling(r) => {
                 if let Some(c) = self.cases.get_mut(&r.case_id) {
@@ -644,6 +723,7 @@ impl Session {
                 self.transcript.clear();
                 self.contests.clear();
                 self.debates.clear();
+                self.probes.clear();
                 self.debate_streams.clear();
                 self.debate_messages.clear();
                 self.cases.clear();
@@ -710,6 +790,7 @@ impl Session {
 }
 pub fn contest_active(s: &ContestState) -> bool {
     match s {
+        ContestState::Probe(p) => !p.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing
