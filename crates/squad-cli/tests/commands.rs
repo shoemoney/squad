@@ -175,6 +175,60 @@ async fn bound_commands_only_report_real_provider_output() {
     assert_eq!(finals, 0);
 }
 
+#[tokio::test]
+async fn bound_commands_validate_before_provider_calls() {
+    let temp = tempfile::tempdir().unwrap();
+    let server = provider(vec![]).await;
+    let data = temp.path().join("explicit-data");
+    let output = invoke_provider(
+        temp.path(),
+        &["send", "hello", "--data-dir", data.to_str().unwrap()],
+        &server,
+    )
+    .await;
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    assert!(output.stdout.is_empty(), "{output:?}");
+    assert_eq!(
+        String::from_utf8(output.stderr).unwrap().trim(),
+        "Add at least one recipient: @nick or @all."
+    );
+    assert!(data.is_dir());
+    let entries = std::fs::read_dir(&data)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(
+        entries,
+        ["logs", "main.lock", "squad.db"]
+            .into_iter()
+            .map(std::ffi::OsString::from)
+            .collect()
+    );
+    assert!(server.captured_bodies().await.is_empty());
+    assert!(user_messages(&data).is_empty());
+}
+
+#[tokio::test]
+async fn unavailable_quoted_references_preserve_the_exact_error() {
+    let temp = tempfile::tempdir().unwrap();
+    let server = provider(vec![]).await;
+    for mut args in [
+        vec!["send", "--quote", "1", "--quote", "2", "hello"],
+        vec!["send", "--quote", "1,2", "hello"],
+    ] {
+        args.extend(["--data-dir", "data"]);
+        let output = invoke_provider(temp.path(), &args, &server).await;
+        assert_eq!(output.status.code(), Some(1), "{output:?}");
+        assert!(output.stdout.is_empty(), "{output:?}");
+        assert_eq!(
+            String::from_utf8(output.stderr).unwrap().trim(),
+            "Quoted message 1 is unavailable."
+        );
+    }
+    assert!(server.captured_bodies().await.is_empty());
+    assert!(user_messages(&temp.path().join("data")).is_empty());
+}
+
 #[test]
 fn quote_limit_is_enforced_across_repeated_flags() {
     let temp = tempfile::tempdir().unwrap();
@@ -566,4 +620,21 @@ fn quoted_reference_flags_preserve_message_arguments() {
         assert_eq!(send.message, "hello");
         assert_eq!(send.quote, [1, 2]);
     }
+}
+
+#[test]
+fn invalid_census_seed_reports_exact_error_and_continues_independent_doctor_checks() {
+    let temp = tempfile::tempdir().unwrap();
+    std::fs::write(
+        temp.path().join(".env"),
+        "OPENROUTER_API_KEY=fixture\nSQUAD_CENSUS_PASSES=6\n",
+    )
+    .unwrap();
+    let output = invoke(temp.path(), &["doctor"], None);
+    assert_eq!(output.status.code(), Some(1));
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("SQUAD_CENSUS_PASSES must be an integer from 1 to 5."));
+    assert!(text.contains("Data directory: writable"));
+    assert!(text.contains("Terminal capabilities:"));
+    assert!(text.contains("Daily accounting:"));
 }

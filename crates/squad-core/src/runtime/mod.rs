@@ -283,7 +283,9 @@ fn launch_mode(
                 ));
             }
             let _ = ready_tx.send(true);
-            if tasks.iter().any(|task| task.is_finished()) {
+            // Cancellation can finish idle workers before this supervisor observes
+            // its cancellation branch. Their normal exit is not a runtime failure.
+            if !child_cancel.is_cancelled() && tasks.iter().any(|task| task.is_finished()) {
                 result = Err(unavailable());
                 break;
             }

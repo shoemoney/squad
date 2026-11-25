@@ -80,13 +80,20 @@ async fn real_room_feed_lag_recovers_whole_commits_after_last_seen_cursor() {
     let RequestResult::Accepted { cursor, .. } = result else {
         panic!("variable update must commit: {result:?}")
     };
-    // Worker presence can arrive after subscription even in commit-only mode.
-    // Recover from the acknowledged durable update, not an ephemeral feed item.
+    // OneShot limits dispatch to invocation-owned work; it still starts member
+    // workers, whose idle presence/heartbeats are part of the ephemeral feed.
+    // Commit-only updates must not produce deltas or any other feed items.
     let first = loop {
-        if let FeedItem::Committed(event) = feed.recv().await.unwrap() {
-            assert_eq!(Some(event.commit.seq), cursor);
-            assert!(matches!(event.content, EnvelopePayload::VarChange(_)));
-            break event;
+        match feed.recv().await.unwrap() {
+            FeedItem::Presence(event) => {
+                assert!(matches!(event.content, EnvelopePayload::Presence(_)));
+            }
+            FeedItem::Committed(event) => {
+                assert_eq!(Some(event.commit.seq), cursor);
+                assert!(matches!(event.content, EnvelopePayload::VarChange(_)));
+                break event;
+            }
+            other => panic!("unexpected feed item in commit-only mode: {other:?}"),
         }
     };
     for _ in 0..constants::FEED_CAPACITY + 1 {
