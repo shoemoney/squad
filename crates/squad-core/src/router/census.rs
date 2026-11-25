@@ -295,7 +295,8 @@ pub fn prepare(
         contest_id: contest,
         kind: ContestKind::Census,
         plan_id: PlanId::new(),
-        expires_at: group.accepted_at + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64),
+        expires_at: group.accepted_at
+            + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64),
         estimate: DebateEstimate {
             estimated_usd: normal,
             reserved_usd: reserved,
@@ -516,7 +517,8 @@ pub fn continue_plan(
         let remaining = u32::from(setup.passes - state.pass + 1);
         let ratio = bound as f64 / old_bound;
         preflight.plan_id = PlanId::new();
-        preflight.expires_at = group.accepted_at + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64);
+        preflight.expires_at = group.accepted_at
+            + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64);
         preflight.estimate.estimated_usd *= ratio * f64::from(remaining) / f64::from(setup.passes);
         preflight.estimate.reserved_usd *= ratio * f64::from(remaining) / f64::from(setup.passes);
         preflight.estimate.model_calls = remaining * (2 * setup.participants.len() as u32 + 2);

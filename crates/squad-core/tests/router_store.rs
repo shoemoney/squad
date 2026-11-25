@@ -881,7 +881,9 @@ fn storage_ceiling_refuses_new_generation_but_keeps_cleanup_and_history() {
     match &outcome.result {
         RequestResult::Rejected { error, .. } => {
             assert_eq!(error.code, ErrorCode::STORAGE_LIMIT);
-            assert!(error.text.as_str().contains("/clear") && error.text.as_str().contains("export"));
+            assert!(
+                error.text.as_str().contains("/clear") && error.text.as_str().contains("export")
+            );
         }
         other => panic!("{other:?}"),
     }

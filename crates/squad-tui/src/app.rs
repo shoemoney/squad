@@ -203,13 +203,22 @@ impl App {
         self.notice = Some(match (self.action_menu, focus) {
             (true, _) => format!(
                 "Actions · Enter Quote ({} selected) · Esc Close",
-                self.msg_selected.len().max(usize::from(self.msg_focus.is_some()))
+                self.msg_selected
+                    .len()
+                    .max(usize::from(self.msg_focus.is_some()))
             ),
             (false, Some(r)) => format!(
                 "{} {} · {} · ↑/↓ Move · Space Select · Enter Actions",
-                if self.msg_selected.contains(&r.event_id) { "[x]" } else { "[ ]" },
+                if self.msg_selected.contains(&r.event_id) {
+                    "[x]"
+                } else {
+                    "[ ]"
+                },
                 r.author,
-                crate::markdown::sanitize(&r.content).chars().take(60).collect::<String>()
+                crate::markdown::sanitize(&r.content)
+                    .chars()
+                    .take(60)
+                    .collect::<String>()
             ),
             (false, None) => "No quotable message".into(),
         });
@@ -218,7 +227,9 @@ impl App {
     fn navigate_messages(&mut self, delta: isize) {
         self.action_menu = false;
         let ids = self.selectable_records();
-        let current = self.msg_focus.and_then(|id| ids.iter().position(|i| *i == id));
+        let current = self
+            .msg_focus
+            .and_then(|id| ids.iter().position(|i| *i == id));
         self.msg_focus = if ids.is_empty() {
             None
         } else {

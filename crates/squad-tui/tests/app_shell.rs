@@ -181,7 +181,10 @@ fn transcript_focus_select_and_action_menu_attach_quotes() {
     app.handle(key(KeyCode::Char(' ')), Duration::ZERO);
     app.handle(key(KeyCode::Down), Duration::ZERO);
     app.handle(key(KeyCode::Char(' ')), Duration::ZERO);
-    assert!(app.quotes.ids.is_empty(), "selection alone attaches nothing");
+    assert!(
+        app.quotes.ids.is_empty(),
+        "selection alone attaches nothing"
+    );
     app.handle(key(KeyCode::Enter), Duration::ZERO);
     assert!(app.action_menu);
     assert!(app.quotes.ids.is_empty());

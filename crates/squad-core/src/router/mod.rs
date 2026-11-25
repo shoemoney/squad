@@ -341,10 +341,8 @@ impl Router {
         let survey_max = self.daily_max;
         let survey_threshold = self.confirmation_threshold;
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
-            if generates {
-                if let Err(StoreError::Domain(code,text))=squad_store::storage::ensure_capacity(tx,storage_capacity) {
-                    return Ok(RequestResult::Rejected {request_id:id,error:error(code,text)});
-                }
+            if generates && let Err(StoreError::Domain(code,text))=squad_store::storage::ensure_capacity(tx,storage_capacity) {
+                return Ok(RequestResult::Rejected {request_id:id,error:error(code,text)});
             }
             match request {
                 Request::UserMessage {input,parsed,preconfirmed}=> {
@@ -1084,9 +1082,10 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
 /// Requests that start or restart model generation; refused at the storage ceiling.
 fn admits_generation(request: &Request) -> bool {
     match request {
-        Request::UserMessage { parsed, .. } => {
-            !matches!(parsed, ParsedInput::Assignment { .. } | ParsedInput::Slash { .. })
-        }
+        Request::UserMessage { parsed, .. } => !matches!(
+            parsed,
+            ParsedInput::Assignment { .. } | ParsedInput::Slash { .. }
+        ),
         Request::ContestConfirm { .. }
         | Request::DebateConfirm { .. }
         | Request::ContestPick { .. }
