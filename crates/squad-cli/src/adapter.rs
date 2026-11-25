@@ -125,6 +125,14 @@ impl RoomApi for RoomHandle {
             return Progress::Failed;
         }
         let related = related(state, request);
+        // Causal relevance may reach earlier material (for example regeneration).
+        // Only transitions at or after this invocation can determine its result.
+        let start = state
+            .events
+            .iter()
+            .filter(|e| e.base.id == request || e.base.causation_id == Some(request))
+            .map(|e| e.commit.seq)
+            .min();
         let mut work = BTreeMap::new();
         let mut debates = BTreeMap::new();
         let mut addressed = BTreeSet::new();
@@ -138,7 +146,9 @@ impl RoomApi for RoomHandle {
                 _ => None,
             })
             .collect();
-        for event in state.events.iter().filter(|e| related.contains(&e.base.id)) {
+        for event in state.events.iter().filter(|e| {
+            related.contains(&e.base.id) && start.is_none_or(|start| e.commit.seq >= start)
+        }) {
             match &event.content {
                 EnvelopePayload::UserMessage(m) if event.base.id == request => {
                     addressed.extend(event.base.recipients.iter().filter_map(|r| match r {
@@ -149,6 +159,10 @@ impl RoomApi for RoomHandle {
                     if m.case_id.is_some() {
                         addressed.insert("judge".into());
                     }
+                }
+                EnvelopePayload::MessageSuperseded(s) => {
+                    work.entry(s.replacement_work_id)
+                        .or_insert(WorkStatus::Queued);
                 }
                 EnvelopePayload::CaseOpened(c) => {
                     if let Some(id) = c.work_id {
@@ -460,6 +474,38 @@ mod tests {
                 reason: Some(Text::new("unscored").unwrap()),
             }),
         ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
+    }
+    #[test]
+    fn regeneration_waits_for_replacement_without_inheriting_old_failure() {
+        let old = EventId::new();
+        let request = EventId::new();
+        let replacement = WorkId::new();
+        let mut state = state();
+        state
+            .events
+            .push(event(1, old, work(old, "a", WorkStatus::Failed)));
+        state.events.push(event(
+            2,
+            request,
+            EnvelopePayload::MessageSuperseded(MessageSuperseded {
+                superseded_event_id: EventId::new(),
+                superseded_message_id: MessageId::new(),
+                member: "a".parse().unwrap(),
+                in_reply_to_message_id: MessageId::new(),
+                replacement_work_id: replacement,
+                replacement_message_id: MessageId::new(),
+            }),
+        ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Running);
+        let mut completed = match work(old, "a", WorkStatus::Completed) {
+            EnvelopePayload::WorkState(w) => w,
+            _ => unreachable!(),
+        };
+        completed.work_id = replacement;
+        state
+            .events
+            .push(event(3, old, EnvelopePayload::WorkState(completed)));
         assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
     }
 }
