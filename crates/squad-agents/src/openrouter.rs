@@ -178,6 +178,7 @@ pub enum StreamEvent {
 pub enum TransportError {
     InvalidConfiguration,
     InvalidModel,
+    ModelNotFound,
     UnsupportedReasoning,
     OutputLimit,
     Http(u16),
@@ -213,11 +214,22 @@ impl TransportError {
     }
 }
 
+/// Called only for a missing model. Implementations must bound repair attempts
+/// and account alias probes; they must not replay a frozen work request.
+pub trait ModelRecovery: Send + Sync {
+    fn recover(
+        &self,
+        client: OpenRouterClient,
+        model: String,
+    ) -> Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>>;
+}
+
 #[derive(Clone)]
 pub struct OpenRouterClient {
     http: Client,
     endpoint: reqwest::Url,
     authorization: HeaderValue,
+    model_recovery: Option<std::sync::Arc<dyn ModelRecovery>>,
 }
 impl fmt::Debug for OpenRouterClient {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -229,6 +241,11 @@ impl fmt::Debug for OpenRouterClient {
 pub type EventStream = Pin<Box<dyn Stream<Item = StreamEvent> + Send>>;
 
 impl OpenRouterClient {
+    pub fn with_model_recovery(mut self, recovery: std::sync::Arc<dyn ModelRecovery>) -> Self {
+        self.model_recovery = Some(recovery);
+        self
+    }
+
     /// Production constructor keeps credentials in their sensitive header wrapper.
     pub fn from_config(config: &squad_protocol::SquadConfig) -> Result<Self, TransportError> {
         let authorization = config
@@ -267,6 +284,7 @@ impl OpenRouterClient {
             http,
             endpoint,
             authorization,
+            model_recovery: None,
         })
     }
 
@@ -397,6 +415,15 @@ impl OpenRouterClient {
                     }
                 };
                 drop(call);
+                if matches!(error, TransportError::ModelNotFound | TransportError::Http(404) | TransportError::Provider(Some(404)))
+                    && let Some(recovery) = &this.model_recovery {
+                    tokio::select! {
+                        biased;
+                        _ = cancel.cancelled() => {},
+                        _ = sleep_until(deadline) => {},
+                        _ = recovery.recover(this.clone(), request.model.clone()) => {},
+                    }
+                }
                 let retry = attempt < attempts && error.retryable();
                 if let Some(delay) = retry_after { yield StreamEvent::RetryAfter { delay }; }
                 yield StreamEvent::AttemptFailed { attempt, error };
@@ -431,7 +458,12 @@ impl OpenRouterClient {
             let status = response.status();
             if !status.is_success() {
                 *retry_after = response.headers().get(RETRY_AFTER).and_then(|v| v.to_str().ok()).and_then(parse_retry_after);
+                let value = response.json::<Value>().await.ok();
+                if status.as_u16() == 400 && value.as_ref().is_some_and(model_not_found) {
+                    Err(TransportError::ModelNotFound)?;
+                }
                 Err(TransportError::Http(status.as_u16()))?;
+                return;
             }
             let mut bytes = response.bytes_stream();
             let mut parser = sse::SseParser::default();
@@ -449,10 +481,12 @@ impl OpenRouterClient {
                     if event.is_error {
                         let error = value.get("error").unwrap_or(&value);
                         let code = error.get("code").and_then(Value::as_u64).and_then(|n| u16::try_from(n).ok());
+                        if model_not_found(&value) { Err(TransportError::ModelNotFound)?; }
                         Err(TransportError::Provider(code))?;
                     }
                     if let Some(error) = value.get("error") {
                         let code = error.get("code").and_then(Value::as_u64).and_then(|n| u16::try_from(n).ok());
+                        if model_not_found(&value) { Err(TransportError::ModelNotFound)?; }
                         Err(TransportError::Provider(code))?;
                     }
                     let id = value.get("id").and_then(Value::as_str).map(str::to_owned);
@@ -497,6 +531,26 @@ fn parse_retry_after(value: &str) -> Option<Duration> {
                 .ok()
                 .map(|when| when.duration_since(SystemTime::now()).unwrap_or_default())
         })
+}
+
+// Inspect only a safe classification; provider messages never enter diagnostics.
+fn model_not_found(value: &Value) -> bool {
+    let error = value.get("error").unwrap_or(value);
+    let message = error
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    message.contains("no endpoints found")
+        || message.contains("model")
+            && [
+                "not found",
+                "does not exist",
+                "no endpoints found",
+                "not a valid model",
+            ]
+            .iter()
+            .any(|needle| message.contains(needle))
 }
 
 #[cfg(test)]

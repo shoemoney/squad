@@ -10,6 +10,7 @@ pub struct SquadConfig {
     pub room: String,
     pub openrouter_api_key: OpenRouterApiKey,
     pub openrouter_base_url: String,
+    pub alias_cache_ttl_seconds: u64,
     pub user: UserConfig,
     pub agents: Vec<AgentConfig>,
     pub judge: JudgeConfig,
@@ -224,6 +225,7 @@ pub enum ConfigError {
     Effects,
     GrillRounds,
     CensusPasses,
+    AliasCacheTtl,
 }
 impl std::error::Error for ConfigError {}
 impl fmt::Display for ConfigError {
@@ -267,6 +269,9 @@ impl fmt::Display for ConfigError {
             Self::DailyMax => f.write_str("SQUAD_DAILY_MAX_USD must be a positive finite number."),
             Self::DebateConfirm => {
                 f.write_str("SQUAD_DEBATE_CONFIRM_USD must be a nonnegative finite number.")
+            }
+            Self::AliasCacheTtl => {
+                f.write_str("SQUAD_ALIAS_CACHE_TTL_SECONDS must be a nonnegative integer.")
             }
             Self::WordLimit(v) => write!(f, "{v} must be a positive integer."),
             Self::ReasoningEffort(v) => write!(f, "{v} must be low, medium, or high."),
@@ -661,6 +666,12 @@ impl EffectiveEnvironment {
             room: ROOM.to_owned(),
             openrouter_api_key: OpenRouterApiKey(api_key),
             openrouter_base_url: get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/"),
+            alias_cache_ttl_seconds: take!(
+                get("SQUAD_ALIAS_CACHE_TTL_SECONDS", "86400")
+                    .parse::<u64>()
+                    .map_err(|_| ConfigError::AliasCacheTtl),
+                86400
+            ),
             user: UserConfig { name },
             agents,
             judge: JudgeConfig {

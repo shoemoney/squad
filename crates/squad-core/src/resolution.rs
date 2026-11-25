@@ -1,6 +1,8 @@
 //! Store-backed startup catalog and probe ledger. Never reads credentials.
 use rusqlite::{OptionalExtension, params};
-use squad_agents::resolver::{CatalogSnapshot, ProbeAttempt, ResolutionSnapshot, ResolutionStore};
+use squad_agents::resolver::{
+    AliasCacheEntry, CatalogSnapshot, ProbeAttempt, ResolutionSnapshot, ResolutionStore,
+};
 use squad_protocol::*;
 use squad_store::{Store, StoreError};
 use std::collections::BTreeMap;
@@ -22,6 +24,56 @@ impl ResolutionPersistence {
 }
 impl ResolutionStore for ResolutionPersistence {
     type Error = StoreError;
+    fn cached_alias(
+        &self,
+        provider: &str,
+        alias: &str,
+    ) -> squad_store::Result<Option<AliasCacheEntry>> {
+        let provider = provider.to_owned();
+        let alias = alias.to_owned();
+        self.store.call(move |db| {
+            let row: Option<(String, i64)> = db
+                .query_row(
+                    "SELECT model_json,resolved_at FROM alias_cache WHERE provider=? AND alias=?",
+                    params![provider, alias],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .optional()?;
+            row.map(|(json, resolved_at)| {
+                Ok(AliasCacheEntry {
+                    model: serde_json::from_str(&json)?,
+                    resolved_at: u64::try_from(resolved_at).map_err(|_| StoreError::Unavailable)?,
+                })
+            })
+            .transpose()
+        })
+    }
+    fn save_alias(
+        &mut self,
+        provider: &str,
+        alias: &str,
+        entry: &AliasCacheEntry,
+    ) -> squad_store::Result<()> {
+        let provider = provider.to_owned();
+        let alias = alias.to_owned();
+        let json = serde_json::to_string(&entry.model)?;
+        let resolved_at = i64::try_from(entry.resolved_at).map_err(|_| StoreError::Unavailable)?;
+        self.store.call(move |db| {
+            db.execute("INSERT INTO alias_cache VALUES (?,?,?,?) ON CONFLICT(provider,alias) DO UPDATE SET model_json=excluded.model_json,resolved_at=excluded.resolved_at",params![provider,alias,json,resolved_at])?;
+            Ok(())
+        })
+    }
+    fn remove_alias(&mut self, provider: &str, alias: &str) -> squad_store::Result<()> {
+        let provider = provider.to_owned();
+        let alias = alias.to_owned();
+        self.store.call(move |db| {
+            db.execute(
+                "DELETE FROM alias_cache WHERE provider=? AND alias=?",
+                params![provider, alias],
+            )?;
+            Ok(())
+        })
+    }
     fn cached_catalog(&self) -> squad_store::Result<Option<CatalogSnapshot>> {
         self.store.call(|db| {
             let raw: Option<String> = db
@@ -76,7 +128,10 @@ impl ResolutionStore for ResolutionPersistence {
         attempt: u32,
         _max_tokens: u32,
     ) -> squad_store::Result<()> {
-        let id = *self.probes.entry(nick.into()).or_default();
+        if attempt == 1 {
+            self.probes.insert(nick.into(), WorkId::new());
+        }
+        let id = *self.probes.get(nick).ok_or(StoreError::Unavailable)?;
         let nick = nick.to_owned();
         let model = configured.to_owned();
         let max = self.max;
@@ -109,3 +164,46 @@ impl ResolutionStore for ResolutionPersistence {
         })
     }
 }
+
+/// One repair per rejected concrete identity for the lifetime of this room.
+/// The transport still returns the original failure; no admitted work is replayed.
+pub(crate) struct AliasRecovery {
+    pub store: Store,
+    pub config: SquadConfig,
+    pub max: i64,
+    pub refreshed: tokio::sync::Mutex<std::collections::BTreeSet<String>>,
+}
+impl squad_agents::openrouter::ModelRecovery for AliasRecovery {
+    fn recover(
+        &self,
+        client: squad_agents::openrouter::OpenRouterClient,
+        model: String,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + '_>> {
+        Box::pin(async move {
+            let mut refreshed = self.refreshed.lock().await;
+            if !refreshed.insert(model.clone()) {
+                return;
+            }
+            let Ok(mut persistence) = ResolutionPersistence::new(self.store.clone(), self.max)
+            else {
+                return;
+            };
+            if squad_agents::resolver::refresh_failed_alias(
+                &client,
+                &self.config,
+                &model,
+                chrono::Utc::now().timestamp() as u64,
+                &mut persistence,
+            )
+            .await
+            .is_err()
+            {
+                tracing::warn!("Alias cache repair failed; next startup will resolve again");
+            }
+        })
+    }
+}
+
+#[cfg(test)]
+#[path = "resolution_tests.rs"]
+mod tests;

@@ -1,9 +1,16 @@
-//! Startup-only concrete identity resolution. Persistence belongs to the router.
+//! Concrete identity resolution and bounded cache repair. Persistence belongs to the router.
 use crate::openrouter::{OpenRouterClient, StreamEvent, TransportError};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use squad_protocol::config::{ConfigError, SquadConfig};
 use std::collections::BTreeMap;
+
+/// Durable entries are scoped to the provider endpoint and exact alias.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AliasCacheEntry {
+    pub model: Model,
+    pub resolved_at: u64,
+}
 
 pub const CACHE_MAX_AGE_SECONDS: u64 = 24 * 60 * 60;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -104,7 +111,7 @@ pub struct ResolutionSnapshot {
     pub diagnostics: Vec<String>,
 }
 /// Adapter must atomically persist catalog and role-aware identities together.
-/// Wiring to router-owned persistence is intentionally deferred (M2.P1.L2.T4).
+/// Alias probes use the same router-owned admission and accounting hooks.
 pub trait ResolutionStore {
     type Error;
     fn before_probe(
@@ -123,6 +130,24 @@ pub trait ResolutionStore {
         _attempt: u32,
         _probe: &ProbeAttempt,
     ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+    fn cached_alias(
+        &self,
+        _provider: &str,
+        _alias: &str,
+    ) -> Result<Option<AliasCacheEntry>, Self::Error> {
+        Ok(None)
+    }
+    fn save_alias(
+        &mut self,
+        _provider: &str,
+        _alias: &str,
+        _entry: &AliasCacheEntry,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+    fn remove_alias(&mut self, _provider: &str, _alias: &str) -> Result<(), Self::Error> {
         Ok(())
     }
     fn cached_catalog(&self) -> Result<Option<CatalogSnapshot>, Self::Error>;
@@ -307,6 +332,105 @@ async fn pin<S: ResolutionStore>(
         probes,
     })
 }
+/// TTL zero is an explicit refresh for the next model-using startup.
+async fn pin_cached<S: ResolutionStore>(
+    client: &OpenRouterClient,
+    catalog: &Catalog,
+    selection: (&str, &str, &str),
+    policy: (&str, u64, u64),
+    store: &mut S,
+) -> Result<PinnedModel, ResolutionError> {
+    let (nick, configured, variable) = selection;
+    let (provider, now, ttl) = policy;
+    if configured.starts_with('~') {
+        let cached = store
+            .cached_alias(provider, configured)
+            .map_err(|_| ResolutionError::Persistence)?;
+        if let Some(entry) = cached.filter(|entry| {
+            !entry.model.id.starts_with('~')
+                && now
+                    .checked_sub(entry.resolved_at)
+                    .is_some_and(|age| age < ttl)
+        }) {
+            return Ok(PinnedModel {
+                nick: nick.into(),
+                configured: configured.into(),
+                model: Some(entry.model),
+                error: None,
+                probes: vec![],
+            });
+        }
+    }
+    let pinned = pin(client, catalog, nick, configured, variable, store).await?;
+    if configured.starts_with('~') {
+        if let Some(model) = &pinned.model {
+            store
+                .save_alias(
+                    provider,
+                    configured,
+                    &AliasCacheEntry {
+                        model: model.clone(),
+                        resolved_at: now,
+                    },
+                )
+                .map_err(|_| ResolutionError::Persistence)?;
+        } else {
+            store
+                .remove_alias(provider, configured)
+                .map_err(|_| ResolutionError::Persistence)?;
+        }
+    }
+    Ok(pinned)
+}
+
+/// Refresh only the failed alias. Frozen work bindings remain immutable; the
+/// repaired cache is consumed by the next room startup, without replaying work.
+pub async fn refresh_failed_alias<S: ResolutionStore>(
+    client: &OpenRouterClient,
+    config: &SquadConfig,
+    failed_model: &str,
+    now: u64,
+    store: &mut S,
+) -> Result<(), ResolutionError> {
+    let mut aliases = std::collections::BTreeSet::new();
+    let mut affected = Vec::new();
+    for (nick, alias) in config
+        .agents
+        .iter()
+        .map(|a| (a.nick.as_str(), a.model.as_str()))
+        .chain(std::iter::once(("judge", config.judge.model.as_str())))
+    {
+        if !alias.starts_with('~') || !aliases.insert(alias) {
+            continue;
+        }
+        let entry = store
+            .cached_alias(&config.openrouter_base_url, alias)
+            .map_err(|_| ResolutionError::Persistence)?;
+        if !entry.is_some_and(|entry| entry.model.id == failed_model) {
+            continue;
+        }
+        store
+            .remove_alias(&config.openrouter_base_url, alias)
+            .map_err(|_| ResolutionError::Persistence)?;
+        affected.push((nick, alias));
+    }
+    if affected.is_empty() {
+        return Ok(());
+    }
+    let (catalog, _) = acquire_catalog(client, None, now).await?;
+    for (nick, alias) in affected {
+        pin_cached(
+            client,
+            &catalog.models,
+            (nick, alias, "alias"),
+            (&config.openrouter_base_url, now, 0),
+            store,
+        )
+        .await?;
+    }
+    Ok(())
+}
+
 struct VolatileStore;
 impl ResolutionStore for VolatileStore {
     type Error = ();
@@ -373,23 +497,33 @@ async fn resolve_inner<S: ResolutionStore>(
     let mut members = Vec::new();
     for member in &config.agents {
         members.push(
-            pin(
+            pin_cached(
                 client,
                 &catalog.models,
-                member.nick.as_str(),
-                &member.model,
-                &format!("SQUAD_MODEL_{}", member.nick.as_str().to_uppercase()),
+                (
+                    member.nick.as_str(),
+                    &member.model,
+                    &format!("SQUAD_MODEL_{}", member.nick.as_str().to_uppercase()),
+                ),
+                (
+                    &config.openrouter_base_url,
+                    now,
+                    config.alias_cache_ttl_seconds,
+                ),
                 store,
             )
             .await?,
         );
     }
-    let judge = pin(
+    let judge = pin_cached(
         client,
         &catalog.models,
-        "judge",
-        &config.judge.model,
-        "SQUAD_JUDGE_MODEL",
+        ("judge", &config.judge.model, "SQUAD_JUDGE_MODEL"),
+        (
+            &config.openrouter_base_url,
+            now,
+            config.alias_cache_ttl_seconds,
+        ),
         store,
     )
     .await?;

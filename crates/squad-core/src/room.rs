@@ -272,6 +272,13 @@ impl RoomHandle {
         })?;
         let mut persistence =
             crate::resolution::ResolutionPersistence::new(store.clone(), daily_max)?;
+        let client =
+            client.with_model_recovery(std::sync::Arc::new(crate::resolution::AliasRecovery {
+                store: store.clone(),
+                config: config.clone(),
+                max: daily_max,
+                refreshed: tokio::sync::Mutex::new(std::collections::BTreeSet::new()),
+            }));
         let resolution = resolver::resolve_persisted(
             &client,
             &config,
