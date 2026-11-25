@@ -289,61 +289,6 @@ pub async fn online(config: &SquadConfig) -> Report {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn colour_tiers_and_no_color_precedence() {
-        for (term, colorterm, no_color, expected) in [
-            ("xterm", "", "", Colour::Ansi16),
-            ("xterm-256color", "", "", Colour::Ansi256),
-            ("xterm", "truecolor", "", Colour::TrueColor),
-            ("xterm", "24bit", "", Colour::TrueColor),
-            ("xterm", "truecolor", "1", Colour::None),
-            ("dumb", "", "", Colour::None),
-        ] {
-            let env = |name: &str| {
-                Some(OsString::from(match name {
-                    "TERM" => term,
-                    "COLORTERM" => colorterm,
-                    "NO_COLOR" => no_color,
-                    _ => "",
-                }))
-            };
-            assert_eq!(colour(&env), expected);
-        }
-    }
-    #[test]
-    fn failure_continues_independent_checks() {
-        let temp = tempfile::tempdir().unwrap();
-        let blocker = temp.path().join("file");
-        std::fs::write(&blocker, "fixture").unwrap();
-        let mut options =
-            LoadOptions::from_environment(temp.path().to_owned(), &Default::default());
-        options.data_dir = Some(blocker);
-        let effective = EffectiveEnvironment::load(&options, &Default::default());
-        let report = run(
-            &Err(vec![ConfigError::MissingApiKey]),
-            &options,
-            &effective,
-            &|_| None,
-            false,
-            Some((80, 24)),
-            true,
-        );
-        assert_eq!(report.code, 1);
-        assert!(
-            report
-                .text
-                .contains(&ConfigError::MissingApiKey.to_string())
-        );
-        assert!(report.text.contains("Credential presence: missing"));
-        assert!(report.text.contains("Data directory: FAIL"));
-        assert!(report.text.contains("Terminal capabilities:"));
-        assert!(report.text.contains("SQUAD_REASONING_EFFORT_<NICK>"));
-    }
-}
-
 /// Default, effective value and source for the display, budget and prompt variables.
 fn environment_lines(config: &SquadConfig, effective: &EffectiveEnvironment) -> String {
     use squad_protocol::config::{BannerMode, EffectsMode, VariableSource};
@@ -418,4 +363,59 @@ fn environment_lines(config: &SquadConfig, effective: &EffectiveEnvironment) -> 
         );
     }
     text
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn colour_tiers_and_no_color_precedence() {
+        for (term, colorterm, no_color, expected) in [
+            ("xterm", "", "", Colour::Ansi16),
+            ("xterm-256color", "", "", Colour::Ansi256),
+            ("xterm", "truecolor", "", Colour::TrueColor),
+            ("xterm", "24bit", "", Colour::TrueColor),
+            ("xterm", "truecolor", "1", Colour::None),
+            ("dumb", "", "", Colour::None),
+        ] {
+            let env = |name: &str| {
+                Some(OsString::from(match name {
+                    "TERM" => term,
+                    "COLORTERM" => colorterm,
+                    "NO_COLOR" => no_color,
+                    _ => "",
+                }))
+            };
+            assert_eq!(colour(&env), expected);
+        }
+    }
+    #[test]
+    fn failure_continues_independent_checks() {
+        let temp = tempfile::tempdir().unwrap();
+        let blocker = temp.path().join("file");
+        std::fs::write(&blocker, "fixture").unwrap();
+        let mut options =
+            LoadOptions::from_environment(temp.path().to_owned(), &Default::default());
+        options.data_dir = Some(blocker);
+        let effective = EffectiveEnvironment::load(&options, &Default::default());
+        let report = run(
+            &Err(vec![ConfigError::MissingApiKey]),
+            &options,
+            &effective,
+            &|_| None,
+            false,
+            Some((80, 24)),
+            true,
+        );
+        assert_eq!(report.code, 1);
+        assert!(
+            report
+                .text
+                .contains(&ConfigError::MissingApiKey.to_string())
+        );
+        assert!(report.text.contains("Credential presence: missing"));
+        assert!(report.text.contains("Data directory: FAIL"));
+        assert!(report.text.contains("Terminal capabilities:"));
+        assert!(report.text.contains("SQUAD_REASONING_EFFORT_<NICK>"));
+    }
 }

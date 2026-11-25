@@ -345,23 +345,18 @@ pub fn new_modes_fixture() -> Vec<Fixture> {
     }
     items
 }
-pub fn page_all(
-    room: &RoomHandle,
-    limit: usize,
-) -> impl std::future::Future<Output = Vec<CommittedEnvelope>> + '_ {
-    async move {
-        let mut out = Vec::new();
-        let mut before = None;
-        loop {
-            let page = room.page_events(before, limit).await.unwrap();
-            if page.is_empty() {
-                break;
-            }
-            before = Some(page[0].commit.seq);
-            let mut merged = page;
-            merged.extend(out);
-            out = merged;
+pub async fn page_all(room: &RoomHandle, limit: usize) -> Vec<CommittedEnvelope> {
+    let mut out = Vec::new();
+    let mut before = None;
+    loop {
+        let page = room.page_events(before, limit).await.unwrap();
+        if page.is_empty() {
+            break;
         }
-        out
+        before = Some(page[0].commit.seq);
+        let mut merged = page;
+        merged.extend(out);
+        out = merged;
     }
+    out
 }
