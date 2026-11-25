@@ -435,7 +435,7 @@ async fn constant_first_token_and_idle_deadlines() {
     }
     tokio::time::pause();
     tokio::time::advance(Duration::from_millis(
-        squad_protocol::limits::FIRST_TOKEN_TIMEOUT_MS + 1,
+        squad_protocol::constants::FIRST_TOKEN_TIMEOUT_MS + 1,
     ))
     .await;
     let events = task.await.unwrap();
@@ -455,7 +455,7 @@ async fn constant_first_token_and_idle_deadlines() {
     let task = tokio::spawn(async move { stream.collect::<Vec<_>>().await });
     tokio::task::yield_now().await;
     tokio::time::advance(Duration::from_millis(
-        squad_protocol::limits::IDLE_TIMEOUT_MS + 1,
+        squad_protocol::constants::IDLE_TIMEOUT_MS + 1,
     ))
     .await;
     let events = task.await.unwrap();

@@ -33,7 +33,7 @@ pub struct InputError {
 
 /// Shared UTF-8 byte validation for typed text, paste, and submission.
 pub fn validate_input(text: &str) -> Result<(), InputError> {
-    let max_bytes = squad_protocol::limits::MAX_MESSAGE_BYTES;
+    let max_bytes = squad_protocol::constants::MAX_MESSAGE_BYTES;
     if text.len() > max_bytes {
         Err(InputError {
             bytes: text.len(),
