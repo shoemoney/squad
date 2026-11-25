@@ -249,6 +249,7 @@ impl Session {
             ContestState::Census(s) => s.contest_id,
             ContestState::Survey(s) => s.contest_id,
             ContestState::Probe(s) => s.contest_id,
+            ContestState::Grill(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Tournament(s) => s.contest_id,
             ContestState::Selection(s) => {
@@ -377,6 +378,17 @@ impl Session {
                         commit: commit.clone(),
                         content: content.clone(),
                     };
+                    if let EnvelopePayload::GrillState(s) = content {
+                        self.restore_contest(ContestState::Grill(s.clone()));
+                        if s.state.is_terminal() {
+                            self.snapshot.preflights.retain(|p|!matches!(p,PendingPreflight::Contest(p) if p.contest_id==s.contest_id));
+                        }
+                        self.snapshot.context.active_contest = if s.state.is_terminal() {
+                            None
+                        } else {
+                            Some(ContestState::Grill(s.clone()))
+                        };
+                    }
                     let id = match content {
                         EnvelopePayload::GrillSetup(v) => v.contest_id,
                         EnvelopePayload::GrillState(v) => v.contest_id,
@@ -1204,6 +1216,7 @@ pub fn contest_active(s: &ContestState) -> bool {
         ContestState::Census(s) => !s.status.is_terminal(),
         ContestState::Survey(s) => !s.state.is_terminal(),
         ContestState::Probe(p) => !p.state.is_terminal(),
+        ContestState::Grill(p) => !p.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing

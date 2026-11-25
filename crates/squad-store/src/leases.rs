@@ -81,7 +81,7 @@ pub fn claim(
     if changed == 0 {
         return Ok(None);
     }
-    if work.kind.is_probe() {
+    if work.kind.is_probe() || work.kind.grill_composition().is_some() {
         let deadline = now
             + chrono::Duration::milliseconds(if work.kind == WorkKind::ProbeReport {
                 constants::FINAL_JUDGE_DEADLINE_MS

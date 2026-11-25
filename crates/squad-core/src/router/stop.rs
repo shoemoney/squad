@@ -32,6 +32,18 @@ pub fn apply(
                 tx.execute("UPDATE contests SET state_json=?,state_version=?,active=0,updated_seq=?,pending_request_json=json_set(COALESCE(pending_request_json,'{}'),'$.terminalReason','pick_cancelled') WHERE contest_id=?",params![serde_json::to_string(&state)?,state.state_version as i64,seq.get(),contest])?;
                 stopped_contest = Some(state.contest_id);
             }
+        } else if let Ok(mut state) = serde_json::from_str::<GrillState>(&raw) {
+            let setup = squad_store::grill::setup(tx, state.contest_id)?.setup;
+            if target
+                .as_ref()
+                .is_none_or(|n| setup.participants().contains(n))
+            {
+                state.state = GrillStatus::Stopped;
+                state.state_version += 1;
+                state.terminal_reason = Some("stopped".into());
+                super::grill::save(tx, group, id, &state)?;
+                stopped_contest = Some(state.contest_id);
+            }
         } else if let Ok(mut state) = serde_json::from_str::<TournamentState>(&raw) {
             if target.as_ref().is_none_or(|n| state.survivors.contains(n)) {
                 let old = state.state_version;

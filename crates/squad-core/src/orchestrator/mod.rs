@@ -2,6 +2,7 @@
 pub mod admission;
 pub mod cases;
 pub mod contests;
+mod grill_driver;
 pub mod judge;
 pub mod machine;
 pub mod preflight;

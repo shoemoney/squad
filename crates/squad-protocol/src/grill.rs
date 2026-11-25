@@ -307,3 +307,111 @@ impl GrillPlan {
         )
     }
 }
+
+/// Frozen, work-bound material; provider output supplies prose, never routing identity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GrillWorkInput {
+    pub state: GrillState,
+    pub question: Option<(EventId, GrillQuestion)>,
+    pub earlier_questions: Vec<String>,
+    pub answer_words: u32,
+    pub plan_words: u32,
+}
+impl GrillWorkInput {
+    pub fn parse_output(
+        &self,
+        kind: &WorkKind,
+        raw: &str,
+    ) -> Result<EnvelopePayload, validation::ValidationError> {
+        let invalid = || validation::ValidationError {
+            message: "Invalid grill output".into(),
+        };
+        let s = &self.state;
+        match kind {
+            WorkKind::GrillQuestion if s.state == GrillStatus::Questioning => {
+                let griller = s.griller_order[s.turn as usize].clone();
+                if raw == "PASS" {
+                    return Ok(EnvelopePayload::GrillPass(GrillPass {
+                        contest_id: s.contest_id,
+                        round: s.round,
+                        turn: s.turn,
+                        griller,
+                        reason: GrillPassReason::Pass,
+                    }));
+                }
+                #[derive(Deserialize)]
+                #[serde(deny_unknown_fields)]
+                struct Questions {
+                    questions: Vec<String>,
+                }
+                let value: Questions = serde_json::from_str(raw).map_err(|_| invalid())?;
+                if value.questions.iter().any(|q| {
+                    self.earlier_questions
+                        .iter()
+                        .any(|old| old.trim().eq_ignore_ascii_case(q.trim()))
+                }) {
+                    return Err(invalid());
+                }
+                let q = GrillQuestion {
+                    contest_id: s.contest_id,
+                    round: s.round,
+                    turn: s.turn,
+                    griller,
+                    leader: s.leader.clone(),
+                    plan_version: s.plan_version,
+                    angle: crate::grill_angle(s),
+                    questions: value.questions,
+                };
+                q.validate()?;
+                Ok(EnvelopePayload::GrillQuestion(q))
+            }
+            WorkKind::GrillAnswer if s.state == GrillStatus::Answering => {
+                #[derive(Deserialize)]
+                #[serde(deny_unknown_fields)]
+                struct Answers {
+                    answers: Vec<GrillAnswerItem>,
+                }
+                let value: Answers = serde_json::from_str(raw).map_err(|_| invalid())?;
+                let (id, q) = self.question.as_ref().ok_or_else(invalid)?;
+                let answer = GrillAnswer {
+                    contest_id: s.contest_id,
+                    round: s.round,
+                    turn: s.turn,
+                    leader: s.leader.clone(),
+                    question_event_id: *id,
+                    answers: value.answers,
+                };
+                answer.validate_against(q, *id, self.answer_words)?;
+                Ok(EnvelopePayload::GrillAnswer(answer))
+            }
+            WorkKind::GrillRebuild if s.state == GrillStatus::Rebuilding => {
+                let plan = GrillPlan {
+                    contest_id: s.contest_id,
+                    round: s.round,
+                    version: s.plan_version + 1,
+                    leader: s.leader.clone(),
+                    text: raw.into(),
+                };
+                plan.validate(self.plan_words)?;
+                Ok(EnvelopePayload::GrillPlan(plan))
+            }
+            _ => Err(invalid()),
+        }
+    }
+}
+pub fn grill_angle(state: &GrillState) -> String {
+    const ANGLES: [&str; 8] = [
+        "cost",
+        "failure modes",
+        "security",
+        "scale",
+        "edge cases",
+        "hidden assumptions",
+        "user experience",
+        "operations",
+    ];
+    ANGLES[((state.round - 1) as usize * state.griller_order.len() + state.turn as usize)
+        % ANGLES.len()]
+    .into()
+}

@@ -1,6 +1,7 @@
 //! Per-kind executors share attempt-scoped streaming and ingress fencing.
 pub mod census;
 pub mod crosscheck;
+pub mod grill;
 pub mod member;
 pub mod probe;
 pub mod survey;

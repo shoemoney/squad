@@ -77,6 +77,8 @@ impl Router {
                             super::crosscheck::save(tx, group, &next, Some(state.state_version))?;
                         } else if submission.kind == ContestKind::Survey {
                             super::survey::transition(tx, group, envelope_id, submission)?;
+                        } else if submission.kind == ContestKind::Grill {
+                            super::grill::transition(tx, group, envelope_id, submission)?;
                         } else if submission.kind == ContestKind::Probe {
                             super::probe::transition(tx, group, envelope_id, submission)?;
                         } else {
@@ -341,6 +343,9 @@ fn barrier(
     if squad_store::schema::validate_contest_kind(tx, commit.contest_id, ContestKind::Probe)? {
         return super::probe::barrier(tx, group, commit.barrier_event.base.correlation_id, commit);
     }
+    if squad_store::schema::validate_contest_kind(tx, commit.contest_id, ContestKind::Grill)? {
+        return super::grill::barrier(tx, group, commit.barrier_event.base.correlation_id, commit);
+    }
     let state = squad_store::contests::debate(tx, commit.contest_id)?;
     if state.state_version != commit.expected_state_version
         || state.state.is_terminal()
@@ -480,6 +485,16 @@ impl Router {
                         return Err(super::authorization::forbidden());
                     }
                     return super::probe::allocate(tx, group, request_id, step, work, &bindings);
+                }
+                if squad_store::schema::validate_contest_kind(
+                    tx,
+                    step.contest_id,
+                    ContestKind::Grill,
+                )? {
+                    if !projections.is_empty() || !private_maps.is_empty() {
+                        return Err(super::authorization::forbidden());
+                    }
+                    return super::grill::allocate(tx, group, request_id, step, work);
                 }
                 let state = squad_store::contests::debate(tx, step.contest_id)?;
                 if state.state.is_terminal()

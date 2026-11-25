@@ -87,7 +87,14 @@ pub fn insert(
         )?;
         if let Some(raw) = raw {
             let value: serde_json::Value = decode(raw)?;
-            let (plan_id, reserved, calls) = if work.kind.is_probe() {
+            let (plan_id, reserved, calls) = if work.kind.grill_composition().is_some() {
+                let plan: ContestPreflight = serde_json::from_value(value)?;
+                (
+                    plan.plan_id,
+                    plan.estimate.reserved_usd,
+                    crate::grill::setup(db, contest)?.setup.normal_calls() * 2,
+                )
+            } else if work.kind.is_probe() {
                 let plan: ProbePreflight = serde_json::from_value(value)?;
                 (
                     plan.base.plan_id,

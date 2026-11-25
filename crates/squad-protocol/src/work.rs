@@ -501,3 +501,14 @@ impl WorkKind {
         }
     }
 }
+
+impl WorkKind {
+    pub fn grill_composition(&self) -> Option<&'static str> {
+        match self {
+            Self::GrillQuestion => Some("grill.question"),
+            Self::GrillAnswer => Some("grill.answer"),
+            Self::GrillRebuild => Some("grill.rebuild"),
+            _ => None,
+        }
+    }
+}
