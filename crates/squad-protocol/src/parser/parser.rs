@@ -1,3 +1,4 @@
+use super::validate_context::selected_plan;
 use super::{
     errors::Rule,
     lexer::{Token, TokenKind, tokenize},
@@ -32,7 +33,7 @@ fn value(name: &VariableName, value: &str, span: Span) -> Result<u8, ParseError>
 }
 
 /// Parse human text. All external facts are supplied by the caller; no I/O occurs.
-pub fn parse(raw: &str, ctx: &ParseContext) -> ParseResult {
+pub(crate) fn parse_snapshot(raw: &str, ctx: &ParserSnapshot) -> ParseResult {
     if raw.trim().is_empty() {
         return Err(Rule::Empty.error(whole(raw), &[]));
     }
@@ -41,7 +42,13 @@ pub fn parse(raw: &str, ctx: &ParseContext) -> ParseResult {
     }
     if raw.trim_start().starts_with('/') {
         let action = slash(raw, ctx)?;
-        attachments(raw, ctx, false, false, false)?;
+        attachments(
+            raw,
+            ctx,
+            matches!(action, SlashAction::Continue { .. }),
+            false,
+            false,
+        )?;
         return Ok(ParsedInput::Slash {
             raw: raw.to_owned(),
             action,
@@ -183,7 +190,7 @@ pub fn parse(raw: &str, ctx: &ParseContext) -> ParseResult {
     if pick_candidate {
         let pending = ctx.pending_pick.as_ref().unwrap();
         validate_pick(raw, &recipients, pending)?;
-        return validate_context(
+        return validate_snapshot(
             &ParsedInput::ContestPick {
                 raw: raw.to_owned(),
                 contest_id: pending.contest_id,
@@ -391,7 +398,7 @@ pub fn parse(raw: &str, ctx: &ParseContext) -> ParseResult {
         }
         Some(Verb::Survey) => {
             if recipients.is_empty() {
-                return Err(fail(Rule::RecipientRequired));
+                return Err(fail(Rule::SurveyCount));
             }
             ParsedInput::Survey {
                 input,
@@ -418,14 +425,14 @@ pub fn parse(raw: &str, ctx: &ParseContext) -> ParseResult {
         }
         _ => unreachable!("commands were validated"),
     };
-    validate_context(&parsed, ctx)
+    validate_snapshot(&parsed, ctx)
 }
 fn nonempty(s: String) -> Option<String> {
     (!s.is_empty()).then_some(s)
 }
 fn attachments(
     raw: &str,
-    ctx: &ParseContext,
+    ctx: &ParserSnapshot,
     conversational: bool,
     debate: bool,
     question_first: bool,
@@ -631,7 +638,7 @@ fn render(raw: &str, tokens: &[Token], vars: &RoomVariables, keep_judge: bool) -
 const SET_USAGE: &str = "/set ROUNDS <1-20> | /set GRILL_ROUNDS <1-10> | /set CENSUS_PASSES <1-5>";
 const EXPORT_USAGE: &str =
     "/export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]";
-fn slash(raw: &str, ctx: &ParseContext) -> Result<SlashAction, ParseError> {
+fn slash(raw: &str, ctx: &ParserSnapshot) -> Result<SlashAction, ParseError> {
     let mut words = raw.split_whitespace();
     let name = &words.next().unwrap()[1..];
     let args = words.collect::<Vec<_>>();
@@ -706,6 +713,46 @@ fn slash(raw: &str, ctx: &ParseContext) -> Result<SlashAction, ParseError> {
                     .transpose()?,
             }
         }
+        "continue" => {
+            let tail = raw.trim_start().strip_prefix("/continue").unwrap().trim();
+            let plan = if tail.is_empty() {
+                None
+            } else {
+                let text: String = serde_json::from_str(tail).map_err(|_| usage(CONTINUE_USAGE))?;
+                if text.trim().is_empty() || !ctx.metadata.quote.is_empty() {
+                    return Err(usage(CONTINUE_USAGE));
+                }
+                Some(text)
+            };
+            SlashAction::Continue { plan }
+        }
+        "accept" => {
+            let separator = args
+                .iter()
+                .position(|a| *a == "--")
+                .filter(|i| *i > 0 && *i + 1 < args.len())
+                .ok_or_else(|| usage(ACCEPT_USAGE))?;
+            // Shape (including duplicate cells) precedes identifier values.
+            let mut unique = std::collections::HashSet::new();
+            if args[..separator].iter().any(|v| !unique.insert(*v)) {
+                return Err(usage(ACCEPT_USAGE));
+            }
+            let mut cell_ids = Vec::new();
+            for (i, arg) in args[..separator].iter().enumerate() {
+                let id = arg.parse().map_err(|_| {
+                    Rule::InvalidIdentifier
+                        .error(arg_span(i), &[("argument", "cellId"), ("value", arg)])
+                })?;
+                if cell_ids.contains(&id) {
+                    return Err(usage(ACCEPT_USAGE));
+                }
+                cell_ids.push(id);
+            }
+            SlashAction::Accept {
+                cell_ids,
+                reason: raw[spans[separator + 1].start..].to_owned(),
+            }
+        }
         "export" => {
             if args.is_empty() || args.len() > 2 {
                 return Err(usage(EXPORT_USAGE));
@@ -728,7 +775,6 @@ fn slash(raw: &str, ctx: &ParseContext) -> Result<SlashAction, ParseError> {
                 .get(1)
                 .map(|v| {
                     v.parse::<crate::ContestId>()
-                        .map(|_| (*v).to_owned())
                         .map_err(|_| invalid_id("id", v))
                 })
                 .transpose()?;
@@ -749,6 +795,9 @@ fn slash(raw: &str, ctx: &ParseContext) -> Result<SlashAction, ParseError> {
 }
 
 /// Shared help content: syntax examples only, with no execution or I/O.
+pub const CONTINUE_USAGE: &str = "/continue [\"<plan>\"]";
+pub const ACCEPT_USAGE: &str = "/accept <cellId…> -- <reason>";
+
 pub const HELP_EXAMPLES: &[&str] = &[
     "@claude Hello",
     "@all -grok Suggest a use case",
@@ -766,6 +815,9 @@ pub const HELP_EXAMPLES: &[&str] = &[
     "@all $survey Which rollout?",
     "@all $probe Requests stall; inspect logs.",
     "@grok @gemini $debate",
+    "/continue",
+    "/continue \"Updated plan\"",
+    "/accept 550e8400-e29b-41d4-a716-446655440000 -- Accepted risk",
     "/export census",
     "/export crosscheck",
     "/export survey",

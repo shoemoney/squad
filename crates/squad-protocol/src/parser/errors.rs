@@ -67,10 +67,20 @@ pub enum Rule {
     CrosscheckLatest,
     SurveyMissing,
     ProbeBrief,
+    CensusNotWaiting,
+    ContinueSelection,
+    NoCompleteCrosscheck,
+    AcceptanceStale,
 }
 impl Rule {
     pub fn template(self) -> &'static str {
         match self {
+            Self::CensusNotWaiting => "No census is waiting for a plan.",
+            Self::ContinueSelection => {
+                "Select exactly one member reply or grill plan version for /continue."
+            }
+            Self::NoCompleteCrosscheck => "No complete crosscheck is available for acceptance.",
+            Self::AcceptanceStale => "Crosscheck acceptance is stale. Refresh the coverage ledger.",
             Self::Empty => "Enter a message or command.",
             Self::TooLarge => "Keep the submission within 32,768 UTF-8 bytes.",
             Self::Inline => "Close the inline code with a backtick.",
@@ -161,6 +171,10 @@ impl Rule {
     }
     pub fn code(self) -> ErrorCode {
         match self {
+            Self::CensusNotWaiting => ErrorCode::INVALID_STATE_TRANSITION,
+            Self::ContinueSelection => ErrorCode::CENSUS_SOURCE_MISSING,
+            Self::NoCompleteCrosscheck => ErrorCode::CONTEST_NOT_FOUND,
+            Self::AcceptanceStale => ErrorCode::CROSSCHECK_ACCEPTANCE_STALE,
             Self::Empty => ErrorCode::INVALID_COMMAND,
             Self::TooLarge => ErrorCode::MESSAGE_TOO_LARGE,
             Self::Inline => ErrorCode::INVALID_COMMAND,
@@ -201,7 +215,7 @@ impl Rule {
             Self::GrillSelection => ErrorCode::GRILL_SOURCE_MISSING,
             Self::GrillJudge => ErrorCode::INVALID_COMMAND,
             Self::DebateCandidates => ErrorCode::INVALID_COMMAND,
-            Self::GrillCandidates => ErrorCode::GRILL_PARTICIPANTS_REQUIRED,
+            Self::GrillCandidates => ErrorCode::INVALID_COMMAND,
             Self::DebateQuestion => ErrorCode::INVALID_COMMAND,
             Self::GrillQuestion => ErrorCode::INVALID_COMMAND,
             Self::QuestionSelection => ErrorCode::INVALID_REFERENCE,
@@ -214,7 +228,7 @@ impl Rule {
             Self::CensusPasses => ErrorCode::INVALID_COMMAND,
             Self::CensusCount => ErrorCode::CENSUS_PARTICIPANTS_REQUIRED,
             Self::CrosscheckCount => ErrorCode::CROSSCHECK_PARTICIPANTS_REQUIRED,
-            Self::SurveyCount => ErrorCode::RECIPIENT_REQUIRED,
+            Self::SurveyCount => ErrorCode::SURVEY_PARTICIPANTS_REQUIRED,
             Self::ProbeCount => ErrorCode::PROBE_PARTICIPANTS_REQUIRED,
             Self::CensusMissing => ErrorCode::CENSUS_SOURCE_MISSING,
             Self::CrosscheckMissing => ErrorCode::CROSSCHECK_SOURCE_MISSING,
@@ -334,4 +348,8 @@ pub const ALL_RULES: &[Rule] = &[
     Rule::CrosscheckLatest,
     Rule::SurveyMissing,
     Rule::ProbeBrief,
+    Rule::CensusNotWaiting,
+    Rule::ContinueSelection,
+    Rule::NoCompleteCrosscheck,
+    Rule::AcceptanceStale,
 ];

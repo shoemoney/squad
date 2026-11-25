@@ -5,9 +5,19 @@ pub mod lexer;
 mod parser;
 mod types;
 pub mod validate_context;
-pub use parser::{HELP_EXAMPLES, parse, resolve_recipients};
+pub use parser::{HELP_EXAMPLES, resolve_recipients};
+mod context;
+#[cfg(test)]
+use context::parse_fixture;
+pub use context::{ParseContext, RecordSummary, parse, validate_context};
+pub(crate) use context::{
+    complete_crosscheck, continuation_plan, validate_control, waiting_census,
+};
 pub use types::*;
-pub use validate_context::*;
+pub use validate_context::validate_pick;
+pub(crate) use validate_context::{
+    ParallelAnswerSet, ParserSnapshot, RecordKind, SourceSummary, validate_snapshot,
+};
 
 #[cfg(test)]
 mod lexer_tests;
@@ -20,3 +30,6 @@ mod validate_context_tests;
 
 #[cfg(test)]
 mod review_tests;
+
+#[cfg(test)]
+mod controls_tests;

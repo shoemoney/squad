@@ -1,5 +1,5 @@
 //! Canonical parser AST.
-use crate::{ContestId, DebateId, ErrorCode, EventId, MessageId, Nick};
+use crate::{CellId, ContestId, DebateId, ErrorCode, EventId, MessageId, Nick};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -8,7 +8,7 @@ pub struct Span {
     pub end: usize,
 } // UTF-8 byte offsets into raw; end exclusive.
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum VariableName {
     #[serde(rename = "ROUNDS")]
     Rounds,
@@ -116,7 +116,15 @@ pub enum SlashAction {
     Export {
         scope: ExportScope,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        id: Option<String>,
+        id: Option<ContestId>,
+    },
+    Continue {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        plan: Option<String>,
+    },
+    Accept {
+        cell_ids: Vec<CellId>,
+        reason: String,
     },
     Clear,
     Who,
@@ -277,7 +285,7 @@ impl VariableName {
 }
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
-pub struct SubmissionMetadata {
+pub struct SubmissionMeta {
     pub quote: Vec<EventId>,
     pub reply_to: Vec<EventId>,
 }
@@ -321,22 +329,6 @@ impl ParsedInput {
     }
 }
 
-impl ParsedInput {
-    /// Bind a pick control request to the caller's independently allocated request identity.
-    pub fn contest_pick_request(&self, request_id: EventId) -> Option<crate::Request> {
-        match self {
-            Self::ContestPick {
-                contest_id, nicks, ..
-            } => Some(crate::Request::ContestPick {
-                request_id,
-                contest_id: *contest_id,
-                nicks: nicks.clone(),
-            }),
-            _ => None,
-        }
-    }
-}
-
 // This table is the single registration point for recognized mode verbs.
 macro_rules! verbs {
     ($($variant:ident => $name:literal),+ $(,)?) => {
@@ -362,3 +354,6 @@ impl Verb {
         )
     }
 }
+
+/// Compatibility spelling for existing request consumers.
+pub type SubmissionMetadata = SubmissionMeta;

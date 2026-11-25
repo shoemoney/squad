@@ -1,0 +1,21 @@
+---
+source: crates/squad-protocol/src/parser/controls_tests.rs
+expression: "[parse(\"/continue\", &meta, &ctx).unwrap(),\nparse(r#\"/continue \"Replacement @all $ROUNDS=0\"\"#, &meta, &ctx).unwrap(),]"
+---
+[
+  {
+    "kind": "slash",
+    "raw": "/continue",
+    "action": {
+      "name": "continue"
+    }
+  },
+  {
+    "kind": "slash",
+    "raw": "/continue \"Replacement @all $ROUNDS=0\"",
+    "action": {
+      "name": "continue",
+      "plan": "Replacement @all $ROUNDS=0"
+    }
+  }
+]

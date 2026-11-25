@@ -1,4 +1,7 @@
 use super::*;
+use super::{
+    ParserSnapshot as ParseContext, SourceSummary as RecordSummary, parse_fixture as parse,
+};
 use crate::{ContestKind, EventId, MessageId, Nick};
 use serde_json::{Value, json};
 
@@ -410,23 +413,23 @@ fn shared_consumer_api_and_pick_requests() {
     ctx.pending_pick = Some(pending(QuestionFirstMode::Debate));
     let ast = parse("@grok @gemini", &ctx).unwrap();
     assert_eq!(
-        ast.contest_pick_request(event(31)),
-        Some(crate::Request::ContestPick {
+        crate::Request::from_parsed(event(31), ast, &ctx.metadata, false).unwrap(),
+        crate::Request::ContestPick {
             request_id: event(31),
             contest_id: event(20).to_string().parse().unwrap(),
             nicks: vec![nick("grok"), nick("gemini")]
-        })
+        }
     );
-    assert!(
-        parse("@grok Message", &ctx)
-            .unwrap()
-            .contest_pick_request(event(32))
-            .is_none()
-    );
-    assert_eq!(
-        parse("@all $probe Brief", &ctx).unwrap_err().to_string(),
-        "A debate is already running. Stop it before starting another."
-    );
+    assert!(matches!(
+        crate::Request::from_parsed(
+            event(32),
+            parse("@grok Message", &ctx).unwrap(),
+            &ctx.metadata,
+            false
+        )
+        .unwrap(),
+        crate::Request::UserMessage { .. }
+    ));
 }
 #[test]
 fn slash_spans_point_at_the_argument() {

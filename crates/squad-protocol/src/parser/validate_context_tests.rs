@@ -1,4 +1,7 @@
 use super::{
+    SourceSummary as RecordSummary, parse_fixture as parse, validate_snapshot as validate_context,
+};
+use super::{
     errors::Rule,
     parser_tests::{context, event, message, pending, reply},
     *,

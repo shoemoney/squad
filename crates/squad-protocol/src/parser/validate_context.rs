@@ -3,7 +3,7 @@ use super::{errors::Rule, *};
 use crate::{ContestKind, EventId, MessageId, Nick};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RecordKind {
+pub(crate) enum RecordKind {
     MemberReply {
         author: Nick,
         to_me: bool,
@@ -14,42 +14,42 @@ pub enum RecordKind {
     Other,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RecordSummary {
+pub(crate) struct SourceSummary {
     pub id: EventId,
     pub kind: RecordKind,
     /// False for failed, superseded, cancelled, or otherwise ineligible source records.
     pub eligible: bool,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParallelAnswerSet {
+pub(crate) struct ParallelAnswerSet {
     pub question: MessageId,
     pub answers: Vec<EventId>,
 }
 #[derive(Debug, Clone, Default)]
-pub struct ParseContext {
+pub(crate) struct ParserSnapshot {
     pub roster: Vec<Nick>,
     pub variables: RoomVariables,
     pub metadata: SubmissionMetadata,
     pub pending_pick: Option<PendingPick>,
     /// Oldest to newest; only summaries, never executable source text.
-    pub records: Vec<RecordSummary>,
+    pub records: Vec<SourceSummary>,
     /// One stored batch, never a union of unrelated latest replies.
     pub latest_parallel_answers: Option<ParallelAnswerSet>,
     pub active_contest: Option<ContestKind>,
 }
-impl ParseContext {
-    pub fn record(&self, id: EventId) -> Option<&RecordSummary> {
+impl ParserSnapshot {
+    pub fn record(&self, id: EventId) -> Option<&SourceSummary> {
         self.records.iter().find(|r| r.id == id)
     }
     pub fn has_latest_reply(&self, nick: &Nick) -> bool {
         self.records.iter().rev().any(|r| reply_from(r, nick))
     }
 }
-fn reply_from(record: &RecordSummary, nick: &Nick) -> bool {
+fn reply_from(record: &SourceSummary, nick: &Nick) -> bool {
     record.eligible
         && matches!(&record.kind, RecordKind::MemberReply {author, to_me: true, ..} if author == nick)
 }
-fn eligible_plan(record: &RecordSummary) -> bool {
+fn eligible_plan(record: &SourceSummary) -> bool {
     record.eligible
         && matches!(
             record.kind,
@@ -97,7 +97,7 @@ pub fn validate_pick(raw: &str, nicks: &[Nick], pending: &PendingPick) -> Result
 
 /// Revalidate a parsed submission against an authoritative room snapshot.
 /// Returns a fresh AST so failure cannot partially mutate the caller's staged data.
-pub fn validate_context(parsed: &ParsedInput, ctx: &ParseContext) -> ParseResult {
+pub(crate) fn validate_snapshot(parsed: &ParsedInput, ctx: &ParserSnapshot) -> ParseResult {
     let mut parsed = parsed.clone();
     let raw = parsed.raw().to_owned();
     let span = Span {
@@ -175,7 +175,7 @@ pub fn validate_context(parsed: &ParsedInput, ctx: &ParseContext) -> ParseResult
                         Rule::SolutionInvalid.error(span.clone(), &[("nick", fallback.as_str())])
                     })?;
                 selected_authors.push(author);
-                if let Some(RecordSummary {
+                if let Some(SourceSummary {
                     kind: RecordKind::MemberReply { question, .. },
                     ..
                 }) = record
@@ -260,7 +260,7 @@ pub fn validate_context(parsed: &ParsedInput, ctx: &ParseContext) -> ParseResult
 }
 fn validate_plan(
     parsed: &ParsedInput,
-    ctx: &ParseContext,
+    ctx: &ParserSnapshot,
     census: bool,
     span: Span,
 ) -> Result<(), ParseError> {
@@ -300,7 +300,7 @@ fn validate_plan(
     Ok(())
 }
 
-pub(crate) fn selected_plan(ctx: &ParseContext) -> Option<EventId> {
+pub(crate) fn selected_plan(ctx: &ParserSnapshot) -> Option<EventId> {
     let plans = ctx
         .metadata
         .quote

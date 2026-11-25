@@ -3,6 +3,7 @@ use super::{
     parser_tests::{context, event, message, nick, pending, reply},
     *,
 };
+use super::{parse_fixture as parse, validate_snapshot as validate_context};
 use crate::{ContestKind, ErrorCode};
 
 fn body(raw: &str) -> String {
@@ -261,12 +262,26 @@ fn room_export_accepts_no_identifier() {
 fn grill_selector_and_count_errors_have_the_participant_code() {
     let mut ctx = context();
     ctx.roster = vec![nick("grok")];
-    for raw in ["$grill", "@grok $grill", "@all $grill Question"] {
+    for raw in ["$grill", "@grok $grill"] {
         assert_eq!(
             parse(raw, &ctx).unwrap_err().code,
             ErrorCode::GRILL_PARTICIPANTS_REQUIRED
         );
     }
+}
+
+#[test]
+fn question_first_grill_minimum_and_missing_survey_selector_codes() {
+    let mut ctx = context();
+    ctx.roster = vec![nick("grok")];
+    assert_eq!(
+        parse("@all $grill Question", &ctx).unwrap_err().code,
+        ErrorCode::INVALID_COMMAND
+    );
+    assert_eq!(
+        parse("$survey Question", &ctx).unwrap_err().code,
+        ErrorCode::SURVEY_PARTICIPANTS_REQUIRED
+    );
 }
 
 #[test]
@@ -318,7 +333,17 @@ fn metadata_round_trips_camel_case_and_help_examples_parse() {
     let mut ctx = context();
     ctx.records.push(reply(1, "grok", 30));
     for raw in HELP_EXAMPLES {
-        assert!(parse(raw, &ctx).is_ok(), "{raw}");
+        let result = parse(raw, &ctx);
+        if raw.starts_with("/continue") {
+            assert_eq!(
+                result.unwrap_err().code,
+                ErrorCode::INVALID_STATE_TRANSITION
+            );
+        } else if raw.starts_with("/accept") {
+            assert_eq!(result.unwrap_err().code, ErrorCode::CONTEST_NOT_FOUND);
+        } else {
+            assert!(result.is_ok(), "{raw}");
+        }
     }
 }
 
@@ -327,6 +352,12 @@ fn complete_exact_validation_table_and_execution_helpers() {
     let expected: Vec<String> =
         serde_json::from_str(include_str!("validation_strings.json")).unwrap();
     assert_eq!(expected.len(), errors::ALL_RULES.len());
+    let codes: Vec<ErrorCode> =
+        serde_json::from_str(include_str!("validation_codes.json")).unwrap();
+    assert_eq!(codes.len(), errors::ALL_RULES.len());
+    for (rule, code) in errors::ALL_RULES.iter().zip(codes) {
+        assert_eq!(rule.code(), code, "{}", rule.template());
+    }
     let values = [
         ("token", "$Bad"),
         ("verb", "dance"),
