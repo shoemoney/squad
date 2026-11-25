@@ -108,6 +108,10 @@ impl WorkReader for ScopedReaders {
             if record.status != WorkStatus::Running || !record.runnable { return Err(ReaderError::NotRunnable); }
             let work = record.executable.ok_or(ReaderError::NotRunnable)?;
             let mut values = std::collections::BTreeMap::new();
+            if work.kind.is_probe() {
+                values.insert("mode_data_json".into(), crate::probe::input(db,&work).map_err(map_error)?.to_string());
+                return Ok(values);
+            }
             if let Some(case) = work.case_id {
                 if !matches!(owner, ExecutorKey::Case(owned) if *owned == case) { return Err(ReaderError::Forbidden); }
                 let (material, state): (String, String) = db.query_row("SELECT material_json,state_json FROM cases WHERE case_id=? AND epoch=(SELECT epoch FROM room_meta)", [case.to_string()], |r| Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::NotFound)?;
