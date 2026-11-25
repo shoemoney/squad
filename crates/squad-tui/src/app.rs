@@ -23,6 +23,10 @@ pub struct App {
     pub completion: CompletionState,
     pub completion_open: bool,
     pub focus_input: bool,
+    /// Transcript message focus, selection and the labeled action menu.
+    pub msg_focus: Option<EventId>,
+    pub msg_selected: Vec<EventId>,
+    pub action_menu: bool,
     pub participant_details: bool,
     pub quit: bool,
     pub dirty: bool,
@@ -61,6 +65,9 @@ impl App {
             completion: CompletionState::default(),
             completion_open: false,
             focus_input: true,
+            msg_focus: None,
+            msg_selected: Vec::new(),
+            action_menu: false,
             participant_details: false,
             quit: false,
             dirty: true,
@@ -177,9 +184,97 @@ impl App {
         self.refresh_preview();
         self.dirty = true;
     }
+    /// Durable, eligible, non-superseded records in transcript order.
+    fn selectable_records(&self) -> Vec<EventId> {
+        let mut records: Vec<_> = self
+            .session
+            .snapshot
+            .context
+            .records
+            .iter()
+            .filter(|r| r.eligible && !r.superseded && r.message_id.is_some())
+            .collect();
+        records.sort_by_key(|r| r.seq);
+        records.into_iter().map(|r| r.event_id).collect()
+    }
+    fn message_notice(&mut self) {
+        let context = &self.session.snapshot.context;
+        let focus = self.msg_focus.and_then(|id| context.record(id));
+        self.notice = Some(match (self.action_menu, focus) {
+            (true, _) => format!(
+                "Actions · Enter Quote ({} selected) · Esc Close",
+                self.msg_selected.len().max(usize::from(self.msg_focus.is_some()))
+            ),
+            (false, Some(r)) => format!(
+                "{} {} · {} · ↑/↓ Move · Space Select · Enter Actions",
+                if self.msg_selected.contains(&r.event_id) { "[x]" } else { "[ ]" },
+                r.author,
+                crate::markdown::sanitize(&r.content).chars().take(60).collect::<String>()
+            ),
+            (false, None) => "No quotable message".into(),
+        });
+        self.dirty = true;
+    }
+    fn navigate_messages(&mut self, delta: isize) {
+        self.action_menu = false;
+        let ids = self.selectable_records();
+        let current = self.msg_focus.and_then(|id| ids.iter().position(|i| *i == id));
+        self.msg_focus = if ids.is_empty() {
+            None
+        } else {
+            let next = current.map_or(if delta < 0 { ids.len() - 1 } else { 0 }, |i| {
+                i.saturating_add_signed(delta).min(ids.len() - 1)
+            });
+            Some(ids[next])
+        };
+        self.message_notice();
+    }
+    fn toggle_message_selection(&mut self) {
+        if let Some(id) = self.msg_focus {
+            if let Some(i) = self.msg_selected.iter().position(|s| *s == id) {
+                self.msg_selected.remove(i);
+            } else {
+                self.msg_selected.push(id);
+            }
+        }
+        self.message_notice();
+    }
+    /// Enter opens the labeled menu; Enter again activates its Quote action.
+    fn activate_message_action(&mut self) {
+        if !self.action_menu {
+            if self.msg_focus.is_some() || !self.msg_selected.is_empty() {
+                self.action_menu = true;
+            }
+            self.message_notice();
+            return;
+        }
+        let mut ids = if self.msg_selected.is_empty() {
+            self.msg_focus.into_iter().collect()
+        } else {
+            std::mem::take(&mut self.msg_selected)
+        };
+        let order = self.selectable_records();
+        ids.sort_by_key(|id| order.iter().position(|o| o == id));
+        let before = self.quotes.ids.len();
+        for id in ids {
+            if !self.quotes.ids.contains(&id) {
+                self.quotes.toggle(id);
+            }
+        }
+        let added = self.quotes.ids.len() - before;
+        self.action_menu = false;
+        self.notice = Some(format!(
+            "Quoted {added} message(s) · {} attached · Esc removes",
+            self.quotes.ids.len()
+        ));
+        self.dirty = true;
+    }
     pub fn escape(&mut self, now: Duration) {
         if self.export_path.take().is_some() {
             self.export_scope = None;
+        } else if self.action_menu {
+            self.action_menu = false;
+            self.notice = None;
         } else if self.debug_open {
             self.debug_open = false;
         } else if self.completion_open {
@@ -301,6 +396,20 @@ impl App {
                             .saturating_add_signed(if key.code == KeyCode::Up { -1 } else { 1 })
                             .min(max);
                         self.dirty = true;
+                        return;
+                    }
+                    KeyCode::Up | KeyCode::Down
+                        if !self.focus_input && !self.participant_details =>
+                    {
+                        self.navigate_messages(if key.code == KeyCode::Up { -1 } else { 1 });
+                        return;
+                    }
+                    KeyCode::Char(' ') if !self.focus_input && !self.participant_details => {
+                        self.toggle_message_selection();
+                        return;
+                    }
+                    KeyCode::Enter if !self.focus_input && !self.participant_details => {
+                        self.activate_message_action();
                         return;
                     }
                     KeyCode::F(5) => {
