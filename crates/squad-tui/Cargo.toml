@@ -21,6 +21,12 @@ unicode-segmentation = "1"
 
 [dev-dependencies]
 insta = { workspace = true }
+proptest = { workspace = true }
+criterion = "0.7"
 
 [lints]
 workspace = true
+
+[[bench]]
+name = "fx_frame"
+harness = false

@@ -277,23 +277,23 @@
 ## Phase M4.P5 — Effects and motion
 
 - **M4.P5.L1 — Fx level switch and terminal capability detection**
-  - [ ] M4.P5.L1.T1 — `squad-tui/src/fx/level.rs`: `FxLevel { Full, Lite, Off }` parsed from `SQUAD_FX`, default `Full`, unit tests for every value and for garbage input.
-  - [ ] M4.P5.L1.T2 — `squad-tui/src/fx/caps.rs`: colour tier from `NO_COLOR`/`COLORTERM`/`TERM`, sync-output probe with 100 ms timeout, SSH and tmux flags, auto-downgrade to `Lite` only when `SQUAD_FX` is unset; disable full-buffer passes without synchronized output at every level.
-  - [ ] M4.P5.L1.T3 — `squad-tui/src/fx/palette.rs`: per-model hues, OKLCH interpolation, 256 and 16-colour mapping, slots 7 to 12 generator, snapshot of all tiers.
-  - [ ] M4.P5.L1.T4 — `squad-tui/src/fx/caps.rs`: test unset versus explicit `full`, `lite` and `off` over SSH and without synchronized output; assert the canonical six-member ANSI mapping and default-foreground human body text.
+  - [x] M4.P5.L1.T1 — `squad-tui/src/fx/level.rs`: `FxLevel { Full, Lite, Off }` parsed from `SQUAD_FX`, default `Full`, unit tests for every value and for garbage input.
+  - [x] M4.P5.L1.T2 — `squad-tui/src/fx/caps.rs`: colour tier from `NO_COLOR`/`COLORTERM`/`TERM`, sync-output probe with 100 ms timeout, SSH and tmux flags, auto-downgrade to `Lite` only when `SQUAD_FX` is unset; disable full-buffer passes without synchronized output at every level.
+  - [x] M4.P5.L1.T3 — `squad-tui/src/fx/palette.rs`: per-model hues, OKLCH interpolation, 256 and 16-colour mapping, slots 7 to 12 generator, snapshot of all tiers.
+  - [x] M4.P5.L1.T4 — `squad-tui/src/fx/caps.rs`: test unset versus explicit `full`, `lite` and `off` over SSH and without synchronized output; assert the canonical six-member ANSI mapping and default-foreground human body text.
 - **M4.P5.L2 — Clock, effects manager and cue queue**
-  - [ ] M4.P5.L2.T1 — `squad-tui/src/fx/clock.rs`: `Clock` trait, `SystemClock`, `ManualClock`.
+  - [x] M4.P5.L2.T1 — `squad-tui/src/fx/clock.rs`: `Clock` trait, `SystemClock`, `ManualClock`.
   - [ ] M4.P5.L2.T2 — `squad-tui/src/fx/cue.rs`: `FxCue` enum and bounded queue; `squad-tui/src/feed.rs` emits cues for internally tagged `Live` delivery only, without adding an origin field to Protocol's `FeedItem`.
-  - [ ] M4.P5.L2.T3 — `squad-tui/src/fx/manager.rs`: `FxManager::{pre, post, next_wake}`, `FxKey` replacement, 48-effect cap, 2 s stale-cue drop, protected-rect clipping.
-  - [ ] M4.P5.L2.T4 — `squad-tui/Cargo.toml`: add `tachyonfx = "0.25"`; `squad-tui/src/fx/pass.rs` adapter wrapping `tachyonfx::Effect`. Consume banner text from `squad-core`; `figlet-rs` and embedded fonts belong to that crate.
+  - [x] M4.P5.L2.T3 — `squad-tui/src/fx/manager.rs`: `FxManager::{pre, post, next_wake}`, `FxKey` replacement, 48-effect cap, 2 s stale-cue drop, protected-rect clipping.
+  - [x] M4.P5.L2.T4 — `squad-tui/Cargo.toml`: add `tachyonfx = "0.25"`; `squad-tui/src/fx/pass.rs` adapter wrapping `tachyonfx::Effect`. Consume banner text from `squad-core`; `figlet-rs` and embedded fonts belong to that crate.
   - [ ] M4.P5.L2.T5 — `squad-tui/src/fx/cue.rs` and `squad-tui/src/feed.rs`: add the daily-spend, tournament, grill and pick cues; derive persistent markers from reduced state and suppress entrances during replay.
 - **M4.P5.L3 — Frame-budget governor and idle halt**
-  - [ ] M4.P5.L3.T1 — `squad-tui/src/fx/governor.rs`: EWMA, byte-rate input, G0 to G3 thresholds, 3 s hysteresis, table-driven tests.
+  - [x] M4.P5.L3.T1 — `squad-tui/src/fx/governor.rs`: EWMA, byte-rate input, G0 to G3 thresholds, 3 s hysteresis, table-driven tests.
   - [ ] M4.P5.L3.T2 — `squad-tui/src/event_loop.rs`: integrate `next_wake()` with the TUI-owned event loop; test zero draws over 5 s after idle effects end and continued drawing during bounded feed batches.
-  - [ ] M4.P5.L3.T3 — `squad-tui/benches/fx_frame.rs`: 12 streams plus verdict at 200x60 under 6 ms.
+  - [x] M4.P5.L3.T3 — `squad-tui/benches/fx_frame.rs`: 12 streams plus verdict at 200x60 under 6 ms.
 - **M4.P5.L4 — Test harness**
-  - [ ] M4.P5.L4.T1 — `squad-tui/tests/fx_support/mod.rs`: `render_at(cues, t)` helper over `TestBackend` and `ManualClock`.
-  - [ ] M4.P5.L4.T2 — `squad-tui/tests/fx_invariants.rs`: end-state equals `off` render; protected rects keep glyphs; replay of 1,000 events yields zero effects.
+  - [x] M4.P5.L4.T1 — `squad-tui/tests/fx_support/mod.rs`: `render_at(cues, t)` helper over `TestBackend` and `ManualClock`.
+  - [x] M4.P5.L4.T2 — `squad-tui/tests/fx_invariants.rs`: end-state equals `off` render; protected rects keep glyphs; replay of 1,000 events yields zero effects.
 - **M4.P5.L5 — Chrome and participants effects**
   - [ ] M4.P5.L5.T1 — `squad-tui/src/fx/chrome.rs`: logo reveal, roster resolve from the resolved state at first draw, border breath, quit power-down on TUI quit actions, resize hard cut; snapshots.
   - [ ] M4.P5.L5.T2 — `squad-tui/src/fx/status.rs`: orbit glyph, throughput bar from real token rate, backoff ring, pip stack; snapshots.
