@@ -603,3 +603,107 @@ async fn unscored_rounds_never_increment_wins_or_losses_only_the_verdict_does() 
     assert_eq!(room.state().await.scoreboard, state.scoreboard);
     room.shutdown().await.unwrap();
 }
+
+// ---- M2.P2.L7.T8 / M5.P1.L5.T7: pending picks, continued chat and collection spend ----
+
+async fn pending_pick(
+    f: &live::Fixture,
+    room: &squad_core::room::RoomHandle,
+) -> ContestSelectionState {
+    wiremock::Mock::given(wiremock::matchers::method("POST"))
+        .and(wiremock::matchers::path("/api/v1/chat/completions"))
+        .respond_with(live::fake_openrouter::streaming(
+            "A concrete proposal",
+            "stop",
+        ))
+        .with_priority(10)
+        .mount(&f.fake.server)
+        .await;
+    room.submit(f.request("@all $debate $ROUNDS=2 Compare designs?"))
+        .await;
+    f.wait(|| f.scalar("SELECT COUNT(*) FROM events WHERE kind='contest.pick_requested'") == 1)
+        .await;
+    let Some(ContestState::Selection(pick)) = room.state().await.active_contest else {
+        panic!("expected a pending pick")
+    };
+    assert_eq!(pick.state, ContestSelectionStatus::AwaitingPick);
+    pick
+}
+
+#[tokio::test]
+async fn chat_continues_while_a_pick_is_pending_and_cancel_retains_the_answers() {
+    let f = live::Fixture::with_roster(3).await;
+    let room = f.open(OpenMode::Interactive).await;
+    let pick = pending_pick(&f, &room).await;
+    assert_eq!(pick.answers.len(), 3);
+    // Ordinary conversation is not blocked by the pending pick and does not disturb it.
+    let finals = f.scalar("SELECT COUNT(*) FROM events WHERE kind='message.final'");
+    let chat = room.submit(f.request("@member0 unrelated chat")).await;
+    assert!(matches!(chat, RequestResult::Accepted { .. }), "{chat:?}");
+    f.wait(|| f.scalar("SELECT COUNT(*) FROM events WHERE kind='message.final'") == finals + 1)
+        .await;
+    let Some(ContestState::Selection(still)) = room.state().await.active_contest else {
+        panic!("the pending pick must survive ordinary chat")
+    };
+    assert_eq!(still.state, ContestSelectionStatus::AwaitingPick);
+    assert_eq!(still.answers, pick.answers, "frozen answers are unchanged");
+    assert_eq!(still.contest_id, pick.contest_id);
+    // Cancelling the pick ends the contest but never deletes the collected answers.
+    accepted(
+        room.submit(Request::Stop {
+            request_id: EventId::new(),
+            target: None,
+        })
+        .await,
+    );
+    let state = room.state().await;
+    assert!(state.active_contest.is_none(), "{:?}", state.active_contest);
+    assert_eq!(f.scalar("SELECT COUNT(*) FROM contest_answers"), 3);
+    let events = room.page_events(None, 500).await.unwrap();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e.content, EnvelopePayload::ContestPickRequested(_))),
+        "the committed pick request stays in history"
+    );
+    let stopped: String = f
+        .db()
+        .query_row("SELECT state_json FROM contests", [], |r| r.get(0))
+        .unwrap();
+    assert!(stopped.contains("STOPPED"), "{stopped}");
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn collection_spend_counts_as_daily_spend_but_not_in_the_execution_estimate() {
+    let mut f = live::Fixture::with_roster(3).await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::Interactive).await;
+    let pick = pending_pick(&f, &room).await;
+    let collected = room.state().await.daily_spend;
+    assert!(
+        collected.spent_usd > 0.,
+        "three collection calls were paid for"
+    );
+    let result = room
+        .submit(Request::ContestPick {
+            request_id: EventId::new(),
+            contest_id: pick.contest_id,
+            nicks: vec![nick("member0"), nick("member1")],
+        })
+        .await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Debate(plan),
+        ..
+    } = &result
+    else {
+        panic!("{result:?}")
+    };
+    // Debate script for two rounds: four turns, two round scores and one verdict. Collection is excluded.
+    assert_eq!(plan.estimate.model_calls, 7, "{plan:?}");
+    // Remaining budget still reflects what collection already spent.
+    let remaining_without_spend = f.config.budget.daily_max_usd;
+    assert!(plan.estimate.remaining_usd <= remaining_without_spend - collected.spent_usd + 1e-9);
+    assert!(plan.estimate.estimated_usd < remaining_without_spend);
+    room.shutdown().await.unwrap();
+}
