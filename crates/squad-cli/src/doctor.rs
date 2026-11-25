@@ -1,6 +1,6 @@
 use std::{ffi::OsString, fmt::Write};
 
-use squad_protocol::config::{ConfigError, LoadOptions, SquadConfig};
+use squad_protocol::config::{ConfigError, EffectiveEnvironment, LoadOptions, SquadConfig};
 
 #[derive(Debug, PartialEq)]
 pub enum Colour {
@@ -40,8 +40,9 @@ pub struct Report {
 
 // TODO(M3.P3): replace skipped checks with typed readers and integration checks.
 pub fn run(
-    config: &Result<SquadConfig, ConfigError>,
+    config: &Result<SquadConfig, Vec<ConfigError>>,
     options: &LoadOptions,
+    effective: &EffectiveEnvironment,
     env: &impl Fn(&str) -> Option<OsString>,
     terminal: bool,
     size: Option<(u16, u16)>,
@@ -72,50 +73,52 @@ pub fn run(
                 config.budget.daily_max_usd,
                 config.judge.model
             );
-            text.push_str("Credential presence: present\n");
         }
-        Err(error) => {
-            let _ = writeln!(text, "Configuration: FAIL - {error}");
-            failed = true;
-            if matches!(error, ConfigError::MissingApiKey) {
-                let _ = writeln!(text, "Credential presence: missing - {error}");
-            } else {
-                text.push_str(
-                    "Credential presence: unavailable - configuration could not be loaded\n",
-                );
+        Err(errors) => {
+            for error in errors {
+                let _ = writeln!(text, "Configuration: FAIL - {error}");
             }
+            failed = true;
         }
     }
-    // A failed configuration still permits an independent filesystem probe of
-    // the CLI override or OS default; never reinterpret file settings here.
-    let fallback = options
-        .data_dir
-        .as_ref()
-        .map(|path| options.working_dir.join(path))
-        .unwrap_or_else(|| options.default_data_dir.clone());
-    let data_dir = config
-        .as_ref()
-        .map(|config| config.data_dir.as_path())
-        .unwrap_or(&fallback);
-    if config.is_err() {
-        text.push_str(
-            "Data directory source: CLI override or OS default (configuration unavailable)\n",
-        );
-    }
+    let _ = writeln!(
+        text,
+        "Credential presence: {}",
+        if effective.credential_present() {
+            "present"
+        } else {
+            "missing"
+        }
+    );
+    let resolved_data_dir = effective.data_dir(options);
     text.push_str(
         "OpenRouter reachability: skipped until M2\nModel resolution: skipped until M2\n",
     );
-    let writable = match crate::paths::check_writable(data_dir) {
+    let writable = match resolved_data_dir
+        .as_ref()
+        .map_err(ToString::to_string)
+        .and_then(|path| {
+            crate::paths::check_writable(path)
+                .map_err(|_| format!("Data directory is not writable: {}.", path.display()))
+        }) {
         Ok(()) => {
-            let _ = writeln!(text, "Data directory: writable - {}", data_dir.display());
+            let path = resolved_data_dir.as_ref().expect("resolved writable path");
+            let _ = writeln!(text, "Data directory: writable - {}", path.display());
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = std::fs::metadata(path) {
+                    let _ = writeln!(
+                        text,
+                        "Data directory mode: {:04o}",
+                        metadata.permissions().mode() & 0o777
+                    );
+                }
+            }
             true
         }
-        Err(_) => {
-            let _ = writeln!(
-                text,
-                "Data directory: FAIL - Data directory is not writable: {}.",
-                data_dir.display()
-            );
+        Err(error) => {
+            let _ = writeln!(text, "Data directory: FAIL - {error}");
             false
         }
     };
@@ -147,8 +150,11 @@ pub fn run(
     );
     text.push_str("Daily accounting: skipped until M3\nModel identity: skipped until M3\n");
     if writable && let Ok(config) = config {
-        if let Err(error) = crate::logging::init(data_dir, crate::logging::level(config.log_level))
-        {
+        if let Err(error) = crate::logging::init(
+            &config.data_dir,
+            crate::logging::level(config.log_level),
+            &config.openrouter_api_key,
+        ) {
             let _ = writeln!(text, "Logging: FAIL - {error}");
             failed = true;
         } else {
@@ -207,9 +213,11 @@ mod tests {
         let mut options =
             LoadOptions::from_environment(temp.path().to_owned(), &Default::default());
         options.data_dir = Some(blocker);
+        let effective = EffectiveEnvironment::load(&options, &Default::default());
         let report = run(
-            &Err(ConfigError::MissingApiKey),
+            &Err(vec![ConfigError::MissingApiKey]),
             &options,
+            &effective,
             &|_| None,
             false,
             Some((80, 24)),

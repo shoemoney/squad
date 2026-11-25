@@ -1,6 +1,6 @@
 use std::{fs, io, path::Path};
 
-/// Create new components privately, and secure the application directory itself.
+/// Create missing components privately; preserve permissions of existing directories.
 /// Existing parent directories (such as HOME or XDG_DATA_HOME) are not changed.
 pub fn create_private_dir(path: &Path) -> io::Result<()> {
     let mut builder = fs::DirBuilder::new();
@@ -17,17 +17,17 @@ pub fn create_private_dir(path: &Path) -> io::Result<()> {
             "application directory must be a directory, not a symlink",
         ));
     }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(0o700))?;
-    }
     Ok(())
 }
 
 pub fn check_writable(path: &Path) -> io::Result<()> {
     use std::io::Write;
-    create_private_dir(path)?;
+    match fs::metadata(path) {
+        Ok(metadata) if metadata.is_dir() => {}
+        Ok(_) => return Err(io::Error::other("data path is not a directory")),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => create_private_dir(path)?,
+        Err(error) => return Err(error),
+    }
     // Exclusive, private probe; never touches room rows or an existing file.
     let probe = path.join(format!(".squad-write-check-{}", std::process::id()));
     let mut options = fs::OpenOptions::new();

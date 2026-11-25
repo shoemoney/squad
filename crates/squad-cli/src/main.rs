@@ -21,15 +21,19 @@ fn run(cli: Cli) -> Result<u8, String> {
         std::env::current_dir().map_err(|_| "Cannot resolve working directory.".to_owned())?;
     // One snapshot is passed to the sole configuration loader. Terminal detection
     // below reads only terminal variables, never application configuration.
-    let environment = std::env::vars().collect();
+    let (environment, environment_errors) =
+        squad_protocol::config::snapshot_environment(std::env::vars_os());
     let mut options = squad_protocol::config::LoadOptions::from_environment(cwd, &environment);
     options.env_file = cli.env_file;
     options.data_dir = cli.data_dir;
-    let config = squad_protocol::config::SquadConfig::load_with_env(&options, &environment);
+    let mut effective = squad_protocol::config::EffectiveEnvironment::load(&options, &environment);
+    effective.errors.extend(environment_errors);
+    let config = effective.validate(&options);
     if let Some(Command::Doctor { env: show_env }) = cli.command {
         let report = doctor::run(
             &config,
             &options,
+            &effective,
             &|name| std::env::var_os(name),
             std::io::stdin().is_terminal() && std::io::stdout().is_terminal(),
             crossterm::terminal::size().ok(),
@@ -41,14 +45,24 @@ fn run(cli: Cli) -> Result<u8, String> {
         }
         return Ok(report.code);
     }
-    let config = config.map_err(|error| error.to_string())?;
+    let config = config.map_err(|errors| {
+        errors
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n")
+    })?;
     paths::create_private_dir(&config.data_dir).map_err(|_| {
         format!(
             "Data directory is not writable: {}.",
             config.data_dir.display()
         )
     })?;
-    logging::init(&config.data_dir, logging::level(config.log_level))?;
+    logging::init(
+        &config.data_dir,
+        logging::level(config.log_level),
+        &config.openrouter_api_key,
+    )?;
     tracing::info!("CLI initialized");
     // TODO(M3.P3): wire RoomHandle, offline exports, registry and bus diagnostics.
     // TODO(M4.P1): launch the TUI with OpenMode::Interactive.
