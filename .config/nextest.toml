@@ -1,0 +1,4 @@
+[profile.default]
+# Report every failure while keeping local runs deterministic (no retries).
+fail-fast = false
+retries = 0

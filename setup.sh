@@ -13,7 +13,7 @@ repository's pinned Rust toolchain with clippy and rustfmt; installs
 cargo-nextest and cargo-insta; creates a private .env only if absent;
 reports credential presence; builds the locked release and runs squad doctor.
 
-  --yes           Noninteractive; permits printed sudo commands unattended
+  --yes           Noninteractive; permits printed installer commands unattended
   --runtime-only  Skip cargo-nextest and cargo-insta
   --no-build      Skip release build and built-binary diagnostics
   --help          Show this help without making changes
@@ -38,15 +38,16 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd -- "$root"
 
 privileged() {
-    if (( EUID == 0 )); then
-        "$@"
-        return
-    fi
-    local command=(sudo)
-    if "$yes"; then
-        command+=(-n)
-    elif [[ ! -t 0 ]]; then
-        die 'Unattended sudo requires --yes. Re-run with --yes or use a terminal.'
+    local command=()
+    if [[ $(id -u) != 0 ]]; then
+        command=(sudo)
+        if "$yes"; then
+            command+=(-n)
+        elif [[ ! -t 0 ]]; then
+            die 'Unattended sudo requires --yes. Re-run with --yes or use a terminal.'
+        fi
+    elif ! "$yes" && [[ ! -t 0 ]]; then
+        die 'Unattended installation as root requires --yes. Re-run with --yes or use a terminal.'
     fi
     command+=("$@")
     printf 'Running:'
@@ -129,15 +130,17 @@ fi
 toolchain=$(sed -nE 's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' rust-toolchain.toml)
 [[ -n $toolchain && $toolchain != *$'\n'* ]] || die 'Expected one channel in rust-toolchain.toml.'
 rustup toolchain install "$toolchain" --profile minimal --component clippy --component rustfmt
+cargo_version=$(rustup run "$toolchain" cargo --version)
+[[ $cargo_version == "cargo $toolchain "* ]] || die "Pinned cargo version mismatch: expected $toolchain."
 printf 'Rust toolchain ready: %s (clippy, rustfmt).\n' "$toolchain"
 if "$runtime_only"; then
     printf 'Skipping development tools (--runtime-only).\n'
 else
     for tool in nextest insta; do
-        if cargo +"$toolchain" "$tool" --version >/dev/null 2>&1; then
+        if rustup run "$toolchain" cargo "$tool" --version >/dev/null 2>&1; then
             printf 'cargo-%s already installed.\n' "$tool"
         else
-            cargo +"$toolchain" install --locked "cargo-$tool"
+            rustup run "$toolchain" cargo install --locked "cargo-$tool"
         fi
     done
 fi
@@ -145,6 +148,10 @@ fi
 # noclobber also protects dangling symlinks and concurrent setup runs.
 if [[ -e .env || -L .env ]]; then
     printf 'Preserving existing .env.\n'
+    # find's permission predicate works with both BSD and GNU find.
+    if [[ -n $(find -L .env -prune \( -perm -0040 -o -perm -0004 \) -print) ]]; then
+        printf 'Warning: existing .env is readable by group or others; consider chmod 600 .env.\n' >&2
+    fi
 elif (umask 077; set -o noclobber; cat .env.example > .env); then
     chmod 600 .env
     printf 'Created .env with mode 0600.\n'
@@ -177,7 +184,7 @@ status=0
 if "$no_build"; then
     printf 'Skipping release build and built-binary diagnostics (--no-build).\n'
 else
-    cargo build --release --locked
+    rustup run "$toolchain" cargo build --release --locked
     binary="${CARGO_TARGET_DIR:-target}/release/squad"
     [[ -x $binary ]] || die "Built binary not found: $binary"
     help=$("$binary" --help)

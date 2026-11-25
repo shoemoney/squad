@@ -1,0 +1,2 @@
+# Keep the default stable formatting for this edition.
+edition = "2024"
