@@ -80,6 +80,12 @@ impl<'a> Registry<'a> {
             WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
                 (TaskKind::CrosscheckJudge, DeadlineClass::FinalJudge)
             }
+            WorkKind::SurveyExtract | WorkKind::SurveyReport => {
+                (TaskKind::SurveyJudge, DeadlineClass::FinalJudge)
+            }
+            WorkKind::SurveyVote | WorkKind::SurveyRevote => {
+                (TaskKind::Reply, DeadlineClass::Ordinary)
+            }
             WorkKind::Reply => (TaskKind::Reply, DeadlineClass::Ordinary),
             WorkKind::DebateTurn => (TaskKind::DebateTurn, DeadlineClass::DebateTurn),
             WorkKind::Judge => (TaskKind::Judge, DeadlineClass::FinalJudge),

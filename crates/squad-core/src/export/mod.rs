@@ -5,6 +5,7 @@
 //! Opaque generic artifact/report data is deliberately never serialized here.
 pub mod census;
 mod crosscheck;
+pub mod survey;
 mod tournament;
 use crate::banner::{Banner, render_default};
 use squad_protocol::*;
@@ -120,7 +121,7 @@ fn check_scope(scope: &ExportScope, id: Option<ContestId>) -> Result<(), ExportE
     if id.is_none() {
         return Err(ExportError::ContestIdRequired);
     }
-    if matches!(scope, ExportScope::Survey | ExportScope::Probe) {
+    if matches!(scope, ExportScope::Probe) {
         return Err(ExportError::UnsupportedScope);
     }
     Ok(())
@@ -188,6 +189,7 @@ pub fn render(
             ExportScope::Grill => ContestKind::Grill,
             ExportScope::Census => ContestKind::Census,
             ExportScope::Crosscheck => ContestKind::Crosscheck,
+            ExportScope::Survey => ContestKind::Survey,
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -198,6 +200,10 @@ pub fn render(
     for e in events {
         if id.is_some() && contest_id(&e.content) == id {
             match &e.content {
+                EnvelopePayload::SurveySetup(s) => {
+                    references.insert(s.question_message_id);
+                    references.extend(s.answers.iter().map(|a| a.message_id));
+                }
                 EnvelopePayload::DebateSetup(s) => {
                     references.insert(s.topic_message_id);
                     references.extend(s.solutions.iter().map(|s| s.message_id));
@@ -294,6 +300,10 @@ pub fn render(
             continue;
         }
         if let Some(text) = crosscheck::render(&e.content) {
+            out.push_str(&text);
+            continue;
+        }
+        if let Some(text) = survey::render(&e.content) {
             out.push_str(&text);
             continue;
         }
@@ -569,6 +579,11 @@ fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
         }
         EnvelopePayload::CrosscheckSetup(s) => (s.contest_id, ContestKind::Crosscheck),
         EnvelopePayload::CrosscheckState(s) => (s.contest_id, ContestKind::Crosscheck),
+        EnvelopePayload::SurveySetup(s) => (s.contest_id, ContestKind::Survey),
+        EnvelopePayload::SurveyState(s) => (s.contest_id, ContestKind::Survey),
+        EnvelopePayload::ContestState(ContestState::Survey(s)) => {
+            (s.contest_id, ContestKind::Survey)
+        }
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -605,6 +620,10 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         EnvelopePayload::CrosscheckAcceptance(s) => Some(s.contest_id),
         EnvelopePayload::CrosscheckReport(s) => Some(s.contest_id),
         EnvelopePayload::CrosscheckPreflight(s) => Some(s.base.contest_id),
+        EnvelopePayload::SurveyClaims(s) => Some(s.contest_id),
+        EnvelopePayload::SurveyVote(s) | EnvelopePayload::SurveyRevote(s) => Some(s.contest_id),
+        EnvelopePayload::SurveySelection(s) => Some(s.contest_id),
+        EnvelopePayload::SurveyReport(s) => Some(s.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

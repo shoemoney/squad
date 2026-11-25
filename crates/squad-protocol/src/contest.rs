@@ -113,6 +113,8 @@ pub enum ContestState {
     Debate(DebateState),
     Tournament(TournamentState),
     Census(CensusState),
+    #[cfg(feature = "mode-survey")]
+    Survey(SurveyState),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -232,6 +234,8 @@ pub enum ContestTransition {
     Tournament(TournamentTransition),
     Census(CensusTransition),
     Crosscheck(CrosscheckTransition),
+    #[cfg(feature = "mode-survey")]
+    Survey(SurveyTransition),
 }
 impl ContestKind {
     pub fn as_str(self) -> &'static str {
@@ -249,7 +253,7 @@ impl ContestKind {
         matches!(
             self,
             Self::Debate | Self::Tournament | Self::Census | Self::Crosscheck
-        )
+        ) || (cfg!(feature = "mode-survey") && self == Self::Survey)
     }
 }
 impl ContestTransitionSubmission {

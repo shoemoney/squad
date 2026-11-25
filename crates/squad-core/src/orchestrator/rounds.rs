@@ -106,6 +106,7 @@ pub fn attempt_limit(kind: &WorkKind) -> u8 {
         | WorkKind::CrosscheckGoal
         | WorkKind::CrosscheckNormalize
         | WorkKind::CrosscheckRule => constants::FINAL_JUDGE_ATTEMPTS,
+        WorkKind::SurveyExtract | WorkKind::SurveyReport => 3,
         _ => constants::DEBATE_TURN_ATTEMPTS,
     }
 }
@@ -121,7 +122,12 @@ pub fn failure_policy(
 ) -> AttemptDecision {
     let invalid = failure == super::types::FailureClass::InvalidOutput;
     let ceiling = budget.min(attempt_limit(kind));
-    if attempt > 0 && attempt < u32::from(ceiling) && !(invalid && repair_used) {
+    if attempt > 0
+        && attempt < u32::from(ceiling)
+        && !(invalid
+            && repair_used
+            && !matches!(kind, WorkKind::SurveyExtract | WorkKind::SurveyReport))
+    {
         AttemptDecision::Retry {
             work_id,
             next_attempt: attempt + 1,
@@ -133,6 +139,8 @@ pub fn failure_policy(
                         | WorkKind::CrosscheckGoal
                         | WorkKind::CrosscheckNormalize
                         | WorkKind::CrosscheckRule
+                        | WorkKind::SurveyExtract
+                        | WorkKind::SurveyReport
                 ),
         }
     } else {

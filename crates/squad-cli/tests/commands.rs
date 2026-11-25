@@ -436,7 +436,7 @@ fn all_export_scopes_are_visible_typed_and_preserve_renderer_errors() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8_lossy(&output.stderr).trim(),
-            if matches!(scope, "survey" | "probe") {
+            if matches!(scope, "probe") {
                 "export scope is not implemented"
             } else {
                 "could not read export snapshot"

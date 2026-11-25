@@ -124,6 +124,7 @@ pub async fn member_messages(
     let history = read_history(context, grant).await?;
     if grant.work.kind == WorkKind::Reply
         && grant.work.round.is_none()
+        && grant.work.step_id.is_none()
         && !history.iter().any(|entry| {
             matches!(
                 entry.meta,

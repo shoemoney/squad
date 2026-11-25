@@ -54,6 +54,8 @@ impl ParseContext {
             ContestState::Debate(_) => ContestKind::Debate,
             ContestState::Tournament(_) => ContestKind::Tournament,
             ContestState::Census(_) => ContestKind::Census,
+            #[cfg(feature = "mode-survey")]
+            ContestState::Survey(_) => ContestKind::Survey,
         });
         // A parallel batch is one human question, never a union of latest replies.
         let latest_question = records

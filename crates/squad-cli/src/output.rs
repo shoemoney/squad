@@ -171,6 +171,9 @@ impl Output<'_> {
                     terminal_json(serde_json::to_string_pretty(payload)?)
                 );
             }
+            if let Some(text) = squad_core::export::survey::render(&event.content) {
+                return writeln!(self.stdout, "{text}");
+            }
             if kind == "message.final" {
                 writeln!(
                     self.stdout,

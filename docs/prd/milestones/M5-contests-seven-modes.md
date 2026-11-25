@@ -222,11 +222,11 @@
   - [ ] M5.P3.L8.T6 — Verify report rendering preserves open gaps and proposed fixes, explicit residual-risk acceptance requirements, missing audit work, and the bounded stop statement without an extra provider call in `squad-core` at `crates/squad-core/tests/crosscheck_prompts.rs`.
 
 - **M5.P3.L9 — Add survey prompts**
-  - [ ] M5.P3.L9.T1 — Add root `prompts/survey.extract.md`, `prompts/survey.vote.md`, `prompts/survey.revote.md`, and `prompts/survey.report.md` with neutral atomic claims, private origins, structured ballots, change-evidence fields, and all five report bands.
-  - [ ] M5.P3.L9.T2 — Map ordinary question-first collection or reused parallel answers, private origin references, anonymous claim and reason projections, selected revote claims, computed counts, band assignments, and switch records in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
-  - [ ] M5.P3.L9.T3 — Capture vote and revote requests to verify absence of whole answers, authorship, origin counts, ballot counts, private mappings, and forbidden earlier history in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
-  - [ ] M5.P3.L9.T4 — Test canonical claim coverage, AGREE/DISAGREE/UNSURE values, confidence bounds, selected-claim revoting, evidence-to-change-mind fields, skipped ballots, and task-specific repair in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
-  - [ ] M5.P3.L9.T5 — Verify the human report preserves consensus, contested claims with both sides and settling questions, lone insights, lone dissents, rejected outliers, recorded switches, and uncertainty without declaring a winner or delivering private tallies to members in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
+  - [x] M5.P3.L9.T1 — Add root `prompts/survey.extract.md`, `prompts/survey.vote.md`, `prompts/survey.revote.md`, and `prompts/survey.report.md` with neutral atomic claims, private origins, structured ballots, change-evidence fields, and all five report bands.
+  - [x] M5.P3.L9.T2 — Map ordinary question-first collection or reused parallel answers, private origin references, anonymous claim and reason projections, selected revote claims, computed counts, band assignments, and switch records in `squad-core` at `crates/squad-core/src/prompts/inputs.rs`.
+  - [x] M5.P3.L9.T3 — Capture vote and revote requests to verify absence of whole answers, authorship, origin counts, ballot counts, private mappings, and forbidden earlier history in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
+  - [x] M5.P3.L9.T4 — Test canonical claim coverage, AGREE/DISAGREE/UNSURE values, confidence bounds, selected-claim revoting, evidence-to-change-mind fields, skipped ballots, and task-specific repair in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
+  - [x] M5.P3.L9.T5 — Verify the human report preserves consensus, contested claims with both sides and settling questions, lone insights, lone dissents, rejected outliers, recorded switches, and uncertainty without declaring a winner or delivering private tallies to members in `squad-core` at `crates/squad-core/tests/survey_prompts.rs`.
 
 - **M5.P3.L10 — Add probe prompts**
   - [ ] M5.P3.L10.T1 — Add root `prompts/probe.explain.md`, `prompts/probe.check.md`, `prompts/probe.predict.md`, and `prompts/probe.report.md` with independent roles, measurable non-destructive checks, committed predictions, unknowns, and a structured diagnostic tree.
@@ -462,34 +462,34 @@
 ## Phase M5.P9 — Survey
 
 - **M5.P9.L1 — Freeze answers and extract claims**
-  - [ ] M5.P9.L1.T1 — Implement question-first collection and reuse of the most recent parallel answer set with frozen source identities in `crates/squad-core/src/orchestrator/survey.rs`.
-  - [ ] M5.P9.L1.T2 — Integrate `survey.extract.md`, enforcing at most 25 neutral deduplicated claims and private origin references.
-  - [ ] M5.P9.L1.T3 — Derive 20-call question-first and 14-call reuse preflights and their reserved-attempt bounds.
+  - [x] M5.P9.L1.T1 — Implement question-first collection and reuse of the most recent parallel answer set with frozen source identities in `crates/squad-core/src/orchestrator/survey.rs`.
+  - [x] M5.P9.L1.T2 — Integrate `survey.extract.md`, enforcing at most 25 neutral deduplicated claims and private origin references.
+  - [x] M5.P9.L1.T3 — Derive 20-call question-first and 14-call reuse preflights and their reserved-attempt bounds.
 
 - **M5.P9.L2 — Lock votes and anonymous revotes**
-  - [ ] M5.P9.L2.T1 — Integrate `survey.vote.md`, exact claim coverage, three-value ballots, one-line reasons and confidence bounds.
-  - [ ] M5.P9.L2.T2 — Compute first tallies and deterministic split ordering, select up to five claims and persist anonymous reason projections without counts.
-  - [ ] M5.P9.L2.T3 — Integrate `survey.revote.md`, preserve missing second ballots and compute switches only from two accepted ballots.
+  - [x] M5.P9.L2.T1 — Integrate `survey.vote.md`, exact claim coverage, three-value ballots, one-line reasons and confidence bounds.
+  - [x] M5.P9.L2.T2 — Compute first tallies and deterministic split ordering, select up to five claims and persist anonymous reason projections without counts.
+  - [x] M5.P9.L2.T3 — Integrate `survey.revote.md`, preserve missing second ballots and compute switches only from two accepted ballots.
 
 - **M5.P9.L3 — Report and recover survey**
-  - [ ] M5.P9.L3.T1 — Integrate `survey.report.md` and validate the five bands, cross-references and settling questions against app-computed origins and tallies.
-  - [ ] M5.P9.L3.T2 — Recover collection, extraction, locked ballots, selected claims and report delivery without duplicate calls or changed source sets.
-  - [ ] M5.P9.L3.T3 — Verify empty claims, unsure and missing votes, singleton origins, rejected outliers, identified switches, failed-member reporting, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/survey.rs`.
+  - [x] M5.P9.L3.T1 — Integrate `survey.report.md` and validate the five bands, cross-references and settling questions against app-computed origins and tallies.
+  - [x] M5.P9.L3.T2 — Recover collection, extraction, locked ballots, selected claims and report delivery without duplicate calls or changed source sets.
+  - [x] M5.P9.L3.T3 — Verify empty claims, unsure and missing votes, singleton origins, rejected outliers, identified switches, failed-member reporting, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/survey.rs`.
 
 - **M5.P9.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P9.L4.T1 — Declare survey statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/survey.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P9.L4.T2 — Add the survey tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P9.L4.T3 — Implement the survey setup, state, claims, vote, selection, revote, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/survey.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T4.)
-  - [ ] M5.P9.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P9.L4.T5 — Commit survey source snapshots, claim provenance, both ballots, app-selected claims and report projections without exposing authorship or counts to voters in crate `squad-store`, file `crates/squad-store/src/survey.rs`. (Deferred from M1.P3.L7.T6.)
-  - [ ] M5.P9.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P9.L4.T7 — Prove survey voters cannot read whole peer answers, claim authorship, vote counts or attributed reasons, and duplicate ballots cannot change tallies in crate `squad-store`, file `crates/squad-store/tests/survey.rs`. (Deferred from M1.P4.L5.T4.)
-  - [ ] M5.P9.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P9.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P9.L4.T1 — Declare survey statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/survey.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P9.L4.T2 — Add the survey tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P9.L4.T3 — Implement the survey setup, state, claims, vote, selection, revote, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/survey.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T4.)
+  - [x] M5.P9.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P9.L4.T5 — Commit survey source snapshots, claim provenance, both ballots, app-selected claims and report projections without exposing authorship or counts to voters in crate `squad-store`, file `crates/squad-store/src/survey.rs`. (Deferred from M1.P3.L7.T6.)
+  - [x] M5.P9.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P9.L4.T7 — Prove survey voters cannot read whole peer answers, claim authorship, vote counts or attributed reasons, and duplicate ballots cannot change tallies in crate `squad-store`, file `crates/squad-store/tests/survey.rs`. (Deferred from M1.P4.L5.T4.)
+  - [x] M5.P9.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P9.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
   - [ ] M5.P9.L4.T10 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P9.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P9.L4.T12 — Add the exact survey per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P9.L4.T13 — Enforce second-ballot change_evidence in SQL and bundle/deduplicate all anonymous revote reasons under the survey.selection barrier origin with no voter grouping or counts.
+  - [x] M5.P9.L4.T11 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P9.L4.T12 — Add the exact survey per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P9.L4.T13 — Enforce second-ballot change_evidence in SQL and bundle/deduplicate all anonymous revote reasons under the survey.selection barrier origin with no voter grouping or counts.
 
 ## Phase M5.P10 — Probe
 

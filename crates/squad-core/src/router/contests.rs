@@ -75,6 +75,8 @@ impl Router {
                             )
                             .map_err(|_| super::debates::invalid())?;
                             super::crosscheck::save(tx, group, &next, Some(state.state_version))?;
+                        } else if submission.kind == ContestKind::Survey {
+                            super::survey::transition(tx, group, envelope_id, submission)?;
                         } else {
                             super::debates::transition(tx, group, envelope_id, submission)?;
                         }
@@ -331,6 +333,9 @@ fn barrier(
     if squad_store::schema::validate_contest_kind(tx, commit.contest_id, ContestKind::Crosscheck)? {
         return super::crosscheck::barrier(tx, group, commit);
     }
+    if super::survey::is_survey(tx, commit.contest_id)? {
+        return super::survey::barrier(tx, group, commit.barrier_event.base.correlation_id, commit);
+    }
     let state = squad_store::contests::debate(tx, commit.contest_id)?;
     if state.state_version != commit.expected_state_version
         || state.state.is_terminal()
@@ -425,6 +430,19 @@ impl Router {
         work: Vec<Work>,
         private_maps: std::collections::BTreeMap<String, serde_json::Value>,
     ) -> Result<CommitOutcome> {
+        if self.store.call({
+            let id = step.contest_id;
+            move |db| super::survey::is_survey(db, id)
+        })? {
+            return super::survey::allocate(
+                self,
+                request_id,
+                step,
+                projections,
+                work,
+                private_maps,
+            );
+        }
         let digest = squad_store::commit::digest(&(&step, &projections, &work, &private_maps))?;
         let bindings = self.bindings.clone();
         self.store.commit(

@@ -30,7 +30,7 @@ fn selection_state_and_generic_preflights_have_one_shared_shape() {
                     | ContestKind::Tournament
                     | ContestKind::Census
                     | ContestKind::Crosscheck
-            )
+            ) || (cfg!(feature = "mode-survey") && kind == ContestKind::Survey)
         );
     }
     let v = json!({"contestId":ID,"kind":"debate","expectedStateVersion":3,"transition":{"kind":"debate","transition":{"kind":"round_score_accepted","scoreEventId":ID}}});

@@ -47,6 +47,7 @@ pub struct Graphics {
     pub totals: Vec<Rect>,
     pub census_estimate: Rect,
     pub crosscheck_cells: Vec<(CellId, usize, Rect)>,
+    pub survey: Vec<(String, Rect)>,
 }
 fn identity(id: impl ToString) -> MessageId {
     id.to_string().parse().expect("protocol UUID")
@@ -371,6 +372,24 @@ impl Composed {
                         },
                     );
                     let mut model = TranscriptMessage::new(identity(id), "CROSSCHECK", "");
+                    model.widget_rows = rows(&scratch, height);
+                    models.push(model);
+                    continue;
+                }
+                if let Some(view) = &contest.survey {
+                    let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                    let area = scratch.area;
+                    let (height, banner, survey) =
+                        widgets::survey::render_geometry(view, area, &mut scratch);
+                    self.graphics.insert(
+                        identity(id),
+                        Graphics {
+                            banners: vec![(squad_core::banner::Banner::Survey, banner)],
+                            survey,
+                            ..Default::default()
+                        },
+                    );
+                    let mut model = TranscriptMessage::new(identity(id), "SURVEY", "");
                     model.widget_rows = rows(&scratch, height);
                     models.push(model);
                     continue;

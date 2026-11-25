@@ -234,7 +234,11 @@ impl JudgeExecutor {
                 || !grant.owner.owns(&grant.work)
                 || !matches!(
                     grant.work.kind,
-                    WorkKind::Judge | WorkKind::JudgeRound | WorkKind::JudgeTournament
+                    WorkKind::Judge
+                        | WorkKind::JudgeRound
+                        | WorkKind::JudgeTournament
+                        | WorkKind::SurveyExtract
+                        | WorkKind::SurveyReport
                 )
             {
                 return forbidden();

@@ -20,6 +20,18 @@ pub enum WorkKind {
     CrosscheckAudit,
     #[serde(rename = "crosscheck.rule")]
     CrosscheckRule,
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.extract")]
+    SurveyExtract,
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.vote")]
+    SurveyVote,
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.revote")]
+    SurveyRevote,
+    #[cfg(feature = "mode-survey")]
+    #[serde(rename = "survey.report")]
+    SurveyReport,
     #[serde(rename = "debate.turn")]
     DebateTurn,
     #[serde(rename = "judge")]
@@ -179,6 +191,43 @@ impl Work {
                     "crosscheck attempt limit",
                 )?;
             }
+            #[cfg(feature = "mode-survey")]
+            WorkKind::SurveyExtract
+            | WorkKind::SurveyReport
+            | WorkKind::SurveyVote
+            | WorkKind::SurveyRevote => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.round.is_none(),
+                    "survey requires isolated step",
+                )?;
+                let judge = matches!(self.kind, WorkKind::SurveyExtract | WorkKind::SurveyReport);
+                ensure(
+                    judge == matches!(self.target, Target::Judge)
+                        && judge == self.case_id.is_some(),
+                    "survey actor mismatch",
+                )?;
+                if !judge {
+                    let Target::Member(nick) = &self.target else {
+                        unreachable!()
+                    };
+                    ensure(
+                        self.context_id.0
+                            == format!(
+                                "contest:{}:{}:{nick}",
+                                self.contest_id.expect("checked"),
+                                self.step_id.expect("checked")
+                            ),
+                        "survey ballot requires fresh context",
+                    )?;
+                }
+                ensure(
+                    self.attempt <= if judge { 3 } else { 2 },
+                    "survey attempt limit",
+                )?;
+            }
             WorkKind::Reply => {
                 ensure(
                     self.in_reply_to_message_id.is_some(),
@@ -284,6 +333,10 @@ impl Work {
             WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
                 4096
             }
+            #[cfg(feature = "mode-survey")]
+            WorkKind::SurveyExtract | WorkKind::SurveyReport => 4096,
+            #[cfg(feature = "mode-survey")]
+            WorkKind::SurveyVote | WorkKind::SurveyRevote => 2048,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
             WorkKind::DebateTurn => constants::DEBATE_TURN_VISIBLE_TOKENS,

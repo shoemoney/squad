@@ -133,6 +133,7 @@ pub struct ContestView {
     pub crosscheck: crate::widgets::crosscheck::CrosscheckView,
     pub scores: BTreeMap<u32, DebateRoundScore>,
     pub verdict: Option<DebateVerdict>,
+    pub survey: Option<crate::widgets::survey::SurveyView>,
 }
 #[derive(Debug, Clone)]
 pub struct PickView {
@@ -223,6 +224,7 @@ impl Session {
         let id = match &state {
             ContestState::Generic(s) => s.contest_id,
             ContestState::Census(s) => s.contest_id,
+            ContestState::Survey(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Tournament(s) => s.contest_id,
             ContestState::Selection(s) => {
@@ -300,6 +302,12 @@ impl Session {
                     .cursor
                     .map_or(commit.seq, |c| c.max(commit.seq)),
             );
+        }
+        if let EnvelopePayload::WorkState(w) = content
+            && let Some(c) = w.contest_id.and_then(|id| self.contests.get_mut(&id))
+            && let Some(v) = &mut c.survey
+        {
+            v.apply(content);
         }
         let generation = match content {
             EnvelopePayload::MessageFinal(m) | EnvelopePayload::AgentReply(m) => {
@@ -670,6 +678,76 @@ impl Session {
                     .acceptances
                     .push(a.clone());
             }
+            EnvelopePayload::SurveySetup(s) => {
+                let contest = self.contests.entry(s.contest_id).or_default();
+                let first = contest.survey.as_ref().is_none_or(|v| {
+                    !v.artifacts
+                        .iter()
+                        .any(|p| matches!(p, EnvelopePayload::SurveySetup(_)))
+                });
+                contest
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+                if first {
+                    cue = Some(FxCue::ModeBannerReady {
+                        contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                        mode: crate::fx::cue::ReportMode::Survey,
+                    });
+                }
+            }
+            EnvelopePayload::SurveyState(s) => {
+                self.restore_contest(ContestState::Survey(s.clone()));
+                self.snapshot.context.active_contest = if s.state.is_terminal() {
+                    None
+                } else {
+                    Some(ContestState::Survey(s.clone()))
+                };
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+            }
+            EnvelopePayload::SurveyClaims(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .survey
+                .get_or_insert_with(Default::default)
+                .apply(content),
+            EnvelopePayload::SurveyVote(s) | EnvelopePayload::SurveyRevote(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .survey
+                .get_or_insert_with(Default::default)
+                .apply(content),
+            EnvelopePayload::SurveySelection(s) => {
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+                cue = Some(FxCue::SurveyTallyReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    artifact_id: base.id,
+                });
+            }
+            EnvelopePayload::SurveyReport(s) => {
+                self.contests
+                    .entry(s.contest_id)
+                    .or_default()
+                    .survey
+                    .get_or_insert_with(Default::default)
+                    .apply(content);
+                cue = Some(FxCue::SurveyTallyReady {
+                    contest_id: s.contest_id.to_string().parse().expect("UUID"),
+                    artifact_id: base.id,
+                });
+            }
             EnvelopePayload::ContestSetup(s) => {
                 self.contests.entry(s.contest_id).or_default().setup = Some(s.clone())
             }
@@ -994,6 +1072,7 @@ pub fn contest_active(s: &ContestState) -> bool {
     match s {
         ContestState::Tournament(s) => !s.state.is_terminal(),
         ContestState::Census(s) => !s.status.is_terminal(),
+        ContestState::Survey(s) => !s.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,
             DebateStatus::Preparing

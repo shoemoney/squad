@@ -158,6 +158,8 @@ pub fn snapshot(
                 serde_json::from_str(&json)
                     .map(ContestState::Census)
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Generic))
+            } else if kind == "survey" {
+                serde_json::from_str(&json).map(ContestState::Survey)
             } else {
                 serde_json::from_str(&json)
                     .map(ContestState::Selection)
@@ -172,7 +174,7 @@ pub fn snapshot(
         }
         if let Some(plan) = plan.filter(|_| {
             active && (kind != "census"
-                || matches!(&state,ContestState::Census(s) if s.status==CensusStatus::Preflight))
+                || matches!(&state,ContestState::Census(s) if s.status==CensusStatus::Preflight)) && (kind != "survey" || matches!(&state,ContestState::Survey(s) if s.state==SurveyStatus::Preflight))
         }) {
             let unexpired = expires.as_ref().is_none_or(|at| {
                 at.parse::<chrono::DateTime<chrono::Utc>>()

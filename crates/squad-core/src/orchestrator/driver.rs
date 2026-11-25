@@ -110,6 +110,7 @@ impl Router {
         })?;
         let mut outcomes = self.drive_tournaments()?;
         outcomes.extend(self.drive_census()?);
+        outcomes.extend(self.drive_surveys()?);
         for id in ids {
             let id = id.parse().map_err(|_| StoreError::Unavailable)?;
             if self
