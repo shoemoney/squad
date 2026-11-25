@@ -495,3 +495,36 @@ async fn admitted_debate_restarts_before_dispatch_and_finishes_without_duplicate
     f.assert_ledger();
     room.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn explicit_judging_of_unjudged_debate_opens_fresh_case_without_replaying_turns() {
+    let _=tracing_subscriber::fmt().try_init();
+    let f=Fixture::new().await;
+    let room=f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config,"@member0 @member1 $debate $ROUNDS=2 Compare designs")).await;
+    f.wait(||f.count("debate.turn")==6 && f.db().query_row("SELECT active FROM contests",[],|r|r.get::<_,i64>(0)).unwrap()==0).await;
+    let result=room.submit(squad_protocol::Request::Judge{request_id:EventId::new(),debate_id:None}).await;
+    assert!(matches!(result,RequestResult::Accepted{..}),"{result:?}");
+    f.wait(||f.count("verdict")==1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(),7);
+    assert_eq!(f.count("debate.turn"),6);
+    assert_eq!(f.count("case.opened"),1);
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn question_first_pick_reuses_answers_and_drives_the_selected_debate() {
+    let f=Fixture::new().await;
+    let room=f.open(OpenMode::OneShot).await;
+    room.submit(request(&f.config,"@all $debate $ROUNDS=2 Compare designs?")).await;
+    f.wait(||f.count("contest.pick_requested")==1).await;
+    let state=room.state().await;
+    let Some(ContestState::Selection(pick))=state.active_contest else{panic!("expected pending pick")};
+    assert_eq!(f.fake.captured_bodies().await.len(),6);
+    let result=room.submit(squad_protocol::Request::ContestPick{request_id:EventId::new(),contest_id:pick.contest_id,nicks:vec![nick("member0"),nick("member1")]}).await;
+    assert!(matches!(result,RequestResult::Accepted{..}),"{result:?}");
+    f.wait(||f.count("verdict")==1).await;
+    assert_eq!(f.count("debate.turn"),4);
+    assert_eq!(f.fake.captured_bodies().await.len(),13);
+    room.shutdown().await.unwrap();
+}

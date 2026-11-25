@@ -138,7 +138,7 @@ impl Router {
         }
         let initial = outcome.events.len();
         let contests:std::collections::BTreeSet<_>=outcome.events.iter().filter_map(|e|if let EnvelopePayload::DebateState(s)=&e.content{Some(s.debate_id)}else{None}).collect();
-        match self.drive_contests() {
+        match if outcome.events.is_empty() { Ok(Vec::new()) } else { self.drive_contests() } {
             Ok(moves) => {
                 for moved in moves {
                     if matches!(

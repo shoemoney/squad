@@ -255,6 +255,7 @@ fn produce(
             let seq = group.push(tx, event)?;
             squad_store::cases::open(tx, &opened, seq)?;
             if let Some(contest) = opened.debate_id {
+                squad_store::contests::associate(tx,contest,ContestKind::Debate,seq)?;
                 let mut state = squad_store::contests::debate(tx, contest)?;
                 if state.state.is_terminal() {
                     return Err(super::debates::invalid());
@@ -513,7 +514,7 @@ impl Router {
             let state=squad_store::contests::debate(tx,setup.debate_id)?;
             if opened.debate_id!=Some(setup.debate_id) || bundle.topic.message_id!=setup.topic_message_id || bundle.topic.text!=setup.topic_text || bundle.solutions!=setup.solutions || bundle.instruction!=setup.instruction || bundle.judge.model!=opened.judge_model.as_str() || bundle.round_scoring.round_tally!=squad_store::round_scores::tally(tx,&state)? {return Err(super::debates::invalid());}
             let scores=squad_store::round_scores::retained(tx,state.debate_id)?;
-            let unscored=scores.iter().filter(|s|s.scores.is_none()).map(|s|s.round).collect::<Vec<_>>();
+            let mut unscored=bundle.transcript.iter().map(|t|t.round).filter(|round|!scores.iter().any(|s|s.round==*round && s.scores.is_some())).collect::<Vec<_>>();unscored.sort_unstable();unscored.dedup();
             if bundle.round_scoring.round_scores!=scores || bundle.round_scoring.unscored_rounds!=unscored {return Err(super::debates::invalid());}
             for turn in &bundle.transcript {
                 let raw:Option<String>=tx.query_row("SELECT payload FROM events WHERE kind='debate.turn' AND json_extract(payload,'$.workId')=?",[turn.generation.work_id.to_string()],|r|r.get(0)).optional()?;

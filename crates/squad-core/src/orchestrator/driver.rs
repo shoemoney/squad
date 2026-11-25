@@ -63,6 +63,7 @@ fn carrier(payload: EnvelopePayload) -> ProducerEnvelope {
 struct Snapshot {
     state: DebateState,
     plan: Option<DebatePlan>,
+    prior: Option<DebateState>,
     events: Vec<CommittedEnvelope>,
     work: Vec<AttemptState>,
     committed: Vec<u32>,
@@ -73,6 +74,8 @@ impl Router {
     fn engine_snapshot(&self, id: ContestId) -> Result<Snapshot> {
         self.store.call(move |db| {
             let state=squad_store::contests::debate(db,id)?;
+            let prior:Option<String>=db.query_row("SELECT json_extract(pending_request_json,'$.priorState') FROM contests WHERE contest_id=?",[id.to_string()],|r|r.get(0))?;
+            let prior=prior.map(|raw|serde_json::from_str(&raw)).transpose()?;
             let raw:Option<String>=db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='engine.plan'",[id.to_string()],|r|r.get(0)).optional()?;
             let plan=raw.map(|s|serde_json::from_str(&s)).transpose()?;
             let mut q=db.prepare("SELECT event_seq FROM contest_events WHERE contest_id=? ORDER BY event_seq")?;
@@ -92,7 +95,7 @@ impl Router {
             let scores=squad_store::round_scores::retained(db,id)?;
             let mut earlier=[false;2];
             for (i,n) in state.debaters.iter().enumerate(){earlier[i]=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE target=? AND kind='reply' AND status IN ('queued','running') AND held_by_contest_id IS NULL)",[n.as_str()],|r|r.get(0))?;}
-            Ok(Snapshot{state,plan,events,work,committed,scores,earlier})
+            Ok(Snapshot{state,plan,prior,events,work,committed,scores,earlier})
         })
     }
     /// Called on the serialized router thread after every committed input and at
@@ -125,7 +128,7 @@ impl Router {
                 let moved = match self.engine_move(s) {
                     Ok(moved) => moved,
                     Err(error) => {
-                        tracing::error!(%error,contest_id=%id,"Contest engine move failed");
+                        tracing::error!(?error,state=?failed_state.state,contest_id=%id,"Contest engine move failed");
                         outcomes.push(self.fail_engine(failed_state, error)?);
                         break;
                     }
@@ -172,15 +175,24 @@ impl Router {
     }
     fn engine_move(&mut self, s: Snapshot) -> Result<Option<CommitOutcome>> {
         if s.state.state == DebateStatus::Preparing {
-            let plan = match s.plan {
-                Some(plan) => plan,
-                None => self.freeze_plan(&s)?,
+            let plan = match &s.plan {
+                Some(plan) if plan.prior_terminal==s.prior => plan.clone(),
+                _ => self.freeze_plan(&s)?,
             };
             return self
                 .produce(carrier(EnvelopePayload::DebatePreflight(plan.preflight)))
                 .map(Some);
         }
         let Some(plan) = &s.plan else { return Ok(None) };
+        if s.state.state==DebateStatus::AwaitingConfirmation && chrono::Utc::now()>=plan.preflight.expires_at {
+            return machine::submit(self,EventId::new(),&s.state,if plan.preflight.judge_only {DebateTransition::JudgeOnlyExpired}else{DebateTransition::Expire}).map(Some);
+        }
+        if plan.preflight.judge_only && s.state.state==DebateStatus::Judging {
+            let confirmed=s.events.iter().rev().find(|e|matches!(&e.content,EnvelopePayload::DebatePreflightResult(r) if r.plan_id==plan.preflight.plan_id && r.status==PreflightStatus::Confirmed)).map(|e|e.commit.seq.get()).ok_or(StoreError::Unavailable)?;
+            if !s.events.iter().any(|e|e.commit.seq.get()>confirmed && matches!(e.content,EnvelopePayload::CaseOpened(_))) {
+                return self.open_engine_case(&s).map(Some);
+            }
+        }
         if s.state.state == DebateStatus::WaitingForDebaters && !s.earlier.iter().any(|v| *v) {
             if !s.events.iter().any(|e| {
                 matches!(
@@ -226,7 +238,7 @@ impl Router {
         if s.state.state == DebateStatus::Judging
             && s.work
                 .iter()
-                .any(|w| w.work.kind == WorkKind::Judge && w.phase == AttemptPhase::Exhausted)
+                .any(|w| w.work.kind == WorkKind::Judge && w.work.case_id==s.state.case_id && w.phase == AttemptPhase::Exhausted)
         {
             return machine::submit(
                 self,
@@ -243,7 +255,7 @@ impl Router {
                 scoring_work: &scoring_work,
                 committed_rounds: &s.committed,
                 scores: &s.scores,
-                final_work_exists: s.work.iter().any(|w| w.work.kind == WorkKind::Judge),
+                final_work_exists: s.work.iter().any(|w| w.work.kind == WorkKind::Judge && w.work.case_id==s.state.case_id),
                 manual_judge: plan.preflight.judge_only,
                 earlier_unfinished: s.earlier,
             },
@@ -384,6 +396,8 @@ impl Router {
         let id = s.state.debate_id;
         let state = s.state.clone();
         let bindings = self.bindings_for_engine();
+        let prior=s.prior.clone();
+        let retained=s.events.iter().find_map(|e|if let EnvelopePayload::DebateSetup(setup)=&e.content{Some(setup.clone())}else{None});
         let pack = PromptPack::from_override_dir(config.prompts.directory.as_deref())
             .map_err(|_| policy(ErrorCode::CONFIG_INVALID))?;
         self.store.call(move |db|{
@@ -401,7 +415,9 @@ impl Router {
                 }
             }
             let explicit:Vec<MessageId>=input.reply_to.unwrap_or_default().into_iter().map(MessageId::from_event).collect();
-            let sources=super::sources::select(&state.debaters,&replies,&explicit,u64::MAX,input.message_id,&instruction).map_err(policy)?;
+            let mut sources=super::sources::select(&state.debaters,&replies,&explicit,u64::MAX,input.message_id,&instruction).map_err(policy)?;
+            if prior.is_some() {sources.solutions=Some(retained.ok_or(policy(ErrorCode::DEBATE_SOURCE_MISSING))?.solutions);}
+            let judge_requested=state.judge_requested || prior.is_some();
             let freeze_model=|nick:&str|->Result<FrozenModel>{
                 let binding=bindings.get(nick).ok_or(policy(ErrorCode::MODEL_UNAVAILABLE))?;
                 let (length,pricing):(i64,String)=db.query_row("SELECT context_length,pricing_json FROM catalog WHERE slug=?",[binding.model.as_str()],|r|Ok((r.get(0)?,r.get(1)?)))?;
@@ -410,19 +426,19 @@ impl Router {
                 Ok(FrozenModel{nick:MemberNick::new(nick).ok(),resolved_slug:binding.model.to_string(),context_tokens:length as u64,input_usd_per_million:price("prompt"),output_usd_per_million:price("completion"),reasoning_tokens:match binding.effort{ReasoningEffort::Low=>constants::REASONING_LOW_TOKENS,ReasoningEffort::Medium=>constants::REASONING_MEDIUM_TOKENS,ReasoningEffort::High=>constants::REASONING_HIGH_TOKENS},reasoning_effort:Some(binding.effort)})
             };
             let members=[freeze_model(state.debaters[0].as_str())?,freeze_model(state.debaters[1].as_str())?];
-            let (judge,warning)=if state.judge_requested {
+            let (judge,warning)=if judge_requested {
                 let default=freeze_model("judge")?;
                 let fallbacks=config.judge.conflict_fallbacks.iter().filter_map(|n|freeze_model(n.as_str()).ok()).collect::<Vec<_>>();
                 let (j,w)=super::judge::select_model(&default,&fallbacks,&members).map_err(policy)?;(Some(j),w)
             }else{(None,None)};
             let hashes=[("debate.round0.md","debate.round0"),("debate.round1.md","debate.round1"),("debate.rebuttal.md","debate.rebuttal"),("judge.round.md","judge.round"),("judge.user.md","judge.user")].into_iter().map(|(key,id)|Ok((key.into(),squad_store::commit::digest(&(pack.template(id).map_err(|_|policy(ErrorCode::CONFIG_INVALID))? ,pack.overrides()))?))).collect::<Result<BTreeMap<_,_>>>()?;
-            let mut plan=DebatePlan{preflight:DebatePreflight{judge_only:false,debate_id:id,plan_id:PlanId::new(),expires_at:chrono::Utc::now(),estimate:DebateEstimate{estimated_usd:0.,reserved_usd:0.,remaining_usd:0.,model_calls:0},judge_model:judge.as_ref().map(|j|j.resolved_slug.clone()),warning:warning.map(Text::new).transpose().map_err(|_|StoreError::Unavailable)?,confirmation_required:false,debaters:state.debaters.clone(),rounds:state.total_rounds,judge_requested:state.judge_requested,opening_round_required:sources.solutions.is_none()},sources,members,judge,prompts:FrozenPrompts{pack_version:pack.version().into(),composition_hashes:hashes,turn_words:config.prompts.limits.turn_words,final_turn_words:config.prompts.limits.final_turn_words},script_version:"debate-v1".into(),calls:vec![],prior_terminal:None};
+            let mut plan=DebatePlan{preflight:DebatePreflight{judge_only:prior.is_some(),debate_id:id,plan_id:PlanId::new(),expires_at:chrono::Utc::now(),estimate:DebateEstimate{estimated_usd:0.,reserved_usd:0.,remaining_usd:0.,model_calls:0},judge_model:judge.as_ref().map(|j|j.resolved_slug.clone()),warning:warning.map(Text::new).transpose().map_err(|_|StoreError::Unavailable)?,confirmation_required:false,debaters:state.debaters.clone(),rounds:state.total_rounds,judge_requested,opening_round_required:sources.solutions.is_none()},sources,members,judge,prompts:FrozenPrompts{pack_version:pack.version().into(),composition_hashes:hashes,turn_words:config.prompts.limits.turn_words,final_turn_words:config.prompts.limits.final_turn_words},script_version:"debate-v1".into(),calls:vec![],prior_terminal:prior};
             let mut bounds=[0;2];
             for (i,n) in state.debaters.iter().enumerate(){let size:i64=db.query_row("SELECT COALESCE(SUM(length(content)),0) FROM history WHERE context_id=?",[n.as_str()],|r|r.get(0))?;bounds[i]=size as u64+plan.sources.topic.len() as u64+plan.sources.instruction.len() as u64+4096;}
             let judge_bound=plan.sources.topic.len() as u64+8192;
             preflight::freeze(&mut plan,preflight::ContextBounds{members:bounds,judge:judge_bound},f64::MAX,config.budget.debate_confirm_usd,chrono::Utc::now()).map_err(policy)?;
             let tx=db.transaction()?;
-            squad_store::contest_steps::private_map(&tx,id,"engine.plan",&serde_json::to_value(&plan)?)?;
+            tx.execute("INSERT INTO contest_private_maps VALUES (?,'engine.plan',?) ON CONFLICT(contest_id,scope_key) DO UPDATE SET map_json=excluded.map_json",rusqlite::params![id.to_string(),serde_json::to_string(&plan)?])?;
             tx.commit()?;Ok(plan)
         })
     }
@@ -436,13 +452,14 @@ impl Router {
         let case = CaseId::new();
         state.case_id = Some(case);
         state.case_ids.push(case);
+        let transcript=s.events.iter().filter_map(|e|if let EnvelopePayload::DebateTurn(t)=&e.content{(t.round>0 && s.committed.contains(&t.round)).then_some(t.clone())}else{None}).collect::<Vec<_>>();
         let bundle = cases::bundle(
             plan,
             &state,
             &setup,
-            &[],
-            &[],
-            &[],
+            &transcript,
+            &s.scores,
+            &s.committed,
             cases::canonical_rubric("v1").map_err(policy)?,
         )
         .map_err(policy)?;
