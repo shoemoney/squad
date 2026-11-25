@@ -44,7 +44,8 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
             &reply.completed.generation
         }
         EnvelopePayload::DebateTurn(turn) if work.kind == WorkKind::DebateTurn => {
-            if Some(turn.debate_id) != work.debate_id
+            if !matches!(turn.outcome, DebateTurnOutcome::Completed { .. })
+                || Some(turn.debate_id) != work.debate_id
                 || Some(turn.round) != work.round
                 || work.target != Target::Member(turn.speaker.clone())
             {
@@ -69,12 +70,20 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
             &verdict.completed.generation
         }
         EnvelopePayload::DebateRoundScore(score) if work.kind == WorkKind::JudgeRound => {
-            if Some(score.case_id) != work.case_id
+            if score.scores.is_none()
+                || Some(score.case_id) != work.case_id
                 || Some(score.debate_id) != work.debate_id
                 || Some(score.round) != work.round
             {
                 return Err(forbidden());
             }
+            return Ok(());
+        }
+        EnvelopePayload::ContestArtifact(artifact)
+            if artifact.work_id == Some(work.work_id)
+                && work.contest_id == Some(artifact.contest_id)
+                && work.step_id == Some(artifact.step_id) =>
+        {
             return Ok(());
         }
         _ => return Err(forbidden()),
@@ -84,6 +93,71 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
         || generation.trigger_event_id != work.trigger_event_id
         || generation.attempt != work.attempt
     {
+        return Err(forbidden());
+    }
+    Ok(())
+}
+
+/// Protocol's sole visibility table is enforced at the commit boundary, even
+/// for trusted engine delivery proposals. Attributed metadata must match source.
+pub fn projection(
+    db: &rusqlite::Connection,
+    state: &DebateState,
+    p: &HistoryProjection,
+) -> Result<()> {
+    let source = squad_store::events::by_id(db, p.origin_event_id)?.ok_or_else(forbidden)?;
+    if p.context_id.0.starts_with("contest:") {
+        use rusqlite::OptionalExtension;
+        let assignment:Option<String>=db.query_row("SELECT a.assignment_json FROM contest_assignments a JOIN contest_steps s ON s.step_id=a.step_id WHERE a.context_id=? AND s.contest_id=?",rusqlite::params![p.context_id.0,state.debate_id.to_string()],|r|r.get(0)).optional()?;
+        let assignment: ContestAssignment =
+            serde_json::from_str(&assignment.ok_or_else(forbidden)?)?;
+        if !assignment.payload_refs.contains(&source.base.id)
+            || p.name.is_some()
+            || !matches!(p.meta, HistoryMetadata::Anonymous { .. })
+            || !matches!(
+                source.content,
+                EnvelopePayload::UserMessage(_)
+                    | EnvelopePayload::MessageFinal(_)
+                    | EnvelopePayload::ContestArtifact(_)
+            )
+        {
+            return Err(forbidden());
+        }
+        return Ok(());
+    }
+    match &p.meta {
+        HistoryMetadata::Attributed {
+            origin_event_id,
+            origin_seq,
+            author,
+            projection_key,
+        } if *origin_event_id == source.base.id
+            && *origin_seq == source.commit.seq
+            && *author == source.base.sender
+            && *projection_key == p.projection_key => {}
+        _ => return Err(forbidden()),
+    }
+    let member = state.debaters.iter().any(|n| n.as_str() == p.context_id.0);
+    let judge = state
+        .case_ids
+        .iter()
+        .any(|c| p.context_id.0 == format!("judge:{c}"));
+    let allowed = match &source.content {
+        EnvelopePayload::DebateTurn(t) => {
+            t.debate_id == state.debate_id
+                && (member || judge)
+                && (t.round < state.round || state.state == DebateStatus::RoundCommitting)
+        }
+        EnvelopePayload::DebateRoundScore(s) => {
+            s.debate_id == state.debate_id
+                && (judge || (member && state.state == DebateStatus::Completed))
+        }
+        EnvelopePayload::Verdict(v) => v.debate_id == state.debate_id && (member || judge),
+        EnvelopePayload::DebateSetup(s) => s.debate_id == state.debate_id && (member || judge),
+        EnvelopePayload::DebateOpening(o) => o.debate_id == state.debate_id && member,
+        _ => false,
+    };
+    if !allowed {
         return Err(forbidden());
     }
     Ok(())

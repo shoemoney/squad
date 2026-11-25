@@ -2,7 +2,11 @@
 pub mod accounting;
 pub mod authorization;
 pub mod cases;
+pub mod contests;
+pub mod debates;
 pub mod ephemeral;
+pub mod picks;
+pub mod preflight;
 pub mod references;
 pub mod regen;
 pub mod retry;
@@ -19,6 +23,7 @@ pub struct Router {
     roster: Vec<MemberNick>,
     bindings: BTreeMap<String, ExecutorBinding>,
     daily_max: i64,
+    confirmation_threshold: f64,
     pub ephemeral: ephemeral::Ephemeral,
 }
 pub fn envelope(
@@ -90,6 +95,7 @@ impl Router {
             roster,
             bindings,
             daily_max,
+            confirmation_threshold: constants::DEFAULT_DEBATE_CONFIRM_USD,
             ephemeral: Default::default(),
         })
     }
@@ -146,16 +152,23 @@ impl Router {
         let clear = matches!(request, Request::Clear { .. });
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
             match request {
-                Request::UserMessage {input,parsed,..}=> {
+                Request::UserMessage {input,parsed,preconfirmed}=> {
                     let meta=parser::SubmissionMeta {quote:input.quote.clone().unwrap_or_default(),reply_to:input.reply_to.clone().unwrap_or_default()};
                     let ctx=snapshot(tx,roster.clone())?;
-                    let authoritative=parse(input.text.as_str(),&meta,&ctx).map_err(|e|StoreError::Domain(e.code,"Invalid parsed submission"))?;
+                    let authoritative=match parse(input.text.as_str(),&meta,&ctx) {Ok(parsed)=>parsed,Err(e)=>return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)})};
                     if authoritative!=parsed {return Err(StoreError::Domain(ErrorCode::INVALID_COMMAND,"Parsed input does not match authoritative state"));}
+                    if matches!(parsed,ParsedInput::QuestionFirst {..}) {picks::collect(tx,group,id,input,parsed,&bindings)?;return Ok(group.accepted(id));}
+                    if let ParsedInput::Debate {input:conversation,..}=&parsed {
+                        variables::apply(tx,group,id,&conversation.variable_updates)?;
+                        let request=Request::UserMessage {input,parsed,preconfirmed};
+                        debates::prepare(tx,group,id,&request,&bindings)?;
+                        return Ok(group.accepted(id));
+                    }
                     if let ParsedInput::Judge {input:conversation,question,..}=&parsed {
                         let binding=bindings.get("judge").ok_or(StoreError::Domain(ErrorCode::CONFIG_INVALID,"Judge binding is unavailable"))?;
                         let quotes=references::quotes(tx,&meta.quote)?;
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
-                        cases::standalone(tx,group,id,input,question.clone(),quotes,binding)?;
+                        if !squad_store::cases::followup(tx,group,id,input.clone(),question.clone(),quotes.clone(),binding)? {cases::standalone(tx,group,id,input,question.clone(),quotes,binding)?;}
                         return Ok(group.accepted(id));
                     }
                     let ParsedInput::Message {input:conversation,recipients,body}=parsed else {return Err(StoreError::Domain(ErrorCode::COMMAND_NOT_IMPLEMENTED,"Contest admission is not implemented"));};
@@ -175,7 +188,7 @@ impl Router {
                             group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::Error(failure)))?;
                             continue;
                         }
-                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND EXISTS(SELECT 1 FROM work WHERE work.contest_id=contests.contest_id AND work.target=?)",[nick.as_str()],|r|r.get(0)).optional()?;
+                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING') AND EXISTS(SELECT 1 FROM json_each(json_extract(state_json,'$.debaters')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?;
                         let held=held.map(|id|id.parse().map_err(|_|StoreError::Unavailable)).transpose()?;
                         let projection=squad_store::history::attributed(&event,ContextId(nick.to_string()),"ordinary.input",HistoryRole::User,None,content.clone());
                         if let Some(contest)=held {squad_store::history::defer(tx,contest,&projection)?;}else{squad_store::history::project(tx,&projection)?;}
@@ -183,6 +196,23 @@ impl Router {
                         squad_store::work::insert(tx,&work,&bindings[nick.as_str()],held)?;
                     }
                 }
+                Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,false),
+                Request::DebateCancel {debate_id,plan_id,..}|Request::ContestCancel {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,true),
+                Request::ContestPick {contest_id,nicks,..}=>{
+                    let ctx=snapshot(tx,roster.clone())?;
+                    if ctx.pending_pick.as_ref().is_none_or(|p|p.contest_id!=contest_id) {return Err(StoreError::Domain(ErrorCode::CONTEST_NOT_FOUND,"Contest not found"));}
+                    let raw=nicks.iter().map(|n|format!("@{n}")).collect::<Vec<_>>().join(" ");
+                    if let Err(e)=parse(&raw,&parser::SubmissionMeta::default(),&ctx) {return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)});}
+                    picks::pick(tx,group,id,contest_id,nicks,bindings.get("judge").map(|b|b.model.to_string()).unwrap_or_default())?;
+                },
+                Request::Judge {debate_id,..}=>{
+                    let debate_id=if let Some(id)=debate_id {id}else {
+                        let raw:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE kind='debate' AND json_extract(state_json,'$.state') IN ('STOPPED','COMPLETE_UNJUDGED','FAILED') ORDER BY updated_seq DESC LIMIT 1",[],|r|r.get(0)).optional()?;
+                        raw.ok_or(StoreError::Domain(ErrorCode::DEBATE_NOT_FOUND,"Debate not found"))?.parse().map_err(|_|StoreError::Unavailable)?
+                    };
+                    let state=squad_store::contests::debate(tx,debate_id)?;
+                    debates::transition(tx,group,id,ContestTransitionSubmission {contest_id:debate_id,kind:ContestKind::Debate,expected_state_version:state.state_version,transition:ContestTransition::Debate(DebateTransition::JudgeOnlyRequested)})?;
+                },
                 Request::SetVars {updates,..}=>variables::apply(tx,group,id,&updates)?,
                 Request::Stop {target,..}=>stop::apply(tx,group,id,target)?,
                 Request::Retry {work_id,..}=>retry::apply(tx,group,id,work_id)?,
@@ -336,6 +366,7 @@ impl Router {
                         group.accepted_at,
                     )?;
                     authorization::output(&work, &owner, &output)?;
+                    squad_store::cases::validate_invocation(tx,&work,&output)?;
                     if let EnvelopePayload::AgentReply(reply) = output {
                         output = EnvelopePayload::MessageFinal(reply);
                     }
@@ -372,8 +403,12 @@ impl Router {
                                 ),
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
+                            if let Some(step)=work.step_id {squad_store::contest_steps::settle(tx,step,&work.target,None)?;}
+                            picks::refresh(tx,group,id)?;
                         }
                         EnvelopePayload::DebateTurn(turn) => {
+                            let state=squad_store::contests::debate(tx,turn.debate_id)?;
+                            if state.state!=DebateStatus::RoundRunning || state.round!=turn.round {return Err(debates::invalid());}
                             squad_store::contests::associate(
                                 tx,
                                 turn.debate_id,
@@ -398,10 +433,11 @@ impl Router {
                         }
                         EnvelopePayload::Verdict(verdict) => {
                             verdict::seal(tx, verdict, seq)?;
+                            verdict::announce(tx,group,verdict,&event)?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
                         EnvelopePayload::CaseRuling(ruling) => {
-                            squad_store::cases::seal(tx, ruling.case_id, seq)?;
+                            squad_store::cases::accept_ruling(tx, &work, seq)?;
                             squad_store::history::project(
                                 tx,
                                 &squad_store::history::attributed(
@@ -415,6 +451,7 @@ impl Router {
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
+                        EnvelopePayload::ContestArtifact(artifact)=>squad_store::contest_steps::artifact(tx,artifact,seq)?,
                         _ => return Err(authorization::forbidden()),
                     }
                     let status=if matches!(&output,EnvelopePayload::DebateRoundScore(score) if score.scores.is_none()){WorkStatus::Failed}else{WorkStatus::Completed};
@@ -449,6 +486,13 @@ impl Router {
                 let attempt = delta.generation.attempt;
                 let owned = owner.clone();
                 let generation = delta.generation.clone();
+                let scope = (
+                    delta.debate_id,
+                    delta.round,
+                    delta.case_id,
+                    delta.contest_id,
+                    delta.step_id,
+                );
                 self.store.call(move |db| {
                     let work = squad_store::work::check_fence(
                         db,
@@ -461,6 +505,11 @@ impl Router {
                     )?;
                     if work.message_id != generation.message_id
                         || work.trigger_event_id != generation.trigger_event_id
+                        || work.debate_id != scope.0
+                        || work.round != scope.1
+                        || work.case_id != scope.2
+                        || work.contest_id != scope.3
+                        || work.step_id != scope.4
                     {
                         return Err(authorization::forbidden());
                     }
@@ -482,6 +531,17 @@ impl Router {
             ExecutorRequest::Presence(presence) => {
                 if owner != ExecutorKey::Member(presence.nick.clone()) {
                     return Err(authorization::forbidden());
+                }
+                if let Some(work_id) = presence.work_id {
+                    let key = owner.clone();
+                    self.store.call(move |db| {
+                        let (work, _) = squad_store::work::template(db, work_id)?
+                            .ok_or_else(authorization::forbidden)?;
+                        if !key.owns(&work) {
+                            return Err(authorization::forbidden());
+                        }
+                        Ok(())
+                    })?;
                 }
                 let id = EventId::new();
                 let sender = Actor::Member(presence.nick.clone());
@@ -652,6 +712,25 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             superseded,
             eligible: !superseded,
         });
+    }
+    if let Some(raw) = db
+        .query_row("SELECT state_json FROM contests WHERE active=1", [], |r| {
+            r.get::<_, String>(0)
+        })
+        .optional()?
+    {
+        if let Ok(state) = serde_json::from_str::<ContestSelectionState>(&raw) {
+            if state.state == ContestSelectionStatus::AwaitingPick {
+                ctx.pending_pick = Some(parser::PendingPick {
+                    contest_id: state.contest_id,
+                    mode: parser::QuestionFirstMode::Debate,
+                    eligible: state.answers.iter().map(|a| a.nick.clone()).collect(),
+                });
+            }
+            ctx.active_contest = Some(ContestState::Selection(state));
+        } else {
+            ctx.active_contest = Some(ContestState::Debate(serde_json::from_str(&raw)?));
+        }
     }
     Ok(ctx)
 }

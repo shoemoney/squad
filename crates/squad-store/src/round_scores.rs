@@ -81,6 +81,15 @@ pub fn insert(db: &Connection, work: &Work, score: &DebateRoundScore, seq: Curso
     )?;
     crate::contests::associate(db, score.debate_id, ContestKind::Debate, seq)?;
     crate::cases::associate(db, score.case_id, seq)?;
+    if score.scores.is_none()
+        && crate::work::record(db, work.work_id)?.is_some_and(|r| r.status == WorkStatus::Failed)
+    {
+        db.execute(
+            "UPDATE work SET completed_event_seq=? WHERE work_id=?",
+            params![seq.get(), work.work_id.to_string()],
+        )?;
+        return Ok(());
+    }
     crate::work::finish(
         db,
         work.work_id,
@@ -91,4 +100,20 @@ pub fn insert(db: &Connection, work: &Work, score: &DebateRoundScore, seq: Curso
         },
         seq,
     )
+}
+
+/// Retained public round outcomes in round order, including explicit unscored
+/// carriers. This does not expose router-private maps or attempt repair data.
+pub fn retained(db: &Connection, debate: DebateId) -> Result<Vec<DebateRoundScore>> {
+    let mut query =
+        db.prepare("SELECT event_seq FROM round_scores WHERE debate_id=? ORDER BY round")?;
+    let seqs = query
+        .query_map([debate.to_string()], |r| r.get::<_, i64>(0))?
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+    seqs.into_iter()
+        .map(|seq| match crate::events::at(db, seq)?.content {
+            EnvelopePayload::DebateRoundScore(score) => Ok(score),
+            _ => Err(invalid("Round ledger event mismatch")),
+        })
+        .collect()
 }
