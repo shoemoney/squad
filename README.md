@@ -1188,7 +1188,7 @@ Squad reserves money **before** it sends any provider call. That includes ordina
 
 For each call:
 
-1. **Prompt cost.** The catalog's prompt price times the prompt tokens. Squad assumes the prompt fills the model's context window, minus the output and a safety margin of the larger of `1,024` tokens or one twentieth of the context.
+1. **Prompt cost.** The catalog's prompt price times the size of the prompt Squad actually assembled for this request. The size is estimated the same way as the context-fit check, which overestimates rather than undercounts. It never exceeds what the model's context window admits (the window minus the output and a safety margin of the larger of `1,024` tokens or one twentieth of the context). Only if the prompt size is unavailable does Squad fall back to assuming the prompt fills that whole window.
 2. **Output cost.** The catalog's completion price times the output tokens. Output is the visible ceiling, capped by the model's published output limit. For reasoning-capable models, the reasoning budget is added.
 
 | Work | Visible output ceiling | Reasoning budget (reasoning models) |
@@ -1198,7 +1198,7 @@ For each call:
 | `judge.round` | `512` | Fixed low effort, `1,024` |
 | Final judge | `4,096` | High, `8,192` by default |
 
-- **Attempts reserved.** An ordinary reply reserves **2** attempts, which includes one automatic retry. Judge work reserves **3**, except `judge.round`, which reserves **2**.
+- **Attempts reserved.** An ordinary reply reserves **2** attempts, which includes one automatic retry. Judge work reserves **3**, except `judge.round`, which reserves **2**. Each attempt is priced from its own prompt, and a retry re-prices the attempts that remain when it starts. The attempt limits come from one shared table, so retries and reservations cannot disagree.
 - **Rounding.** Reservations round **up** to the next millionth of a dollar. Reported costs round to the nearest.
 - **Contests** reserve their whole plan up front. As each call starts, its share is set aside from that plan.
 
@@ -1243,6 +1243,8 @@ Sometimes a call finishes but its cost never arrives.
 4. `squad doctor` reports the count, as `unknown-cost calls: N`, with `unreconciled charges (~)` when the count is above zero.
 
 Unknown costs are never treated as zero. When a cost shows up later, the reservation turns into the actual cost and the unknown count goes down.
+
+**A call with no generation id was never billed.** If a call fails before OpenRouter returns a generation id (an HTTP error before streaming, a network error) or is stopped before one arrives, there is nothing to look up and nothing to pay. Squad releases its reservation immediately, and it is not counted as unknown. Only a call that has an id and whose cost lookup fails stays reserved as unknown.
 
 ## 🎯 Question-first picks
 

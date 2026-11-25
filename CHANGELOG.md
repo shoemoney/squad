@@ -65,6 +65,22 @@ macOS arm64 installation evidence remain pending the owner's decision.
 
 - `--bus-log` / `--bus-log-bodies` now write request, commit and wake-up JSON lines (bodies only with the explicit flag); `doctor --bus-log` no longer errors.
 - A refused noninteractive preflight is cancelled, so the `--yes` re-run is admitted instead of failing with `CONTEST_BUSY` / `DEBATE_BUSY`.
+- Ordinary dispatch reservations are sized from the prompt actually assembled
+  for the request (plus the output ceiling and reasoning budget) instead of the
+  model's whole context window, so an Opus-class reply no longer exceeds the
+  default `$20` cap with nothing spent. Retries re-price the attempts that
+  remain, and the attempt limits come from one shared table.
+- Calls that fail or are stopped before OpenRouter returns a generation id
+  release their reservation immediately instead of holding it until midnight;
+  only calls with an id and a failed cost lookup stay reserved as unknown.
+- A cached model alias whose target has left the fresh catalog is re-resolved
+  once instead of failing every call with `COST_UNKNOWN` for 24 hours.
+- Alias repair now triggers on any HTTP 404 from OpenRouter, including 404s
+  with a JSON error body.
+- `--bus-log` refuses symlinks and non-regular files (`O_NOFOLLOW`) rather than
+  truncating or changing the permissions of whatever they point to.
+- The storage ceiling guard fails closed when the database size cannot be read.
+- Removed raw run logs carrying local home paths from `docs/reports`.
 - Startup credential exposure through non-UTF-8 environment errors.
 - Doctor configuration reporting and setup script toolchain handling.
 - Terminal control sequences are stripped from CLI replies and exports.
