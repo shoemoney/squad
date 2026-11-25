@@ -7,7 +7,6 @@ pub mod open;
 pub use open::open;
 pub mod leases;
 
-pub mod admission;
 pub mod cases;
 pub mod clear;
 pub mod commit;
