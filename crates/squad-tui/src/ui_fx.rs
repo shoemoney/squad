@@ -288,12 +288,31 @@ pub fn attach(
                     continue;
                 };
                 let id = value.completed.generation.message_id;
-                let local = app
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                rect = app
                     .composed
-                    .graphics
-                    .get(&id)
-                    .map_or(Rect::default(), |g| g.verdict);
-                rect = app.composed.graphic_rect(id, local, top, transcript);
+                    .graphic_rect(id, shapes.verdict, top, transcript);
+                let winner_rect = app
+                    .composed
+                    .graphic_rect(id, shapes.winner, top, transcript);
+                let cells = shapes
+                    .totals
+                    .iter()
+                    .map(|r| app.composed.graphic_rect(id, *r, top, transcript))
+                    .collect::<Vec<_>>();
+                let totals = state.state.debaters.each_ref().map(|nick| {
+                    value
+                        .verdict
+                        .weighted_totals
+                        .iter()
+                        .find(|t| &t.nick == nick)
+                        .map_or(0., |t| t.total)
+                });
+                let colors = state.state.debaters.each_ref().map(|n| {
+                    palette.member(n.as_str(), usize::from(n == &state.state.debaters[1]))
+                });
                 let winner = &value.verdict.verdict.winner;
                 let slot = usize::from(winner == &state.state.debaters[1]);
                 let hue = palette.member(winner.as_str(), slot);
@@ -301,8 +320,19 @@ pub fn attach(
                     key,
                     rect,
                     PassAccess::Unprotected,
-                    Duration::from_millis(850),
-                    move |elapsed, buf, _| tint_prepared(buf, rect, elapsed, hue, level),
+                    Duration::from_millis(1800),
+                    move |elapsed, buf, _| {
+                        reveal_decision(
+                            buf,
+                            &cells,
+                            totals,
+                            colors,
+                            winner_rect,
+                            hue,
+                            elapsed,
+                            level,
+                        );
+                    },
                 )
             }
 
@@ -396,6 +426,40 @@ fn tint_prepared(
 mod tests {
     use super::*;
     #[test]
+    fn verdict_counts_only_score_cells_then_accents_winner() {
+        let mut original = ratatui::buffer::Buffer::empty(Rect::new(0, 0, 40, 8));
+        original.set_string(2, 1, "Winner: @claude", Style::default().fg(Color::Yellow));
+        original.set_string(2, 2, "claude 8.00 : 7.00 openai", Style::default());
+        original.set_string(2, 4, "Reasoning stays still", Style::default());
+        let cells = [Rect::new(9, 2, 4, 1), Rect::new(16, 2, 4, 1)];
+        let winner = Rect::new(2, 1, 14, 1);
+        let sample = |ms, level| {
+            let mut buf = original.clone();
+            reveal_decision(
+                &mut buf,
+                &cells,
+                [8., 7.],
+                [Color::Yellow, Color::Green],
+                winner,
+                Color::Yellow,
+                Duration::from_millis(ms),
+                level,
+            );
+            buf
+        };
+        let early = sample(0, fx::FxLevel::Full);
+        assert_eq!(early[(9, 2)].symbol(), "0");
+        let landed = sample(1000, fx::FxLevel::Full);
+        assert_eq!(landed[(9, 2)].symbol(), "8");
+        assert!(
+            landed[(2, 1)]
+                .modifier
+                .contains(ratatui::style::Modifier::REVERSED)
+        );
+        assert_eq!(landed[(2, 4)], original[(2, 4)]);
+        assert_eq!(sample(0, fx::FxLevel::Off), original);
+    }
+    #[test]
     fn clipped_entrances_preserve_prepared_glyphs_and_neighbors() {
         let mut original = ratatui::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
         original.set_string(18, 3, "ROUND 2 OF 3", Style::default());
@@ -416,4 +480,55 @@ mod tests {
             assert_eq!(original[(0, 0)], frame[(0, 0)]);
         }
     }
+}
+
+/// Count the accepted totals into their own cells, then land the winner accent.
+#[allow(clippy::too_many_arguments)]
+fn reveal_decision(
+    buf: &mut ratatui::buffer::Buffer,
+    cells: &[Rect],
+    totals: [f64; 2],
+    colors: [Color; 2],
+    winner: Rect,
+    hue: Color,
+    elapsed: Duration,
+    level: fx::FxLevel,
+) {
+    if level == fx::FxLevel::Off {
+        return;
+    }
+    let ms = elapsed.as_millis() as f64;
+    let duration = if level == fx::FxLevel::Lite {
+        400.
+    } else {
+        900.
+    };
+    let progress = (ms / duration).clamp(0., 1.);
+    let eased = 1. - (1. - progress).powi(3);
+    for (i, cell) in cells.iter().enumerate().take(2) {
+        if cell.is_empty() {
+            continue;
+        }
+        buf.set_stringn(
+            cell.x,
+            cell.y,
+            format!("{:.2}", totals[i] * eased),
+            cell.width as usize,
+            Style::default()
+                .fg(colors[i])
+                .add_modifier(ratatui::style::Modifier::BOLD),
+        );
+    }
+    let style = if progress < 1. {
+        Style::default().add_modifier(ratatui::style::Modifier::DIM)
+    } else if ms < duration + 350. {
+        Style::default()
+            .fg(hue)
+            .add_modifier(ratatui::style::Modifier::BOLD | ratatui::style::Modifier::REVERSED)
+    } else {
+        Style::default()
+            .fg(hue)
+            .add_modifier(ratatui::style::Modifier::BOLD)
+    };
+    buf.set_style(winner.intersection(buf.area), style);
 }

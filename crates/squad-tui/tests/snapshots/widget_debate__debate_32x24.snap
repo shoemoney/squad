@@ -2,24 +2,20 @@
 source: crates/squad-tui/tests/widget_debate.rs
 expression: screen(&buf)
 ---
-▾ Debate 1 · Round 1 of 2
-────────────────────────────────
-│ claude  W0 L0VS  gemini  W0 L0
-│ Topic unavailable            │
-────────────────────────────────
-2 rounds · Judge: judge/test
-            ROUND 1
-@claude · waiting
-@gemini · waiting
-@claude: 7/10
-Good fit; retain the concrete
-migration plan.
-@gemini: 8/10
-A simpler deployment with fewer
-moving parts.
-[Collapse scorecard]
-Authoritative tally: @claude 17
-· @gemini 19
-[━━━━━━━━━━━━━━────────────────]
+▾ Debate 1 · claude vs gemini ·
+Round 1 of 2
+Topic unavailable
+── Round 1 / 2 ──
+▌@claude · waiting
+
+▌@gemini · waiting
+
+Round 1 · claude 7 : 8 gemini ·
+total 17 : 19
+claude: Good fit; retain the
+concrete migration plan.
+gemini: A simpler deployment
+with fewer moving parts.
+Total [━━━━━━━━━━━━━━━━━━━━━━━]
 Judging follows closing
 statements

@@ -108,6 +108,7 @@ fn scrolling_exposes_all_details_with_effects_off() {
         render(&view, area, &mut buf, &Palette::new(ColorTier::TrueColor));
         seen.push_str(&screen(&buf));
     }
+    let seen = seen.replace('│', " ");
     let seen = seen.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(seen.contains("Concrete and testable."));
     assert!(seen.contains("Keep the rollback"));
@@ -125,7 +126,7 @@ fn compact_verdict_keeps_result_within_fifteen_rows() {
     assert!(rects.score_cells.is_empty());
     let output = screen(&buf);
     assert!(output.contains("Winner: @claude"));
-    assert!(output.contains("@claude weighted total: 8.00"));
-    assert!(output.contains("@gemini weighted total: 8.00"));
+    assert!(output.contains("claude 8.00 : 8.00 gemini"));
+    assert!(output.contains("Tally 12 : 16 · Judge judge/actual"));
     assert!(output.contains("F7 Expand"));
 }

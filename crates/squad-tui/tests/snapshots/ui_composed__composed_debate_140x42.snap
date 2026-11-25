@@ -4,43 +4,43 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
-claude · idle        @claude vs @openai · Round 3 of 3
-rate n/a             │                                       |_| \_\\___/ \___/|_| \_|____/  |_____|
-model demo/model     │@claude · complete
-n/a tok · n/a        │  Your scheduling contract is necessary, but what does it preserve after a crash? Keep transient deltas outside the
-W0 L0 · T0           │  authoritative log. The reducer must replace previews with committed outcomes by message and attempt, so a
-fable · idle         │  reconnect cannot turn one answer into three copies.
-rate n/a             │@openai · complete
-model demo/model     │  Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve
-n/a tok · n/a        │  replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery and
-W0 L0 · T0           │   responsive presentation should share one test harness.
-openai · idle        │@claude: 8/10
-rate n/a             │@openai: 7/10
-model demo/model     │[Expand scorecard]
-n/a tok · n/a        │Authoritative tally: @claude 16 · @openai 14
-W0 L0 · T0           │                            _____ ___ _   _    _    _       ____   ___  _   _ _   _ ____
-gemini · idle        │                           |  ___|_ _| \ | |  / \  | |     |  _ \ / _ \| | | | \ | |  _ \
-rate n/a             │                           | |_   | ||  \| | / _ \ | |     | |_) | | | | | | |  \| | | | |
-model demo/model     │                           |  _|  | || |\  |/ ___ \| |___  |  _ <| |_| | |_| | |\  | |_| |
-n/a tok · n/a        │                           |_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
-W0 L0 · T0           │Closing statements
-grok · idle          │@claude · complete
-rate n/a             │  Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
-model demo/model     │  reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the delivery
-n/a tok · n/a        │  contract: durability is the foundation, and latency is how people experience it.
-W0 L0 · T0           │@openai · complete
-muse · idle          │  Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
-rate n/a             │  release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove the
-model demo/model     │  product before a real provider is connected.
-n/a tok · n/a        │@claude: 8/10
-W0 L0 · T0           │@openai: 7/10
-                     │[Expand scorecard]
-                     │Authoritative tally: @claude 24 · @openai 21
-                     │[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────]
+claude · 4.5         claude vs openai · Round 3 of 3 · total 24 : 21
+idle W0 L0           │
+fable · 4.1          │▌  @openai · complete
+idle W0 L0           │▌    Opening: protect the human loop. A durable answer is useful only if the person can still type while six models
+openai · 5.1         │▌    stream. Drain a bounded feed batch, paint the newest prepared rows, and service input first. Put a measurable
+idle W0 L0           │▌    latency target in the contract.
+gemini · 3-pro       │
+idle W0 L0           │Round 1 · claude 8 : 7 openai · total 8 : 7
+grok · 4             │── Round 2 / 3 ──
+idle W0 L0           │▌  @claude · complete
+muse · 3             │▌    Your scheduling contract is necessary, but what does it preserve after a crash? Keep transient deltas outside
+idle W0 L0           │▌    the authoritative log. The reducer must replace previews with committed outcomes by message and attempt, so a
+                     │▌    reconnect cannot turn one answer into three copies.
+                     │
+                     │▌  @openai · complete
+                     │▌    Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while
+                     │▌    twelve replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct
+                     │▌    recovery and responsive presentation should share one test harness.
+                     │
+                     │Round 2 · claude 8 : 7 openai · total 16 : 14
+                     │── Round 3 / 3 · Closing ──
+                     │▌  @claude · complete
+                     │▌    Closing: start with one source of truth. Commit receipts, usage, and final outcomes atomically. Replay
+                     │▌    reconstructs the room without replaying celebrations. I accept the input-first scheduler as part of the
+                     │▌    delivery contract: durability is the foundation, and latency is how people experience it.
+                     │
+                     │▌  @openai · complete
+                     │▌    Closing: make both promises observable. Track commit receipts and p99 draw time in the same rehearsal. Fail the
+                     │▌    release if either regresses. Keep the writer small, keep input immediate, and let a deterministic demo prove
+                     │▌    the product before a real provider is connected.
+                     │
+                     │Round 3 · claude 8 : 7 openai · total 24 : 21
+                     │Total [━━━━━━━━━━━━━━━━━━━━━━━━]
                      │Judging follows closing statements
 
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 > Ask the squad…
 
 
-F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · Esc Stop · Ctrl+C Quit
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit

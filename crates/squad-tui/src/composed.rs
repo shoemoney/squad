@@ -42,6 +42,8 @@ pub struct Graphics {
     pub scores: Vec<(u32, MemberNick, Rect)>,
     pub tug: Rect,
     pub verdict: Rect,
+    pub winner: Rect,
+    pub totals: Vec<Rect>,
 }
 fn identity(id: impl ToString) -> MessageId {
     id.to_string().parse().expect("protocol UUID")
@@ -241,7 +243,9 @@ impl Composed {
                     self.graphics.insert(
                         model.id,
                         Graphics {
-                            verdict: geometry.card.union(geometry.winner),
+                            verdict: geometry.card,
+                            winner: geometry.winner,
+                            totals: geometry.totals,
                             ..Default::default()
                         },
                     );

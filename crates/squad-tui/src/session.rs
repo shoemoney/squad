@@ -56,6 +56,7 @@ pub struct RoomSnapshot {
     pub cursor: Option<Cursor>,
     pub context: ParseContext,
     pub participants: Vec<Presence>,
+    pub models: Vec<Model>,
     pub preflights: Vec<PendingPreflight>,
     pub daily_spend: DailySpendView,
     pub trophies: BTreeMap<Nick, u64>,
@@ -752,6 +753,30 @@ impl FakeRoom {
             .iter()
             .map(|s| Nick::new(s).expect("demo nick"))
             .collect();
+        let slugs = [
+            "anthropic/claude-sonnet-4.5",
+            "anthropic/claude-opus-4.1",
+            "openai/gpt-5.1",
+            "google/gemini-3-pro",
+            "x-ai/grok-4",
+            "mistralai/mistral-large-3",
+        ];
+        session.snapshot.models = session
+            .snapshot
+            .context
+            .roster
+            .iter()
+            .enumerate()
+            .map(|(i, nick)| Model {
+                nick: Actor::Member(nick.clone()),
+                roster_order: Some(i as u32),
+                requested_slug: Text::new(slugs[i]).unwrap(),
+                resolved_slug: Text::new(slugs[i]).unwrap(),
+                context_length: 128000,
+                pricing: Default::default(),
+                resolved_at: "2026-11-24T00:00:00Z".parse().unwrap(),
+            })
+            .collect();
         session.snapshot.daily_spend.limit_usd = 25.;
         session.snapshot.daily_spend.day = "2026-11-24".into();
         Self {
@@ -1146,6 +1171,16 @@ impl FakeRoom {
             }));
             tokio::time::sleep(Duration::from_millis(speed)).await;
         }
+        let model = self
+            .inner
+            .lock()
+            .expect("fake room mutex")
+            .snapshot
+            .models
+            .iter()
+            .find(|m| m.nick == Actor::Member(nick.clone()))
+            .map(|m| m.resolved_slug.clone())
+            .unwrap_or_else(|| Text::new("demo/model").unwrap());
         let content = if let Some((debate_id, round)) = debate {
             EnvelopePayload::DebateTurn(DebateTurn {
                 generation,
@@ -1154,7 +1189,7 @@ impl FakeRoom {
                 speaker: nick.clone(),
                 outcome: DebateTurnOutcome::Completed {
                     content: text.into(),
-                    model: Text::new("demo/model").unwrap(),
+                    model: model.clone(),
                     finish_reason: FinishReason::Stop,
                     usage: None,
                 },
@@ -1163,7 +1198,7 @@ impl FakeRoom {
             EnvelopePayload::MessageFinal(Completion {
                 completed: CompletedGeneration {
                     generation,
-                    model: Text::new("demo/model").unwrap(),
+                    model: model.clone(),
                     finish_reason: FinishReason::Stop,
                     usage: None,
                 },

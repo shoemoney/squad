@@ -1,16 +1,16 @@
 ---
 source: crates/squad-tui/tests/participants.rs
-expression: "screen(80, 24, 48)"
+expression: "screen(80, 12, 12)"
 ---
-12345 tok · n/a
-W7 L2 · T1
-persona_10_with_a_very_long_name · 4.7 · live q2
-~24.5 tok/s
-model provider/full-concrete-model-version
-12345 tok · n/a
-W7 L2 · T1
-persona_11_with_a_very_long_name · 4.7 · live q2
-~24.5 tok/s
-model provider/full-concrete-model-version
-12345 tok · n/a
-W7 L2 · T1
+persona_6_with_a_very_long_name · 4.7
+live W7 L2
+persona_7_with_a_very_long_name · 4.7
+live W7 L2
+persona_8_with_a_very_long_name · 4.7
+live W7 L2
+persona_9_with_a_very_long_name · 4.7
+live W7 L2
+persona_10_with_a_very_long_name · 4.7
+live W7 L2
+
++1 more · scroll

@@ -113,3 +113,12 @@ pub fn byte_at_column(row: &VisualRow, column: usize) -> usize {
         .find(|cell| cell.column + cell.width > column)
         .map_or(row.source_end, |cell| cell.source.start)
 }
+
+/// Delimiter whitespace may be consumed at prose soft wraps. Source/editor and
+/// code layout deliberately keep every grapheme through `wrap` instead.
+pub fn is_wrap_delimiter(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|c| c.is_whitespace() && c != '\n' && c != '\r')
+}

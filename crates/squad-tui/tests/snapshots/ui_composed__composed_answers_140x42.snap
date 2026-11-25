@@ -4,36 +4,36 @@ expression: output
 ---
  SQUAD   /   main   ·   six minds, one room
 $0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
-claude · idle
-rate n/a             │claude · complete
-model demo/model     │  Trust starts with a receipt. Give one writer ownership of the durable log. A token is a preview; a committed
-n/a tok · n/a        │  answer is a promise.
-W0 L0 · T0           │  ```rust
-fable · idle         │  commit(outcome).await?;
-rate n/a             │  acknowledge(receipt);
-model demo/model     │  Recovery should replay facts, never repeat side effects.
-n/a tok · n/a
-W0 L0 · T0           │fable · complete
-openai · idle        │  I picture a quiet control room: six coloured rails, one clear draft, and room to think. Let the models disagree
-rate n/a             │  without making the person fight the interface. Motion should explain a change, then get out of the way.
-model demo/model
-n/a tok · n/a        │openai · complete
-W0 L0 · T0           │  Make the contract executable. Typed requests enter one validated parser; a bounded scheduler prioritizes keyboard
-gemini · idle        │  input. Keep provisional tokens separate from final outcomes.
-rate n/a             │  • Preserve rejected drafts
-model demo/model     │  • Deduplicate by message and attempt
-n/a tok · n/a        │  • Measure latency during twelve simultaneous streams
-W0 L0 · T0
-grok · idle          │gemini · complete
-rate n/a             │  The interesting failure is a restart between commit and acknowledgement. Give each operation an identity and
-model demo/model     │  return its original receipt on retry. Then test the same history at every interruption point. A reliable room
-n/a tok · n/a        │  makes recovery boring, even when its models are surprising.
-W0 L0 · T0
-muse · idle          │grok · complete
-rate n/a             │  Twelve models talking at once? Excellent way to discover your supposedly asynchronous UI is a slideshow. Set a
-model demo/model     │  frame budget, bound the queues, and inject a slow judge. If typing stutters, the benchmark fails. Pretty pixels do
-n/a tok · n/a        │   not get an exemption.
-W0 L0 · T0
+claude · 4.5
+idle W0 L0           │claude · complete
+fable · 4.1          │  Trust starts with a receipt. Give one writer ownership of the durable log. A token is a preview; a committed
+idle W0 L0           │  answer is a promise.
+openai · 5.1         │  ```rust
+idle W0 L0           │  commit(outcome).await?;
+gemini · 3-pro       │  acknowledge(receipt);
+idle W0 L0           │  Recovery should replay facts, never repeat side effects.
+grok · 4
+idle W0 L0           │fable · complete
+muse · 3             │  I picture a quiet control room: six coloured rails, one clear draft, and room to think. Let the models disagree
+idle W0 L0           │  without making the person fight the interface. Motion should explain a change, then get out of the way.
+
+                     │openai · complete
+                     │  Make the contract executable. Typed requests enter one validated parser; a bounded scheduler prioritizes keyboard
+                     │  input. Keep provisional tokens separate from final outcomes.
+                     │  • Preserve rejected drafts
+                     │  • Deduplicate by message and attempt
+                     │  • Measure latency during twelve simultaneous streams
+
+                     │gemini · complete
+                     │  The interesting failure is a restart between commit and acknowledgement. Give each operation an identity and
+                     │  return its original receipt on retry. Then test the same history at every interruption point. A reliable room
+                     │  makes recovery boring, even when its models are surprising.
+
+                     │grok · complete
+                     │  Twelve models talking at once? Excellent way to discover your supposedly asynchronous UI is a slideshow. Set a
+                     │  frame budget, bound the queues, and inject a slow judge. If typing stutters, the benchmark fails. Pretty pixels do
+                     │  not get an exemption.
+
                      │muse · complete
                      │  Ship a rehearsal before asking for credentials. Let someone watch an idea grow, survive a challenge, and become a
                      │  better plan. The first minute should show the whole journey: question, disagreement, evidence, and a verdict that
@@ -43,4 +43,4 @@ W0 L0 · T0
 > Ask the squad…
 
 
-F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · Esc Stop · Ctrl+C Quit
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit

@@ -3,26 +3,26 @@ source: crates/squad-tui/tests/participants.rs
 expression: "screen(24, 24, 0)"
 ---
 persona_0_with_a_very_lo
-ng_name · 4.7 · live q2
-~24.5 tok/s
-model provider/full-conc
-12345 tok · n/a
-W7 L2 · T1
+live W7 L2
 persona_1_with_a_very_lo
-ng_name · 4.7 · live q2
-~24.5 tok/s
-model provider/full-conc
-12345 tok · n/a
-W7 L2 · T1
+live W7 L2
 persona_2_with_a_very_lo
-ng_name · 4.7 · live q2
-· out
-~24.5 tok/s
-model provider/full-conc
-12345 tok · n/a
-W7 L2 · T1
-
-
-
-
-+9 more · scroll
+live W7 L2 out
+persona_3_with_a_very_lo
+live W7 L2
+persona_4_with_a_very_lo
+live W7 L2
+persona_5_with_a_very_lo
+live W7 L2
+persona_6_with_a_very_lo
+live W7 L2
+persona_7_with_a_very_lo
+live W7 L2
+persona_8_with_a_very_lo
+live W7 L2
+persona_9_with_a_very_lo
+live W7 L2
+persona_10_with_a_very_l
+live W7 L2
+persona_11_with_a_very_l
+live W7 L2

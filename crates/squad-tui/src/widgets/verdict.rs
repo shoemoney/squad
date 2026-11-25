@@ -72,51 +72,77 @@ pub struct VerdictRects {
     pub content_height: usize,
 }
 pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palette) -> VerdictRects {
-    let mut c = Canvas::new(area, buf, view.scroll);
+    let outer = area.intersection(buf.area);
+    let inner = Rect::new(
+        outer.x + u16::from(outer.width > 0),
+        outer.y,
+        outer.width.saturating_sub(2),
+        outer.height,
+    );
+    let mut c = Canvas::new(inner, buf, view.scroll);
+    c.line("", Style::default());
     let mut out = VerdictRects::default();
     let body = Style::default();
     let accent = Style::default()
         .fg(palette.chrome())
         .add_modifier(Modifier::BOLD);
-    out.winner = c.line(
-        &format!("VERDICT · Winner: @{}", view.verdict.verdict.winner),
-        accent,
-    );
-    c.line(&format!("Judge: {}", view.judge_model), body);
-    if let Some(warning) = &view.substitution_warning {
-        c.line(warning, body);
-    }
-    for (i, nick) in view.debaters.iter().enumerate() {
-        let total = view
-            .verdict
+    let winner = &view.verdict.verdict.winner;
+    let winner_slot = usize::from(winner == &view.debaters[1]);
+    let winner_style = Style::default()
+        .fg(palette.member(winner.as_str(), winner_slot))
+        .add_modifier(Modifier::BOLD);
+    out.winner = c.line(&format!("Winner: @{winner}"), winner_style);
+    let totals = view.debaters.each_ref().map(|nick| {
+        view.verdict
             .weighted_totals
             .iter()
-            .find(|t| &t.nick == nick);
-        out.totals.push(
-            c.line(
-                &format!(
-                    "@{nick} weighted total: {} / 10",
-                    total.map_or("unavailable".into(), |t| format!("{:.2}", t.total))
-                ),
-                Style::default()
-                    .fg(palette.member(nick.as_str(), i))
-                    .add_modifier(Modifier::BOLD),
-            ),
+            .find(|t| &t.nick == nick)
+            .map_or(0., |t| t.total)
+    });
+    let paired = format!(
+        "{} {:.2} : {:.2} {}",
+        view.debaters[0], totals[0], totals[1], view.debaters[1]
+    );
+    let total_row = c.line(&paired, accent);
+    let offsets = [
+        view.debaters[0].as_str().len() + 1,
+        view.debaters[0].as_str().len() + 1 + format!("{:.2}", totals[0]).len() + 3,
+    ];
+    for (i, offset) in offsets.into_iter().enumerate() {
+        let cell = Rect::new(
+            total_row.x + offset as u16,
+            total_row.y,
+            format!("{:.2}", totals[i]).len() as u16,
+            1,
+        )
+        .intersection(total_row);
+        c.buf.set_style(
+            cell,
+            Style::default()
+                .fg(palette.member(view.debaters[i].as_str(), i))
+                .add_modifier(Modifier::BOLD),
         );
+        out.totals.push(cell);
     }
-    out.card = c.span(0, c.row);
-
-    for nick in &view.debaters {
-        c.line(
-            &format!(
-                "Round tally · @{nick}: {}",
-                view.verdict
-                    .round_tally
-                    .get(nick)
-                    .map_or("unavailable".into(), u32::to_string)
-            ),
-            body,
-        );
+    c.line(
+        &format!(
+            "Tally {} : {} · Judge {}",
+            view.verdict
+                .round_tally
+                .get(&view.debaters[0])
+                .copied()
+                .unwrap_or(0),
+            view.verdict
+                .round_tally
+                .get(&view.debaters[1])
+                .copied()
+                .unwrap_or(0),
+            view.judge_model
+        ),
+        Style::default().add_modifier(Modifier::DIM),
+    );
+    if let Some(warning) = &view.substitution_warning {
+        c.line(warning, body);
     }
     if let Some(reason) = &view.verdict.verdict.tally_override_reason {
         c.line(&format!("Tally override: {reason}"), body);
@@ -218,7 +244,57 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
         },
         body,
     );
+    c.line("", body);
     out.content_height = c.row;
+    out.card = Rect::new(
+        outer.x,
+        c.span(0, c.row).y,
+        outer.width,
+        c.span(0, c.row).height,
+    );
+    // Draw only visible logical edges; scrolling must not manufacture new borders.
+    for logical in 0..c.row {
+        let visible = c.span(logical, logical + 1);
+        if visible.is_empty() || outer.width < 2 {
+            continue;
+        }
+        let y = visible.y;
+        let top = logical == 0;
+        let bottom = logical + 1 == c.row;
+        c.buf.set_string(
+            outer.x,
+            y,
+            if top {
+                "╭"
+            } else if bottom {
+                "╰"
+            } else {
+                "│"
+            },
+            winner_style,
+        );
+        c.buf.set_string(
+            outer.right() - 1,
+            y,
+            if top {
+                "╮"
+            } else if bottom {
+                "╯"
+            } else {
+                "│"
+            },
+            winner_style,
+        );
+        if top || bottom {
+            c.buf.set_stringn(
+                inner.x,
+                y,
+                "─".repeat(inner.width as usize),
+                inner.width as usize,
+                winner_style,
+            );
+        }
+    }
     out
 }
 fn stacked_scores(
