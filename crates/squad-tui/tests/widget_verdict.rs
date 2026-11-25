@@ -57,9 +57,10 @@ fn screen(buf: &Buffer) -> String {
 fn criteria_totals_winner_and_respect_viewports() {
     let (verdict, nicks) = fixture();
     for (width, height) in [(80, 24), (120, 40), (32, 40)] {
-        let view = VerdictView::new(&verdict, &nicks)
+        let mut view = VerdictView::new(&verdict, &nicks)
             .unwrap()
             .with_judge("judge/actual", Some(&nicks[0]));
+        view.show_criterion_reasons = true;
         let area = Rect::new(0, 0, width, height);
         let mut buf = Buffer::empty(area);
         let rects = render(&view, area, &mut buf, &Palette::new(ColorTier::NoColor));
@@ -110,4 +111,21 @@ fn scrolling_exposes_all_details_with_effects_off() {
     let seen = seen.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(seen.contains("Concrete and testable."));
     assert!(seen.contains("Keep the rollback"));
+}
+
+#[test]
+fn compact_verdict_keeps_result_within_fifteen_rows() {
+    let (verdict, nicks) = fixture();
+    let view = VerdictView::new(&verdict, &nicks)
+        .unwrap()
+        .with_judge("judge/actual", None);
+    let mut buf = Buffer::empty(Rect::new(0, 0, 62, 30));
+    let rects = render(&view, buf.area, &mut buf, &Palette::new(ColorTier::NoColor));
+    assert!(rects.content_height <= 15, "{}", rects.content_height);
+    assert!(rects.score_cells.is_empty());
+    let output = screen(&buf);
+    assert!(output.contains("Winner: @claude"));
+    assert!(output.contains("@claude weighted total: 8.00"));
+    assert!(output.contains("@gemini weighted total: 8.00"));
+    assert!(output.contains("F7 Expand"));
 }

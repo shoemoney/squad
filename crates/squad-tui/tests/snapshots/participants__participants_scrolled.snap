@@ -2,14 +2,15 @@
 source: crates/squad-tui/tests/participants.rs
 expression: "screen(80, 24, 48)"
 ---
-24.5 tok/s · estimated
-
-persona_10_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
-
-persona_11_with_a_very_long_name · 4.7
-streaming · q2 · debate round 3
-7-2 · trophies 1
-24.5 tok/s · estimated
+12345 tok · n/a
+W7 L2 · T1
+persona_10_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1
+persona_11_with_a_very_long_name · 4.7 · live q2
+~24.5 tok/s
+model provider/full-concrete-model-version
+12345 tok · n/a
+W7 L2 · T1

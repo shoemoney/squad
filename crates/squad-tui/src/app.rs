@@ -285,6 +285,11 @@ impl App {
                         self.escape(now);
                         return;
                     }
+                    KeyCode::F(7) => {
+                        self.composed.toggle_verdict();
+                        self.dirty = true;
+                        return;
+                    }
                     KeyCode::F(12) => {
                         self.debug_open = !self.debug_open;
                         self.dirty = true;

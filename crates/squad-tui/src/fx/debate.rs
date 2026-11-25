@@ -55,9 +55,14 @@ impl VersusCard<'_> {
         if area.is_empty() {
             return;
         }
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                buf[(x, y)].reset();
+            }
+        }
         let narrow = area.width < 100 || area.height < 7;
         if narrow {
-            area.height = area.height.min(3);
+            area.height = area.height.min(4);
         }
         let static_frame = p.level == Level::Off || p.no_color || self.is_done(t);
         let progress = if static_frame {
@@ -65,7 +70,7 @@ impl VersusCard<'_> {
         } else {
             unit(t, if p.level == Level::Lite { 150.0 } else { 280.0 })
         };
-        let eased = back_out(progress);
+
         let left = p.color(self.a.color);
         let right = p.color(self.b.color);
         // Fixed frame/topic stay readable; only dedicated name plates travel.
@@ -89,13 +94,9 @@ impl VersusCard<'_> {
             }
         }
         let center = area.x + area.width / 2;
-        let line_y = area.y + if narrow { 0 } else { 1 };
+        let line_y = area.y + 1;
         let half = area.width.saturating_sub(6) / 2;
-        let offset = if p.level == Level::Full && !static_frame {
-            ((1.0 - eased) * f64::from(half)).round() as i32
-        } else {
-            0
-        };
+        let offset = 0;
         let a_label = format!("{}  W{} L{}", self.a.name, self.a.wins, self.a.losses);
         let b_label = format!("{}  W{} L{}", self.b.name, self.b.wins, self.b.losses);
         let style_a = Style::default().fg(left).add_modifier(Modifier::BOLD);
@@ -138,7 +139,7 @@ impl VersusCard<'_> {
                 );
             }
         }
-        let topic_y = area.y + if narrow { 1 } else { 5 };
+        let topic_y = area.y + if narrow { 2 } else { 5 };
         text(
             buf,
             area,
@@ -406,9 +407,6 @@ fn unit(t: Duration, ms: f64) -> f64 {
 }
 fn quad_out(t: f64) -> f64 {
     1.0 - (1.0 - t).powi(2)
-}
-fn back_out(t: f64) -> f64 {
-    1.0 + 2.70158 * (t - 1.0).powi(3) + 1.70158 * (t - 1.0).powi(2)
 }
 fn text(buf: &mut Buffer, area: Rect, x: u16, y: u16, width: u16, s: &str, style: Style) {
     let area = area.intersection(buf.area);

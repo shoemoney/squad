@@ -914,6 +914,18 @@ impl FakeRoom {
         };
         tokio::time::sleep(Duration::from_secs(2)).await;
         self.commit(Actor::System, EnvelopePayload::DebateState(state.clone()));
+        self.commit(
+            Actor::System,
+            EnvelopePayload::DebateOpening(DebateOpening {
+                debate_id: id,
+                debaters: state.debaters.clone(),
+                topic_message_id: question,
+                topic_text: Text::new("How should we build a reliable agent room?").unwrap(),
+                instruction: String::new(),
+                rounds: state.total_rounds,
+                round: 0,
+            }),
+        );
         tokio::time::sleep(Duration::from_millis(1700)).await;
         self.stream(roster[0].clone(),question,"I defend **durability**: one writer, stable identities, and receipts that survive every restart.",Some((id,0))).await;
         self.stream(roster[2].clone(),question,"I defend **responsiveness**: bounded queues, cached presentation, and a keyboard that never waits for models.",Some((id,0))).await;

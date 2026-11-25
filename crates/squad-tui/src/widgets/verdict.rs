@@ -78,74 +78,13 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
     let accent = Style::default()
         .fg(palette.chrome())
         .add_modifier(Modifier::BOLD);
-    c.line(&format!("VERDICT · Judge: {}", view.judge_model), accent);
+    out.winner = c.line(
+        &format!("VERDICT · Winner: @{}", view.verdict.verdict.winner),
+        accent,
+    );
+    c.line(&format!("Judge: {}", view.judge_model), body);
     if let Some(warning) = &view.substitution_warning {
         c.line(warning, body);
-    }
-    let wide = c.area.width >= 72 && view.debaters.iter().all(|n| n.as_str().len() <= 17);
-    let start = c.row;
-    if wide {
-        c.line(
-            &format!(
-                "{:<24} {:>18} {:>18}",
-                "Criteria · scale 1–10",
-                view.debaters[0].as_str(),
-                view.debaters[1].as_str()
-            ),
-            accent,
-        );
-    }
-    for (id, label) in [
-        (CriterionId::Fit, "Fit"),
-        (CriterionId::Feasibility, "Feasibility"),
-        (CriterionId::Originality, "Originality"),
-        (CriterionId::SurvivedAttacks, "Survived attacks"),
-    ] {
-        let scores = view.debaters.each_ref().map(|nick| {
-            view.verdict
-                .verdict
-                .scores
-                .iter()
-                .find(|s| &s.nick == nick)
-                .and_then(|s| s.criteria.iter().find(|v| v.criterion_id == id))
-        });
-        let row_start = c.row;
-        if wide {
-            // Fixed numeric columns keep identities aligned even with long nicks.
-            // Long names use the stacked layout below rather than being truncated.
-            if view.debaters.iter().all(|n| n.as_str().len() <= 17) {
-                let rect = c.line(
-                    &format!(
-                        "{label:<24} {:>18} {:>18}",
-                        scores[0].map_or("unavailable".into(), |s| format!("{}/10", s.score)),
-                        scores[1].map_or("unavailable".into(), |s| format!("{}/10", s.score))
-                    ),
-                    body,
-                );
-                for (i, nick) in view.debaters.iter().enumerate() {
-                    let cell = Rect::new(c.area.x + 25 + i as u16 * 19, rect.y, 18, rect.height)
-                        .intersection(rect);
-                    for y in cell.y..cell.bottom() {
-                        for x in cell.x..cell.right() {
-                            c.buf[(x, y)].set_fg(palette.member(nick.as_str(), i));
-                        }
-                    }
-                    out.score_cells.push((nick.clone(), id.clone(), cell));
-                }
-            } else {
-                stacked_scores(&mut c, &mut out, view, &id, label, palette);
-            }
-        } else {
-            stacked_scores(&mut c, &mut out, view, &id, label, palette);
-        }
-        if view.show_criterion_reasons {
-            for (nick, score) in view.debaters.iter().zip(scores) {
-                if let Some(score) = score {
-                    c.line(&format!("@{nick}: {}", score.reasoning), body);
-                }
-            }
-        }
-        out.rows.push(c.span(row_start, c.row));
     }
     for (i, nick) in view.debaters.iter().enumerate() {
         let total = view
@@ -165,8 +104,8 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
             ),
         );
     }
-    out.card = c.span(start, c.row);
-    out.winner = c.line(&format!("Winner: @{}", view.verdict.verdict.winner), accent);
+    out.card = c.span(0, c.row);
+
     for nick in &view.debaters {
         c.line(
             &format!(
@@ -182,19 +121,86 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
     if let Some(reason) = &view.verdict.verdict.tally_override_reason {
         c.line(&format!("Tally override: {reason}"), body);
     }
-    for round in &view.round_scores {
-        if let Some(scores) = &round.scores {
-            c.line(&format!("Round {}", round.round), accent);
-            for nick in &view.debaters {
-                if let Some(score) = scores.get(nick) {
-                    c.line(
-                        &format!("@{nick}: {}/10 · {}", score.score, score.reason),
+    if view.show_criterion_reasons {
+        let wide = c.area.width >= 72 && view.debaters.iter().all(|n| n.as_str().len() <= 17);
+        if wide {
+            c.line(
+                &format!(
+                    "{:<24} {:>18} {:>18}",
+                    "Criteria · scale 1–10",
+                    view.debaters[0].as_str(),
+                    view.debaters[1].as_str()
+                ),
+                accent,
+            );
+        }
+        for (id, label) in [
+            (CriterionId::Fit, "Fit"),
+            (CriterionId::Feasibility, "Feasibility"),
+            (CriterionId::Originality, "Originality"),
+            (CriterionId::SurvivedAttacks, "Survived attacks"),
+        ] {
+            let scores = view.debaters.each_ref().map(|nick| {
+                view.verdict
+                    .verdict
+                    .scores
+                    .iter()
+                    .find(|s| &s.nick == nick)
+                    .and_then(|s| s.criteria.iter().find(|v| v.criterion_id == id))
+            });
+            let row_start = c.row;
+            if wide {
+                // Fixed numeric columns keep identities aligned even with long nicks.
+                // Long names use the stacked layout below rather than being truncated.
+                if view.debaters.iter().all(|n| n.as_str().len() <= 17) {
+                    let rect = c.line(
+                        &format!(
+                            "{label:<24} {:>18} {:>18}",
+                            scores[0].map_or("unavailable".into(), |s| format!("{}/10", s.score)),
+                            scores[1].map_or("unavailable".into(), |s| format!("{}/10", s.score))
+                        ),
                         body,
                     );
+                    for (i, nick) in view.debaters.iter().enumerate() {
+                        let cell =
+                            Rect::new(c.area.x + 25 + i as u16 * 19, rect.y, 18, rect.height)
+                                .intersection(rect);
+                        for y in cell.y..cell.bottom() {
+                            for x in cell.x..cell.right() {
+                                c.buf[(x, y)].set_fg(palette.member(nick.as_str(), i));
+                            }
+                        }
+                        out.score_cells.push((nick.clone(), id.clone(), cell));
+                    }
+                } else {
+                    stacked_scores(&mut c, &mut out, view, &id, label, palette);
+                }
+            } else {
+                stacked_scores(&mut c, &mut out, view, &id, label, palette);
+            }
+            if view.show_criterion_reasons {
+                for (nick, score) in view.debaters.iter().zip(scores) {
+                    if let Some(score) = score {
+                        c.line(&format!("@{nick}: {}", score.reasoning), body);
+                    }
                 }
             }
-        } else {
-            c.line(&format!("Round {} · unscored", round.round), body);
+            out.rows.push(c.span(row_start, c.row));
+        }
+        for round in &view.round_scores {
+            if let Some(scores) = &round.scores {
+                c.line(&format!("Round {}", round.round), accent);
+                for nick in &view.debaters {
+                    if let Some(score) = scores.get(nick) {
+                        c.line(
+                            &format!("@{nick}: {}/10 · {}", score.score, score.reason),
+                            body,
+                        );
+                    }
+                }
+            } else {
+                c.line(&format!("Round {} · unscored", round.round), body);
+            }
         }
     }
     c.line(&view.verdict.verdict.reasoning, body);
@@ -204,7 +210,14 @@ pub fn render(view: &VerdictView, area: Rect, buf: &mut Buffer, palette: &Palett
         c.line(&format!("• {takeaway}"), body);
     }
     out.respect = c.span(start, c.row);
-    c.line("[Follow up with @judge]", body);
+    c.line(
+        if view.show_criterion_reasons {
+            "F7 Collapse details · Follow up with @judge"
+        } else {
+            "F7 Expand scores & reasons · Follow up with @judge"
+        },
+        body,
+    );
     out.content_height = c.row;
     out
 }

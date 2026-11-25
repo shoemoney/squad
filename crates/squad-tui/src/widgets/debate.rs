@@ -36,10 +36,15 @@ impl From<&DebateTurn> for TurnView {
                 content,
                 finish_reason,
                 ..
-            } => (content.clone(), format!("{finish_reason:?}")),
-            DebateTurnOutcome::Forfeit { reason_code, text } => {
-                (text.to_string(), format!("forfeit: {reason_code:?}"))
-            }
+            } => (content.clone(), finish_label(finish_reason).into()),
+            DebateTurnOutcome::Forfeit { reason_code, text } => (
+                text.to_string(),
+                match reason_code {
+                    squad_protocol::ForfeitReason::Timeout => "forfeit: timed out",
+                    squad_protocol::ForfeitReason::Error => "forfeit: error",
+                }
+                .into(),
+            ),
         };
         Self {
             nick: turn.speaker.clone(),
@@ -60,7 +65,10 @@ pub struct RoundView {
 #[derive(Clone, Debug)]
 pub struct DebateView {
     pub state: DebateState,
+    pub number: usize,
+    pub records: [(u32, u32); 2],
     pub setup: Option<DebateSetup>,
+    pub topic: Option<String>,
     pub collapsed: bool,
     pub rounds: Vec<RoundView>,
     /// Latest committed tally, independent of round-number order.
@@ -81,7 +89,10 @@ impl From<&DebateState> for DebateView {
     fn from(state: &DebateState) -> Self {
         let mut view = Self {
             state: state.clone(),
+            number: 1,
+            records: [(0, 0); 2],
             setup: None,
+            topic: None,
             collapsed: false,
             rounds: vec![],
             tally: None,
@@ -117,14 +128,30 @@ impl DebateView {
                 (
                     kind,
                     width,
-                    cache.get(&kind.text(), self.banner_mode, width),
+                    cache.get(
+                        &kind.text(),
+                        if width < 80 {
+                            BannerMode::Off
+                        } else {
+                            self.banner_mode
+                        },
+                        width,
+                    ),
                 )
             })
             .collect();
         self.banner_art.push((
             Banner::Verdict,
             width,
-            cache.get("VERDICT", self.banner_mode, width),
+            cache.get(
+                "VERDICT",
+                if width < 80 {
+                    BannerMode::Off
+                } else {
+                    self.banner_mode
+                },
+                width,
+            ),
         ));
     }
     fn banner(&self, kind: Banner, width: u16) -> Arc<RenderedBanner> {
@@ -136,7 +163,11 @@ impl DebateView {
                 Arc::new(squad_core::banner::render(
                     &kind.text(),
                     usize::from(width),
-                    self.banner_mode,
+                    if width < 80 {
+                        BannerMode::Off
+                    } else {
+                        self.banner_mode
+                    },
                 ))
             })
     }
@@ -375,10 +406,10 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
     let body = Style::default();
     out.toggle = c.line(
         &format!(
-            "{} Debate {} · {:?}",
+            "{} Debate {} · {}",
             if view.collapsed { "▸" } else { "▾" },
-            view.state.debate_id,
-            view.state.state
+            view.number,
+            status_label(&view.state)
         ),
         accent,
     );
@@ -387,43 +418,44 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
         return out;
     }
     let start = c.row;
-    c.line(&"─".repeat(usize::from(c.area.width)), accent);
-    let matchup = format!(
-        "@{}   VS   @{}",
-        view.state.debaters[0], view.state.debaters[1]
-    );
-    if matchup.len() <= usize::from(c.area.width) {
-        let row = c.line(&matchup, accent);
-        let offsets = [0, view.state.debaters[0].as_str().len() + 9];
-        for (i, nick) in view.state.debaters.iter().enumerate() {
-            for y in row.y..row.bottom() {
-                for dx in offsets[i]..offsets[i] + nick.as_str().len() + 1 {
-                    if dx < usize::from(row.width) {
-                        c.buf[(row.x + dx as u16, y)].set_fg(palette.member(nick.as_str(), i));
-                    }
-                }
-            }
-        }
-    } else {
-        for (i, nick) in view.state.debaters.iter().enumerate() {
-            c.line(
-                &format!("{}@{}", if i == 0 { "" } else { "VS  " }, nick),
-                Style::default()
-                    .fg(palette.member(nick.as_str(), i))
-                    .add_modifier(Modifier::BOLD),
-            );
-        }
-    }
-    c.line(&"─".repeat(usize::from(c.area.width)), accent);
+    let topic = view
+        .setup
+        .as_ref()
+        .map(|s| s.topic_text.as_str())
+        .or(view.topic.as_deref())
+        .unwrap_or("Topic unavailable");
+    let card_height = if c.area.width >= 100 { 7 } else { 4 };
+    c.row += card_height;
     out.versus_card = c.span(start, c.row);
+    crate::fx::debate::VersusCard {
+        a: crate::fx::debate::Contender {
+            name: view.state.debaters[0].as_str(),
+            wins: view.records[0].0,
+            losses: view.records[0].1,
+            color: palette.member(view.state.debaters[0].as_str(), 0),
+        },
+        b: crate::fx::debate::Contender {
+            name: view.state.debaters[1].as_str(),
+            wins: view.records[1].0,
+            losses: view.records[1].1,
+            color: palette.member(view.state.debaters[1].as_str(), 1),
+        },
+        topic,
+        seed: 0,
+    }
+    .draw(
+        out.versus_card,
+        c.buf,
+        std::time::Duration::ZERO,
+        crate::fx::debate::Presentation {
+            level: crate::fx::FxLevel::Off,
+            no_color: palette.tier == crate::fx::ColorTier::NoColor,
+        },
+    );
     if let Some(setup) = &view.setup {
-        c.line(&format!("Topic: {}", setup.topic_text), body);
         for solution in &setup.solutions {
             c.line(
-                &format!(
-                    "@{} solution [{}]: {}",
-                    solution.nick, solution.message_id, solution.text
-                ),
+                &format!("@{} solution: {}", solution.nick, solution.text),
                 body,
             );
         }
@@ -575,23 +607,17 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
     if let Some(reason) = &view.state.terminal_reason {
         c.line(reason, body);
     }
-    for case in &view.state.case_ids {
-        c.line(&format!("Case: {case}"), body);
-    }
+    c.line(
+        if view.state.state == DebateStatus::Judging {
+            "Judging · awaiting verdict"
+        } else if view.state.state == DebateStatus::Completed {
+            "Judging complete"
+        } else {
+            "Judging follows closing statements"
+        },
+        body,
+    );
     let start = c.row;
-    c.line("[Collapse debate] · /stop · /stop @nick", body);
-    if matches!(
-        view.state.state,
-        DebateStatus::RoundRunning
-            | DebateStatus::RoundCommitting
-            | DebateStatus::WaitingForDebaters
-            | DebateStatus::Judging
-    ) {
-        c.line(
-            "Press Esc again within 2 s to stop the active contest.",
-            body,
-        );
-    }
     if view.can_judge {
         c.line(
             if view.action_pending {
@@ -609,4 +635,35 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
 /// Case identities remain available even after a judge-only plan restores prior state.
 pub fn associated_cases(view: &DebateView) -> &[CaseId] {
     &view.state.case_ids
+}
+
+pub fn status_label(state: &DebateState) -> String {
+    match state.state {
+        DebateStatus::RoundRunning | DebateStatus::RoundCommitting if state.round == 0 => {
+            "Opening".into()
+        }
+        DebateStatus::RoundRunning | DebateStatus::RoundCommitting => {
+            format!("Round {} of {}", state.round, state.total_rounds)
+        }
+        DebateStatus::Judging => "Judging".into(),
+        DebateStatus::CompleteUnjudged => "Complete · unjudged".into(),
+        DebateStatus::Rejected => "Rejected".into(),
+        DebateStatus::Completed => "Complete".into(),
+        DebateStatus::Preparing => "Preparing".into(),
+        DebateStatus::AwaitingConfirmation => "Awaiting confirmation".into(),
+        DebateStatus::WaitingForDebaters => "Waiting for debaters".into(),
+        DebateStatus::Stopping => "Stopping".into(),
+        DebateStatus::Stopped => "Stopped".into(),
+        DebateStatus::Failed => "Failed".into(),
+        DebateStatus::Cancelled => "Cancelled".into(),
+        DebateStatus::Expired => "Expired".into(),
+    }
+}
+
+pub fn finish_label(reason: &squad_protocol::FinishReason) -> &'static str {
+    match reason {
+        squad_protocol::FinishReason::Stop => "complete",
+        squad_protocol::FinishReason::Length => "length limit",
+        squad_protocol::FinishReason::ContentFilter => "filtered",
+    }
 }

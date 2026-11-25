@@ -174,6 +174,13 @@ impl Entrance {
         if area.is_empty() {
             return;
         }
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                if !protected.iter().any(|r| r.contains((x, y).into())) {
+                    buf[(x, y)].reset();
+                }
+            }
+        }
         let phase = self.phase(elapsed);
         let ms = elapsed.as_secs_f32() * 1000.0;
         let height = self.art.height().min(usize::from(area.height));

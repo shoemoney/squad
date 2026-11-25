@@ -230,21 +230,6 @@ pub fn attach(
                     let versus = app
                         .composed
                         .graphic_rect(id, shapes.versus, top, transcript);
-                    let names = view.state.debaters.clone();
-                    let entrance = fx::banner::Entrance::new(
-                        &mut app.composed.banners,
-                        kind,
-                        squad_core::banner::BannerMode::On,
-                        rect.width,
-                        level,
-                        fx::banner::Palette {
-                            left: colors[0],
-                            right: colors[1],
-                            gold: palette.chrome(),
-                            background: Color::Reset,
-                            tier: caps.color,
-                        },
-                    );
                     let opening = *n <= 1;
                     Pass::catalogue(
                         key,
@@ -252,30 +237,9 @@ pub fn attach(
                         PassAccess::Unprotected,
                         Duration::from_millis(1480),
                         move |elapsed, buf, _| {
-                            entrance.render(buf, rect, elapsed, &[]);
+                            tint_prepared(buf, rect, elapsed, colors[0], level);
                             if opening {
-                                fx::debate::VersusCard {
-                                    a: fx::debate::Contender {
-                                        name: names[0].as_str(),
-                                        wins: 0,
-                                        losses: 0,
-                                        color: colors[0],
-                                    },
-                                    b: fx::debate::Contender {
-                                        name: names[1].as_str(),
-                                        wins: 0,
-                                        losses: 0,
-                                        color: colors[1],
-                                    },
-                                    topic: "Durability × responsiveness",
-                                    seed,
-                                }
-                                .draw(
-                                    versus,
-                                    buf,
-                                    elapsed,
-                                    presentation,
-                                );
+                                tint_prepared(buf, versus, elapsed, colors[1], level);
                             }
                         },
                     )
@@ -294,24 +258,14 @@ pub fn attach(
                     })
                     .map(|(_, r)| app.composed.graphic_rect(id, *r, top, transcript))
                     .unwrap_or_default();
-                let entrance = fx::banner::Entrance::new(
-                    &mut app.composed.banners,
-                    squad_core::banner::Banner::Verdict,
-                    squad_core::banner::BannerMode::On,
-                    rect.width,
-                    level,
-                    fx::banner::Palette {
-                        gold: palette.chrome(),
-                        tier: caps.color,
-                        ..Default::default()
-                    },
-                );
                 Pass::catalogue(
                     key,
                     rect,
                     PassAccess::Unprotected,
-                    entrance.duration(),
-                    move |elapsed, buf, _| entrance.render(buf, rect, elapsed, &[]),
+                    Duration::from_millis(850),
+                    move |elapsed, buf, _| {
+                        tint_prepared(buf, rect, elapsed, palette.chrome(), level)
+                    },
                 )
             }
             FxCue::Catalogue {
@@ -340,60 +294,18 @@ pub fn attach(
                     .get(&id)
                     .map_or(Rect::default(), |g| g.verdict);
                 rect = app.composed.graphic_rect(id, local, top, transcript);
-                let names = &state.state.debaters;
-                let data = fx::verdict::Verdict {
-                    contenders: std::array::from_fn(|i| fx::verdict::Contender {
-                        nick: names[i].to_string(),
-                        hue: palette.member(names[i].as_str(), i),
-                        art: vec![names[i].to_string()],
-                        compact_art: vec![names[i].to_string()],
-                    }),
-                    criteria: std::array::from_fn(|i| fx::verdict::Criterion {
-                        name: format!(
-                            "{:?}",
-                            value.verdict.verdict.scores[0].criteria[i].criterion_id
-                        ),
-                        scores: std::array::from_fn(|side| {
-                            value
-                                .verdict
-                                .verdict
-                                .scores
-                                .iter()
-                                .find(|s| s.nick == names[side])
-                                .map_or(0, |s| u32::from(s.criteria[i].score))
-                        }),
-                    }),
-                    scale: 10,
-                    totals: std::array::from_fn(|i| {
-                        value
-                            .verdict
-                            .weighted_totals
-                            .iter()
-                            .find(|v| v.nick == names[i])
-                            .map_or(0, |v| (v.total * 10.).round() as u32)
-                    }),
-                    winner: usize::from(value.verdict.verdict.winner == names[1]),
-                    round_tally: std::array::from_fn(|i| {
-                        value
-                            .verdict
-                            .round_tally
-                            .get(&names[i])
-                            .copied()
-                            .unwrap_or(0)
-                    }),
-                    override_reason: None,
-                    reasoning: value.verdict.verdict.reasoning.clone(),
-                    steal: value.verdict.verdict.what_to_steal_from_loser.join(" · "),
-                };
-                let reveal = fx::verdict::VerdictReveal::new(level, no_color, true, seed);
+                let winner = &value.verdict.verdict.winner;
+                let slot = usize::from(winner == &state.state.debaters[1]);
+                let hue = palette.member(winner.as_str(), slot);
                 Pass::catalogue(
                     key,
                     rect,
                     PassAccess::Unprotected,
-                    reveal.duration(),
-                    move |elapsed, buf, _| reveal.render(buf, rect, rect, &[], elapsed, &data),
+                    Duration::from_millis(850),
+                    move |elapsed, buf, _| tint_prepared(buf, rect, elapsed, hue, level),
                 )
             }
+
             FxCue::BubbleOpened { id, .. }
             | FxCue::BubbleCompleted { id }
             | FxCue::BubbleFailed { id } => {
@@ -453,5 +365,55 @@ pub fn attach(
             _ => continue,
         };
         app.fx.reflow_pass(cue, pass);
+    }
+}
+
+/// Style the prepared scene: glyphs and logical row offsets remain exactly those
+/// used by static composition, including partially visible banners/cards.
+fn tint_prepared(
+    buf: &mut ratatui::buffer::Buffer,
+    area: Rect,
+    elapsed: Duration,
+    color: Color,
+    level: fx::FxLevel,
+) {
+    if level == fx::FxLevel::Off || elapsed >= Duration::from_millis(850) {
+        return;
+    }
+    let clip = area.intersection(buf.area);
+    for y in clip.y..clip.bottom() {
+        for x in clip.x..clip.right() {
+            if elapsed < Duration::from_millis(150) {
+                buf[(x, y)].modifier.insert(ratatui::style::Modifier::DIM);
+            } else if elapsed < Duration::from_millis(400) {
+                buf[(x, y)].set_fg(color);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn clipped_entrances_preserve_prepared_glyphs_and_neighbors() {
+        let mut original = ratatui::buffer::Buffer::empty(Rect::new(0, 0, 80, 24));
+        original.set_string(18, 3, "ROUND 2 OF 3", Style::default());
+        original.set_string(18, 4, "claude W4 L2  VS  openai W3 L1", Style::default());
+        original.set_string(18, 5, "A topic from committed setup", Style::default());
+        for ms in [0, 100, 200, 399, 850] {
+            let mut frame = original.clone();
+            tint_prepared(
+                &mut frame,
+                Rect::new(18, 3, 62, 3),
+                Duration::from_millis(ms),
+                Color::Yellow,
+                fx::FxLevel::Full,
+            );
+            for (before, after) in original.content.iter().zip(&frame.content) {
+                assert_eq!(before.symbol(), after.symbol());
+            }
+            assert_eq!(original[(0, 0)], frame[(0, 0)]);
+        }
     }
 }

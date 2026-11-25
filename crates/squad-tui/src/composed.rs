@@ -23,6 +23,7 @@ pub struct Composed {
     pub graphics: BTreeMap<MessageId, Graphics>,
     signature: Option<(usize, usize, usize, u16)>,
     pub started: bool,
+    pub verdict_expanded: bool,
     pub active_cues: Vec<crate::fx::TimedCue>,
     pub anchor: Option<widgets::transcript::TranscriptAnchor>,
     pub top: usize,
@@ -64,6 +65,11 @@ fn rows(buffer: &Buffer, height: usize) -> Vec<Line<'static>> {
         .collect()
 }
 impl Composed {
+    pub fn toggle_verdict(&mut self) {
+        self.verdict_expanded = !self.verdict_expanded;
+        self.signature = None;
+        self.artifact_signature = None;
+    }
     pub fn scroll(&mut self, delta: isize) {
         let top = self.top.saturating_add_signed(delta).min(
             self.transcript
@@ -169,8 +175,24 @@ impl Composed {
         if self.artifact_signature != Some(artifact_signature) {
             self.artifact_signature = Some(artifact_signature);
             self.graphics.clear();
-            for (id, source) in &session.debates {
+            for (index, (id, source)) in session.debates.iter().enumerate() {
                 let mut view = source.clone();
+                view.number = index + 1;
+                view.topic = session.snapshot.events.iter().rev().find_map(|event| {
+                    if let EnvelopePayload::DebateOpening(opening) = &event.content {
+                        (opening.debate_id == *id).then(|| opening.topic_text.to_string())
+                    } else {
+                        None
+                    }
+                });
+                view.records = view.state.debaters.each_ref().map(|nick| {
+                    session
+                        .snapshot
+                        .scoreboard
+                        .iter()
+                        .find(|s| &s.nick == nick)
+                        .map_or((0, 0), |s| (s.wins as u32, s.losses as u32))
+                });
                 for (message, delta) in &session.debate_streams {
                     if let Some(card) = session.transcript.cards.get(message)
                         && let Actor::Member(nick) = &card.author
@@ -209,6 +231,7 @@ impl Composed {
                     && let Ok(mut verdict) =
                         widgets::verdict::VerdictView::from_debate(value, &view.state.debaters)
                 {
+                    verdict.show_criterion_reasons = self.verdict_expanded;
                     verdict.round_scores = session.contests[id].scores.values().cloned().collect();
                     let rect = scratch.area;
                     let geometry = widgets::verdict::render(&verdict, rect, &mut scratch, palette);

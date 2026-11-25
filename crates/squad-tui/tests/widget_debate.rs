@@ -279,7 +279,7 @@ fn parallel_streams_and_permanent_verdict_banner() {
             .iter()
             .any(|(banner, _)| *banner == Banner::Verdict)
     );
-    assert!(screen(&buf).contains("Length"));
+    assert!(screen(&buf).contains("length limit"));
     assert!(screen(&buf).contains("Second stream"));
 }
 
@@ -330,4 +330,26 @@ fn tug_tally_follows_commit_order_instead_of_round_number() {
     assert_eq!(view.tally.as_ref(), Some(&late_round_one.tally));
     assert!(view.apply_score(&round_two));
     assert_eq!(view.tally.as_ref(), Some(&late_round_one.tally));
+}
+
+#[test]
+fn narrow_banners_are_single_rows_and_state_labels_are_readable() {
+    let state = state();
+    let mut view = DebateView::from(&state);
+    view.topic = Some("A topic supplied by committed opening".into());
+    view.records = [(4, 2), (3, 1)];
+    let mut cache = squad_tui::widgets::banner::BannerCache::default();
+    view.prepare_banners(62, &mut cache);
+    let mut buf = Buffer::empty(Rect::new(0, 0, 62, 80));
+    let geometry = render(&view, buf.area, &mut buf, &Palette::new(ColorTier::NoColor));
+    assert!(geometry.banners.iter().all(|(_, r)| r.height == 1));
+    let output = screen(&buf);
+    assert!(output.contains("Debate 1 · Round 1 of 2"));
+    assert!(!output.contains(&state.debate_id.to_string()));
+    assert!(!output.contains("RoundRunning"));
+    assert!(!output.contains("Press Esc again"));
+    assert!(output.contains("A topic supplied by committed opening"));
+    assert!(output.contains("W4 L2"));
+    assert!(output.contains("W3 L1"));
+    assert!(geometry.versus_card.height >= 4);
 }
