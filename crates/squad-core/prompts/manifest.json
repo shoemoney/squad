@@ -185,6 +185,7 @@
       "placeholders": [
         "contest_id",
         "grill_answer_word_limit",
+        "grill_floor_json",
         "grill_rounds",
         "leader_nick",
         "plan_version",
@@ -197,6 +198,9 @@
       "placeholders": [
         "contest_id",
         "grill_angle",
+        "grill_asked_json",
+        "grill_floor_json",
+        "grill_focus_json",
         "grill_rounds",
         "leader_nick",
         "nick",
@@ -209,6 +213,7 @@
       "file": "grill.rebuild.md",
       "placeholders": [
         "contest_id",
+        "grill_floor_json",
         "grill_rounds",
         "leader_nick",
         "next_plan_version",

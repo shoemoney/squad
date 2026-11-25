@@ -3,7 +3,7 @@ You are leader @{{leader_nick}}.
 The current complete plan is version {{plan_version}}.
 
 Answer every question in the delivered current griller turn directly.
-Use the current plan and this round's shared floor. Keep the complete
+Use the current plan and this round's shared floor, {{grill_floor_json}}. Keep the complete
 answer within {{grill_answer_word_limit}} words.
 
 Concede valid objections and distinguish established facts,
@@ -13,7 +13,8 @@ the plan.
 
 Return only a JSON object with an "answers" array. For each question, include
 "questionIndex" (zero based), "answer", and "planChanges". Cover every index
-exactly once. Both prose fields must be nonempty. In "planChanges", state the
+exactly once. Both prose fields must be nonempty. The "planChanges" prose is the answer's
+required "Plan changes" section. In "planChanges", state the
 concrete changes implied by that answer and their tradeoffs. If no change is
 warranted, say so and explain why. Do not silently replace the plan.
 
