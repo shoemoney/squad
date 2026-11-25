@@ -48,7 +48,11 @@ Bind these in `main.rs` where the explicit integration stub remains:
 The CLI subscribes before reading its initial watermark. It pages durable history
 in ascending cursor order, recovers broadcast lag through history, ignores deltas,
 prints preflights before acknowledgements, and does not infer completion from
-silence. `run_until` provides an injectable interrupt future for cleanup tests.
+silence. Accounting updates are coalesced by `(work_id, attempt)` at the output
+layer: the latest record per call is printed at command completion followed by
+`usage.total` (known cost plus an explicit unknown-cost call count). `send --verbose`
+prints raw accounting events. Durable accounting is unchanged. `run_until` provides
+an injectable interrupt future for cleanup tests.
 
 `models` and standalone `export` are wired into the executable and bypass room
 opening. `export` also bypasses credential/config validation, using only the
@@ -65,7 +69,9 @@ Add that adapter before claiming identical complete live/offline mode exports.
 
 Doctor now reports daily accounting, reservations, effective max, unknown-call
 counts, cached roster and judge identities, and recorded response-model mismatches
-without opening the room. Provider reachability/catalog validation and full
+without opening the room. `doctor --online` checks the free models and key info
+endpoints, with no runtime startup or paid alias probes; offline doctor explicitly
+reports that online checks were not run. Full
 `--env` effective-value/source reporting remain deferred. The current protocol
 configuration has no census_passes field; its seed/precedence requires the config
 worker's extension. No bus diagnostics or PTY TUI integration is claimed here.

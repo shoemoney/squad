@@ -38,7 +38,6 @@ pub struct Report {
     pub code: u8,
 }
 
-// TODO(M3.P3): replace skipped checks with typed readers and integration checks.
 pub fn run(
     config: &Result<SquadConfig, Vec<ConfigError>>,
     options: &LoadOptions,
@@ -96,9 +95,7 @@ pub fn run(
         }
     );
     let resolved_data_dir = effective.data_dir(options);
-    text.push_str(
-        "OpenRouter reachability: skipped until M2\nModel resolution: skipped until M2\n",
-    );
+    text.push_str("Online checks not run (use --online).\n");
     let writable = match resolved_data_dir
         .as_ref()
         .map_err(ToString::to_string)
@@ -206,15 +203,81 @@ pub fn run(
         text.push_str(include_str!("env-help.md"));
         text.push_str("\nProcess environment overrides file values, including empty values. Load exactly one environment file.\nPersisted ROUNDS, GRILL_ROUNDS and CENSUS_PASSES override their environment seeds.\nLoaded roster and numeric values are reported above; credential values are never displayed.\n");
     }
-    let _ = writeln!(
+    let _ = writeln!(text, "Overall: {}", if failed { "FAIL" } else { "PASS" });
+    Report {
         text,
-        "Overall: {}",
-        if failed {
-            "FAIL"
-        } else {
-            "PASS (deferred checks skipped)"
+        code: u8::from(failed),
+    }
+}
+
+/// Free, read-only checks. Do not initialize the runtime or probe model aliases.
+pub async fn online(config: &SquadConfig) -> Report {
+    let Ok(client) = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+    else {
+        return Report {
+            text: "Online checks: FAIL - HTTP client unavailable\n".into(),
+            code: 1,
+        };
+    };
+    let Ok(base) = reqwest::Url::parse(&config.openrouter_base_url) else {
+        return Report {
+            text: "Online checks: FAIL - invalid provider URL\n".into(),
+            code: 1,
+        };
+    };
+    if !matches!(base.scheme(), "http" | "https")
+        || !base.username().is_empty()
+        || base.password().is_some()
+        || base.query().is_some()
+        || base.fragment().is_some()
+    {
+        return Report {
+            text: "Online checks: FAIL - invalid provider URL\n".into(),
+            code: 1,
+        };
+    }
+    let Ok(authorization) = config.openrouter_api_key.authorization_header() else {
+        return Report {
+            text: "Online checks: FAIL - invalid credential format\n".into(),
+            code: 1,
+        };
+    };
+    let mut text = String::new();
+    let mut failed = false;
+    for (path, label) in [
+        ("models", "OpenRouter reachability"),
+        ("key", "OpenRouter key validity"),
+    ] {
+        let result = client
+            .get(base.join(path).expect("endpoint"))
+            .header(reqwest::header::AUTHORIZATION, authorization.clone())
+            .send()
+            .await;
+        match result {
+            Ok(response) if response.status().is_success() => {
+                match response.json::<serde_json::Value>().await {
+                    Ok(value) if value.get("data").is_some() => {
+                        let _ = writeln!(text, "{label}: PASS");
+                    }
+                    _ => {
+                        let _ = writeln!(text, "{label}: FAIL - invalid endpoint response");
+                        failed = true;
+                    }
+                }
+            }
+            Ok(response) => {
+                let _ = writeln!(text, "{label}: FAIL - HTTP {}", response.status().as_u16());
+                failed = true;
+            }
+            Err(_) => {
+                let _ = writeln!(text, "{label}: FAIL - network request failed");
+                failed = true;
+            }
         }
-    );
+    }
     Report {
         text,
         code: u8::from(failed),

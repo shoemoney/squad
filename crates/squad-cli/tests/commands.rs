@@ -638,3 +638,51 @@ fn invalid_census_seed_reports_exact_error_and_continues_independent_doctor_chec
     assert!(text.contains("Terminal capabilities:"));
     assert!(text.contains("Daily accounting:"));
 }
+
+#[tokio::test]
+async fn doctor_online_uses_only_free_get_endpoints_and_checks_key() {
+    use wiremock::{
+        Mock, ResponseTemplate,
+        matchers::{method, path},
+    };
+    for status in [200, 401] {
+        let temp = tempfile::tempdir().unwrap();
+        let server = provider(vec![]).await;
+        Mock::given(method("GET"))
+            .and(path("/api/v1/key"))
+            .respond_with(
+                ResponseTemplate::new(status)
+                    .set_body_json(serde_json::json!({"data":{"label":"fixture"}})),
+            )
+            .mount(&server.server)
+            .await;
+        let output = invoke_provider(
+            temp.path(),
+            &["--env-file", "/dev/null", "doctor", "--online"],
+            &server,
+        )
+        .await;
+        let text = String::from_utf8(output.stdout).unwrap();
+        assert_eq!(output.status.success(), status == 200, "{text}");
+        assert!(text.contains("OpenRouter reachability: PASS"), "{text}");
+        assert!(
+            text.contains(if status == 200 {
+                "OpenRouter key validity: PASS"
+            } else {
+                "OpenRouter key validity: FAIL - HTTP 401"
+            }),
+            "{text}"
+        );
+        let requests = server.server.received_requests().await.unwrap();
+        assert_eq!(requests.len(), 2);
+        assert!(requests.iter().all(|r| r.method == "GET"));
+        let offline =
+            invoke_provider(temp.path(), &["--env-file", "/dev/null", "doctor"], &server).await;
+        assert!(
+            String::from_utf8(offline.stdout)
+                .unwrap()
+                .contains("Online checks not run (use --online)")
+        );
+        assert_eq!(server.server.received_requests().await.unwrap().len(), 2);
+    }
+}

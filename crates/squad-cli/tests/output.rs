@@ -112,3 +112,25 @@ fn human_scores_explicitly_label_late_rounds() {
             .starts_with("Round 1 unscored (late):")
     );
 }
+
+#[test]
+fn topic_mismatch_explains_shared_question_in_human_and_json_errors() {
+    for json in [false, true] {
+        let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+        squad_cli::output::Output {
+            json,
+            stdout: &mut stdout,
+            stderr: &mut stderr,
+        }
+        .error(
+            None,
+            squad_protocol::ErrorCode::DEBATE_TOPIC_MISMATCH,
+            "Debaters' solutions must answer the same user message.",
+            false,
+        )
+        .unwrap();
+        let text = String::from_utf8(if json { stdout } else { stderr }).unwrap();
+        assert!(text.contains("Send one shared question to both debaters"));
+        assert!(text.contains("wait for both replies"));
+    }
+}

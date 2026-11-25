@@ -138,6 +138,7 @@ pub fn args(message: &str, json: bool, no_wait: bool) -> squad_cli::args::Send {
         yes: false,
         json,
         no_wait,
+        verbose: false,
     }
 }
 pub async fn send(

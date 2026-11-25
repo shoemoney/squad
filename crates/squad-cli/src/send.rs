@@ -176,16 +176,21 @@ async fn execute<R: RoomApi>(
     } else {
         room.submit(request).await
     };
+    let mut requested_reserve = None;
     let request_id = loop {
         match result {
             RequestResult::Rejected { request_id, error } => {
-                output
-                    .error(
-                        Some(request_id),
-                        error.code,
+                let message = if error.code == ErrorCode::DAILY_MAX_REACHED {
+                    reservation_diagnostic(
+                        &serde_json::to_value(room.state().await).unwrap_or_default(),
+                        requested_reserve,
                         error.text.as_str(),
-                        error.retryable,
                     )
+                } else {
+                    error.text.as_str().to_owned()
+                };
+                output
+                    .error(Some(request_id), error.code, &message, error.retryable)
                     .map_err(io_error)?;
                 return Ok(1);
             }
@@ -208,6 +213,10 @@ async fn execute<R: RoomApi>(
                 preflight,
                 ..
             } => {
+                requested_reserve = Some(match &preflight {
+                    PendingPreflight::Debate(p) => p.estimate.reserved_usd,
+                    PendingPreflight::Contest(p) => p.estimate.reserved_usd,
+                });
                 let request_id = pending_id;
                 output.preflight(request_id, &preflight).map_err(io_error)?;
                 output.stdout.flush().map_err(io_error)?;
@@ -315,6 +324,7 @@ async fn execute<R: RoomApi>(
             }
         }
     };
+    let mut usage = std::collections::BTreeMap::new();
     let mut seen = BTreeSet::new();
     let mut rounds = std::collections::BTreeMap::<ContestId, u32>::new();
     loop {
@@ -343,16 +353,46 @@ async fn execute<R: RoomApi>(
                     }
                     _ => None,
                 };
+                if let EnvelopePayload::UsageRecord(record) = &event.content {
+                    usage.insert((record.work_id, record.attempt), event.clone());
+                    if !args.verbose {
+                        watermark = Some(event.commit.seq);
+                        continue;
+                    }
+                }
                 output
                     .event_with_round(&event, latest_round)
                     .map_err(io_error)?;
             }
             watermark = Some(event.commit.seq);
         }
-        match progress {
-            Progress::Succeeded => return Ok(0),
-            Progress::Failed => return Ok(1),
-            Progress::Running => {}
+        if progress != Progress::Running {
+            if !usage.is_empty() {
+                let mut total = 0.0;
+                let mut unknown = 0;
+                for event in usage.values() {
+                    if let EnvelopePayload::UsageRecord(record) = &event.content {
+                        match record.usage.as_ref().and_then(|u| u.cost_usd) {
+                            Some(cost) => total += cost,
+                            None => unknown += 1,
+                        }
+                    }
+                    if !args.verbose {
+                        output.event(event).map_err(io_error)?;
+                    }
+                }
+                if output.json {
+                    output.record(json!({"type":"usage.total","calls":usage.len(),"knownCostUsd":total,"unknownCostCalls":unknown})).map_err(io_error)?;
+                } else {
+                    writeln!(
+                        output.stdout,
+                        "Usage: {} calls; known cost ${total:.6}; unknown-cost calls: {unknown}",
+                        usage.len()
+                    )
+                    .map_err(io_error)?;
+                }
+            }
+            return Ok(u8::from(progress == Progress::Failed));
         }
         tokio::select! {
             _ = tokio::time::sleep(Duration::from_millis(50)) => {},
@@ -389,4 +429,39 @@ async fn recent_events(
     }
     events.sort_by_key(|event| event.commit.seq);
     Ok(events)
+}
+
+fn reservation_diagnostic(
+    state: &serde_json::Value,
+    requested: Option<f64>,
+    fallback: &str,
+) -> String {
+    let spend = &state["dailySpend"];
+    let (Some(spent), Some(limit)) = (spend["spentUsd"].as_f64(), spend["limitUsd"].as_f64())
+    else {
+        return fallback.to_owned();
+    };
+    let required = requested.map_or_else(
+        || {
+            "this request's conservative reservation will not fit (required amount unavailable)"
+                .to_owned()
+        },
+        |amount| format!("this request needs up to ${amount:.6} reserved"),
+    );
+    format!(
+        "Daily budget admission refused: spent ${spent:.6} of ${limit:.6}; {required}. Existing reservations also count toward the cap. Use cheaper model/settings or adjust SQUAD_DAILY_MAX_USD."
+    )
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    #[test]
+    fn low_spend_reservation_refusal_does_not_claim_cap_was_spent() {
+        let text = super::reservation_diagnostic(
+            &serde_json::json!({"dailySpend":{"spentUsd":0.18,"limitUsd":2.5}}),
+            Some(3.0),
+            "DAILY_MAX_REACHED",
+        );
+        insta::assert_snapshot!(text, @"Daily budget admission refused: spent $0.180000 of $2.500000; this request needs up to $3.000000 reserved. Existing reservations also count toward the cap. Use cheaper model/settings or adjust SQUAD_DAILY_MAX_USD.");
+    }
 }

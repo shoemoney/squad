@@ -109,8 +109,12 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
         );
         return Ok(0);
     }
-    if let Some(Command::Doctor { env: show_env }) = cli.command {
-        let report = doctor::run(
+    if let Some(Command::Doctor {
+        env: show_env,
+        online,
+    }) = cli.command
+    {
+        let mut report = doctor::run(
             &config,
             &options,
             &effective,
@@ -119,6 +123,27 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
             crossterm::terminal::size().ok(),
             show_env,
         );
+        if online {
+            report.text = report
+                .text
+                .replace("Online checks not run (use --online).\n", "");
+            if let Ok(config) = &config {
+                let checks = tokio::runtime::Runtime::new()
+                    .map_err(|_| "Cannot start async runtime.")?
+                    .block_on(doctor::online(config));
+                report.code |= checks.code;
+                report.text = report
+                    .text
+                    .replace("Overall: PASS\n", "")
+                    .replace("Overall: FAIL\n", "");
+                report.text.push_str(&checks.text);
+                report.text.push_str(if report.code == 0 {
+                    "Overall: PASS\n"
+                } else {
+                    "Overall: FAIL\n"
+                });
+            }
+        }
         print!("{}", report.text);
         if cli.bus_log.is_some() {
             return Err("Bus diagnostics: not implemented yet (milestone M3)".into());
