@@ -1,0 +1,42 @@
+ SQUAD   /   main   ·   six minds, one room
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · 4.5         claude vs openai · Round 3 of 3 · total 16 : 14
+live W0 L0           │▌  answer is lost or charged twice.
+13.1 tok/s · q0      │
+fable · 4.1          │▌  @openai · complete
+idle W0 L0           │▌  Opening: protect the human loop. A durable answer is useful only if the person can still type while six models
+n/a tok · n/a        │▌  stream. Drain a bounded feed batch, paint the newest prepared rows, and service input first. Put a measurable
+openai · 5.1         │▌  latency target in the contract.
+idle W0 L0           │
+n/a tok · n/a        │Round 1 · claude 8 : 7 openai · tally 8 : 7
+gemini · 3-pro       │── Round 2 / 3 ──
+idle W0 L0           │▌  @claude · complete
+n/a tok · n/a        │▌  Your scheduling contract is necessary, but what does it preserve after a crash? Keep transient deltas outside the
+grok · 4             │▌  authoritative log. The reducer must replace previews with committed outcomes by message and attempt, so a
+idle W0 L0           │▌  reconnect cannot turn one answer into three copies.
+n/a tok · n/a        │
+muse · 3             │▌  @openai · complete
+idle W0 L0           │▌  Agreed on identities. Now test the hostile path: a long code fence, a resize, and a delayed verdict while twelve
+n/a tok · n/a        │▌  replies arrive. Cache Markdown blocks, virtualize visible rows, and reserve a frame deadline. Correct recovery
+                     │▌  and responsive presentation should share one test harness.
+                     │
+                     │Round 2 · claude 8 : 7 openai · tally 16 : 14
+                     │                            _____ ___ _   _    _    _       ____   ___  _   _ _   _ ____
+                     │                           |  ___|_ _| \ | |  / \  | |     |  _ \ / _ \| | | | \ | |  _ \
+                     │                           | |_   | ||  \| | / _ \ | |     | |_) | | | | | | |  \| | | | |
+                     │                           |  _|  | || |\  |/ ___ \| |___  |  _ <| |_| | |_| | |\  | |_| |
+                     │                           |_|   |___|_| \_/_/   \_\_____| |_| \_\\___/ \___/|_| \_|____/
+                     │▌  @claude · streaming
+                     │▌  Closing: start with one source of truth. Commit receipts, usage,
+                     │
+                     │▌  @openai · waiting
+                     │
+                     │Judge scoring…
+                     │Round tally
+                     │claude 16 [━━━━━━━━━━━━━━━━━━━━━━━━] 14 openai
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit

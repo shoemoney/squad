@@ -1,0 +1,42 @@
+ SQUAD   /   main   ·   six minds, one room
+$1.57 ▰▰▰▰▰▰▱▱ $2.00 · pending $0.10 · remaining $0.33
+claude · 4.5         ││Criteria · scale 1–10                claude             openai                                                      │
+idle W1 L0           ││Fit                                    8/10               7/10                                                      │
+n/a tok · n/a        ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+fable · 4.1          ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+idle W0 L0           ││Feasibility                            8/10               7/10                                                      │
+n/a tok · n/a        ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+openai · 5.1         ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+idle W0 L1           ││Originality                            8/10               7/10                                                      │
+n/a tok · n/a        ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+gemini · 3-pro       ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+idle W0 L0           ││Survived attacks                       8/10               7/10                                                      │
+n/a tok · n/a        ││@claude: A concrete, testable proposal supported by the discussion.                                                 │
+grok · 4             ││@openai: A concrete, testable proposal supported by the discussion.                                                 │
+idle W0 L0           ││Round 1                                                                                                             │
+n/a tok · n/a        ││@claude: 8/10 · Clear durability contract                                                                           │
+muse · 3             ││@openai: 7/10 · Strong responsiveness argument                                                                      │
+idle W0 L0           ││Round 2                                                                                                             │
+n/a tok · n/a        ││@claude: 8/10 · Clear durability contract                                                                           │
+                     ││@openai: 7/10 · Strong responsiveness argument                                                                      │
+                     ││Round 3                                                                                                             │
+                     ││@claude: 8/10 · Clear durability contract                                                                           │
+                     ││@openai: 7/10 · Strong responsiveness argument                                                                      │
+                     ││F7 Collapse details · Follow up with @judge                                                                         │
+                     │╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                     │grok · complete
+                     │  Grill me on this plan: ship one writer, one reducer, and a twelve-stream release gate. Ask what happens when the
+                     │  writer stalls; my answer is bounded backpressure and visible pending receipts, never a frozen keyboard.
+
+                     │CHOOSE WHO GETS GRILLED
+                     │Type one name, e.g. @grok · Esc to cancel
+                     │Stress-test the rollout plan
+                     │pick pending
+                     │▸ @grok · answered · eligible
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Ask the squad…
+
+
+Pick 1: @grok · other messages remain available

@@ -1,0 +1,42 @@
+ SQUAD   /   main   ·   six minds, one room
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · 4.5         claude vs openai · Round 1 of 3
+idle W0 L0           │  The interesting failure is a restart between commit and acknowledgement. Give each operation an identity and
+n/a tok · n/a        │  return its original receipt on retry. Then test the same history at every interruption point. A reliable room
+fable · 4.1          │  makes recovery boring, even when its models are surprising.
+idle W0 L0
+n/a tok · n/a        │grok · complete
+openai · 5.1         │  Twelve models talking at once? Excellent way to discover your supposedly asynchronous UI is a slideshow. Set a
+live W0 L0           │  frame budget, bound the queues, and inject a slow judge. If typing stutters, the benchmark fails. Pretty pixels do
+13.3 tok/s · q0      │  not get an exemption.
+gemini · 3-pro
+idle W0 L0           │▾ Debate 1 · claude vs openai · Round 1 of 3
+n/a tok · n/a        │How should we build a reliable agent room?
+grok · 4             │                                        ___  ____  _____ _   _ ___ _   _  ____
+idle W0 L0           │                                       / _ \|  _ \| ____| \ | |_ _| \ | |/ ___|
+n/a tok · n/a        │                                      | | | | |_) |  _| |  \| || ||  \| | |  _
+muse · 3             │                                      | |_| |  __/| |___| |\  || || |\  | |_| |
+idle W0 L0           │                                       \___/|_|   |_____|_| \_|___|_| \_|\____|
+n/a tok · n/a        │▌  @claude · complete
+                     │▌  I defend durability: one writer, stable identities, and receipts that survive every restart.
+                     │
+                     │▌  @openai · complete
+                     │▌  I defend responsiveness: bounded queues, cached presentation, and a keyboard that never waits for models.
+                     │
+                     │── Round 1 / 3 ──
+                     │▌  @claude · complete
+                     │▌  Opening: make promises durable. A single writer commits the answer before the room acknowledges it. If the
+                     │▌  process dies between those steps, the client retries with the same identity and receives the original receipt. No
+                     │▌  answer is lost or charged twice.
+                     │
+                     │▌  @openai · streaming
+                     │▌  Opening: protect the human loop. A durable answer is useful only if the person can still type while six models
+                     │▌  stream. Drain a bounded feed batch, paint the newest prepared rows, and service input
+                     │
+                     │Judge scoring…
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit

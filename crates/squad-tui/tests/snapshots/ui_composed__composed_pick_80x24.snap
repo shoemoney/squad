@@ -9,7 +9,7 @@ idle W1 L0       ││• Bounded input-first scheduling                       
 fable · 4.1      ││F7 Expand scores & reasons · Follow up with @judge          │
 idle W0 L0       │╰────────────────────────────────────────────────────────────╯
 openai · 5.1
-idle W0 L1       │grok
+idle W0 L1       │grok · complete
 gemini · 3-pro   │  Grill me on this plan: ship one writer, one reducer, and a
 idle W0 L0       │  twelve-stream release gate. Ask what happens when the
 grok · 4         │  writer stalls; my answer is bounded backpressure and

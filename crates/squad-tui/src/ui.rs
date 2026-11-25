@@ -280,8 +280,17 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     } else {
         "F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · F7 Scores · F8 Models · Esc Stop · Ctrl+C Quit".into()
     };
+    let help_style = if !app.session.transcript.follow
+        || app.awaiting_ack
+        || app.stop_confirmation.is_some_and(|until| now < until)
+        || app.session.pick.is_some()
+    {
+        theme.event_accent()
+    } else {
+        theme.quiet_chrome()
+    };
     Paragraph::new(footer)
-        .style(Style::default().add_modifier(Modifier::DIM))
+        .style(help_style)
         .render(geometry.help, frame.buffer_mut());
     if app.participant_details
         && let Some(member) = members.get(app.composed.participants.focused)

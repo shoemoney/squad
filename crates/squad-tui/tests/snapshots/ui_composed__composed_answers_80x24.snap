@@ -7,14 +7,14 @@ $0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
 claude · 4.5     │  history at every interruption point. A reliable room makes
 idle W0 L0       │  recovery boring, even when its models are surprising.
 fable · 4.1
-idle W0 L0       │grok
+idle W0 L0       │grok · complete
 openai · 5.1     │  Twelve models talking at once? Excellent way to discover
 idle W0 L0       │  your supposedly asynchronous UI is a slideshow. Set a
 gemini · 3-pro   │  frame budget, bound the queues, and inject a slow judge.
 idle W0 L0       │  If typing stutters, the benchmark fails. Pretty pixels do
 grok · 4         │  not get an exemption.
 idle W0 L0
-muse · 3         │muse
+muse · 3         │muse · complete
 idle W0 L0       │  Ship a rehearsal before asking for credentials. Let
                  │  someone watch an idea grow, survive a challenge, and
                  │  become a better plan. The first minute should show the

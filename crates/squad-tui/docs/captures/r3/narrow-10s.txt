@@ -1,0 +1,24 @@
+ SQUAD   /   main   ·   six minds, one room
+$0.42 ▰▒▱▱▱▱▱▱ $2.00 · pending $0.16 · remaining $1.42
+claude · 4.5     claude vs openai · Opening
+idle W0 L0       │  • Deduplicate by message and attempt
+fable · 4.1      │  • Measure latency during twelve simultaneous streams
+idle W0 L0
+openai · 5.1     │gemini · complete
+idle W0 L0       │  The interesting failure is a restart between commit and
+gemini · 3-pro   │  acknowledgement. Give each operation an identity and
+idle W0 L0       │  return its original receipt on retry. Then test the same
+grok · 4         │  history at every interruption point. A reliable room makes
+idle W0 L0       │  recovery boring, even when its models are surprising.
+muse · 3
+idle W0 L0       │▾ Debate 1 · claude vs openai · Opening
+                 │How should we build a reliable agent room?
+                 │── Opening ──
+                 │▌  @claude · waiting
+                 │▌  @openai · waiting
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> Ask the squad…
+
+
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit
