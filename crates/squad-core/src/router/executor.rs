@@ -134,12 +134,12 @@ pub fn failed(
         let failure_class=if failure.code==ErrorCode::JUDGE_INVALID_VERDICT { crate::orchestrator::types::FailureClass::InvalidOutput } else if failure.code==ErrorCode::PROVIDER_TIMEOUT { crate::orchestrator::types::FailureClass::Timeout } else { crate::orchestrator::types::FailureClass::Transport };
         // Judge transport/deadline failures are terminal; only invalid output
         // receives a repair attempt. The shared policy still chooses the outcome.
-        let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
+        let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound|WorkKind::SurveyExtract|WorkKind::SurveyReport) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
         let decision=crate::orchestrator::rounds::failure_policy(work_id,&work.kind,attempt,budget,repair_used,failure_class);
         if let Some(repair) = repair {
             if !matches!(decision, crate::orchestrator::types::AttemptDecision::Retry { repair: true, .. }) { return Err(super::authorization::forbidden()); }
             let limit = u32::from(if work.kind == WorkKind::JudgeRound { constants::ROUND_JUDGE_ATTEMPTS } else { constants::FINAL_JUDGE_ATTEMPTS });
-            if !matches!(owner, ExecutorKey::Case(_)) || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound) || failure.code != ErrorCode::JUDGE_INVALID_VERDICT || repair.attempt != attempt + 1 || attempt >= limit {
+            if !matches!(owner, ExecutorKey::Case(_)) || !matches!(work.kind, WorkKind::Judge | WorkKind::JudgeRound | WorkKind::SurveyExtract | WorkKind::SurveyReport) || failure.code != ErrorCode::JUDGE_INVALID_VERDICT || repair.attempt != attempt + 1 || attempt >= limit {
                 return Err(super::authorization::forbidden());
             }
             let started:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM attempts WHERE work_id=? AND attempt=? AND epoch=?)",params![work_id.to_string(),attempt,epoch as i64],|r|r.get(0))?;

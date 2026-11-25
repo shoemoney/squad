@@ -115,6 +115,25 @@ impl squad_agents::worker::WorkExecutor for Executor {
             let request = registry
                 .work_request(Some(&self.member), model, &grant)
                 .map_err(|_| ReaderError::NotRunnable)?;
+            if matches!(
+                grant.work.kind,
+                WorkKind::SurveyVote | WorkKind::SurveyRevote
+            ) {
+                let executor = squad_agents::agents::survey::SurveyExecutor {
+                    client: self.client.clone(),
+                    request,
+                    system: self.prompt.system.clone(),
+                    system_values: self
+                        .prompt
+                        .values(&grant)
+                        .map_err(|_| ReaderError::Forbidden)?,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
             let executor = squad_agents::agents::member::MemberExecutor {
                 client: self.client.clone(),
                 request,

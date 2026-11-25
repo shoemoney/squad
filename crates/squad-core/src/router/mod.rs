@@ -14,6 +14,7 @@ pub mod references;
 pub mod regen;
 pub mod retry;
 pub mod stop;
+pub mod survey;
 pub mod variables;
 pub mod verdict;
 use rusqlite::{OptionalExtension, params};
@@ -133,6 +134,8 @@ impl Router {
             for event in &outcome.events {
                 if let EnvelopePayload::DebateState(s) = &event.content {
                     scope.insert(s.debate_id);
+                } else if let EnvelopePayload::SurveyState(s) = &event.content {
+                    scope.insert(s.contest_id);
                 }
             }
         }
@@ -244,6 +247,9 @@ impl Router {
         let bindings = self.bindings.clone();
         let clear = matches!(request, Request::Clear { .. });
         let defaults = self.variable_defaults;
+        let survey_config = self.engine_config.clone();
+        let survey_max = self.daily_max;
+        let survey_threshold = self.confirmation_threshold;
         let outcome=self.store.commit(id,"me".into(),digest,move |tx,group| {
             match request {
                 Request::UserMessage {input,parsed,preconfirmed}=> {
@@ -251,6 +257,7 @@ impl Router {
                     let ctx=snapshot(tx,roster.clone())?;
                     let authoritative=match parse(input.text.as_str(),&meta,&ctx) {Ok(parsed)=>parsed,Err(e)=>return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)})};
                     if authoritative!=parsed {return Err(StoreError::Domain(ErrorCode::INVALID_COMMAND,"Parsed input does not match authoritative state"));}
+                    if matches!(parsed,ParsedInput::Survey {..}) {return survey::admit(tx,group,id,input,parsed,&bindings,survey_max,survey_threshold,preconfirmed,survey_config.as_ref());}
                     if matches!(parsed,ParsedInput::QuestionFirst {..}) {picks::collect(tx,group,id,input,parsed,&bindings)?;return Ok(group.accepted(id));}
                     if let ParsedInput::Debate {input:conversation,..}=&parsed {
                         variables::apply(tx,group,id,&conversation.variable_updates)?;
@@ -287,7 +294,7 @@ impl Router {
                             group.push(tx,envelope(id,Actor::System,vec![Recipient::Me],EnvelopePayload::Error(failure)))?;
                             continue;
                         }
-                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING') AND EXISTS(SELECT 1 FROM json_each(json_extract(state_json,'$.debaters')) WHERE value=?)",[nick.as_str()],|r|r.get(0)).optional()?;
+                        let held:Option<String>=tx.query_row("SELECT contest_id FROM contests WHERE active=1 AND ((json_extract(state_json,'$.state') IN ('WAITING_FOR_DEBATERS','ROUND_RUNNING','ROUND_COMMITTING','JUDGING') AND EXISTS(SELECT 1 FROM json_each(json_extract(state_json,'$.debaters')) WHERE value=?1)) OR (kind='survey' AND json_extract(state_json,'$.state')<>'PREFLIGHT' AND EXISTS(SELECT 1 FROM survey_sources s,json_each(s.setup_json,'$.participants') p WHERE s.contest_id=contests.contest_id AND p.value=?1)))",[nick.as_str()],|r|r.get(0)).optional()?;
                         let held=held.map(|id|id.parse().map_err(|_|StoreError::Unavailable)).transpose()?;
                         let projection=squad_store::history::attributed(&event,ContextId(nick.to_string()),"ordinary.input",HistoryRole::User,None,content.clone());
                         if let Some(contest)=held {squad_store::history::defer(tx,contest,&projection)?;}else{squad_store::history::project(tx,&projection)?;}
@@ -295,8 +302,8 @@ impl Router {
                         squad_store::work::insert(tx,&work,&bindings[nick.as_str()],held)?;
                     }
                 }
-                Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,false),
-                Request::DebateCancel {debate_id,plan_id,..}|Request::ContestCancel {contest_id:debate_id,plan_id,..}=>return preflight::resolve(tx,group,id,debate_id,plan_id,true),
+                Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>return if survey::is_survey(tx,debate_id)? {survey::resolve(tx,group,id,debate_id,plan_id,false)}else{preflight::resolve(tx,group,id,debate_id,plan_id,false)},
+                Request::DebateCancel {debate_id,plan_id,..}|Request::ContestCancel {contest_id:debate_id,plan_id,..}=>return if survey::is_survey(tx,debate_id)? {survey::resolve(tx,group,id,debate_id,plan_id,true)}else{preflight::resolve(tx,group,id,debate_id,plan_id,true)},
                 Request::ContestPick {contest_id,nicks,..}=>{
                     let ctx=snapshot(tx,roster.clone())?;
                     if ctx.pending_pick.as_ref().is_none_or(|p|p.contest_id!=contest_id) {return Err(StoreError::Domain(ErrorCode::CONTEST_NOT_FOUND,"Contest not found"));}
@@ -439,6 +446,7 @@ impl Router {
                     )?;
                     authorization::output(&work, &owner, &output)?;
                     squad_store::cases::validate_invocation(tx,&work,&output)?;
+                    if matches!(work.kind,WorkKind::SurveyExtract|WorkKind::SurveyVote|WorkKind::SurveyRevote|WorkKind::SurveyReport) {survey::validate_output(tx,&work,&output)?;}
                     if let EnvelopePayload::AgentReply(reply) = output {
                         output = EnvelopePayload::MessageFinal(reply);
                     }
@@ -523,6 +531,11 @@ impl Router {
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
+                        EnvelopePayload::SurveyClaims(_) | EnvelopePayload::SurveyVote(_) | EnvelopePayload::SurveyRevote(_) | EnvelopePayload::SurveyReport(_) => {
+                            squad_store::survey::accept(tx,&work,&output,seq)?;
+                            let mut state=squad_store::survey::state(tx,work.contest_id.ok_or(StoreError::Unavailable)?)?;
+                            let version=state.state_version;state.state_version+=1;state.artifact_event_ids.push(event.base.id);survey::save(tx,group,id,&state,version)?;
+                        },
                         EnvelopePayload::ContestArtifact(artifact)=>squad_store::contest_steps::artifact(tx,artifact,seq)?,
                         _ => return Err(authorization::forbidden()),
                     }
@@ -654,6 +667,11 @@ fn settle_usage(
     output: &EnvelopePayload,
 ) -> Result<UsageRecord> {
     let usage = match output {
+        EnvelopePayload::SurveyClaims(v) => v.completed.usage.clone(),
+        EnvelopePayload::SurveyVote(v) | EnvelopePayload::SurveyRevote(v) => {
+            v.completed.usage.clone()
+        }
+        EnvelopePayload::SurveyReport(v) => v.completed.usage.clone(),
         EnvelopePayload::MessageFinal(reply) => reply.completed.usage.clone(),
         EnvelopePayload::Verdict(verdict) => verdict.completed.usage.clone(),
         EnvelopePayload::CaseRuling(ruling) => ruling.completed.usage.clone(),
@@ -815,6 +833,8 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
                 });
             }
             ctx.active_contest = Some(ContestState::Selection(state));
+        } else if let Ok(state) = serde_json::from_str::<SurveyState>(&raw) {
+            ctx.active_contest = Some(ContestState::Survey(state));
         } else {
             ctx.active_contest = Some(ContestState::Debate(serde_json::from_str(&raw)?));
         }

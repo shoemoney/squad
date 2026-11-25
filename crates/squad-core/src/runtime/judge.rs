@@ -33,6 +33,50 @@ impl JudgeAttemptRunner for Runner {
         cancel: CancellationToken,
     ) -> JudgeExecutionFuture<'a> {
         Box::pin(async move {
+            if matches!(
+                grant.work.kind,
+                WorkKind::SurveyExtract | WorkKind::SurveyReport
+            ) {
+                let model = self
+                    .models
+                    .get(grant.binding.model.as_str())
+                    .ok_or(ReaderError::NotRunnable)?;
+                let registry = squad_agents::registry::Registry::new(&self.config)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let request = registry
+                    .work_request(None, model, &grant)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+                let system_values = BTreeMap::from([
+                    (
+                        "member_nicks_json".into(),
+                        serde_json::to_string(
+                            &self
+                                .config
+                                .agents
+                                .iter()
+                                .map(|a| &a.nick)
+                                .collect::<Vec<_>>(),
+                        )
+                        .map_err(|_| ReaderError::Forbidden)?,
+                    ),
+                    (
+                        "user_name_json".into(),
+                        serde_json::to_string(&self.config.user.name)
+                            .map_err(|_| ReaderError::Forbidden)?,
+                    ),
+                ]);
+                let executor = squad_agents::agents::survey::SurveyExecutor {
+                    client: self.client.clone(),
+                    request,
+                    system: super::prompt(&self.pack, &self.config, "judge.system"),
+                    system_values,
+                    context_length: u64::from(model.context_length),
+                };
+                return squad_agents::worker::WorkExecutor::execute(
+                    &executor, context, grant, cancel,
+                )
+                .await;
+            }
             let prepared = self.prepare(context, &mut grant).await;
             let (request, debaters, tally, invocation, rubric) = match prepared {
                 Ok(prepared) => prepared,

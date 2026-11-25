@@ -54,7 +54,13 @@ impl Router {
                     InternalRequest::Transition {
                         envelope_id,
                         submission,
-                    } => super::debates::transition(tx, group, envelope_id, submission)?,
+                    } => {
+                        if submission.kind == ContestKind::Survey {
+                            super::survey::transition(tx, group, envelope_id, submission)?;
+                        } else {
+                            super::debates::transition(tx, group, envelope_id, submission)?;
+                        }
+                    }
                     InternalRequest::Produce { envelope } => {
                         if let EnvelopePayload::DebatePreflight(plan) = envelope.content {
                             return super::preflight::propose(tx, group, id, plan, max, threshold);
@@ -304,6 +310,9 @@ fn barrier(
     commit: BarrierCommit,
     bindings: &std::collections::BTreeMap<String, ExecutorBinding>,
 ) -> Result<()> {
+    if super::survey::is_survey(tx, commit.contest_id)? {
+        return super::survey::barrier(tx, group, commit.barrier_event.base.correlation_id, commit);
+    }
     let state = squad_store::contests::debate(tx, commit.contest_id)?;
     if state.state_version != commit.expected_state_version
         || state.state.is_terminal()
@@ -398,6 +407,19 @@ impl Router {
         work: Vec<Work>,
         private_maps: std::collections::BTreeMap<String, serde_json::Value>,
     ) -> Result<CommitOutcome> {
+        if self.store.call({
+            let id = step.contest_id;
+            move |db| super::survey::is_survey(db, id)
+        })? {
+            return super::survey::allocate(
+                self,
+                request_id,
+                step,
+                projections,
+                work,
+                private_maps,
+            );
+        }
         let digest = squad_store::commit::digest(&(&step, &projections, &work, &private_maps))?;
         let bindings = self.bindings.clone();
         self.store.commit(

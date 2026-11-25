@@ -3,6 +3,7 @@
 //! Store adapters must load all events and public artifact projections in one read
 //! transaction. Neither this renderer nor `ExportSource` opens the room runtime.
 //! Opaque generic artifact/report data is deliberately never serialized here.
+pub mod survey;
 use crate::banner::{Banner, render_default};
 use squad_protocol::*;
 use std::collections::{BTreeMap, BTreeSet};
@@ -119,7 +120,7 @@ fn check_scope(scope: &ExportScope, id: Option<ContestId>) -> Result<(), ExportE
     }
     if matches!(
         scope,
-        ExportScope::Census | ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
+        ExportScope::Census | ExportScope::Crosscheck | ExportScope::Probe
     ) {
         return Err(ExportError::UnsupportedScope);
     }
@@ -186,6 +187,7 @@ pub fn render(
             ExportScope::Debate => ContestKind::Debate,
             ExportScope::Tournament => ContestKind::Tournament,
             ExportScope::Grill => ContestKind::Grill,
+            ExportScope::Survey => ContestKind::Survey,
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -196,6 +198,10 @@ pub fn render(
     for e in events {
         if id.is_some() && contest_id(&e.content) == id {
             match &e.content {
+                EnvelopePayload::SurveySetup(s) => {
+                    references.insert(s.question_message_id);
+                    references.extend(s.answers.iter().map(|a| a.message_id));
+                }
                 EnvelopePayload::DebateSetup(s) => {
                     references.insert(s.topic_message_id);
                     references.extend(s.solutions.iter().map(|s| s.message_id));
@@ -269,6 +275,10 @@ pub fn render(
             && !matches!(&e.content, EnvelopePayload::CaseRuling(s) if cases.contains(&s.case_id))
             && !matches!(&e.content, EnvelopePayload::UserMessage(s) if s.case_id.is_some_and(|case| cases.contains(&case)))
         {
+            continue;
+        }
+        if let Some(text) = survey::render(&e.content) {
+            out.push_str(&text);
             continue;
         }
         match &e.content {
@@ -520,6 +530,11 @@ pub fn render(
 }
 fn contest_kind(p: &EnvelopePayload) -> Option<(ContestId, ContestKind)> {
     Some(match p {
+        EnvelopePayload::SurveySetup(s) => (s.contest_id, ContestKind::Survey),
+        EnvelopePayload::SurveyState(s) => (s.contest_id, ContestKind::Survey),
+        EnvelopePayload::ContestState(ContestState::Survey(s)) => {
+            (s.contest_id, ContestKind::Survey)
+        }
         EnvelopePayload::DebateSetup(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::DebateState(s) => (s.debate_id, ContestKind::Debate),
         EnvelopePayload::ContestSetup(s) => (s.contest_id, s.kind),
@@ -537,6 +552,10 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         return Some(id);
     }
     match p {
+        EnvelopePayload::SurveyClaims(s) => Some(s.contest_id),
+        EnvelopePayload::SurveyVote(s) | EnvelopePayload::SurveyRevote(s) => Some(s.contest_id),
+        EnvelopePayload::SurveySelection(s) => Some(s.contest_id),
+        EnvelopePayload::SurveyReport(s) => Some(s.contest_id),
         EnvelopePayload::UserMessage(s) => s.contest_id.or(s.debate_id),
         EnvelopePayload::DebateTurn(s) => Some(s.debate_id),
         EnvelopePayload::DebateOpening(s) => Some(s.debate_id),

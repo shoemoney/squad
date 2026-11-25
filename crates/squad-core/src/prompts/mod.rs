@@ -7,6 +7,7 @@
 
 mod embedded;
 pub mod inputs;
+pub mod inputs_survey;
 mod load;
 mod render;
 

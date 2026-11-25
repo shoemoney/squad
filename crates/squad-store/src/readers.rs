@@ -108,6 +108,12 @@ impl WorkReader for ScopedReaders {
             if record.status != WorkStatus::Running || !record.runnable { return Err(ReaderError::NotRunnable); }
             let work = record.executable.ok_or(ReaderError::NotRunnable)?;
             let mut values = std::collections::BTreeMap::new();
+            if let Some(contest)=work.contest_id {
+                if matches!(work.kind, WorkKind::SurveyExtract | WorkKind::SurveyVote | WorkKind::SurveyRevote | WorkKind::SurveyReport) {
+                    let raw:String=db.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key=?",rusqlite::params![contest.to_string(),format!("survey.work:{}",work.work_id)],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
+                    return serde_json::from_str(&raw).map_err(|_|ReaderError::Forbidden);
+                }
+            }
             if let Some(case) = work.case_id {
                 if !matches!(owner, ExecutorKey::Case(owned) if *owned == case) { return Err(ReaderError::Forbidden); }
                 let (material, state): (String, String) = db.query_row("SELECT material_json,state_json FROM cases WHERE case_id=? AND epoch=(SELECT epoch FROM room_meta)", [case.to_string()], |r| Ok((r.get(0)?,r.get(1)?))).map_err(|_|ReaderError::NotFound)?;

@@ -44,6 +44,7 @@ pub struct Graphics {
     pub verdict: Rect,
     pub winner: Rect,
     pub totals: Vec<Rect>,
+    pub survey: Vec<(String, Rect)>,
 }
 fn identity(id: impl ToString) -> MessageId {
     id.to_string().parse().expect("protocol UUID")
@@ -270,6 +271,24 @@ impl Composed {
                 models.push(model);
             }
             for (id, contest) in &session.contests {
+                if let Some(view) = &contest.survey {
+                    let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 4096));
+                    let area = scratch.area;
+                    let (height, banner, survey) =
+                        widgets::survey::render_geometry(view, area, &mut scratch);
+                    self.graphics.insert(
+                        identity(id),
+                        Graphics {
+                            banners: vec![(squad_core::banner::Banner::Survey, banner)],
+                            survey,
+                            ..Default::default()
+                        },
+                    );
+                    let mut model = TranscriptMessage::new(identity(id), "SURVEY", "");
+                    model.widget_rows = rows(&scratch, height);
+                    models.push(model);
+                    continue;
+                }
                 if let Some(ContestState::Generic(state)) = &contest.state {
                     let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 128));
                     let rect = scratch.area;

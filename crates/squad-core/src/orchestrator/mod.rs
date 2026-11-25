@@ -16,3 +16,5 @@ pub mod types;
 pub mod driver;
 
 pub mod survey;
+
+pub mod blind;

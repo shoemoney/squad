@@ -245,6 +245,77 @@ pub fn attach(
                     )
                 }
             }
+            FxCue::ModeBannerReady {
+                contest_id,
+                mode: fx::ReportMode::Survey,
+            } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let local = app
+                    .composed
+                    .graphics
+                    .get(&id)
+                    .and_then(|g| g.banners.first())
+                    .map(|(_, r)| *r)
+                    .unwrap_or_default();
+                rect = app.composed.graphic_rect(id, local, top, transcript);
+                Pass::catalogue(
+                    key,
+                    rect,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(1900),
+                    move |elapsed, buf, _| {
+                        tint_prepared(buf, rect, elapsed, palette.chrome(), level)
+                    },
+                )
+            }
+            FxCue::SurveyTallyReady { contest_id, .. } => {
+                let id = contest_id.to_string().parse().expect("UUID");
+                let contest = contest_id.to_string().parse().expect("UUID");
+                let Some(view) = app
+                    .session
+                    .contests
+                    .get(&contest)
+                    .and_then(|c| c.survey.as_ref())
+                else {
+                    continue;
+                };
+                let Some(shapes) = app.composed.graphics.get(&id) else {
+                    continue;
+                };
+                let graphics = shapes
+                    .survey
+                    .iter()
+                    .filter_map(|(claim, r)| {
+                        let m = view.tallies().iter().find(|m| &m.claim_id == claim)?;
+                        let rect = app.composed.graphic_rect(id, *r, top, transcript);
+                        let effect = fx::survey::SurveyEffect::new(
+                            fx::survey::Motion::new(level, no_color, false),
+                            seed,
+                            view.report()
+                                .map(|_| crate::widgets::survey::votes(&m.first)),
+                            crate::widgets::survey::votes(&m.final_tally),
+                        );
+                        Some((rect, effect))
+                    })
+                    .collect::<Vec<_>>();
+                Pass::catalogue(
+                    key,
+                    transcript,
+                    PassAccess::Unprotected,
+                    Duration::from_millis(400),
+                    move |elapsed, buf, _| {
+                        for (rect, effect) in &graphics {
+                            effect.render_graphic(
+                                buf,
+                                *rect,
+                                elapsed,
+                                rect.width < 48,
+                                [Color::Green, Color::Red, Color::Yellow],
+                            );
+                        }
+                    },
+                )
+            }
             FxCue::VerdictReady { contest_id } => {
                 let id = contest_id.to_string().parse().expect("UUID");
                 let rect = app

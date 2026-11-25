@@ -102,6 +102,7 @@ pub fn attempt(state: &AttemptState, now: DateTime, invalid_output: bool) -> Att
 pub fn attempt_limit(kind: &WorkKind) -> u8 {
     match kind {
         WorkKind::JudgeRound => constants::ROUND_JUDGE_ATTEMPTS,
+        WorkKind::SurveyExtract | WorkKind::SurveyReport => 3,
         WorkKind::Judge => constants::FINAL_JUDGE_ATTEMPTS,
         _ => constants::DEBATE_TURN_ATTEMPTS,
     }
@@ -118,11 +119,23 @@ pub fn failure_policy(
 ) -> AttemptDecision {
     let invalid = failure == super::types::FailureClass::InvalidOutput;
     let ceiling = budget.min(attempt_limit(kind));
-    if attempt > 0 && attempt < u32::from(ceiling) && !(invalid && repair_used) {
+    if attempt > 0
+        && attempt < u32::from(ceiling)
+        && !(invalid
+            && repair_used
+            && !matches!(kind, WorkKind::SurveyExtract | WorkKind::SurveyReport))
+    {
         AttemptDecision::Retry {
             work_id,
             next_attempt: attempt + 1,
-            repair: invalid && matches!(kind, WorkKind::Judge | WorkKind::JudgeRound),
+            repair: invalid
+                && matches!(
+                    kind,
+                    WorkKind::Judge
+                        | WorkKind::JudgeRound
+                        | WorkKind::SurveyExtract
+                        | WorkKind::SurveyReport
+                ),
         }
     } else {
         match kind {

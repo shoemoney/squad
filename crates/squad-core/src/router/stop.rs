@@ -32,6 +32,19 @@ pub fn apply(
                 tx.execute("UPDATE contests SET state_json=?,state_version=?,active=0,updated_seq=?,pending_request_json=json_set(COALESCE(pending_request_json,'{}'),'$.terminalReason','pick_cancelled') WHERE contest_id=?",params![serde_json::to_string(&state)?,state.state_version as i64,seq.get(),contest])?;
                 stopped_contest = Some(state.contest_id);
             }
+        } else if let Ok(mut state) = serde_json::from_str::<SurveyState>(&raw) {
+            let setup = squad_store::survey::setup(tx, state.contest_id)?;
+            if target
+                .as_ref()
+                .is_none_or(|n| setup.participants.contains(n))
+            {
+                let version = state.state_version;
+                state.state_version += 1;
+                state.state = SurveyStatus::Stopped;
+                state.terminal_reason = Some(Text::new("Stopped").expect("literal"));
+                super::survey::save(tx, group, id, &state, version)?;
+                stopped_contest = Some(state.contest_id);
+            }
         } else if let Ok(mut state) = serde_json::from_str::<DebateState>(&raw)
             && target.as_ref().is_none_or(|n| state.debaters.contains(n))
         {

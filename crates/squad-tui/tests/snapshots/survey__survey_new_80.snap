@@ -1,0 +1,66 @@
+---
+source: crates/squad-tui/tests/survey.rs
+expression: "snapshot(80,true)"
+---
+                      ____  _   _ ______     _________   __
+                     / ___|| | | |  _ \ \   / / ____\ \ / /
+                     \___ \| | | | |_) \ \ / /|  _|  \ V /
+                      ___) | |_| |  _ < \ V / | |___  | |
+                     |____/ \___/|_| \_\ \_/  |_____| |_|
+## SURVEY 01900000-0000-7000-8000-000000000001
+
+What would establish the claim?
+
+Source: new question
+
+
+### Second ballot · @alpha
+
+- c1: Agree · confidence 4/5 · A reproducible observation supports this claim.
+  Change evidence: A contrary measurement
+
+## Survey claim map
+
+### Consensus
+
+- c1: Reasons on both sides are retained; consensus is not proof.
+  Settling question: Which independent measurement settles the disagreement?
+### Contested
+
+- c1: Reasons on both sides are retained; consensus is not proof.
+  Settling question: Which independent measurement settles the disagreement?
+### Lone insights
+
+None
+
+### Lone dissents
+
+- c1: Reasons on both sides are retained; consensus is not proof.
+  Settling question: Which independent measurement settles the disagreement?
+### Rejected outliers · likely errors, verify
+
+None
+
+### c1
+
+First: AGREE 2 · DISAGREE 1 · UNSURE 1 · MISSING 0
+
+Final: AGREE 3 · DISAGREE 1 · UNSURE 0 · MISSING 0
+
+Switch @gamma: Unsure → Agree
+Not re-voted (retained first ballot): delta
+### c2 · unresolved
+
+First: AGREE 0 · DISAGREE 0 · UNSURE 3 · MISSING 1
+
+Final: AGREE 0 · DISAGREE 0 · UNSURE 3 · MISSING 1
+
+
+Limitations: Shared model blind spots; missing ballots remain missing.
+
+c1
+AGREE 3  DISAGREE 1  UNSURE 0  MISSING 0
+############################################################====================
+c2
+AGREE 0  DISAGREE 0  UNSURE 3  MISSING 1
+????????????????????????????????????????????????????????????????????????????????

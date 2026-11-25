@@ -222,7 +222,13 @@ impl JudgeExecutor {
             }
             if context.executor != grant.owner
                 || !grant.owner.owns(&grant.work)
-                || !matches!(grant.work.kind, WorkKind::Judge | WorkKind::JudgeRound)
+                || !matches!(
+                    grant.work.kind,
+                    WorkKind::Judge
+                        | WorkKind::JudgeRound
+                        | WorkKind::SurveyExtract
+                        | WorkKind::SurveyReport
+                )
             {
                 return forbidden();
             }

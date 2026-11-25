@@ -108,7 +108,7 @@ impl Router {
             let mut q=db.prepare("SELECT contest_id FROM contests WHERE active=1 AND kind='debate' AND json_type(state_json,'$.debaters')='array'")?;
             Ok(q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?)
         })?;
-        let mut outcomes = Vec::new();
+        let mut outcomes = self.drive_surveys()?;
         for id in ids {
             let id = id.parse().map_err(|_| StoreError::Unavailable)?;
             if self

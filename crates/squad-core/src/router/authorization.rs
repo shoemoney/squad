@@ -35,6 +35,31 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
         return Err(forbidden());
     }
     let generation = match payload {
+        EnvelopePayload::SurveyClaims(v)
+            if work.kind == WorkKind::SurveyExtract
+                && work.contest_id == Some(v.contest_id)
+                && work.step_id == Some(v.step_id) =>
+        {
+            &v.completed.generation
+        }
+        EnvelopePayload::SurveyVote(v) | EnvelopePayload::SurveyRevote(v)
+            if ((matches!(payload, EnvelopePayload::SurveyVote(_))
+                && work.kind == WorkKind::SurveyVote)
+                || (matches!(payload, EnvelopePayload::SurveyRevote(_))
+                    && work.kind == WorkKind::SurveyRevote))
+                && work.contest_id == Some(v.contest_id)
+                && work.step_id == Some(v.step_id)
+                && work.target == Target::Member(v.voter.clone()) =>
+        {
+            &v.completed.generation
+        }
+        EnvelopePayload::SurveyReport(v)
+            if work.kind == WorkKind::SurveyReport
+                && work.contest_id == Some(v.contest_id)
+                && work.step_id == Some(v.step_id) =>
+        {
+            &v.completed.generation
+        }
         EnvelopePayload::AgentReply(reply) | EnvelopePayload::MessageFinal(reply)
             if work.kind == WorkKind::Reply =>
         {
