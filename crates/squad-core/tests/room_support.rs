@@ -188,6 +188,7 @@ pub fn commit_each(launcher: &Launcher, items: Vec<Fixture>) -> Vec<CommittedEnv
     let mut out = Vec::new();
     for (sender, recipients, content) in items {
         let request = EventId::new();
+        let label = serde_json::to_value(&content).unwrap()["kind"].to_string();
         let outcome = store
             .commit(
                 request,
@@ -201,7 +202,7 @@ pub fn commit_each(launcher: &Launcher, items: Vec<Fixture>) -> Vec<CommittedEnv
                     Ok(group.accepted(request))
                 },
             )
-            .unwrap();
+            .unwrap_or_else(|error| panic!("fixture {label} rejected: {error:?}"));
         out.extend(outcome.events);
     }
     out
@@ -212,7 +213,7 @@ pub fn debate_state(status: &str, round: u32, n: u64) -> Fixture {
         serde_json::json!({"debateId":CONTEST,"state":status,"debaters":["a","b"],"round":round,"totalRounds":3,"judgeModel":"judge/model","judgeRequested":true,"stateVersion":n,"terminalReason":null,"caseId":CASE,"caseIds":[CASE]}),
     )
 }
-fn generation() -> serde_json::Value {
+pub fn generation() -> serde_json::Value {
     serde_json::json!({"messageId":uuid(90),"workId":uuid(91),"triggerEventId":uuid(92),"attempt":1,"model":"public/model","finishReason":"stop","usage":null})
 }
 /// A judged debate whose round 3 score arrives late as an unscored marker, ending in a tally-bearing verdict.
