@@ -118,21 +118,21 @@
 ## Phase M4.P3 — Debates, cases, and recovery actions
 
 - **M4.P3.L1 — Render and control inline debates**
-  - [ ] M4.P3.L1.T1 — Implement collapsible debate blocks, round 0, rounds, parallel turns, retries, forfeits, closing statements, and waiting states in `crates/squad-tui/src/widgets/debate.rs`.
+  - [x] M4.P3.L1.T1 — Implement collapsible debate blocks, round 0, rounds, parallel turns, retries, forfeits, closing statements, and waiting states in `crates/squad-tui/src/widgets/debate.rs`.
   - [ ] M4.P3.L1.T2 — Implement authoritative Protocol-owned preflight estimate display, model-call count, debaters, round count, judge and opening-round flags, auto-confirmation status, and explicit Confirm and Cancel controls bound to plan identity in `crates/squad-tui/src/widgets/preflight.rs`.
   - [ ] M4.P3.L1.T3 — Implement solution previews, distinct debate selection, and explicit solution references in `crates/squad-tui/src/selection.rs`.
   - [ ] M4.P3.L1.T4 — Connect global stop, targeted stop, acknowledged cancellation, and eligible later judging in `crates/squad-tui/src/session.rs`.
   - [ ] M4.P3.L1.T5 — Consume `debate.round_score` by debate, case, and round identity and render pending, scored, unscored, and canceled scoring states, expandable reasons, and authoritative tallies in `crates/squad-tui/src/session.rs` and `crates/squad-tui/src/widgets/debate.rs`.
-  - [ ] M4.P3.L1.T6 — Present late scores without blocking later turns, outstanding scoring before final judging, no scoring for round 0 or unjudged debates, and no retroactive scoring when judging a stopped debate in `crates/squad-tui/src/widgets/debate.rs`.
+  - [x] M4.P3.L1.T6 — Present late scores without blocking later turns, outstanding scoring before final judging, no scoring for round 0 or unjudged debates, and no retroactive scoring when judging a stopped debate in `crates/squad-tui/src/widgets/debate.rs`.
   - [ ] M4.P3.L1.T7 — Verify the displayed authoritative preflight includes one round-scoring judge call per configured round when judging is requested in `crates/squad-tui/src/widgets/preflight.rs` and `crates/squad-tui/tests/debate.rs`.
   - [ ] M4.P3.L1.T8 — Present judge-only preflight, prior-status restoration after cancellation or expiry, and multiple associated cases using shared contest transitions in `crates/squad-tui/src/widgets/debate.rs` and `crates/squad-tui/tests/debate.rs`.
 
 - **M4.P3.L2 — Render verdicts and judge cases**
-  - [ ] M4.P3.L2.T1 — Render actual judge identity, the exact substitution warning, accepted scores, weighted totals, winner, reasoning, and loser takeaways in `crates/squad-tui/src/widgets/verdict.rs`.
+  - [x] M4.P3.L2.T1 — Render actual judge identity, the exact substitution warning, accepted scores, weighted totals, winner, reasoning, and loser takeaways in `crates/squad-tui/src/widgets/verdict.rs`.
   - [ ] M4.P3.L2.T2 — Implement quote previews, removal, attachment count, limits, and shared quote submission in `crates/squad-tui/src/quotes.rs`.
-  - [ ] M4.P3.L2.T3 — Render standalone free-form rulings, case identity, and verdict-linked follow-ups in `crates/squad-tui/src/widgets/case.rs`.
+  - [x] M4.P3.L2.T3 — Render standalone free-form rulings, case identity, and verdict-linked follow-ups in `crates/squad-tui/src/widgets/case.rs`.
   - [ ] M4.P3.L2.T4 — Connect shared judging requests and verbatim judge-validation errors in `crates/squad-tui/src/session.rs`.
-  - [ ] M4.P3.L2.T5 — Render accepted `roundTally`, non-null `tallyOverrideReason`, and available per-round scores with unscored markers in `crates/squad-tui/src/widgets/verdict.rs`, preserving core validation and verdict-only participant win/loss updates.
+  - [x] M4.P3.L2.T5 — Render accepted `roundTally`, non-null `tallyOverrideReason`, and available per-round scores with unscored markers in `crates/squad-tui/src/widgets/verdict.rs`, preserving core validation and verdict-only participant win/loss updates.
   - [ ] M4.P3.L2.T6 — Verify concrete-model conflict warnings substitute the reported nick, standalone judging follows the shared conflict contract, and tournaments never display a substitution warning in `crates/squad-tui/tests/cases.rs`.
 
 - **M4.P3.L3 — Integrate recovery and Foundations actions**
@@ -143,9 +143,9 @@
   - [ ] M4.P3.L3.T5 — Obtain shared Markdown through `RoomHandle::export(scope, id) -> String`, write it to the selected destination, and report success only after writing in `crates/squad-tui/src/actions.rs`, preserving core-rendered scores, reasons, unscored markers, tallies, override reasons, and default-font fenced banners.
 
 - **M4.P3.L4 — Render ASCII round banners**
-  - [ ] M4.P3.L4.T1 — Integrate the M3 core-owned in-process banner renderer and embedded fonts in `crates/squad-tui/src/widgets/banner.rs` without adding a TUI font copy or moving banner generation out of `squad-core`.
-  - [ ] M4.P3.L4.T2 — Derive `OPENING`, `ROUND n`, `FINAL ROUND`, and `VERDICT` boundaries from live and replayed `debate.state` transitions in `crates/squad-tui/src/widgets/debate.rs` without creating banner events, placing `VERDICT` on entering `JUDGING`.
-  - [ ] M4.P3.L4.T3 — Implement centred presentation of core-rendered default-font, compact-font, and one-line banner fallbacks, theme accent, plain `NO_COLOR` output, and the Foundations `SQUAD_BANNERS` modes in `crates/squad-tui/src/widgets/banner.rs`.
+  - [x] M4.P3.L4.T1 — Integrate the M3 core-owned in-process banner renderer and embedded fonts in `crates/squad-tui/src/widgets/banner.rs` without adding a TUI font copy or moving banner generation out of `squad-core`.
+  - [x] M4.P3.L4.T2 — Derive `OPENING`, `ROUND n`, `FINAL ROUND`, and `VERDICT` boundaries from live and replayed `debate.state` transitions in `crates/squad-tui/src/widgets/debate.rs` without creating banner events, placing `VERDICT` on entering `JUDGING`.
+  - [x] M4.P3.L4.T3 — Implement centred presentation of core-rendered default-font, compact-font, and one-line banner fallbacks, theme accent, plain `NO_COLOR` output, and the Foundations `SQUAD_BANNERS` modes in `crates/squad-tui/src/widgets/banner.rs`.
   - [ ] M4.P3.L4.T4 — Consume core-owned default-font export banners through the shared export operation in `crates/squad-tui/src/actions.rs`, independent of terminal width and banner mode and without external commands.
 
 - **M4.P3.L5 — Render tournaments**

@@ -1,0 +1,22 @@
+---
+source: crates/squad-tui/tests/widget_debate.rs
+expression: screen(&buf)
+---
+▾ Debate 01900000-0000-7000-8000-000000000001 · RoundRunning
+────────────────────────────────────────────────────────────────────────────────
+@claude   VS   @gemini
+────────────────────────────────────────────────────────────────────────────────
+2 rounds · Judge: judge/test
+                                    ROUND 1
+@claude · waiting
+@gemini · waiting
+@claude: 7/10
+Good fit; retain the concrete migration plan.
+@gemini: 8/10
+A simpler deployment with fewer moving parts.
+[Collapse scorecard]
+Authoritative tally: @claude 17 · @gemini 19
+[━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────]
+Case: 01900000-0000-7000-8000-000000000002
+[Collapse debate] · /stop · /stop @nick
+Press Esc again within 2 s to stop the active contest.
