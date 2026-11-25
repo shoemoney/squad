@@ -51,6 +51,7 @@ impl CrosscheckSetup {
         ensure(
             self.plan_version > 0
                 && self.participants.len() >= 3
+                && self.participants.len() <= constants::MAX_MEMBERS
                 && self.participants.iter().collect::<BTreeSet<_>>().len()
                     == self.participants.len(),
             "invalid crosscheck setup",
@@ -74,7 +75,16 @@ pub struct CrosscheckState {
 impl CrosscheckState {
     pub fn validate(&self) -> ValidationResult {
         ensure(
-            self.state_version > 0 && self.plan_version > 0,
+            self.state_version > 0
+                && self.plan_version > 0
+                && (!matches!(
+                    self.status,
+                    CrosscheckStatus::Reviewing
+                        | CrosscheckStatus::Auditing
+                        | CrosscheckStatus::Ruling
+                        | CrosscheckStatus::Reporting
+                        | CrosscheckStatus::Complete
+                ) || self.grid_version > 0),
             "invalid crosscheck state",
         )
     }
@@ -88,6 +98,13 @@ pub struct CrosscheckPreflight {
 }
 impl CrosscheckPreflight {
     pub fn validate(&self) -> ValidationResult {
+        self.base.estimate.validate()?;
+        ensure(
+            self.base.participants.len() <= constants::MAX_MEMBERS
+                && self.base.participants.iter().collect::<BTreeSet<_>>().len()
+                    == self.base.participants.len(),
+            "invalid crosscheck participants",
+        )?;
         let m = self.base.participants.len() as u32;
         let e = u32::from(self.extraction_required);
         ensure(
@@ -100,7 +117,7 @@ impl CrosscheckPreflight {
     }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum CrosscheckTransition {
     Confirm,
     ParticipantsReady,
@@ -190,6 +207,9 @@ pub struct CrosscheckNormalizedItem {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CrosscheckNormalization {
     pub items: Vec<CrosscheckNormalizedItem>,
+    #[schemars(
+        description = "Every candidate key exactly once: single:ID for each normalized item and pair:LOWER_ID+HIGHER_ID for each cross-lens unordered pair, with item IDs in lexical order. Item IDs cannot contain colon or plus."
+    )]
     pub priority_order: Vec<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -334,7 +354,12 @@ pub struct CrosscheckAddition {
     pub reason: Text,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
 pub enum CrosscheckAdditionDecision {
     Added,
     Merged { cell_id: CellId },
@@ -428,6 +453,7 @@ pub struct CrosscheckReport {
     pub failed_inventories: Vec<MemberNick>,
     pub failed_reviewers: Vec<MemberNick>,
     pub failed_auditors: Vec<MemberNick>,
+    pub audits_complete: bool,
     pub audit_clean: bool,
     pub bounded_stop: bool,
 }
@@ -486,14 +512,68 @@ impl CrosscheckCaseMaterial {
         }
     }
     pub fn response_schema(&self) -> serde_json::Value {
-        match self {
+        let mut schema = match self {
             Self::ExtractGoal { .. } => validation::schema::<CrosscheckGoal>(),
             Self::Inventory { .. } => validation::schema::<CrosscheckInventoryResponse>(),
             Self::NormalizeInventory { .. } => validation::schema::<CrosscheckNormalization>(),
             Self::Review { .. } => validation::schema::<CrosscheckReviewResponse>(),
             Self::Audit { .. } => validation::schema::<CrosscheckAuditResponse>(),
             Self::Rule { .. } => validation::schema::<CrosscheckRuling>(),
+        };
+        let (property, definition, ids) = match self {
+            Self::Review { cells, .. } => (
+                "cells",
+                "CrosscheckCellReview",
+                cells.iter().map(|c| c.cell_id).collect::<Vec<_>>(),
+            ),
+            Self::Audit { samples, .. } => (
+                "audits",
+                "CrosscheckAuditFinding",
+                samples.iter().map(|c| c.cell_id).collect(),
+            ),
+            Self::Rule { grid, .. } => (
+                "cells",
+                "CrosscheckCellReview",
+                grid.cells.iter().map(|c| c.cell_id).collect(),
+            ),
+            _ => ("", "", vec![]),
+        };
+        if !property.is_empty() {
+            schema["properties"][property]["minItems"] = serde_json::json!(ids.len());
+            schema["properties"][property]["maxItems"] = serde_json::json!(ids.len());
+            if !ids.is_empty() {
+                schema["$defs"][definition]["properties"]["cellId"] =
+                    serde_json::json!({"type":"string","enum":ids});
+            }
         }
+        if matches!(self, Self::Inventory { .. }) {
+            schema["properties"]["items"]["minItems"] = serde_json::json!(3);
+            schema["properties"]["items"]["maxItems"] = serde_json::json!(3);
+        }
+        if let Self::NormalizeInventory { inventories, .. } = self {
+            let events = inventories
+                .iter()
+                .map(|(event, _, _)| event)
+                .collect::<Vec<_>>();
+            schema["properties"]["items"]["maxItems"] = serde_json::json!(
+                inventories
+                    .iter()
+                    .map(|(_, _, i)| i.items.len())
+                    .sum::<usize>()
+            );
+            if !events.is_empty() {
+                schema["$defs"]["CrosscheckSourceItem"]["properties"]["inventoryEventId"] =
+                    serde_json::json!({"type":"string","enum":events});
+            }
+        }
+        if let Self::Rule { audits, .. } = self {
+            schema["properties"]["additions"]["minItems"] = serde_json::json!(audits.len());
+            schema["properties"]["additions"]["maxItems"] = serde_json::json!(audits.len());
+            if !audits.is_empty() {
+                schema["$defs"]["CrosscheckAddition"]["properties"]["auditWorkId"] = serde_json::json!({"type":"string","enum":audits.iter().map(|a|a.work_id).collect::<Vec<_>>()});
+            }
+        }
+        schema
     }
 }
 pub fn exact_cells(actual: impl Iterator<Item = CellId>, expected: &[CellId]) -> ValidationResult {
@@ -538,4 +618,121 @@ pub struct CrosscheckRulingRecord {
     pub contest_id: ContestId,
     pub work_id: WorkId,
     pub ruling: CrosscheckRuling,
+}
+
+impl CrosscheckNormalization {
+    pub fn validate(
+        &self,
+        inventories: &[(EventId, CrosscheckLens, CrosscheckInventoryResponse)],
+    ) -> validation::ValidationResult {
+        use std::collections::BTreeMap;
+        let sources = inventories
+            .iter()
+            .flat_map(|(id, lens, inventory)| {
+                inventory
+                    .items
+                    .iter()
+                    .map(move |item| ((*id, item.local_id.as_str()), *lens))
+            })
+            .collect::<BTreeMap<_, _>>();
+        let mut seen = BTreeSet::new();
+        let mut ids = BTreeSet::new();
+        let mut candidates = BTreeSet::new();
+        for (i, item) in self.items.iter().enumerate() {
+            ensure(
+                !item.id.as_str().contains([':', '+']) && ids.insert(item.id.as_str()),
+                "invalid normalized item identity",
+            )?;
+            ensure(
+                !item.source_item_ids.is_empty(),
+                "normalized item requires sources",
+            )?;
+            for source in &item.source_item_ids {
+                let key = (source.inventory_event_id, source.local_id.as_str());
+                ensure(
+                    sources.get(&key) == Some(&item.lens) && seen.insert(key),
+                    "normalization source is unknown, duplicated or in another lens",
+                )?;
+            }
+            candidates.insert(format!("single:{}", item.id));
+            for other in self
+                .items
+                .iter()
+                .skip(i + 1)
+                .filter(|other| other.lens != item.lens)
+            {
+                let mut pair = [item.id.as_str(), other.id.as_str()];
+                pair.sort();
+                candidates.insert(format!("pair:{}+{}", pair[0], pair[1]));
+            }
+        }
+        ensure(
+            seen.len() == sources.len(),
+            "normalization omitted an inventory source",
+        )?;
+        ensure(
+            self.priority_order.len() == candidates.len()
+                && self.priority_order.iter().cloned().collect::<BTreeSet<_>>() == candidates,
+            "priority order must cover every candidate exactly once",
+        )
+    }
+}
+
+impl CrosscheckGrid {
+    pub fn validate(&self) -> ValidationResult {
+        ensure(
+            self.plan_version > 0 && self.grid_version > 0 && self.cells.len() <= 200,
+            "invalid grid version or retained count",
+        )?;
+        let mut ids = BTreeSet::new();
+        for cell in self.cells.iter().chain(&self.omitted) {
+            ensure(
+                ids.insert(cell.cell_id)
+                    && (1..=2).contains(&cell.items.len())
+                    && cell.originators.iter().collect::<BTreeSet<_>>().len()
+                        == cell.originators.len()
+                    && cell
+                        .reviewer
+                        .as_ref()
+                        .is_none_or(|n| !cell.originators.contains(n)),
+                "invalid cell identity, constituents or reviewer",
+            )?;
+        }
+        ensure(
+            self.omitted.iter().all(|c| c.reviewer.is_none()),
+            "omitted cells cannot be assigned",
+        )
+    }
+}
+impl CrosscheckAcceptance {
+    pub fn validate(&self) -> ValidationResult {
+        ensure(
+            self.plan_version > 0
+                && self.grid_version > 0
+                && self.expected_state_version > 0
+                && !(self.cell_ids.is_empty() && self.residual_risk_ids.is_empty())
+                && self.cell_ids.iter().collect::<BTreeSet<_>>().len() == self.cell_ids.len()
+                && self
+                    .residual_risk_ids
+                    .iter()
+                    .map(|id| id.as_str())
+                    .collect::<BTreeSet<_>>()
+                    .len()
+                    == self.residual_risk_ids.len(),
+            "invalid version-bound risk acceptance",
+        )
+    }
+}
+
+impl CrosscheckCaseMaterial {
+    pub fn work_kind(&self) -> WorkKind {
+        match self {
+            Self::ExtractGoal { .. } => WorkKind::CrosscheckGoal,
+            Self::Inventory { .. } => WorkKind::CrosscheckInventory,
+            Self::NormalizeInventory { .. } => WorkKind::CrosscheckNormalize,
+            Self::Review { .. } => WorkKind::CrosscheckCell,
+            Self::Audit { .. } => WorkKind::CrosscheckAudit,
+            Self::Rule { .. } => WorkKind::CrosscheckRule,
+        }
+    }
 }

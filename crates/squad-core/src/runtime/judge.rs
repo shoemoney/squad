@@ -25,7 +25,7 @@ impl squad_agents::worker::WorkExecutor for Executor {
         grant: ExecutionGrant,
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
-        if grant.work.kind == WorkKind::CrosscheckJudge {
+        if grant.work.kind.is_crosscheck_judge() {
             Box::pin(super::crosscheck::execute(
                 context,
                 grant,

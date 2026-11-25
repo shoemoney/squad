@@ -11,7 +11,7 @@ Squad is a terminal chat room where you talk to several LLMs at once through Ope
 
 ## Status
 
-🚧 **Design phase, building in public.** There is no runnable code yet. The product requirements document lands here first, then the code, milestone by milestone.
+The Rust implementation is in progress. The live room runtime, debate and crosscheck are available; additional contest modes follow the milestones.
 
 ## The plan
 
@@ -19,6 +19,22 @@ Squad is a terminal chat room where you talk to several LLMs at once through Ope
 - A [Ratatui](https://ratatui.rs) TUI: participants on the left, the room in the middle, your input at the bottom.
 - Configuration is one `.env` file: your OpenRouter key, the debate length, and one line per model. See [`.env.example`](.env.example).
 - History in a local SQLite file per room.
+
+## Crosscheck
+
+Build an independent coverage grid for a pasted plan:
+
+```text
+@all $crosscheck Deploy one region, verify it, then expand.
+--
+Keep service available; use the existing staff.
+```
+
+A selected quote or `@nick $crosscheck <goal and constraints>` can supply the plan instead. Without a goal-and-constraints brief, the judge extracts it before any inventory work. At six members, preflight shows 16 calls with a brief or 17 with extraction. Cost confirmation and `--yes` authorize those calls; they do not accept residual risks.
+
+Inventory writers cannot see the plan. Reviewers receive only their assigned cells and cannot review their own inventory contributions. Two fresh auditors inspect persisted closure samples. Reports retain omissions, failures and open gaps; COMPLETE means the script finished, not that its bounded stop rule passed.
+
+Use `/accept <cellId…> -- <reason>` on a COMPLETE run to record explicit, version-bound human acceptance. F5 toggles cell details in the TUI. Export the committed ledger with `/export crosscheck <contestId>` or `squad export crosscheck <contestId>`; export does not call models or change coverage. See [implementation and verification notes](docs/crosscheck-implementation.md).
 
 ## Licence
 

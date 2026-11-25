@@ -102,7 +102,10 @@ pub fn attempt(state: &AttemptState, now: DateTime, invalid_output: bool) -> Att
 pub fn attempt_limit(kind: &WorkKind) -> u8 {
     match kind {
         WorkKind::JudgeRound => constants::ROUND_JUDGE_ATTEMPTS,
-        WorkKind::Judge | WorkKind::CrosscheckJudge => constants::FINAL_JUDGE_ATTEMPTS,
+        WorkKind::Judge
+        | WorkKind::CrosscheckGoal
+        | WorkKind::CrosscheckNormalize
+        | WorkKind::CrosscheckRule => constants::FINAL_JUDGE_ATTEMPTS,
         _ => constants::DEBATE_TURN_ATTEMPTS,
     }
 }
@@ -125,7 +128,11 @@ pub fn failure_policy(
             repair: invalid
                 && matches!(
                     kind,
-                    WorkKind::Judge | WorkKind::JudgeRound | WorkKind::CrosscheckJudge
+                    WorkKind::Judge
+                        | WorkKind::JudgeRound
+                        | WorkKind::CrosscheckGoal
+                        | WorkKind::CrosscheckNormalize
+                        | WorkKind::CrosscheckRule
                 ),
         }
     } else {

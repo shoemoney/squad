@@ -91,3 +91,82 @@ fn six_member_preflight_is_16_or_17_calls() {
         assert!(invalid.validate().is_err());
     }
 }
+#[test]
+fn instantiated_schema_constrains_this_work_ids_and_cardinality() {
+    let id = CellId::new();
+    let material = CrosscheckCaseMaterial::Review {
+        plan: Text::new("A plan").unwrap(),
+        cells: vec![CrosscheckVisibleCell {
+            cell_id: id,
+            items: vec![Text::new("A case").unwrap()],
+        }],
+    };
+    let schema = material.response_schema();
+    assert_eq!(schema["properties"]["cells"]["minItems"], 1);
+    assert_eq!(schema["properties"]["cells"]["maxItems"], 1);
+    assert_eq!(
+        schema["$defs"]["CrosscheckCellReview"]["properties"]["cellId"]["enum"],
+        json!([id])
+    );
+    let inventory = CrosscheckCaseMaterial::Inventory {
+        goal: CrosscheckGoal {
+            goal: Text::new("A goal").unwrap(),
+            constraints: vec![],
+            uncertainties: vec![],
+        },
+        lens: CrosscheckLens::Stakeholders,
+    }
+    .response_schema();
+    assert_eq!(inventory["properties"]["items"]["minItems"], 3);
+    assert_eq!(inventory["properties"]["items"]["maxItems"], 3);
+}
+#[test]
+fn all_six_work_kinds_use_the_canonical_wire_names_and_roles() {
+    for (kind, wire, judge) in [
+        (WorkKind::CrosscheckGoal, "crosscheck.goal", true),
+        (WorkKind::CrosscheckInventory, "crosscheck.inventory", false),
+        (WorkKind::CrosscheckNormalize, "crosscheck.normalize", true),
+        (WorkKind::CrosscheckCell, "crosscheck.cell", false),
+        (WorkKind::CrosscheckAudit, "crosscheck.audit", false),
+        (WorkKind::CrosscheckRule, "crosscheck.rule", true),
+    ] {
+        assert_eq!(serde_json::to_value(&kind).unwrap(), wire);
+        assert_eq!(kind.is_crosscheck_judge(), judge);
+        assert_eq!(kind.is_crosscheck_member(), !judge);
+        let contest = ContestId::new();
+        let step = StepId::new();
+        let case = CaseId::new();
+        let mut work = Work {
+            work_id: WorkId::new(),
+            message_id: MessageId::new(),
+            in_reply_to_message_id: None,
+            kind,
+            target: if judge {
+                Target::Judge
+            } else {
+                Target::Member("member0".parse().unwrap())
+            },
+            context_id: ContextId(if judge {
+                format!("judge:{case}")
+            } else {
+                format!("contest:{contest}:{step}:member0")
+            }),
+            trigger_event_id: EventId::new(),
+            history_through: HistoryPosition::new(1).unwrap(),
+            attempt: 1,
+            debate_id: None,
+            round: None,
+            replay: None,
+            case_id: judge.then_some(case),
+            prompt_ref: None,
+            max_output_tokens: Some(if judge { 4096 } else { 2048 }),
+            contest_id: Some(contest),
+            step_id: Some(step),
+        };
+        assert!(work.validate().is_ok());
+        if !judge {
+            work.context_id = ContextId("member0".into());
+            assert!(work.validate().is_err());
+        }
+    }
+}

@@ -107,7 +107,7 @@ impl squad_agents::worker::WorkExecutor for Executor {
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
         Box::pin(async move {
-            if grant.work.kind == WorkKind::CrosscheckMember {
+            if grant.work.kind.is_crosscheck_member() {
                 return super::crosscheck::execute(
                     context,
                     grant,

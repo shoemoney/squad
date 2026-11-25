@@ -303,6 +303,28 @@ impl App {
                         self.dirty = true;
                         return;
                     }
+                    KeyCode::F(5) => {
+                        if let Some((_, contest)) = self
+                            .session
+                            .contests
+                            .iter_mut()
+                            .rev()
+                            .find(|(_, v)| v.crosscheck.grid.is_some())
+                        {
+                            let view = &mut contest.crosscheck;
+                            if view.collapsed_cells.is_empty() {
+                                if let Some(grid) = &view.grid {
+                                    view.collapsed_cells
+                                        .extend(grid.cells.iter().map(|c| c.cell_id));
+                                }
+                            } else {
+                                view.collapsed_cells.clear();
+                            }
+                            self.composed.invalidate_artifacts();
+                            self.dirty = true;
+                        }
+                        return;
+                    }
                     KeyCode::F(7) => {
                         self.composed.toggle_verdict();
                         self.dirty = true;

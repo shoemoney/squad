@@ -427,37 +427,37 @@
 ## Phase M5.P8 — Crosscheck
 
 - **M5.P8.L1 — Build and assign the independent grid**
-  - [ ] M5.P8.L1.T1 — Freeze plan, goal and constraints and implement optional judge extraction with its extra preflight call in `crates/squad-core/src/orchestrator/crosscheck.rs`.
-  - [ ] M5.P8.L1.T2 — Deliver plan-hidden inventory payloads through fresh contexts and integrate `crosscheck.inventory.md` and `crosscheck.normalize.md`.
-  - [ ] M5.P8.L1.T3 — Build singles and all cross-lens pairs, validate the 153-cell default, apply the 200-cell priority cap and preserve omitted-cell records.
-  - [ ] M5.P8.L1.T4 — Balance eligible review assignments while excluding every contributor to a cell’s constituent items; retain unassignable cells as open.
+  - [x] M5.P8.L1.T1 — Freeze plan, goal and constraints and implement optional judge extraction with its extra preflight call in `crates/squad-core/src/orchestrator/crosscheck.rs`.
+  - [x] M5.P8.L1.T2 — Deliver plan-hidden inventory payloads through fresh contexts and integrate `crosscheck.inventory.md` and `crosscheck.normalize.md`.
+  - [x] M5.P8.L1.T3 — Build singles and all cross-lens pairs, validate the 153-cell default, apply the 200-cell priority cap and preserve omitted-cell records.
+  - [x] M5.P8.L1.T4 — Balance eligible review assignments while excluding every contributor to a cell’s constituent items; retain unassignable cells as open.
 
 - **M5.P8.L2 — Review and audit closures**
-  - [ ] M5.P8.L2.T1 — Integrate `crosscheck.cell.md`, validate exact assigned-cell coverage and retain citation, exclusion or proposed-fix evidence.
-  - [ ] M5.P8.L2.T2 — Persist random auditor selections and closure samples and invoke the M2 fresh-context auditor executor with `crosscheck.audit.md`.
-  - [ ] M5.P8.L2.T3 — Integrate `crosscheck.rule.md`; reopen false closures, preserve every retained cell and record accepted additions without automatic human risk acceptance.
-  - [ ] M5.P8.L2.T4 — Bind explicit human acceptances to cell or residual-risk identity and plan version and compute the bounded-stop result.
+  - [x] M5.P8.L2.T1 — Integrate `crosscheck.cell.md`, validate exact assigned-cell coverage and retain citation, exclusion or proposed-fix evidence.
+  - [x] M5.P8.L2.T2 — Persist random auditor selections and closure samples and invoke the M2 fresh-context auditor executor with `crosscheck.audit.md`.
+  - [x] M5.P8.L2.T3 — Integrate `crosscheck.rule.md`; reopen false closures, preserve every retained cell and record accepted additions without automatic human risk acceptance.
+  - [x] M5.P8.L2.T4 — Bind explicit human acceptances to cell or residual-risk identity and plan version and compute the bounded-stop result.
 
 - **M5.P8.L3 — Report and recover crosscheck**
-  - [ ] M5.P8.L3.T1 — Assemble the coverage ledger, grid summary, audit findings, cap omissions, residual risks and export records.
-  - [ ] M5.P8.L3.T2 — Recover inventories, assignments, samples, reviews, rulings and acceptances without redrawing randomness or repeating accepted work.
-  - [ ] M5.P8.L3.T3 — Verify 16-call and 17-call preflights, no self-review, failed-review open cells, short audit samples, no silent cell deletion, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/crosscheck.rs`.
+  - [x] M5.P8.L3.T1 — Assemble the coverage ledger, grid summary, audit findings, cap omissions, residual risks and export records.
+  - [x] M5.P8.L3.T2 — Recover inventories, assignments, samples, reviews, rulings and acceptances without redrawing randomness or repeating accepted work.
+  - [x] M5.P8.L3.T3 — Verify 16-call and 17-call preflights, no self-review, failed-review open cells, short audit samples, no silent cell deletion, stop fencing and markdown export in `crates/squad-core/tests/orchestrator/crosscheck.rs`.
 
 - **M5.P8.L4 — Complete mode protocol, storage and visibility contracts**
-  - [ ] M5.P8.L4.T1 — Declare crosscheck statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/crosscheck.rs`, and register them in Protocol’s gated enums; these are not M1 types.
-  - [ ] M5.P8.L4.T2 — Add the crosscheck tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
-  - [ ] M5.P8.L4.T3 — Implement the crosscheck setup, state, goal, inventory, grid, review, audit, ruling, acceptance, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/crosscheck.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T3.)
-  - [ ] M5.P8.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
-  - [ ] M5.P8.L4.T5 — Commit crosscheck inventories, grids, origin-aware cell assignments, reviews, fixed audit samples, rulings and version-bound human risk acceptances in crate `squad-store`, file `crates/squad-store/src/crosscheck.rs`. (Deferred from M1.P3.L7.T5.)
-  - [ ] M5.P8.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
-  - [ ] M5.P8.L4.T7 — Prove crosscheck inventory contexts cannot read a plan already present in ordinary history, reviewers cannot read unassigned cells or review self-origin items, and fresh auditors cannot read reviewer histories or identities in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T3.)
-  - [ ] M5.P8.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
-  - [ ] M5.P8.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
-  - [ ] M5.P8.L4.T10 — Test human-only version-bound risk acceptance, stale acceptance rejection and rulings preserving every retained crosscheck cell in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T8.)
+  - [x] M5.P8.L4.T1 — Declare crosscheck statuses, typed payloads, preflight settings, lifecycle transition variant, case material where applicable, work kinds and validators in `crates/squad-protocol/src/crosscheck.rs`, and register them in Protocol’s gated enums; these are not M1 types.
+  - [x] M5.P8.L4.T2 — Add the crosscheck tables and event/work CHECK extensions from 02 in a new mode migration, retaining all earlier released records; enforce mode-specific identities and accepted-result fencing in `crates/squad-store/src/schema.rs`.
+  - [x] M5.P8.L4.T3 — Implement the crosscheck setup, state, goal, inventory, grid, review, audit, ruling, acceptance, report and case-material types in crate `squad-protocol`, file `crates/squad-protocol/src/crosscheck.rs` and file `crates/squad-protocol/src/envelopes.rs`. (Deferred from M1.P1.L5.T3.)
+  - [x] M5.P8.L4.T4 — Add valid and invalid fixtures for artifact references, assigned-item coverage, anonymity, missing work, required nullable fields and model attempts to supply authoritative tallies or risk acceptance in crate `squad-protocol`, file `crates/squad-protocol/tests/modes.rs`. (Deferred from M1.P1.L5.T9.)
+  - [x] M5.P8.L4.T5 — Commit crosscheck inventories, grids, origin-aware cell assignments, reviews, fixed audit samples, rulings and version-bound human risk acceptances in crate `squad-store`, file `crates/squad-store/src/crosscheck.rs`. (Deferred from M1.P3.L7.T5.)
+  - [x] M5.P8.L4.T6 — Verify all seven kinds compete for one active claim and that new artifact commits preserve complete event groups and one committed effect in crate `squad-core`, file `crates/squad-core/tests/contest_storage.rs`. (Deferred from M1.P4.L5.T1.)
+  - [x] M5.P8.L4.T7 — Prove crosscheck inventory contexts cannot read a plan already present in ordinary history, reviewers cannot read unassigned cells or review self-origin items, and fresh auditors cannot read reviewer histories or identities in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T3.)
+  - [x] M5.P8.L4.T8 — Test guessed work IDs, alternate-context access and metadata leaks across every new step-bound reader in crate `squad-store`, file `crates/squad-store/tests/readers.rs`, and crate `squad-core`, file `crates/squad-core/tests/isolation.rs`. (Deferred from M1.P4.L5.T6.)
+  - [x] M5.P8.L4.T9 — Crash and recover at assignment, artifact, barrier and next-work allocation boundaries without rerolling samples, repeating tallies or losing skipped-member outcomes in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`. (Deferred from M1.P4.L5.T7.)
+  - [x] M5.P8.L4.T10 — Test human-only version-bound risk acceptance, stale acceptance rejection and rulings preserving every retained crosscheck cell in crate `squad-store`, file `crates/squad-store/tests/crosscheck.rs`. (Deferred from M1.P4.L5.T8.)
   - [ ] M5.P8.L4.T11 — Verify four-mode report and artifact replay supports consistent export and banner reconstruction without model calls, raw private maps or provisional chunks in crate `squad-store`, file `crates/squad-store/tests/event_pages.rs`. (Deferred from M1.P4.L5.T9.)
-  - [ ] M5.P8.L4.T12 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
-  - [ ] M5.P8.L4.T13 — Add the exact crosscheck per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
-  - [ ] M5.P8.L4.T14 — Persist private lens permutation/tie-break seed; support nullable reviewer/grid origin with exclusive origin_event_seq; implement `/accept` on COMPLETE with plan/grid/state fencing.
+  - [x] M5.P8.L4.T12 — Test stop and clear fencing for every new work kind, foreign-key-safe deletion of all new conversational records, `CENSUS_PASSES` reset and retained daily accounting in crate `squad-store`, file `crates/squad-store/tests/clear.rs`, and crate `squad-core`, file `crates/squad-core/tests/router_fencing.rs`. (Deferred from M1.P4.L5.T10.)
+  - [x] M5.P8.L4.T13 — Add the exact crosscheck per-step projected-field rows to 02’s sole visibility table and verify real-store reads and deterministic blind-text redaction in `crates/squad-core/tests/isolation.rs`; preserve human transcript originals.
+  - [x] M5.P8.L4.T14 — Persist private lens permutation/tie-break seed; support nullable reviewer/grid origin with exclusive origin_event_seq; implement `/accept` on COMPLETE with plan/grid/state fencing.
 
 ## Phase M5.P9 — Survey
 

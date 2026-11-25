@@ -212,3 +212,167 @@ fn blind_redaction_uses_unicode_boundaries_and_longest_phrases() {
     );
     assert!(original.contains("CLAUDE OPUS"));
 }
+#[test]
+fn rulings_retain_every_cell_and_audit_additions_cannot_disappear_at_the_cap() {
+    for members in [6, 12] {
+        let (s, i, n, r) = fixture(members);
+        let grid = build_grid(&s, n, &i, &r).unwrap();
+        let audits = (0..2)
+            .map(|index| CrosscheckAudit {
+                contest_id: s.contest_id,
+                work_id: WorkId::new(),
+                auditor: s.participants[index].clone(),
+                sample: vec![],
+                response: CrosscheckAuditResponse {
+                    audits: vec![],
+                    missed_case: CrosscheckMissedCase {
+                        case: text("A missed interaction"),
+                        reason: text("A material omission"),
+                        proposed_fix: text("Add an explicit control"),
+                    },
+                },
+            })
+            .collect::<Vec<_>>();
+        let mut ruling = CrosscheckRuling {
+            cells: grid
+                .cells
+                .iter()
+                .map(|cell| CrosscheckCellReview {
+                    cell_id: cell.cell_id,
+                    status: CrosscheckDisposition::Gap,
+                    citation: None,
+                    reason: text("Missing handling"),
+                    proposed_fix: Some(text("Add handling")),
+                })
+                .collect(),
+            additions: audits
+                .iter()
+                .map(|a| CrosscheckAddition {
+                    audit_work_id: a.work_id,
+                    decision: CrosscheckAdditionDecision::Added,
+                    reason: text("Material missing case"),
+                })
+                .collect(),
+            residual_risks: vec![],
+        };
+        assert!(ruling.validate(&grid, &audits, s.plan.as_str()).is_ok());
+        let selections = audits
+            .iter()
+            .map(|a| AuditSelection {
+                auditor: a.auditor.clone(),
+                sample: vec![],
+            })
+            .collect::<Vec<_>>();
+        let report = report(&s, &grid, &[], &audits, &ruling, &selections);
+        assert!(!report.bounded_stop);
+        if members == 6 {
+            assert_eq!(report.ledger.len(), 155);
+            assert!(report.residual_risks.is_empty());
+        } else {
+            assert_eq!(report.ledger.len(), 200);
+            assert_eq!(report.residual_risks.len(), 2);
+        }
+        assert!(
+            grid.cells
+                .iter()
+                .all(|c| report.ledger.iter().any(|l| l.cell.cell_id == c.cell_id))
+        );
+        ruling.cells.pop();
+        assert!(ruling.validate(&grid, &audits, s.plan.as_str()).is_err());
+    }
+}
+#[test]
+fn explicit_acceptances_can_resolve_audit_additions_but_never_replace_a_missing_audit() {
+    let (s, i, n, r) = fixture(6);
+    let grid = build_grid(&s, n, &i, &r).unwrap();
+    let audits = (0..2)
+        .map(|index| CrosscheckAudit {
+            contest_id: s.contest_id,
+            work_id: WorkId::new(),
+            auditor: s.participants[index].clone(),
+            sample: vec![],
+            response: CrosscheckAuditResponse {
+                audits: vec![],
+                missed_case: CrosscheckMissedCase {
+                    case: text("A material additional case"),
+                    reason: text("Missing handling"),
+                    proposed_fix: text("Add a control"),
+                },
+            },
+        })
+        .collect::<Vec<_>>();
+    let ruling = CrosscheckRuling {
+        cells: grid
+            .cells
+            .iter()
+            .map(|cell| CrosscheckCellReview {
+                cell_id: cell.cell_id,
+                status: CrosscheckDisposition::Gap,
+                citation: None,
+                reason: text("Open"),
+                proposed_fix: Some(text("Add a control")),
+            })
+            .collect(),
+        additions: audits
+            .iter()
+            .map(|a| CrosscheckAddition {
+                audit_work_id: a.work_id,
+                decision: CrosscheckAdditionDecision::Added,
+                reason: text("Required case"),
+            })
+            .collect(),
+        residual_risks: vec![text("A remaining risk")],
+    };
+    let samples = audits
+        .iter()
+        .map(|a| AuditSelection {
+            auditor: a.auditor.clone(),
+            sample: vec![],
+        })
+        .collect::<Vec<_>>();
+    let mut report = report(&s, &grid, &[], &audits, &ruling, &samples);
+    assert!(!report.bounded_stop);
+    for cell in &mut report.ledger {
+        cell.acceptance_event_id = Some(EventId::new());
+    }
+    for risk in &mut report.residual_risks {
+        risk.acceptance_event_id = Some(EventId::new());
+    }
+    recompute_stop(&mut report, &[]);
+    assert!(report.bounded_stop);
+    assert!(report.audit_clean);
+    report.audits_complete = false;
+    report.failed_auditors.push(s.participants[0].clone());
+    recompute_stop(&mut report, &[]);
+    assert!(!report.bounded_stop);
+    assert!(!report.audit_clean);
+}
+#[test]
+fn redaction_includes_unselected_roster_members_and_configured_judge_alias() {
+    use squad_core::orchestrator::crosscheck_redaction::{redact, tokens};
+    let dir = tempfile::tempdir().unwrap();
+    let options = config::LoadOptions {
+        env_file: None,
+        data_dir: Some(dir.path().join("data")),
+        working_dir: dir.path().into(),
+        config_dir: None,
+        default_data_dir: dir.path().join("data"),
+    };
+    let mut config = SquadConfig::load_with_env(
+        &options,
+        &std::collections::BTreeMap::from([("OPENROUTER_API_KEY".into(), "fixture-key".into())]),
+    )
+    .unwrap();
+    config.judge.model = "~vendor/judge-family-latest".into();
+    let selected = vec![config.agents[0].nick.clone()];
+    let excluded = config.agents[1].nick.to_string();
+    let set = tokens(
+        Some(&config),
+        &selected,
+        std::iter::once("vendor/judge-family-2026".into()),
+    );
+    assert_eq!(
+        redact(&format!("{} ~vendor/judge-family-latest", excluded), &set),
+        "[redacted] [redacted]"
+    );
+}

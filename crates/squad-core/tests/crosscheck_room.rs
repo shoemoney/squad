@@ -231,6 +231,65 @@ async fn crosscheck_full_room_16_calls_and_replay() {
     tokio::time::sleep(Duration::from_millis(100)).await;
     assert_eq!(f.fake.captured_bodies().await.len(), 16);
     f.assert_ledger();
+    let billing: (i64, i64) = f
+        .db()
+        .query_row(
+            "SELECT COALESCE(SUM(spent_micros),0),COALESCE(SUM(unknown_calls),0) FROM spend_daily",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    room.submit(Request::SetVars {
+        request_id: EventId::new(),
+        updates: vec![VariableUpdate {
+            name: VariableName::CensusPasses,
+            value: 4,
+        }],
+    })
+    .await;
+    let cleared = room
+        .submit(Request::Clear {
+            request_id: EventId::new(),
+        })
+        .await;
+    assert!(
+        matches!(cleared, RequestResult::Accepted { .. }),
+        "{cleared:?}"
+    );
+    for table in [
+        "crosscheck_cells",
+        "crosscheck_audit_samples",
+        "contest_private_maps",
+        "contest_steps",
+    ] {
+        assert_eq!(
+            f.db()
+                .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r
+                    .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+    }
+    let retained: (i64, i64) = f
+        .db()
+        .query_row(
+            "SELECT COALESCE(SUM(spent_micros),0),COALESCE(SUM(unknown_calls),0) FROM spend_daily",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(retained, billing);
+    assert_eq!(
+        f.db()
+            .query_row(
+                "SELECT value FROM vars WHERE name='CENSUS_PASSES'",
+                [],
+                |r| r.get::<_, i64>(0)
+            )
+            .unwrap(),
+        2
+    );
+    f.assert_ledger();
     room.shutdown().await.unwrap();
 }
 #[tokio::test]
@@ -375,7 +434,7 @@ struct RepairOnce(std::sync::Arc<std::sync::atomic::AtomicUsize>);
 impl Respond for RepairOnce {
     fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
         if self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
-            structured_judge(serde_json::json!({"bad":true}))
+            structured_judge(serde_json::json!({"items":[],"priorityOrder":[]}))
         } else {
             CrosscheckAnswers.respond(r)
         }
@@ -558,27 +617,260 @@ async fn crosscheck_restart_preserves_samples_and_never_repeats_accepted_steps()
 }
 #[tokio::test]
 async fn crosscheck_real_readers_enforce_fresh_anonymous_audit_and_work_ownership() {
-    use wiremock::matchers::body_string_contains;
     use squad_store::readers::ScopedReaders;
-    #[derive(Clone)]struct SlowAudit;
-    impl Respond for SlowAudit {fn respond(&self,r:&HttpRequest)->ResponseTemplate{CrosscheckAnswers.respond(r).set_delay(Duration::from_millis(1000))}}
-    let f=Fixture::new().await;
-    Mock::given(method("POST")).and(path("/api/v1/chat/completions")).and(body_string_contains("independent fresh audit")).respond_with(SlowAudit).mount(&f.fake.server).await;
-    let room=f.open(OpenMode::Interactive).await;
-    room.submit(request(&f.config,"@all $crosscheck PRIVATE_PLAN_SENTINEL Maintain service.\n--\nKeep service available.")).await;
+    use wiremock::matchers::body_string_contains;
+    #[derive(Clone)]
+    struct SlowAudit;
+    impl Respond for SlowAudit {
+        fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+            CrosscheckAnswers
+                .respond(r)
+                .set_delay(Duration::from_millis(1000))
+        }
+    }
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(body_string_contains("independent fresh audit"))
+        .respond_with(SlowAudit)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(
+        &f.config,
+        "@all $crosscheck PRIVATE_PLAN_SENTINEL Maintain service.\n--\nKeep service available.",
+    ))
+    .await;
     f.wait(||f.db().query_row("SELECT COUNT(*) FROM work w JOIN contests c ON c.contest_id=w.contest_id WHERE w.status='running' AND json_extract(c.state_json,'$.status')='AUDITING'",[],|r|r.get::<_,i64>(0)).unwrap()==2).await;
     let (id,member):(String,String)=f.db().query_row("SELECT w.work_id,w.target FROM work w JOIN contests c ON c.contest_id=w.contest_id WHERE w.status='running' AND json_extract(c.state_json,'$.status')='AUDITING' LIMIT 1",[],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();
-    let store=squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
-    let readers=ScopedReaders::new(store,ExecutorKey::Member(nick(&member)),1);
-    let id:WorkId=id.parse().unwrap();
-    let history=readers.for_work(id).await.unwrap();assert_eq!(history.len(),1);assert_eq!(history[0].meta,HistoryMetadata::Anonymous{anonymous:True});assert_eq!(history[0].name.as_deref(),Some("squad"));
-    assert!(!history[0].content.contains("originators"));assert!(!history[0].content.contains("reviewer"));
-    let earlier:String=f.db().query_row("SELECT work_id FROM work WHERE target=? AND status='completed' ORDER BY rowid LIMIT 1",[&member],|r|r.get(0)).unwrap();
-    assert!(matches!(readers.for_work(earlier.parse().unwrap()).await,Err(ReaderError::NotRunnable)));
-    let foreign:String=f.db().query_row("SELECT work_id FROM work WHERE target<>? LIMIT 1",[&member],|r|r.get(0)).unwrap();
-    assert!(matches!(readers.prompt_values_for_work(foreign.parse().unwrap()).await,Err(ReaderError::Forbidden)));
+    let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
+    let readers = ScopedReaders::new(store, ExecutorKey::Member(nick(&member)), 1);
+    let id: WorkId = id.parse().unwrap();
+    let history = readers.for_work(id).await.unwrap();
+    assert_eq!(history.len(), 1);
+    assert_eq!(
+        history[0].meta,
+        HistoryMetadata::Anonymous { anonymous: True }
+    );
+    assert_eq!(history[0].name.as_deref(), Some("squad"));
+    assert!(!history[0].content.contains("originators"));
+    assert!(!history[0].content.contains("reviewer"));
+    let earlier: String = f
+        .db()
+        .query_row(
+            "SELECT work_id FROM work WHERE target=? AND status='completed' ORDER BY rowid LIMIT 1",
+            [&member],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(matches!(
+        readers.for_work(earlier.parse().unwrap()).await,
+        Err(ReaderError::NotRunnable)
+    ));
+    let foreign: String = f
+        .db()
+        .query_row(
+            "SELECT work_id FROM work WHERE target<>? LIMIT 1",
+            [&member],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(matches!(
+        readers
+            .prompt_values_for_work(foreign.parse().unwrap())
+            .await,
+        Err(ReaderError::Forbidden)
+    ));
     assert!(readers.get(WorkId::new()).await.unwrap().is_none());
-    room.submit(Request::Stop{request_id:EventId::new(),target:None}).await;
+    room.submit(Request::Stop {
+        request_id: EventId::new(),
+        target: None,
+    })
+    .await;
     assert!(readers.prompt_values_for_work(id).await.is_err());
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn crosscheck_confirmation_and_no_wait_use_shared_lifecycle() {
+    let mut f = Fixture::new().await;
+    f.config.budget.debate_confirm_usd = 0.;
+    let room = f.open(OpenMode::OneShot).await;
+    let result = room
+        .submit_commit_only(request(
+            &f.config,
+            "@all $crosscheck Maintain service.\n--\nKeep service available.",
+        ))
+        .await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = result
+    else {
+        panic!("{result:?}")
+    };
+    assert!(f.fake.captured_bodies().await.is_empty());
+    let confirmation_id = EventId::new();
+    let result = room
+        .submit_commit_only(Request::ContestConfirm {
+            request_id: confirmation_id,
+            contest_id: plan.contest_id,
+            plan_id: plan.plan_id,
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    assert!(f.fake.captured_bodies().await.is_empty());
+    let events = squad_store::events::page(&f.db(), None, 500).unwrap();
+    assert!(events.iter().any(|event|event.base.causation_id==Some(confirmation_id) && matches!(&event.content,EnvelopePayload::ContestPreflightResult(p) if p.confirmation==Some(Confirmation::Explicit))));
+    room.shutdown().await.unwrap();
+    let room = f.open(OpenMode::Interactive).await;
+    f.wait(|| f.count("crosscheck.report") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 16);
+    assert_eq!(f.count("crosscheck.acceptance"), 0);
+    room.shutdown().await.unwrap();
+}
+#[tokio::test]
+async fn crosscheck_inventory_does_not_read_a_plan_already_in_ordinary_history() {
+    struct Ordinary;
+    impl wiremock::Match for Ordinary {
+        fn matches(&self, r: &HttpRequest) -> bool {
+            let b: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+            b.get("response_format").is_none()
+        }
+    }
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(Ordinary)
+        .respond_with(streaming("PRIVATE_HISTORY_PLAN_CANARY", "stop"))
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@all PRIVATE_HISTORY_PLAN_CANARY"))
+        .await;
+    f.wait(|| f.count("message.final") == 6).await;
+    let seq: i64 = f
+        .db()
+        .query_row(
+            "SELECT MIN(seq) FROM events WHERE kind='message.final'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let event = squad_store::events::at(&f.db(), seq).unwrap();
+    let EnvelopePayload::MessageFinal(reply) = event.content else {
+        panic!("ordinary final")
+    };
+    let context = parser::ParseContext {
+        roster: f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        records: vec![parser::RecordSummary {
+            event_id: event.base.id,
+            message_id: Some(reply.completed.generation.message_id),
+            seq: event.commit.seq,
+            kind: Text::new("message.final").unwrap(),
+            author: event.base.sender,
+            recipients: event.base.recipients,
+            content: reply.content,
+            in_reply_to_message_id: Some(reply.in_reply_to_message_id),
+            contest_id: None,
+            case_id: None,
+            plan_event_id: None,
+            grid_event_id: None,
+            cell_ids: vec![],
+            state_version: None,
+            superseded: false,
+            eligible: true,
+        }],
+        ..Default::default()
+    };
+    let meta = parser::SubmissionMeta {
+        quote: vec![event.base.id],
+        ..Default::default()
+    };
+    let parsed = parse("@all $crosscheck Keep service available.", &meta, &context).unwrap();
+    let command = Request::from_parsed(EventId::new(), parsed, &meta, false).unwrap();
+    let result = room.submit(command).await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("crosscheck.report") == 1).await;
+    let bodies = f.fake.captured_bodies().await;
+    for body in bodies
+        .iter()
+        .filter(|b| b.to_string().contains("Build an independent inventory"))
+    {
+        assert!(!body.to_string().contains("PRIVATE_HISTORY_PLAN_CANARY"));
+    }
+    let originals:i64=f.db().query_row("SELECT COUNT(*) FROM history WHERE content LIKE '%PRIVATE_HISTORY_PLAN_CANARY%' AND context_id NOT LIKE 'contest:%' AND context_id NOT LIKE 'judge:%'",[],|r|r.get(0)).unwrap();
+    assert!(originals >= 12);
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn crosscheck_stop_preserves_accepted_partial_reviews_in_export() {
+    use wiremock::matchers::{body_partial_json, body_string_contains};
+    struct SlowReview;
+    impl Respond for SlowReview {
+        fn respond(&self, request: &HttpRequest) -> ResponseTemplate {
+            CrosscheckAnswers
+                .respond(request)
+                .set_delay(Duration::from_secs(3))
+        }
+    }
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(body_partial_json(
+            serde_json::json!({"model":"fixture/member5"}),
+        ))
+        .and(body_string_contains("review your assigned cells"))
+        .respond_with(SlowReview)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(
+        &f.config,
+        "@all $crosscheck Maintain service.\n--\nKeep service available.",
+    ))
+    .await;
+    f.wait(|| {
+        f.db()
+            .query_row(
+                "SELECT COUNT(*) FROM mode_artifacts WHERE artifact_kind='crosscheck.cell'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .unwrap()
+            == 5
+    })
+    .await;
+    let result = room
+        .submit(Request::Stop {
+            request_id: EventId::new(),
+            target: None,
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    assert_eq!(f.count("crosscheck.review"), 0);
+    assert_eq!(f.count("crosscheck.report"), 0);
+    let state: CrosscheckState = serde_json::from_str(
+        &f.db()
+            .query_row("SELECT state_json FROM contests", [], |r| {
+                r.get::<_, String>(0)
+            })
+            .unwrap(),
+    )
+    .unwrap();
+    let text = room
+        .export(ExportScope::Crosscheck, Some(state.contest_id))
+        .await
+        .unwrap();
+    assert!(text.contains("### Review · member0"), "{text}");
+    assert!(text.contains("Proposed fix"), "{text}");
     room.shutdown().await.unwrap();
 }

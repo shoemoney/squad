@@ -8,10 +8,18 @@ use serde::{Deserialize, Serialize};
 pub enum WorkKind {
     #[serde(rename = "reply")]
     Reply,
-    #[serde(rename = "crosscheck.member")]
-    CrosscheckMember,
-    #[serde(rename = "crosscheck.judge")]
-    CrosscheckJudge,
+    #[serde(rename = "crosscheck.goal")]
+    CrosscheckGoal,
+    #[serde(rename = "crosscheck.inventory")]
+    CrosscheckInventory,
+    #[serde(rename = "crosscheck.normalize")]
+    CrosscheckNormalize,
+    #[serde(rename = "crosscheck.cell")]
+    CrosscheckCell,
+    #[serde(rename = "crosscheck.audit")]
+    CrosscheckAudit,
+    #[serde(rename = "crosscheck.rule")]
+    CrosscheckRule,
     #[serde(rename = "debate.turn")]
     DebateTurn,
     #[serde(rename = "judge")]
@@ -82,7 +90,12 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
-            WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge => {
+            WorkKind::CrosscheckInventory
+            | WorkKind::CrosscheckCell
+            | WorkKind::CrosscheckAudit
+            | WorkKind::CrosscheckGoal
+            | WorkKind::CrosscheckNormalize
+            | WorkKind::CrosscheckRule => {
                 ensure(
                     self.contest_id.is_some()
                         && self.step_id.is_some()
@@ -91,12 +104,25 @@ impl Work {
                     "crosscheck requires contest step",
                 )?;
                 ensure(
-                    (self.kind == WorkKind::CrosscheckJudge) == (self.target == Target::Judge),
+                    (self.kind.is_crosscheck_judge()) == (self.target == Target::Judge),
                     "crosscheck target mismatch",
                 )?;
+                if let Target::Member(nick) = &self.target {
+                    ensure(
+                        self.case_id.is_none()
+                            && self.context_id.0
+                                == format!(
+                                    "contest:{}:{}:{}",
+                                    self.contest_id.expect("checked contest"),
+                                    self.step_id.expect("checked step"),
+                                    nick
+                                ),
+                        "crosscheck member context must be fresh and step-bound",
+                    )?;
+                }
                 ensure(
                     self.attempt
-                        <= if self.kind == WorkKind::CrosscheckJudge {
+                        <= if self.kind.is_crosscheck_judge() {
                             3
                         } else {
                             2
@@ -169,8 +195,12 @@ impl Work {
             }
         }
         let ceiling = match self.kind {
-            WorkKind::CrosscheckMember => 2048,
-            WorkKind::CrosscheckJudge => 4096,
+            WorkKind::CrosscheckInventory
+            | WorkKind::CrosscheckCell
+            | WorkKind::CrosscheckAudit => 2048,
+            WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule => {
+                4096
+            }
             WorkKind::Judge => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::JudgeRound => constants::ROUND_JUDGE_VISIBLE_TOKENS,
             WorkKind::Reply => constants::REPLY_VISIBLE_TOKENS,
@@ -203,5 +233,23 @@ impl Work {
                 && self.round.is_none_or(|r| r <= total_rounds),
             "round exceeds admitted rounds",
         )
+    }
+}
+
+impl WorkKind {
+    pub fn is_crosscheck_member(&self) -> bool {
+        matches!(
+            self,
+            Self::CrosscheckInventory | Self::CrosscheckCell | Self::CrosscheckAudit
+        )
+    }
+    pub fn is_crosscheck_judge(&self) -> bool {
+        matches!(
+            self,
+            Self::CrosscheckGoal | Self::CrosscheckNormalize | Self::CrosscheckRule
+        )
+    }
+    pub fn is_crosscheck(&self) -> bool {
+        self.is_crosscheck_member() || self.is_crosscheck_judge()
     }
 }

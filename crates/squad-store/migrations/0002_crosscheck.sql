@@ -88,7 +88,7 @@ CREATE INDEX events_correlation_seq_idx
 
 CREATE TABLE work_crosscheck (
     work_id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL CHECK (kind IN ('reply', 'debate.turn', 'judge', 'judge.round', 'crosscheck.member', 'crosscheck.judge')),
+    kind TEXT NOT NULL CHECK (kind IN ('reply', 'debate.turn', 'judge', 'judge.round', 'crosscheck.inventory', 'crosscheck.cell', 'crosscheck.audit', 'crosscheck.goal', 'crosscheck.normalize', 'crosscheck.rule')),
     target TEXT NOT NULL,
     context_id TEXT NOT NULL,
     trigger_event_seq INTEGER NOT NULL REFERENCES events(seq),
@@ -138,12 +138,12 @@ CREATE TABLE work_crosscheck (
         round IS NULL OR contest_id IS NOT NULL
     ),
     CHECK (
-        (kind IN ('judge', 'judge.round', 'crosscheck.judge') AND target = 'judge'
+        (kind IN ('judge', 'judge.round', 'crosscheck.goal', 'crosscheck.normalize', 'crosscheck.rule') AND target = 'judge'
             AND case_id IS NOT NULL AND context_id = 'judge:' || case_id)
-        OR (kind IN ('reply', 'debate.turn', 'crosscheck.member') AND target <> 'judge'
+        OR (kind IN ('reply', 'debate.turn', 'crosscheck.inventory', 'crosscheck.cell', 'crosscheck.audit') AND target <> 'judge'
             AND case_id IS NULL AND (
                 context_id = target
-                OR (kind IN ('reply', 'crosscheck.member') AND contest_id IS NOT NULL AND step_id IS NOT NULL
+                OR (kind IN ('reply', 'crosscheck.inventory', 'crosscheck.cell', 'crosscheck.audit') AND contest_id IS NOT NULL AND step_id IS NOT NULL
                     AND context_id =
                         'contest:' || contest_id || ':' || step_id || ':' || target)
             ))

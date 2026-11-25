@@ -3191,6 +3191,7 @@ dependencies = [
  "proptest",
  "pulldown-cmark",
  "ratatui",
+ "serde_json",
  "squad-core",
  "squad-protocol",
  "syntect",

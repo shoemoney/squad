@@ -56,6 +56,9 @@ impl Router {
                         submission,
                     } => {
                         if let ContestTransition::Crosscheck(signal) = &submission.transition {
+                            if submission.kind != ContestKind::Crosscheck {
+                                return Err(super::debates::invalid());
+                            }
                             let state = squad_store::crosscheck::state(tx, submission.contest_id)?;
                             if state.state_version != submission.expected_state_version {
                                 return Err(super::debates::invalid());

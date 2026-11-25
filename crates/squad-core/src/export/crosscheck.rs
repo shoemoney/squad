@@ -183,3 +183,42 @@ fn cell(out: &mut String, c: &CrosscheckCellReview) {
         let _ = writeln!(out, "  Proposed fix: {fix}");
     }
 }
+
+/// Decode only the public response contracts, never opaque work metadata.
+pub(super) fn partial(a: &ContestArtifact, actor: &Actor) -> Option<String> {
+    let work_id = a.work_id?;
+    let Actor::Member(member) = actor else {
+        return None;
+    };
+    match a.artifact_kind.as_str() {
+        "crosscheck.cell" => render(&EnvelopePayload::CrosscheckReview(CrosscheckReview {
+            contest_id: a.contest_id,
+            work_id,
+            reviewer: member.clone(),
+            response: validation::decode(&a.data).ok()?,
+        })),
+        "crosscheck.audit" => {
+            let response: CrosscheckAuditResponse = validation::decode(&a.data).ok()?;
+            render(&EnvelopePayload::CrosscheckAudit(CrosscheckAudit {
+                contest_id: a.contest_id,
+                work_id,
+                auditor: member.clone(),
+                sample: response.audits.iter().map(|f| f.cell_id).collect(),
+                response,
+            }))
+        }
+        "crosscheck.inventory" => {
+            let response: CrosscheckInventoryResponse = validation::decode(&a.data).ok()?;
+            let mut out = format!("### Partial inventory · {member}\n\n");
+            for item in response.items {
+                let _ = writeln!(
+                    out,
+                    "- {}: {} — {}",
+                    item.local_id, item.item, item.rationale
+                );
+            }
+            Some(out)
+        }
+        _ => None,
+    }
+}

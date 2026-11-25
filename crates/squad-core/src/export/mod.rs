@@ -257,6 +257,15 @@ pub fn render(
             _ => None,
         })
         .collect();
+    let typed_crosscheck_work: BTreeSet<_> = events
+        .iter()
+        .filter_map(|e| match &e.content {
+            EnvelopePayload::CrosscheckInventory(v) => Some(v.work_id),
+            EnvelopePayload::CrosscheckReview(v) => Some(v.work_id),
+            EnvelopePayload::CrosscheckAudit(v) => Some(v.work_id),
+            _ => None,
+        })
+        .collect();
     let mut out = String::from("# Squad transcript\n\n");
     let mut boundaries: BTreeMap<ContestId, BTreeSet<String>> = BTreeMap::new();
     for e in events {
@@ -271,6 +280,14 @@ pub fn render(
             && !matches!(&e.content, EnvelopePayload::CaseRuling(s) if cases.contains(&s.case_id))
             && !matches!(&e.content, EnvelopePayload::UserMessage(s) if s.case_id.is_some_and(|case| cases.contains(&case)))
         {
+            continue;
+        }
+        if let EnvelopePayload::ContestArtifact(a) = &e.content
+            && a.work_id
+                .is_some_and(|w| !typed_crosscheck_work.contains(&w))
+            && let Some(text) = crosscheck::partial(a, &e.base.sender)
+        {
+            out.push_str(&text);
             continue;
         }
         if let Some(text) = crosscheck::render(&e.content) {

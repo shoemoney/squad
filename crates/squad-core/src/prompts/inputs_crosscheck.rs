@@ -19,9 +19,7 @@ impl PromptPack {
                 | CrosscheckCaseMaterial::NormalizeInventory { .. }
                 | CrosscheckCaseMaterial::Rule { .. }
         );
-        if (judge && work.kind != WorkKind::CrosscheckJudge)
-            || (!judge && work.kind != WorkKind::CrosscheckMember)
-        {
+        if work.kind != material.work_kind() {
             return Err(PromptError::new("crosscheck", None, "task target mismatch"));
         }
         let mut values = Inputs::from([

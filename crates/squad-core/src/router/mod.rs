@@ -134,6 +134,8 @@ impl Router {
             for event in &outcome.events {
                 if let EnvelopePayload::DebateState(s) = &event.content {
                     scope.insert(s.debate_id);
+                } else if let EnvelopePayload::CrosscheckState(s) = &event.content {
+                    scope.insert(s.contest_id);
                 }
             }
         }
@@ -529,7 +531,7 @@ impl Router {
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
-                        EnvelopePayload::ContestArtifact(artifact)=>{ if matches!(work.kind,WorkKind::CrosscheckMember|WorkKind::CrosscheckJudge) {crosscheck::validate_artifact(tx,&work,artifact)?;} squad_store::contest_steps::artifact(tx,artifact,seq)?; },
+                        EnvelopePayload::ContestArtifact(artifact)=>{ if matches!(work.kind,WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit|WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule) {crosscheck::validate_artifact(tx,&work,artifact)?;} squad_store::contest_steps::artifact(tx,artifact,seq)?; },
                         _ => return Err(authorization::forbidden()),
                     }
                     let status=if matches!(&output,EnvelopePayload::DebateRoundScore(score) if score.scores.is_none()){WorkStatus::Failed}else{WorkStatus::Completed};

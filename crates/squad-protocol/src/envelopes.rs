@@ -557,6 +557,31 @@ fn validate_envelope(
     )?;
     let human_only = base.recipients == [Recipient::Me];
     match payload {
+        EnvelopePayload::CrosscheckAcceptance(v) => {
+            ensure(
+                base.sender == Actor::Me && human_only,
+                "crosscheck acceptance requires human",
+            )?;
+            v.validate()?;
+        }
+        EnvelopePayload::CrosscheckGrid(v) => {
+            ensure(
+                base.sender == Actor::System && human_only,
+                "crosscheck grid is application-owned",
+            )?;
+            v.validate()?;
+        }
+        EnvelopePayload::CrosscheckState(_)
+        | EnvelopePayload::CrosscheckSetup(_)
+        | EnvelopePayload::CrosscheckPreflight(_)
+        | EnvelopePayload::CrosscheckReport(_) => ensure(
+            base.sender == Actor::System && human_only,
+            "crosscheck control is application-owned",
+        )?,
+        _ => {}
+    }
+
+    match payload {
         EnvelopePayload::UserMessage(message) => {
             ensure(base.sender == Actor::Me, "user.message requires me")?;
             ensure(

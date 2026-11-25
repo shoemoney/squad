@@ -108,7 +108,7 @@ impl WorkReader for ScopedReaders {
             if record.status != WorkStatus::Running || !record.runnable { return Err(ReaderError::NotRunnable); }
             let work = record.executable.ok_or(ReaderError::NotRunnable)?;
             let mut values = std::collections::BTreeMap::new();
-            if matches!(work.kind, WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge) {
+            if matches!(work.kind, WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit | WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule) {
                 let state=crate::crosscheck::state(db,work.contest_id.ok_or(ReaderError::Forbidden)?).map_err(map_error)?;
                 let valid:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE work_id=? AND lease_owner=? AND lease_until>?)",rusqlite::params![id.to_string(),serde_json::to_string(owner).map_err(|_|ReaderError::Forbidden)?,chrono::Utc::now().to_rfc3339()],|r|r.get(0)).map_err(|_|ReaderError::Forbidden)?;
                 if state.status.is_terminal() || state.step_id!=work.step_id || !valid {return Err(ReaderError::StaleWork);}

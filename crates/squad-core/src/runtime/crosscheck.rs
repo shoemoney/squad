@@ -36,7 +36,7 @@ async fn prepare(
             .ok_or(ReaderError::Forbidden)?,
     )
     .map_err(|_| ReaderError::Forbidden)?;
-    let repair = if grant.work.kind == WorkKind::CrosscheckJudge {
+    let repair = if grant.work.kind.is_crosscheck_judge() {
         context
             .work
             .repair_for_attempt(grant.work.work_id, grant.work.attempt)
@@ -66,7 +66,7 @@ async fn prepare(
     let registry =
         squad_agents::registry::Registry::new(config).map_err(|_| ReaderError::NotRunnable)?;
     let mut request = registry
-        .work_request(member, model, &grant)
+        .work_request(member, model, grant)
         .map_err(|_| ReaderError::NotRunnable)?;
     request.messages = vec![
         ChatMessage {

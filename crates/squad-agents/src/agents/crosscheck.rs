@@ -15,10 +15,7 @@ impl WorkExecutor for CrosscheckExecutor {
         cancel: CancellationToken,
     ) -> ExecutionFuture<'a> {
         Box::pin(async move {
-            if !matches!(
-                grant.work.kind,
-                WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge
-            ) {
+            if !grant.work.kind.is_crosscheck() || grant.work.kind != self.material.work_kind() {
                 return Err(ReaderError::Forbidden);
             }
             let output = match stream_attempt(
@@ -55,8 +52,7 @@ impl WorkExecutor for CrosscheckExecutor {
                     retry_action: None,
                     contest_id: grant.work.contest_id,
                 };
-                let repair = (grant.work.kind == WorkKind::CrosscheckJudge
-                    && grant.work.attempt == 1)
+                let repair = (grant.work.kind.is_crosscheck_judge() && grant.work.attempt == 1)
                     .then(|| JudgeRepairData {
                         attempt: grant.work.attempt + 1,
                         rejected_output: output.content,
@@ -64,7 +60,7 @@ impl WorkExecutor for CrosscheckExecutor {
                             "Response does not match the assigned crosscheck task".into(),
                         ],
                     });
-                if grant.work.kind == WorkKind::CrosscheckMember {
+                if grant.work.kind.is_crosscheck_member() {
                     error.code = ErrorCode::MODE_INVALID_OUTPUT;
                 }
                 return acknowledged(
@@ -115,8 +111,8 @@ pub fn validate_response(
         CrosscheckCaseMaterial::Inventory { .. } => {
             validation::decode::<CrosscheckInventoryResponse>(&value)?.validate()?
         }
-        CrosscheckCaseMaterial::NormalizeInventory { .. } => {
-            validation::decode::<CrosscheckNormalization>(&value)?;
+        CrosscheckCaseMaterial::NormalizeInventory { inventories, .. } => {
+            validation::decode::<CrosscheckNormalization>(&value)?.validate(inventories)?;
         }
         CrosscheckCaseMaterial::Review { plan, cells } => {
             validation::decode::<CrosscheckReviewResponse>(&value)?.validate(
@@ -129,9 +125,23 @@ pub fn validate_response(
                 .validate(&samples.iter().map(|c| c.cell_id).collect::<Vec<_>>())?
         }
         CrosscheckCaseMaterial::Rule {
-            plan, grid, audits, ..
+            plan,
+            grid,
+            audits,
+            reviews,
         } => {
-            validation::decode::<CrosscheckRuling>(&value)?.validate(grid, audits, plan.as_str())?
+            let ruling = validation::decode::<CrosscheckRuling>(&value)?;
+            ruling.validate(grid, audits, plan.as_str())?;
+            validation::ensure(
+                ruling.cells.iter().all(|cell| {
+                    cell.status == CrosscheckDisposition::Gap
+                        || reviews
+                            .iter()
+                            .flat_map(|r| &r.response.cells)
+                            .any(|review| review.cell_id == cell.cell_id)
+                }),
+                "failed review cells remain gaps",
+            )?;
         }
     }
     Ok(())

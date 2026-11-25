@@ -12,10 +12,17 @@ pub fn tokens(
         .collect::<Vec<_>>();
     if let Some(config) = config {
         for a in &config.agents {
+            tokens.push(a.nick.to_string());
             tokens.push(a.persona.clone());
         }
     }
-    for slug in models {
+    let configured = config.into_iter().flat_map(|c| {
+        c.agents
+            .iter()
+            .map(|a| a.model.clone())
+            .chain(std::iter::once(c.judge.model.clone()))
+    });
+    for slug in models.chain(configured) {
         tokens.push(slug.clone());
         tokens.push(slug.trim_start_matches('~').into());
         for part in slug.trim_start_matches('~').split('/') {
@@ -26,7 +33,7 @@ pub fn tokens(
         }
     }
     tokens.retain(|s| !s.trim().is_empty());
-    tokens.sort_by_key(|s| std::cmp::Reverse(s.len()));
+    tokens.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
     tokens.dedup();
     tokens
 }

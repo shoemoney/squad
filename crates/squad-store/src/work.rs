@@ -83,7 +83,12 @@ pub fn insert(
         if let Some(raw) = raw {
             let (plan_id, reserved_usd, calls) = if matches!(
                 work.kind,
-                WorkKind::CrosscheckMember | WorkKind::CrosscheckJudge
+                WorkKind::CrosscheckInventory
+                    | WorkKind::CrosscheckCell
+                    | WorkKind::CrosscheckAudit
+                    | WorkKind::CrosscheckGoal
+                    | WorkKind::CrosscheckNormalize
+                    | WorkKind::CrosscheckRule
             ) {
                 let plan: CrosscheckPreflight = decode(raw)?;
                 (

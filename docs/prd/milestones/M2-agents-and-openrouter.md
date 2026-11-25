@@ -141,12 +141,12 @@
   - [ ] M2.P2.L8.T4 — Test committed per-member delivery, patched plan versions between passes, frozen retry inputs, and exclusion of the human’s provenance table from member contexts in crate `squad-core`, file `crates/squad-core/tests/agents_census.rs`.
 
 - **M2.P2.L9 — Execute crosscheck work and fresh audits**
-  - [ ] M2.P2.L9.T1 — Execute crosscheck inventory and cell-review Work with only the authorized goal, constraints, lens, plan, and assigned-cell projection in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L9.T2 — Execute crosscheck normalization, optional goal-and-constraints extraction, and audit-ruling Work through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
-  - [ ] M2.P2.L9.T3 — Construct and recover fresh audit-step `AgentContext` capabilities with no ordinary, inventory, review, or prior audit history while retaining member execution and accounting identity in crate `squad-core`, file `crates/squad-core/src/router/cases.rs`.
-  - [ ] M2.P2.L9.T4 — Execute audit Work from the committed plan, grid, and frozen sample without reviewer identity, resampling, or executor-selected replacements in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
-  - [ ] M2.P2.L9.T5 — Capture inventory, review, audit, and ruling requests to verify plan blindness, assigned-cell limits, anonymous evidence, and one call per authorized batch in crate `squad-agents`, file `crates/squad-agents/tests/agents_crosscheck.rs`.
-  - [ ] M2.P2.L9.T6 — Test plan-bearing quote and ordinary-history canaries, exclusion of self-authored inventory cells, fresh auditor readers, frozen samples after recovery, and the one-active-generation rule in crate `squad-core`, file `crates/squad-core/tests/agents_crosscheck.rs`.
+  - [x] M2.P2.L9.T1 — Execute crosscheck inventory and cell-review Work with only the authorized goal, constraints, lens, plan, and assigned-cell projection in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L9.T2 — Execute crosscheck normalization, optional goal-and-constraints extraction, and audit-ruling Work through the case-bound judge adapter in crate `squad-agents`, file `crates/squad-agents/src/judge.rs`.
+  - [x] M2.P2.L9.T3 — Construct and recover fresh audit-step `AgentContext` capabilities with no ordinary, inventory, review, or prior audit history while retaining member execution and accounting identity in crate `squad-core`, file `crates/squad-core/src/router/cases.rs`.
+  - [x] M2.P2.L9.T4 — Execute audit Work from the committed plan, grid, and frozen sample without reviewer identity, resampling, or executor-selected replacements in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.
+  - [x] M2.P2.L9.T5 — Capture inventory, review, audit, and ruling requests to verify plan blindness, assigned-cell limits, anonymous evidence, and one call per authorized batch in crate `squad-agents`, file `crates/squad-agents/tests/agents_crosscheck.rs`.
+  - [x] M2.P2.L9.T6 — Test plan-bearing quote and ordinary-history canaries, exclusion of self-authored inventory cells, fresh auditor readers, frozen samples after recovery, and the one-active-generation rule in crate `squad-core`, file `crates/squad-core/tests/agents_crosscheck.rs`.
 
 - **M2.P2.L10 — Execute survey work**
   - [ ] M2.P2.L10.T1 — Execute optional ordinary collection and survey vote and revote Work through the owning templates and result paths in crate `squad-agents`, file `crates/squad-agents/src/worker.rs`.

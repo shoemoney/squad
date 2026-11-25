@@ -378,18 +378,7 @@ pub fn report(
         .filter(|s| !audits.iter().any(|a| a.auditor == s.auditor))
         .map(|s| s.auditor.clone())
         .collect::<Vec<_>>();
-    let audit_clean = failed_auditors.is_empty()
-        && audits.len() == 2
-        && audits.iter().all(|a| {
-            a.response
-                .audits
-                .iter()
-                .all(|f| f.verdict == CrosscheckAuditVerdict::Upheld)
-        })
-        && ruling
-            .additions
-            .iter()
-            .all(|a| a.decision != CrosscheckAdditionDecision::Added);
+    let audits_complete = audits.len() == 2 && failed_auditors.is_empty();
     let mut report = CrosscheckReport {
         contest_id: setup.contest_id,
         plan_id: setup.plan_id,
@@ -401,28 +390,38 @@ pub fn report(
         failed_inventories,
         failed_reviewers,
         failed_auditors,
-        audit_clean,
+        audits_complete,
+        audit_clean: false,
         bounded_stop: false,
     };
     recompute_stop(&mut report, &[]);
     report
 }
 pub fn recompute_stop(report: &mut CrosscheckReport, accepted_residuals: &[Text]) {
+    let closed = |cell: &CrosscheckLedgerCell| {
+        cell.acceptance_event_id.is_some()
+            || cell
+                .ruling
+                .as_ref()
+                .or(cell.review.as_ref())
+                .is_some_and(|r| r.status != CrosscheckDisposition::Gap)
+    };
+    let residuals_closed = report
+        .residual_risks
+        .iter()
+        .all(|r| r.acceptance_event_id.is_some() || accepted_residuals.contains(&r.id));
+    report.audit_clean = report.audits_complete
+        && report.failed_auditors.is_empty()
+        && report
+            .ledger
+            .iter()
+            .filter(|cell| !cell.challenges.is_empty() || cell.cell.key.starts_with("audit:"))
+            .all(closed)
+        && residuals_closed;
     report.bounded_stop = report.audit_clean
         && report.failed_inventories.is_empty()
-        && report.failed_reviewers.is_empty()
-        && report.failed_auditors.is_empty()
-        && report.ledger.iter().all(|c| {
-            c.acceptance_event_id.is_some()
-                || c.ruling
-                    .as_ref()
-                    .or(c.review.as_ref())
-                    .is_some_and(|r| r.status != CrosscheckDisposition::Gap)
-        })
-        && report
-            .residual_risks
-            .iter()
-            .all(|r| r.acceptance_event_id.is_some() || accepted_residuals.contains(&r.id));
+        && report.ledger.iter().all(closed)
+        && residuals_closed;
 }
 
 use crate::router::{Router, crosscheck as adapter};
@@ -530,7 +529,38 @@ impl Router {
             .store
             .call(move |db| adapter::map(db, id, "crosscheck.setup"))?;
         if state.status == CrosscheckStatus::Preflight {
-            return Ok(None);
+            let plan: CrosscheckPreflight = self.store.call(move |db| {
+                let raw: String = db.query_row(
+                    "SELECT plan_json FROM contests WHERE contest_id=?",
+                    [id.to_string()],
+                    |r| r.get(0),
+                )?;
+                Ok(serde_json::from_str(&raw)?)
+            })?;
+            if plan.base.expires_at > chrono::Utc::now() {
+                return Ok(None);
+            }
+            let request = EventId::new();
+            return self
+                .store
+                .commit(
+                    request,
+                    "contest-engine".into(),
+                    squad_store::commit::digest(&(id, state.state_version, "expire"))?,
+                    move |tx, group| {
+                        adapter::resolve(
+                            tx,
+                            group,
+                            request,
+                            id,
+                            state.plan_id,
+                            false,
+                            0,
+                            Confirmation::Automatic,
+                        )
+                    },
+                )
+                .map(Some);
         }
         if state.status == CrosscheckStatus::WaitingForParticipants {
             let members = setup.participants.clone();
@@ -556,7 +586,7 @@ impl Router {
         }
         if let Some(step_id) = state.step_id {
             let (pending,skipped,artifacts)=self.store.call(move |db|{
-                let pending:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE step_id=? AND status IN ('queued','running') AND (status='running' OR attempt<CASE kind WHEN 'crosscheck.judge' THEN 3 ELSE 2 END))",[step_id.to_string()],|r|r.get(0))?;
+                let pending:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE step_id=? AND status IN ('queued','running') AND (execution_deadline IS NULL OR execution_deadline>?) AND (status='running' OR attempt<CASE kind WHEN 'crosscheck.goal' THEN 3 WHEN 'crosscheck.normalize' THEN 3 WHEN 'crosscheck.rule' THEN 3 ELSE 2 END))",rusqlite::params![step_id.to_string(),chrono::Utc::now().to_rfc3339()],|r|r.get(0))?;
                 let rows=step_outputs(db,step_id)?;
                 let skipped=rows.iter().filter(|(_,a)|a.is_none()).map(|(w,_)|w.work_id).collect();
                 let mut q=db.prepare("SELECT e.id FROM events e JOIN mode_artifacts a ON a.event_seq=e.seq WHERE a.step_id=? ORDER BY e.seq")?;
@@ -727,11 +757,7 @@ impl Router {
                 work_id,
                 message_id: MessageId::new(),
                 in_reply_to_message_id: None,
-                kind: if case.is_some() {
-                    WorkKind::CrosscheckJudge
-                } else {
-                    WorkKind::CrosscheckMember
-                },
+                kind: material.work_kind(),
                 target,
                 context_id: context,
                 trigger_event_id: source.base.id,

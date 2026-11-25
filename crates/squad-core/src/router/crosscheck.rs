@@ -101,11 +101,7 @@ pub fn prepare(
     let redaction = crate::orchestrator::crosscheck_redaction::tokens(
         config,
         &setup.participants,
-        bindings.values().map(|b| b.model.to_string()).chain(
-            config
-                .into_iter()
-                .flat_map(|c| c.agents.iter().map(|a| a.model.clone())),
-        ),
+        bindings.values().map(|b| b.model.to_string()),
     );
     let extraction = setup.goal.is_none();
     let m = participants.len() as u32;
@@ -250,11 +246,36 @@ pub fn prepare(
         ],
     )?;
     if !preflight.base.confirmation_required || preconfirmed {
-        resolve(tx, group, id, contest_id, plan_id, false, daily_max)
+        resolve(
+            tx,
+            group,
+            id,
+            contest_id,
+            plan_id,
+            false,
+            daily_max,
+            if preconfirmed {
+                Confirmation::Preconfirmed
+            } else {
+                Confirmation::Automatic
+            },
+        )
     } else {
-        Ok(group.accepted(id))
+        let RequestResult::Accepted {
+            cursor: Some(cursor),
+            ..
+        } = group.accepted(id)
+        else {
+            return Err(invalid());
+        };
+        Ok(RequestResult::PendingConfirmation {
+            request_id: id,
+            preflight: PendingPreflight::Contest(preflight.base),
+            cursor,
+        })
     }
 }
+#[allow(clippy::too_many_arguments)]
 pub fn resolve(
     tx: &Transaction<'_>,
     group: &mut CommitGroup,
@@ -263,6 +284,7 @@ pub fn resolve(
     plan_id: PlanId,
     cancel: bool,
     max: i64,
+    confirmation: Confirmation,
 ) -> Result<RequestResult> {
     let state = squad_store::crosscheck::state(tx, contest)?;
     let raw: String = tx.query_row(
@@ -306,16 +328,18 @@ pub fn resolve(
     };
     let seq = group.push(
         tx,
-        event(EnvelopePayload::ContestPreflightResult(
-            ContestPreflightResult {
+        envelope(
+            id,
+            Actor::System,
+            vec![Recipient::Me],
+            EnvelopePayload::ContestPreflightResult(ContestPreflightResult {
                 contest_id: contest,
                 plan_id,
-                confirmation: (status == PreflightStatus::Confirmed)
-                    .then_some(Confirmation::Automatic),
+                confirmation: (status == PreflightStatus::Confirmed).then_some(confirmation),
                 status,
                 error: None,
-            },
-        )),
+            }),
+        ),
     )?;
     squad_store::contests::associate(tx, contest, ContestKind::Crosscheck, seq)?;
     save(tx, group, &next, Some(state.state_version))?;
@@ -339,6 +363,65 @@ pub fn allocate(
     if state.status.is_terminal()
         || state.status == CrosscheckStatus::Preflight
         || state.step_id.is_some()
+    {
+        return Err(invalid());
+    }
+    let setup: CrosscheckSetup = map(tx, step.contest_id, "crosscheck.setup")?;
+    let (ordinal, actors) = match state.status {
+        CrosscheckStatus::Extracting => (1, vec![Target::Judge]),
+        CrosscheckStatus::Inventorying => (
+            2,
+            setup
+                .participants
+                .iter()
+                .cloned()
+                .map(Target::Member)
+                .collect(),
+        ),
+        CrosscheckStatus::BuildingGrid => (3, vec![Target::Judge]),
+        CrosscheckStatus::Reviewing => (
+            4,
+            setup
+                .participants
+                .iter()
+                .cloned()
+                .map(Target::Member)
+                .collect(),
+        ),
+        CrosscheckStatus::Auditing => {
+            let grid: CrosscheckGrid = map(tx, state.contest_id, "crosscheck.grid")?;
+            let reviews: Vec<CrosscheckReview> = map(tx, state.contest_id, "crosscheck.reviews")?;
+            let routing: PrivateRouting = map(tx, state.contest_id, "crosscheck.routing")?;
+            (
+                5,
+                script::audit_selections(
+                    &setup.participants,
+                    &grid,
+                    &reviews,
+                    routing.tie_break_seed,
+                )
+                .into_iter()
+                .map(|s| Target::Member(s.auditor))
+                .collect(),
+            )
+        }
+        CrosscheckStatus::Ruling => (6, vec![Target::Judge]),
+        CrosscheckStatus::Reporting => (7, vec![]),
+        _ => return Err(invalid()),
+    };
+    let expected_move = if actors.is_empty() {
+        ContestMove::Report
+    } else if actors == vec![Target::Judge] {
+        ContestMove::Judge
+    } else {
+        ContestMove::Fanout
+    };
+    if step.ordinal != ordinal
+        || step.move_name != expected_move
+        || step.script_version.as_str() != "crosscheck-v1"
+        || work.iter().map(|w| &w.target).ne(actors.iter())
+        || step.assignments.iter().map(|a| &a.target).ne(actors.iter())
+        || projections.len() != work.len()
     {
         return Err(invalid());
     }
@@ -410,7 +493,9 @@ pub fn allocate(
             step.contest_id,
             &format!("crosscheck.input:{}", w.work_id),
         )?;
-        if material != script::expected_material(tx, &state, &w.target)? {
+        if material != script::expected_material(tx, &state, &w.target)?
+            || w.kind != material.work_kind()
+        {
             return Err(super::authorization::forbidden());
         }
         let judge = matches!(
@@ -478,7 +563,9 @@ pub fn validate_artifact(tx: &Connection, work: &Work, artifact: &ContestArtifac
         artifact.contest_id,
         &format!("crosscheck.input:{}", work.work_id),
     )?;
-    if artifact.artifact_kind.as_str() != material.composition() {
+    if artifact.artifact_kind.as_str() != material.composition()
+        || work.kind != material.work_kind()
+    {
         return Err(invalid());
     }
     squad_agents::agents::crosscheck::validate_response(&material, artifact.data.clone())
@@ -514,19 +601,39 @@ pub fn barrier(tx: &Transaction<'_>, group: &mut CommitGroup, commit: BarrierCom
     {
         return Err(invalid());
     }
+    let EnvelopePayload::ContestReport(report) = &commit.barrier_event.content else {
+        return Err(invalid());
+    };
+    if report.contest_id != state.contest_id || report.step_id != commit.step_id {
+        return Err(invalid());
+    }
+    squad_store::contest_steps::validate_report(tx, report)?;
     let outputs = script::step_outputs(tx, commit.step_id)?;
+    let skipped = outputs
+        .iter()
+        .filter(|(_, a)| a.is_none())
+        .map(|(w, _)| w.work_id)
+        .collect::<std::collections::BTreeSet<_>>();
+    if skipped != report.skipped_work_ids.iter().copied().collect()
+        || skipped.len() != report.skipped_work_ids.len()
+    {
+        return Err(invalid());
+    }
     for (work, output) in &outputs {
         if output.is_none() {
             let record = squad_store::work::record(tx, work.work_id)?.ok_or_else(invalid)?;
             if matches!(record.status, WorkStatus::Queued | WorkStatus::Running) {
                 // A restart may leave a consumed attempt with no accepted result.
                 let exhausted = record.attempt
-                    >= if work.kind == WorkKind::CrosscheckJudge {
+                    >= if work.kind.is_crosscheck_judge() {
                         3
                     } else {
                         2
                     };
-                if !exhausted {
+                let expired = record
+                    .deadline
+                    .is_some_and(|deadline| deadline <= group.accepted_at);
+                if !exhausted && !expired {
                     return Err(invalid());
                 }
                 tx.execute("UPDATE work SET status='failed',runnable=0,lease_fence=lease_fence+1 WHERE work_id=?",[work.work_id.to_string()])?;
