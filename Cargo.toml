@@ -20,11 +20,11 @@ serde_json = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["registry"] }
 tempfile = "3"
-squad-protocol = { path = "crates/squad-protocol" }
-squad-store = { path = "crates/squad-store" }
-squad-agents = { path = "crates/squad-agents" }
-squad-core = { path = "crates/squad-core" }
-squad-tui = { path = "crates/squad-tui" }
+squad-protocol = { path = "crates/squad-protocol", version = "0.1.0" }
+squad-store = { path = "crates/squad-store", version = "0.1.0" }
+squad-agents = { path = "crates/squad-agents", version = "0.1.0" }
+squad-core = { path = "crates/squad-core", version = "0.1.0" }
+squad-tui = { path = "crates/squad-tui", version = "0.1.0" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
