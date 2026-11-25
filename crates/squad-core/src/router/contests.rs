@@ -112,7 +112,7 @@ fn produce(
             if score.scores.is_some() {
                 return Err(super::authorization::forbidden());
             }
-            let id:Option<String>=tx.query_row("SELECT work_id FROM work WHERE kind='judge.round' AND debate_id=? AND round=? AND attempt=2 AND status='failed'",params![score.debate_id.to_string(),score.round],|r|r.get(0)).optional()?;
+            let id:Option<String>=tx.query_row("SELECT work_id FROM work WHERE kind='judge.round' AND debate_id=? AND round=? AND attempt BETWEEN 1 AND 2 AND status='failed'",params![score.debate_id.to_string(),score.round],|r|r.get(0)).optional()?;
             let id: WorkId = id
                 .ok_or_else(super::debates::invalid)?
                 .parse()
@@ -120,7 +120,8 @@ fn produce(
             let mut work = squad_store::work::template(tx, id)?
                 .ok_or_else(super::debates::invalid)?
                 .0;
-            work.attempt = 2;
+            let record = squad_store::work::record(tx, id)?.ok_or_else(super::debates::invalid)?;
+            work.attempt = record.attempt;
             let mut score = score.clone();
             squad_store::round_scores::canonicalize(tx, &mut score)?;
             event.content = EnvelopePayload::DebateRoundScore(score.clone());
@@ -254,6 +255,7 @@ fn produce(
             let seq = group.push(tx, event)?;
             squad_store::cases::open(tx, &opened, seq)?;
             if let Some(contest) = opened.debate_id {
+                squad_store::contests::associate(tx, contest, ContestKind::Debate, seq)?;
                 let mut state = squad_store::contests::debate(tx, contest)?;
                 if state.state.is_terminal() {
                     return Err(super::debates::invalid());
@@ -475,7 +477,12 @@ impl Router {
         self.store.commit(request_id,"contest-engine".into(),digest,move |tx,group| {
             let state=squad_store::contests::debate(tx,contest)?;
             if state.state_version!=expected_state_version || state.state.is_terminal() {return Err(super::debates::invalid());}
-            for item in &work {
+            let frozen:Option<String>=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='engine.plan'",[contest.to_string()],|r|r.get(0)).optional()?;
+            let frozen=frozen.map(|raw|serde_json::from_str::<crate::orchestrator::types::DebatePlan>(&raw)).transpose()?;
+            for mut item in work {
+                let boundary: i64=tx.query_row("SELECT COALESCE(MAX(pos),0) FROM history WHERE context_id=?",[&item.context_id.0],|r|r.get(0))?;
+                if item.history_through.get()>boundary {return Err(super::debates::invalid());}
+                item.history_through=HistoryPosition::new(boundary).map_err(|_|super::debates::invalid())?;
                 if item.contest_id!=Some(contest) || item.debate_id!=Some(contest) || item.step_id.is_some() {return Err(super::authorization::forbidden());}
                 if item.kind==WorkKind::DebateTurn && (item.round!=Some(state.round) || state.state!=DebateStatus::RoundRunning) {return Err(super::debates::invalid());}
                 if item.kind==WorkKind::JudgeRound && (!matches!(state.state,DebateStatus::RoundRunning|DebateStatus::RoundCommitting|DebateStatus::Judging) || item.round.is_none_or(|r|r>state.round)) {return Err(super::debates::invalid());}
@@ -483,9 +490,14 @@ impl Router {
                     let pending:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE debate_id=? AND kind='judge.round' AND status IN ('queued','running'))",[contest.to_string()],|r|r.get(0))?;
                     if pending || state.state!=DebateStatus::Judging {return Err(super::debates::invalid());}
                 }
-                let binding=bindings.get(&item.target.to_string()).ok_or_else(super::authorization::forbidden)?;
-                squad_store::work::insert(tx,item,binding,None)?;
-                queued(tx,group,item)?;
+                let mut binding=bindings.get(&item.target.to_string()).cloned().ok_or_else(super::authorization::forbidden)?;
+                if let Some(plan)=&frozen {
+                    let model=match &item.target {Target::Judge=>plan.judge.as_ref(),Target::Member(nick)=>plan.members.iter().find(|m|m.nick.as_ref()==Some(nick))}.ok_or_else(super::debates::invalid)?;
+                    binding.model=Text::new(model.resolved_slug.clone()).map_err(|_|super::debates::invalid())?;
+                    if let Some(effort)=model.reasoning_effort {binding.effort=effort;}
+                } else if item.target==Target::Judge { binding.model=Text::new(state.judge_model.clone()).map_err(|_|super::debates::invalid())?; }
+                squad_store::work::insert(tx,&item,&binding,None)?;
+                queued(tx,group,&item)?;
             }
             Ok(group.accepted(request_id))
         })
@@ -509,7 +521,9 @@ impl Router {
             let state=squad_store::contests::debate(tx,setup.debate_id)?;
             if opened.debate_id!=Some(setup.debate_id) || bundle.topic.message_id!=setup.topic_message_id || bundle.topic.text!=setup.topic_text || bundle.solutions!=setup.solutions || bundle.instruction!=setup.instruction || bundle.judge.model!=opened.judge_model.as_str() || bundle.round_scoring.round_tally!=squad_store::round_scores::tally(tx,&state)? {return Err(super::debates::invalid());}
             let scores=squad_store::round_scores::retained(tx,state.debate_id)?;
-            let unscored=scores.iter().filter(|s|s.scores.is_none()).map(|s|s.round).collect::<Vec<_>>();
+            let mut rounds=tx.prepare("SELECT json_extract(e.payload,'$.data.round') FROM contest_steps s JOIN events e ON e.seq=s.updated_seq WHERE s.contest_id=? AND s.committed=1 AND e.kind='contest.report' AND json_extract(e.payload,'$.data.round')>0")?;
+            let committed=rounds.query_map([state.debate_id.to_string()],|r|r.get::<_,u32>(0))?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let mut unscored=scores.iter().filter(|score|score.scores.is_none()).map(|score|score.round).chain(committed.into_iter().filter(|round|!scores.iter().any(|s|s.round==*round && s.scores.is_some()))).collect::<Vec<_>>();unscored.sort_unstable();unscored.dedup();
             if bundle.round_scoring.round_scores!=scores || bundle.round_scoring.unscored_rounds!=unscored {return Err(super::debates::invalid());}
             for turn in &bundle.transcript {
                 let raw:Option<String>=tx.query_row("SELECT payload FROM events WHERE kind='debate.turn' AND json_extract(payload,'$.workId')=?",[turn.generation.work_id.to_string()],|r|r.get(0)).optional()?;

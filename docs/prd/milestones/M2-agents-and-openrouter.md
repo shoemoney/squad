@@ -43,7 +43,7 @@
   - [x] M2.P1.L2.T1 — Implement shared catalog acquisition and concrete-slug validation with variable-naming startup errors in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
   - [x] M2.P1.L2.T2 — Implement 16-token alias probes with the lowest accepted reasoning setting, one HTTP 400 retry at 2,048 tokens, and response-model validation in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
   - [x] M2.P1.L2.T3 — Test exact concrete-slug preservation and alias identity capture without requiring aliases in the catalog in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
-  - [ ] M2.P1.L2.T4 — Submit catalog metadata and member and judge resolution snapshots through router-owned atomic persistence interfaces in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
+  - [x] M2.P1.L2.T4 — Submit catalog metadata and member and judge resolution snapshots through router-owned atomic persistence interfaces in crate `squad-agents`, file `crates/squad-agents/src/resolver.rs`.
   - [x] M2.P1.L2.T5 — Test unknown concrete slugs, failed probes, the three-failure cache policy, the 24-hour cache limit, fixed startup identities, and diagnostic logs in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
   - [x] M2.P1.L2.T6 — Test that every completion uses the pinned concrete slug and every attempt records its response model, with mismatch warnings exposed through diagnostics, in crate `squad-agents`, file `crates/squad-agents/tests/agents_resolver.rs`.
 

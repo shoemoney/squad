@@ -28,6 +28,15 @@ pub fn collect(
             "Contest mode is not implemented",
         ));
     }
+    if candidates
+        .iter()
+        .any(|nick| !bindings.contains_key(nick.as_str()))
+    {
+        return Err(StoreError::Domain(
+            ErrorCode::MODEL_UNAVAILABLE,
+            "Selected member model is unavailable",
+        ));
+    }
     let contest = ContestId::new();
     let state = ContestSelectionState {
         contest_id: contest,
@@ -283,6 +292,49 @@ pub fn pick(
     let rounds = serde_json::from_str::<serde_json::Value>(&pending)?["rounds"]
         .as_u64()
         .ok_or_else(super::debates::invalid)? as u32;
+    // Picking reuses the collection's committed answers. Freeze the same
+    // admission shape consumed by direct debates, without emitting the question
+    // again or sending another ordinary reply request.
+    let question = squad_store::events::by_id(
+        tx,
+        state
+            .question_message_id
+            .to_string()
+            .parse()
+            .map_err(|_| StoreError::Unavailable)?,
+    )?
+    .ok_or_else(super::debates::invalid)?;
+    let EnvelopePayload::UserMessage(question) = question.content else {
+        return Err(super::debates::invalid());
+    };
+    let mut selected = Vec::new();
+    for source in &picked.source_message_ids {
+        let seq:i64=tx.query_row("SELECT seq FROM events WHERE kind='message.final' AND json_extract(payload,'$.messageId')=?",[source.to_string()],|r|r.get(0))?;
+        selected.push(squad_store::events::at(tx, seq)?);
+    }
+    let parsed = ParsedInput::Debate {
+        input: parser::ConversationalInput {
+            raw: question.input.text.to_string(),
+            quote: vec![],
+            variable_updates: vec![],
+        },
+        debaters: [nicks[0].clone(), nicks[1].clone()],
+        rounds: rounds as u8,
+        instruction: question.body,
+        judge_requested: true,
+        reply_to: vec![],
+    };
+    let request = Request::UserMessage {
+        input: question.input,
+        parsed,
+        preconfirmed: false,
+    };
+    squad_store::contest_steps::private_map(
+        tx,
+        contest,
+        "admission",
+        &serde_json::json!({"request":request,"sources":selected,"quotes":question.resolved_quotes}),
+    )?;
     let admitted = DebateState {
         debate_id: contest,
         state: DebateStatus::Preparing,

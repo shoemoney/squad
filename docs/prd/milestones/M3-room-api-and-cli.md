@@ -33,12 +33,12 @@
 ## Phase M3.P1 — Room lifecycle and requests
 
 - **M3.P1.L1 — Implement RoomHandle**
-  - [ ] M3.P1.L1.T1 — Implement the public API signatures in `crates/squad-core/src/room.rs`.
-  - [ ] M3.P1.L1.T2 — Wire lock acquisition, migration, recovery, model-resolution readiness, and shutdown in `crates/squad-core/src/room.rs`.
+  - [x] M3.P1.L1.T1 — Implement the public API signatures in `crates/squad-core/src/room.rs`.
+  - [x] M3.P1.L1.T2 — Wire lock acquisition, migration, recovery, model-resolution readiness, and shutdown in `crates/squad-core/src/room.rs`.
   - [x] M3.P1.L1.T3 — Test competing processes and the exact lock diagnostic in `crates/squad-core/tests/room_lifecycle.rs`.
   - [x] M3.P1.L1.T4 — Test startup failure cleanup and lock release in `crates/squad-core/tests/room_lifecycle.rs`.
-  - [ ] M3.P1.L1.T5 — Implement `OpenMode::Interactive` and `OpenMode::OneShot` scheduling in `crates/squad-core/src/room.rs`; verify one-shot recovery never re-wakes unrelated work in `crates/squad-core/tests/room_lifecycle.rs`.
-  - [ ] M3.P1.L1.T6 — Implement commit-only submission scheduling for no-wait sends in `crates/squad-core/src/room.rs`; verify shutdown preserves accepted work without a provider attempt and the next interactive open resumes it in `crates/squad-core/tests/room_lifecycle.rs`.
+  - [x] M3.P1.L1.T5 — Implement `OpenMode::Interactive` and `OpenMode::OneShot` scheduling in `crates/squad-core/src/room.rs`; verify one-shot recovery never re-wakes unrelated work in `crates/squad-core/tests/room_lifecycle.rs`.
+  - [x] M3.P1.L1.T6 — Implement commit-only submission scheduling for no-wait sends in `crates/squad-core/src/room.rs`; verify shutdown preserves accepted work without a provider attempt and the next interactive open resumes it in `crates/squad-core/tests/room_lifecycle.rs`.
   - [ ] M3.P1.L1.T7 — Extend lifecycle fixture coverage to census, crosscheck, survey, and probe in `crates/squad-core/tests/room_lifecycle.rs`, preserving shared recovery, one-shot isolation, and no-wait scheduling through the existing `RoomHandle` methods.
 
 - **M3.P1.L2 — Preserve shared request behavior**

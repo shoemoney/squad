@@ -37,6 +37,7 @@ impl JudgeAttemptRunner for Runner {
             let (request, debaters, tally, invocation, rubric) = match prepared {
                 Ok(prepared) => prepared,
                 Err(e) => {
+                    tracing::error!(work_id=%grant.work.work_id,kind=?grant.work.kind,error=?e,"Judge preparation failed");
                     failed(context, &grant, ErrorCode::CONTEXT_TOO_LARGE).await?;
                     return Err(e);
                 }
@@ -245,6 +246,7 @@ impl Runner {
                     // case's history. Never rebuild it from a room timeline.
                     let bundle = history
                         .iter()
+                        .rev()
                         .find_map(|h| {
                             serde_json::from_str::<DebateAdjudicationBundle>(&h.content).ok()
                         })
@@ -263,8 +265,17 @@ impl Runner {
                 }
             }
         }
-        .map_err(|_| ReaderError::NotRunnable)?;
-        if grant.work.prompt_ref.is_none() {
+        .map_err(|e| {
+            tracing::error!(error=%e,"Judge input mapping failed");
+            ReaderError::NotRunnable
+        })?;
+        // The frozen plan records the source template hash; executors select
+        // the registered composition that combines system and user templates.
+        if let Some(reference) = &mut grant.work.prompt_ref {
+            if grant.work.kind != WorkKind::JudgeRound {
+                reference.template_id = Text::new(id).map_err(|_| ReaderError::NotRunnable)?;
+            }
+        } else {
             grant.work.prompt_ref = Some(super::prompt(&self.pack, &self.config, id));
         }
         let values = inputs
@@ -289,7 +300,11 @@ impl Runner {
             model.supports_reasoning(),
             model.output_limit,
         )
-        .await?;
+        .await
+        .map_err(|e| {
+            tracing::error!(composition=%id,error=?e,"Judge composition failed");
+            e
+        })?;
         let reservation = request.body().map_err(|_| ReaderError::NotRunnable)?["max_tokens"]
             .as_u64()
             .ok_or(ReaderError::NotRunnable)?;

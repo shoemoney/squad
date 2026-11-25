@@ -472,8 +472,9 @@ async fn repairs_are_case_bound_and_step_contexts_exclude_ordinary_history() {
     store
         .call(move |db| {
             let tx = db.transaction()?;
-            squad_store::work::claim(&tx, step_work, &alice, chrono::Utc::now())?.unwrap();
-            squad_store::work::claim(&tx, judge_work, &case_owner, chrono::Utc::now())?.unwrap();
+            squad_store::leases::claim(&tx, step_work, &alice, chrono::Utc::now(), None)?.unwrap();
+            squad_store::leases::claim(&tx, judge_work, &case_owner, chrono::Utc::now(), None)?
+                .unwrap();
             squad_store::judge_repairs::save(
                 &tx,
                 judge_work,

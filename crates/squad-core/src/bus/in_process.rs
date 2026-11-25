@@ -43,7 +43,7 @@ impl InProcessBus {
                     };
                     match router.process(ingress.request, ingress.owner.clone()) {
                         Ok(outcome) => {
-                            let notify = !outcome.duplicate && !outcome.events.is_empty();
+                            let notify = !outcome.events.is_empty();
                             // The router returns only after COMMIT. Failures cannot reach this path.
                             let _ = ingress.reply.send(outcome.result.clone());
                             for event in outcome.events {
