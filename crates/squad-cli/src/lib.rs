@@ -7,3 +7,5 @@ pub mod models;
 pub mod output;
 pub mod room_api;
 pub mod send;
+
+pub mod adapter;

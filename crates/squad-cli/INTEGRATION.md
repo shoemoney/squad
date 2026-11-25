@@ -1,5 +1,27 @@
 # CLI integration handoff
 
+## Runtime binding (wave 1)
+
+`adapter::Runtime` now opens `squad_core::room::RoomHandle` in Interactive or
+OneShot mode. Plain `squad` launches `squad_tui::run(config, room)`; `send` uses
+the real RoomApi implementation. `--no-wait` calls `submit_commit_only` and never
+wakes work. The concrete state serializes RoomState directly, while durable
+history supplies parser references, causal relevance, and addressed execution
+progress. Offline export delegates to `squad_core::room::export_offline`; models
+and doctor retain their credential-free, read-only inspection paths.
+
+`tests/real_room.rs` contains runnable injected-runtime boundary tests plus three
+production-launcher tests marked `#[ignore = "needs runtime binding"]` while the
+core default launcher returns NOT_READY: `send_history_live_and_offline_export`,
+`no_wait_does_not_dispatch_and_interactive_restart_resumes`, and
+`real_room_feed_reduces_into_tui_session`. Remove those markers and run the tests
+after integrating the runtime worker. All provider calls use loopback fixtures.
+The TUI adapter also has a standalone snapshot/reducer test.
+
+The earlier handoff below describes the original implementation seams and
+milestone deferrals; the runtime binding above supersedes its stub instructions.
+
+
 `RoomApi` in `src/room_api.rs` is the temporary RoomHandle adapter requested for
 this worker. `lifecycle::Runtime` owns open and TUI launch. Its `open` must honor
 `OpenPolicy { mode: OneShot, commit_only: true }` by suppressing dispatch before
