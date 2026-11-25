@@ -1,0 +1,221 @@
+---
+source: crates/squad-tui/tests/fx_census.rs
+expression: shots
+---
+first 0
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+first 100
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+first 200
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+first 400
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+first 416
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+falling 0
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 12  HIGH 20
+
+
+
+falling 100
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 9  HIGH 15
+
+
+
+falling 200
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 6  HIGH 11
+
+
+
+falling 400
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+falling 416
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+rising 0
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 3  HIGH 7
+
+
+
+rising 100
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 6  HIGH 12
+
+
+
+rising 200
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 9  HIGH 16
+
+
+
+rising 400
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 12  HIGH 20
+
+
+
+rising 416
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+LOW 12  HIGH 20
+
+
+
+unavailable 0
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+Estimate unavailable
+
+
+
+unavailable 100
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+Estimate unavailable
+
+
+
+unavailable 200
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+Estimate unavailable
+
+
+
+unavailable 400
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+Estimate unavailable
+
+
+
+unavailable 416
+Found 9; estimated 3 to 7 still unfound.
+Models share blind spots; true figure at least this.
+G1 singleton · plan §2 citation · partial member failure
+Discovery pass1 9 · pass2 2
+Send singletons to $grill.
+
+Estimate unavailable
