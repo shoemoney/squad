@@ -67,26 +67,19 @@ Startup and memory are observations, not additional benchmark assertions. VmHWM 
 | 3 | 80x24 | 0.20/0.18/0.54 | 0.16/0.19/0.44 |
 | 3 | 200x60 | 0.22/0.20/0.45 | 0.18/0.20/0.37 |
 
-### Missing-cost reservation: FAIL 3/3, still a release blocker
+### Missing-cost reservation: failed 3/3 before the fix, now resolved
 
-All three explicit release executions failed the unchanged assertion
-`state.daily_spend.reserved_usd > 0`, at load 1.46/3.72/4.29. Ordinary dispatch
-has no reservation row to retain: `router::executor::start` calls
-`accounting::start`, whose `start_inner` splits an existing plan reserve,
-transfers existing unstarted work reserves, and admits **zero new micros**.
-It records an unresolved provider attempt and increments `unknown_calls`, but
-never prices or reserves an ordinary request. A missing-cost completion thus
-leaves no positive reserved amount. The fake catalog does provide positive
-prices, so this is not an absent-price fixture artifact.
+The three explicit release executions in this rerun failed the unchanged assertion
+`state.daily_spend.reserved_usd > 0`, at load 1.46/3.72/4.29. At that time ordinary
+dispatch had no reservation row to retain: `router::executor::start` admitted zero new
+micros for an ordinary request, so a missing-cost completion left no positive reserved
+amount.
 
-The ignore is intentional: enabling the test now makes normal workspace tests
-fail. It can be enabled after ordinary/standalone dispatch atomically reserves
-priced input, visible output and supported reasoning for permitted attempts,
-refuses unavailable pricing with `COST_UNKNOWN`, and correctly releases unused
-retry reserves while retaining uncertain started calls. Provider start currently
-precedes request preparation in the worker. This requires coordinated pricing,
-dispatch and retry-lifecycle work, rather than a small safe assertion or ledger
-patch. No arbitrary positive reserve or pricing fallback was introduced.
+The fix is commit `2b040e9`. It sizes the ordinary dispatch reservation from the
+assembled prompt, and its coverage is in `crates/squad-core/tests/dispatch_reservations.rs`.
+The check `m6_operational::ordinary_missing_cost_must_retain_a_positive_priced_reservation`
+is no longer `#[ignore]`d, so it runs in the normal test suite. The pre-fix FAIL result
+above is kept as the record of that run.
 
 ### Harness repair and retained failures
 
@@ -163,6 +156,6 @@ At the historical debug measurement, the test was explicitly ignored as a manual
 - Acceptance latency is not equivalent to six-mailbox fan-out latency.
 - Replay measures a 100-event target, expanding to complete commit groups; it does not specifically seed 100 final messages.
 - RSS samples are whole test-process resident memory, including wiremock and captured requests. They are not continuous peak RSS, allocator usage, or an isolated shipped `squad` process.
-- There is no 30-minute sustained-stream result or dedicated 500-displayed-message TUI memory result. The release full-effects TestBackend workload is measured above; it does not cover the entire M6 acceptance scope. `M6.P2.L1.T7` and `M6.P2.L1.T8` remain unchecked.
+- There is no 30-minute sustained-stream result or dedicated 500-displayed-message TUI memory result. The release full-effects TestBackend workload is measured above; it does not cover the entire M6 acceptance scope. `M6.P2.L1.T8` is now recorded: three optimized runs per viewport with `SQUAD_FX=full`, in the release rerun above. `M6.P2.L1.T7` remains unchecked.
 - TUI governor shedding and idle disarming are deterministic functional checks in `crates/squad-tui/tests/m6_effects.rs`; they do not substitute for the remaining performance acceptance scope.
 - Live-provider first-token objectives were not measured. No live credential is needed or used by the fixture.

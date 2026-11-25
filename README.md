@@ -20,6 +20,8 @@ All seven contest modes (debate, tournament, grill, census, crosscheck, survey, 
 - [⚙️ Configuration](#configuration)
 - [💬 Using the room](#using-the-room)
 - [🖥️ CLI one-shot use](#cli-one-shot-use)
+- [🏗️ Architecture](#architecture)
+- [🔓 Public repository](#public-repository)
 - [🧪 Development checks](#development-checks)
 - [🌍 Supported platforms and terminals](#supported-platforms-and-terminals)
 - [🔧 Troubleshooting](#troubleshooting)
@@ -34,6 +36,7 @@ All seven contest modes (debate, tournament, grill, census, crosscheck, survey, 
 - [🔬 Probe](#probe)
 - [🧱 Persistent `CENSUS_PASSES`](#persistent-census_passes)
 - [🧩 New-mode call counts and skipped members](#new-mode-call-counts-and-skipped-members)
+- [🧠 Judge effort in the new modes](#judge-effort-in-the-new-modes)
 - [🔁 The shared engine](#the-shared-engine)
 - [🧭 Recommended pipeline (human-directed v1)](#recommended-pipeline-human-directed-v1)
 - [🧮 Estimates and preflight](#estimates-and-preflight)
@@ -50,6 +53,7 @@ All seven contest modes (debate, tournament, grill, census, crosscheck, survey, 
 - [📅 Local days and the ledger](#local-days-and-the-ledger)
 - [🔍 Unknown costs](#unknown-costs)
 - [🎯 Question-first picks](#question-first-picks)
+- [📜 Notices](#notices)
 
 ## 🚀 Quick start
 
@@ -386,6 +390,40 @@ squad doctor [--env] [--online]
 | `1` | A configuration, provider, execution, confirmation, export, storage or diagnostic failure. A waiting `send` also exits 1 if any addressed member ends in a terminal failure. |
 | `2` | Invalid command-line syntax or flags. |
 | `130` | Interrupted with Ctrl+C, after cleanup. |
+
+## 🏗️ Architecture
+
+Squad is a Cargo workspace of six crates. Each crate has one job, and the table shows the `[dependencies]` edges from each crate's `Cargo.toml`. Dev-only links are left out.
+
+| Crate | What it does | Depends on |
+|---|---|---|
+| `squad-protocol` | Wire types: envelopes, work, errors, config and the command parser. | Nothing in the workspace |
+| `squad-store` | SQLite store: schema, migrations and the transactional commit API. | `squad-protocol` |
+| `squad-agents` | Agent executors: OpenRouter client, model registry and context-bound workers. | `squad-protocol` only, so it never sees the store or `rusqlite` |
+| `squad-core` | Bus, router, contest engine, prompts, export and the room handle. | `squad-protocol`, `squad-store`, `squad-agents` |
+| `squad-tui` | Terminal UI built on Ratatui. | `squad-protocol`, `squad-core` |
+| `squad-cli` | The `squad` binary: argument parsing, one-shot commands, `doctor`, `models` and export. | `squad-protocol`, `squad-core`, `squad-store`, `squad-tui` |
+
+```mermaid
+flowchart TD
+    cli["squad-cli (binary: squad)"] --> tui["squad-tui"]
+    cli --> core["squad-core"]
+    cli --> store["squad-store"]
+    cli --> proto["squad-protocol"]
+    tui --> core
+    tui --> proto
+    core --> agents["squad-agents"]
+    core --> store
+    core --> proto
+    agents --> proto
+    store --> proto
+```
+
+## 🔓 Public repository
+
+Squad is public. The repository is `github.com/shoemoney/squad`, and it has been built in public from day one under decision **D61**. The code is licensed under Apache-2.0.
+
+Publishing release artifacts is a separate step. Binaries and packages go out only when the owner explicitly authorizes it, which is the M7 launch decision. Until then, build from source as shown in [Quick start](#quick-start).
 
 ## 🧪 Development checks
 
@@ -997,6 +1035,10 @@ Every new-mode report says which members were skipped. Here is what happens when
 
 ---
 
+### 🧠 Judge effort in the new modes
+
+Census, crosscheck, survey and probe set their own judge effort. Every judge call in these modes runs at **medium** reasoning effort with a **4,096-token** visible output ceiling, and `SQUAD_JUDGE_REASONING_EFFORT` does not change it. Member calls keep the normal member effort. In crosscheck, the 4,096-token ceiling applies only to judge calls that open a case.
+
 ## 🔁 The shared engine
 
 - **One active contest per room.** A competing start is refused with `A {kind} is already running. Stop it before starting another.`
@@ -1289,6 +1331,10 @@ Squad needs **at least two answers** before it asks for a pick. With fewer, the 
 **Collection costs come first.** The answers are charged before the pick. The preflight for the debate or grill runs after the pick, and it counts what is left of today's cap at that moment. The answers are not counted again in the contest estimate.
 
 **Export.** Export a question-first debate with `/export debate <contest-id>`, or a question-first grill with `/export grill <contest-id>`.
+
+## 📜 Notices
+
+Squad embeds two FIGlet fonts, **Standard** and **Small**, for its banners. They are unmodified copies from the figlet-rs 1.0.0 distribution. The original FIGlet project is licensed under **BSD-3-Clause**. The credits are in [NOTICE](NOTICE), and the full licence text is in `crates/squad-core/src/banner/fonts/LICENSE-FIGlet.txt`.
 
 ## 📜 Licence
 

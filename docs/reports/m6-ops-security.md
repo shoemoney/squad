@@ -34,8 +34,8 @@ Full workspace gates and the remaining milestone checklist are recorded in the c
 The three-run optimized dev3 follow-up is recorded in
 [performance.md](../performance.md): latency/replay/RSS and all nine full TUI
 viewport windows pass their harness thresholds. The missing-cost ordinary
-reservation check still fails 3/3 and remains a release blocker; its cause and
-required dispatch/pricing work are documented there. The follow-up workspace
+reservation check failed 3/3 in that rerun; it is fixed by commit `2b040e9` and
+the check is no longer ignored (see performance.md). The follow-up workspace
 run stalled in `m6_operational` and was terminated after 4m31s (overall exit 101);
 a bounded serial retry also stalled. All other targets, Clippy and formatting
 passed. This does not supersede that unresolved operational validation failure.
@@ -44,7 +44,7 @@ on dev3; the earlier unavailable-wiki note below describes the original unit.
 
 ## Release blockers and unchecked work
 
-- Ordinary replies and standalone cases can start without a priced reservation. Missing-cost ordinary completion persists `unknown_calls`, but can leave `reserved_usd` at zero. `m6_operational::ordinary_missing_cost_must_retain_a_positive_priced_reservation` is an ignored, executable failing release check. Missing catalog prices do not yet provide the required ordinary `COST_UNKNOWN` dispatch gate. Fixing this requires the owning dispatch/reservation integration; this unit does not invent a replacement pricing policy.
+- Missing-cost ordinary reservation: fixed in commit `2b040e9`. Ordinary dispatch now sizes its reservation from the assembled prompt, and `m6_operational::ordinary_missing_cost_must_retain_a_positive_priced_reservation` is no longer `#[ignore]`d. Coverage for the reservation fix is in `crates/squad-core/tests/dispatch_reservations.rs`, which also has a test that unavailable prices refuse dispatch with `COST_UNKNOWN`.
 - `--bus-log` is still rejected as unimplemented. F12 uses a local debug projection rather than a shared request/commit/wake diagnostic source. Logger tests verify its sink/redaction/identity behavior, not end-to-end provider span propagation or the absent bus-log writer.
 - No 1-GiB storage-ceiling enforcement path was found. Transactional clear/VACUUM and history preservation have owning tests; the storage-capacity milestone remains unchecked.
 - Performance misses and unmeasured 30-minute/full-TUI gates remain explicit in `docs/performance.md`.
@@ -74,7 +74,7 @@ These combine the new M6 checks with the existing owning suites. The final works
 
 Existing-scope todo IDs still unchecked:
 
-- `M6.P2.L1.T1`–`T5`, `M6.P2.L1.T7`–`T8`, `M6.P2.L1.T11`, `M6.P2.L1.T13`
+- `M6.P2.L1.T1`–`T5`, `M6.P2.L1.T7`, `M6.P2.L1.T11`, `M6.P2.L1.T13`
 - `M6.P2.L2.T2`, `M6.P2.L2.T4`, `M6.P2.L2.T6`, `M6.P2.L2.T10`–`T12`
 - `M6.P3.L1.T1`, `M6.P3.L1.T3`, `M6.P3.L1.T7`
 
@@ -88,7 +88,7 @@ The remaining IDs are the six-mode deferrals listed above. In particular, no who
 - `cargo fmt --check`: passed.
 - `bash scripts/test-setup.sh`: passed, also run by `m6_setup`.
 - Explicit manual performance check: failed its unchanged latency threshold after recording both rosters.
-- Explicit ordinary missing-cost reservation check: failed because `reserved_usd` is not positive.
+- Explicit ordinary missing-cost reservation check, before the fix in `2b040e9`: failed because `reserved_usd` was not positive.
 - Confirmed the milestone diff changes only checkbox characters.
 
 ### File manifest
