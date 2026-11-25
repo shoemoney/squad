@@ -1,0 +1,16 @@
+---
+source: crates/squad-tui/tests/transcript.rs
+expression: "screen(28, 16)"
+---
+│claude · 4.7 · streaming
+│  > me: How does this wor
+│  k?
+│  A clear answer with 中
+│  文  and emoji 👩‍💻 .
+│  ```rust
+│  let answer = 42;
+▌  A streaming tail
+
+│gemini
+│  The second reply stays
+│  in participant order.

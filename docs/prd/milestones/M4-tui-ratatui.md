@@ -71,11 +71,11 @@
   - [ ] M4.P2.L1.T3 — Verify initialization races, repeated events, invalid-cursor presentation, and authoritative room reset in `crates/squad-tui/tests/session.rs`.
 
 - **M4.P2.L2 — Implement virtualised history and stable streaming**
-  - [ ] M4.P2.L2.T1 — Implement visible-row rendering, bounded overscan, wrapped-height caches, and cumulative height lookup in `crates/squad-tui/src/widgets/transcript.rs`.
+  - [x] M4.P2.L2.T1 — Implement visible-row rendering, bounded overscan, wrapped-height caches, and cumulative height lookup in `crates/squad-tui/src/widgets/transcript.rs`.
   - [ ] M4.P2.L2.T2 — Implement stable reply cards, attempt replacement, 50 ms token batching, and immediate terminal outcomes in `crates/squad-tui/src/transcript.rs`.
   - [ ] M4.P2.L2.T3 — Implement anchored paging, mouse wheel scrolling, suspended live following, and new-activity counts in `crates/squad-tui/src/transcript.rs`.
   - [ ] M4.P2.L2.T4 — Implement coalesced resize reflow and source-grapheme anchor preservation in `crates/squad-tui/src/layout.rs`.
-  - [ ] M4.P2.L2.T5 — Verify offscreen streams do not move the viewport or cause full-history drawing in `crates/squad-tui/tests/transcript.rs`.
+  - [x] M4.P2.L2.T5 — Verify offscreen streams do not move the viewport or cause full-history drawing in `crates/squad-tui/tests/transcript.rs`.
   - [ ] M4.P2.L2.T6 — Include banner heights, font fallbacks, banner mode, and scorecard expansion in presentation caches and preserve anchors during late score arrival and banner reflow in `crates/squad-tui/src/widgets/transcript.rs` and `crates/squad-tui/src/transcript.rs`.
 
 - **M4.P2.L3 — Implement incremental Markdown**
@@ -85,14 +85,14 @@
   - [x] M4.P2.L3.T4 — Verify table and fence transitions, cache reuse, width invalidation, and attempt replacement in `crates/squad-tui/tests/markdown.rs`.
 
 - **M4.P2.L4 — Implement search, selection, and copy**
-  - [ ] M4.P2.L4.T1 — Implement transcript search, incremental history coverage, match navigation, and collapsed-content reveal in `crates/squad-tui/src/search.rs`.
-  - [ ] M4.P2.L4.T2 — Implement focused-message navigation, distinct action eligibility, and durable selection state in `crates/squad-tui/src/selection.rs`.
-  - [ ] M4.P2.L4.T3 — Implement user-initiated OSC 52 message and code-block copy with unavailable-copy feedback in `crates/squad-tui/src/clipboard.rs`.
+  - [x] M4.P2.L4.T1 — Implement transcript search, incremental history coverage, match navigation, and collapsed-content reveal in `crates/squad-tui/src/search.rs`.
+  - [x] M4.P2.L4.T2 — Implement focused-message navigation, distinct action eligibility, and durable selection state in `crates/squad-tui/src/selection.rs`.
+  - [x] M4.P2.L4.T3 — Implement user-initiated OSC 52 message and code-block copy with unavailable-copy feedback in `crates/squad-tui/src/clipboard.rs`.
   - [ ] M4.P2.L4.T4 — Verify search offsets, selection persistence, copy sanitization, and keyboard action access in `crates/squad-tui/tests/navigation.rs`.
 
 - **M4.P2.L5 — Display participants, accounting, and color**
-  - [ ] M4.P2.L5.T1 — Render nick-adjacent versions, complete model detail, presence, queues, contest participation, usage, cost, win-loss records, and tournament trophies in `crates/squad-tui/src/widgets/participants.rs`.
-  - [ ] M4.P2.L5.T2 — Render today's spending, pending reservations, daily max, remaining daily amount, and unavailable values in `crates/squad-tui/src/widgets/budget.rs`.
+  - [x] M4.P2.L5.T1 — Render nick-adjacent versions, complete model detail, presence, queues, contest participation, usage, cost, win-loss records, and tournament trophies in `crates/squad-tui/src/widgets/participants.rs`.
+  - [x] M4.P2.L5.T2 — Render today's spending, pending reservations, daily max, remaining daily amount, and unavailable values in `crates/squad-tui/src/widgets/budget.rs`.
   - [ ] M4.P2.L5.T3 — Implement the effects-owned palette's stable author colors, specified 16-colour mapping, default-foreground body text, gold chrome, and Foundations no-color behavior in `crates/squad-tui/src/theme.rs`.
   - [ ] M4.P2.L5.T4 — Verify 12-member navigation, long nicks, persona-based duplicate models, human naming, and repeated accounting events in `crates/squad-tui/tests/participants.rs`.
 

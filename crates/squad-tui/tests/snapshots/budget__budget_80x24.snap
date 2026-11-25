@@ -1,0 +1,7 @@
+---
+source: crates/squad-tui/tests/budget.rs
+expression: "screen(80, 24)"
+---
+~$3.42 / $20.00 · pending $1.50 · remaining $15.08 · 1 unknown
+▰▰▰▰▰▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱
+remaining $15.08 · in-flight calls continue

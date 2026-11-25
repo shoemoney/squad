@@ -1,0 +1,43 @@
+---
+source: crates/squad-tui/tests/participants.rs
+expression: "screen(120, 40, 0)"
+---
+persona_0_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_1_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_2_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1 · eliminated
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_3_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_4_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_5_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_6_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
+
+persona_7_with_a_very_long_name · 4.7
+streaming · queue 2 · debate round 3
+7-2 · trophies 1
+tokens 12345 · cost unavailable · 24.5 tok/s
