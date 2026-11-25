@@ -9,20 +9,9 @@ use ratatui::{
 use squad_core::banner::{self, Banner, BannerMode, RenderedBanner};
 use unicode_width::UnicodeWidthChar;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Level {
-    Full,
-    Lite,
-    Off,
-}
+pub use crate::fx::FxLevel as Level;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ColourTier {
-    TrueColor,
-    Indexed,
-    Ansi,
-    NoColor,
-}
+pub use super::ColorTier as ColourTier;
 
 /// Colours are supplied by the TUI palette, including its terminal-tier mapping.
 #[derive(Clone, Copy, Debug)]
@@ -36,9 +25,9 @@ pub struct Palette {
 impl Default for Palette {
     fn default() -> Self {
         Self {
-            left: Color::Rgb(224, 130, 90),
-            right: Color::Rgb(91, 155, 255),
-            gold: Color::Rgb(255, 210, 63),
+            left: super::palette::SIGNATURES[0],
+            right: super::palette::SIGNATURES[3],
+            gold: super::palette::GOLD,
             background: Color::Rgb(12, 15, 22),
             tier: ColourTier::TrueColor,
         }
@@ -326,7 +315,7 @@ impl Entrance {
         } else {
             self.palette.right
         };
-        if tier == ColourTier::Ansi {
+        if tier == ColourTier::Ansi16 {
             return map_colour(base, tier);
         }
         let done = self.is_done(elapsed) || self.level != Level::Full;
@@ -443,59 +432,17 @@ pub fn accent_step(
     }
 }
 fn shade(colour: Color, factor: f32) -> Color {
-    match colour {
-        Color::Rgb(r, g, b) => Color::Rgb(
-            (f32::from(r) * factor).clamp(0.0, 255.0) as u8,
-            (f32::from(g) * factor).clamp(0.0, 255.0) as u8,
-            (f32::from(b) * factor).clamp(0.0, 255.0) as u8,
-        ),
-        other => other,
-    }
+    super::palette::darken(colour, f64::from(factor))
 }
 fn map_colour(colour: Color, tier: ColourTier) -> Color {
-    match (colour, tier) {
-        (Color::Rgb(r, g, b), ColourTier::Indexed) => Color::Indexed(
-            16 + 36 * ((u16::from(r) * 5 + 127) / 255) as u8
-                + 6 * ((u16::from(g) * 5 + 127) / 255) as u8
-                + ((u16::from(b) * 5 + 127) / 255) as u8,
-        ),
-        (Color::Rgb(r, g, b), ColourTier::Ansi) => {
-            if r < 70 && g < 70 && b < 70 {
-                Color::Black
-            } else if r > 180 && g > 90 {
-                Color::Yellow
-            } else if r > b && r > g {
-                Color::Red
-            } else if b > r {
-                Color::Cyan
-            } else {
-                Color::Green
-            }
-        }
-        (_, ColourTier::NoColor) => Color::Reset,
-        _ => colour,
-    }
+    super::palette::map_color(colour, tier)
 }
 // OKLCH L=.78 C=.16, converted to linear sRGB and gamut clipped.
 fn rainbow(hue: f32) -> Color {
-    let angle = hue.to_radians();
-    let a = 0.16 * angle.cos();
-    let b = 0.16 * angle.sin();
-    let l = (0.78 + 0.39633778 * a + 0.21580376 * b).powi(3);
-    let m = (0.78 - 0.105561346 * a - 0.06385417 * b).powi(3);
-    let s = (0.78 - 0.08948418 * a - 1.2914855 * b).powi(3);
-    fn channel(v: f32) -> u8 {
-        let v = v.clamp(0.0, 1.0);
-        ((if v <= 0.0031308 {
-            12.92 * v
-        } else {
-            1.055 * v.powf(1.0 / 2.4) - 0.055
-        }) * 255.0)
-            .round() as u8
+    super::palette::Oklch {
+        l: 0.78,
+        c: 0.16,
+        h: f64::from(hue),
     }
-    Color::Rgb(
-        channel(4.0767417 * l - 3.3077116 * m + 0.23096994 * s),
-        channel(-1.268438 * l + 2.6097574 * m - 0.34131938 * s),
-        channel(-0.0041960863 * l - 0.7034186 * m + 1.7076147 * s),
-    )
+    .color()
 }

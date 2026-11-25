@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Position, Rect},
     style::{Color, Style},
 };
-use squad_tui::effects::command::{Command, CommandEffect, Level};
+use squad_tui::fx::command::{Command, CommandEffect, Level};
 use std::time::Duration;
 fn base() -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, 32, 8));

@@ -1,5 +1,6 @@
-//! Core frame gate. Real application widget/event-loop integration is the M4 exit gate.
-use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+#[path = "../examples/fx_reel/catalogue.rs"]
+mod catalogue;
+use criterion::{Criterion, criterion_group, criterion_main};
 use ratatui::{
     buffer::Buffer,
     layout::{Rect, Size},
@@ -7,7 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 use squad_tui::fx::{
-    Clock, FxContext, FxKey, FxManager, ManualClock, Pass, PassAccess, TerminalCaps,
+    Clock, FxContext, FxKey, FxLevel, FxManager, ManualClock, Pass, PassAccess, TerminalCaps,
 };
 use std::{
     hint::black_box,
@@ -49,6 +50,30 @@ fn setup() -> (FxManager<ManualClock>, ManualClock, Buffer, FxContext) {
         ),
         true,
     );
+    for effect in catalogue::ALL {
+        let key = FxKey::Catalogue {
+            effect,
+            target: "bench".into(),
+        };
+        manager.add_pass(
+            key.clone(),
+            Pass::catalogue(
+                key,
+                Rect::new(0, 0, 200, 60),
+                PassAccess::Unprotected,
+                catalogue::duration(effect),
+                move |t, b, _| {
+                    let sample = if effect == squad_tui::fx::CatalogueEffect::Verdict {
+                        t + Duration::from_millis(3570)
+                    } else {
+                        t
+                    };
+                    catalogue::paint(effect, b, sample, FxLevel::Full);
+                },
+            ),
+            false,
+        );
+    }
     let protected = (0..12).map(|s| Rect::new(2, s * 4 + 2, 196, 2)).collect();
     (
         manager,
@@ -94,20 +119,20 @@ fn benchmark(c: &mut Criterion) {
         frame(&mut manager, &clock, &mut buffer, &mut ctx);
     }
     let mean = start.elapsed() / 200;
+    eprintln!("full catalogue warm frame mean: {mean:?}");
     assert!(
         mean < Duration::from_millis(6),
         "fx_frame core gate exceeded 6 ms: {mean:?}"
     );
-    c.bench_function("fx_frame/12_streams_and_verdict_200x60", |b| {
-        b.iter_batched(
-            setup,
-            |(mut manager, clock, mut buffer, mut ctx)| {
-                clock.advance(Duration::from_millis(80));
-                frame(&mut manager, &clock, &mut buffer, &mut ctx);
-            },
-            BatchSize::SmallInput,
-        )
-    });
+    c.bench_function(
+        "fx_frame/full_catalogue_12_streams_and_verdict_200x60",
+        |b| {
+            let (mut manager, clock, mut buffer, mut ctx) = setup();
+            clock.advance(Duration::from_millis(80));
+            frame(&mut manager, &clock, &mut buffer, &mut ctx);
+            b.iter(|| frame(&mut manager, &clock, &mut buffer, &mut ctx));
+        },
+    );
 }
 criterion_group!(benches, benchmark);
 criterion_main!(benches);

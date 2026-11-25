@@ -11,15 +11,9 @@ use ratatui::{
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-mod confetti;
-use confetti::{Confetti, LocalConfetti};
+use super::particles::{Burst, ParticlePool, Point};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Level {
-    Full,
-    Lite,
-    Off,
-}
+pub use crate::fx::FxLevel as Level;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Phase {
@@ -76,7 +70,7 @@ pub struct Celebration {
     skipped: bool,
     tick_claimed: bool,
     tick: Tick,
-    particles: LocalConfetti,
+    seed: u64,
 }
 
 impl Celebration {
@@ -87,7 +81,7 @@ impl Celebration {
             skipped: !live,
             tick_claimed: !live,
             tick,
-            particles: LocalConfetti::new(seed),
+            seed,
         }
     }
 
@@ -228,8 +222,31 @@ impl Celebration {
             && t.as_millis() >= 3100
             && t.as_millis() < 5700
         {
-            self.particles
-                .draw(buf, card, protected, t - Duration::from_millis(3100), hues);
+            let mut pool = ParticlePool::new(self.seed, 30.0);
+            let colors = [hues[0], hues[1], gold_for(hues[0])];
+            for side in [false, true] {
+                pool.spawn(Burst {
+                    count: 80,
+                    origin: Point {
+                        x: if side {
+                            card.right().saturating_sub(2)
+                        } else {
+                            card.x + 1
+                        } as f32,
+                        y: f32::from(card.y) + 1.0,
+                    },
+                    velocity: Point {
+                        x: if side { -13.5 } else { 13.5 },
+                        y: -10.0,
+                    },
+                    spread: Point { x: 11.5, y: 6.0 },
+                    colors: &colors,
+                    glyphs: &['▪', '●', '◆', '▴', '*'],
+                    lifetime: (Duration::from_millis(1800), Duration::from_millis(2600)),
+                });
+            }
+            pool.step(t - Duration::from_millis(3100));
+            pool.draw_protected(card, buf, protected, false);
         }
     }
 }
@@ -542,33 +559,19 @@ impl VerdictReveal {
 
 pub(crate) fn gold_for(hue: Color) -> Color {
     if matches!(hue, Color::Rgb(..)) {
-        Color::Rgb(255, 210, 63)
+        super::palette::GOLD
     } else {
         Color::Yellow
     }
 }
 
 fn spectrum(degrees: f32) -> Color {
-    // Storyboard gay filter: OKLCH L=.78, C=.16; clamp only at sRGB output.
-    let angle = f64::from(degrees).to_radians();
-    let a = 0.16 * angle.cos();
-    let b = 0.16 * angle.sin();
-    let l = (0.78 + 0.3963377774 * a + 0.2158037573 * b).powi(3);
-    let m = (0.78 - 0.1055613458 * a - 0.0638541728 * b).powi(3);
-    let s = (0.78 - 0.0894841775 * a - 1.2914855480 * b).powi(3);
-    let channel = |v: f64| {
-        let v = if v <= 0.0031308 {
-            12.92 * v
-        } else {
-            1.055 * v.powf(1.0 / 2.4) - 0.055
-        };
-        (v.clamp(0.0, 1.0) * 255.0).round() as u8
-    };
-    Color::Rgb(
-        channel(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
-        channel(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
-        channel(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s),
-    )
+    super::palette::Oklch {
+        l: 0.78,
+        c: 0.16,
+        h: f64::from(degrees),
+    }
+    .color()
 }
 
 pub(crate) fn progress(ms: u64, duration: u64) -> f32 {

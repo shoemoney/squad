@@ -29,7 +29,7 @@ Skipped check: no permission · partial failure
 
 
 
-accents: (0,1):Rgb(242, 203, 74)/NONE (1,1):Rgb(242, 203, 74)/NONE (2,1):Rgb(242, 203, 74)/NONE
+accents: (0,1):Rgb(241, 203, 84)/NONE (1,1):Rgb(241, 203, 84)/NONE (2,1):Rgb(241, 203, 84)/NONE
 450
 Root: measure voltage
 ├── high: A or B remain inseparable
@@ -43,7 +43,7 @@ Skipped check: no permission · partial failure
 
 
 
-accents: (0,1):Rgb(229, 195, 85)/NONE (1,1):Rgb(229, 195, 85)/NONE (2,1):Rgb(229, 195, 85)/NONE (0,2):Rgb(229, 195, 85)/NONE (4,2):Rgb(229, 195, 85)/NONE (5,2):Rgb(229, 195, 85)/NONE
+accents: (0,1):Rgb(228, 195, 99)/NONE (1,1):Rgb(228, 195, 99)/NONE (2,1):Rgb(228, 195, 99)/NONE (0,2):Rgb(228, 195, 99)/NONE (4,2):Rgb(228, 195, 99)/NONE (5,2):Rgb(228, 195, 99)/NONE
 900
 Root: measure voltage
 ├── high: A or B remain inseparable

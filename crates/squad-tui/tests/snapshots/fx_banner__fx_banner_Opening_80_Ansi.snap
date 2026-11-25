@@ -70,7 +70,7 @@ t=280 ms
 02 ||
 
 03 |                        ▓ ▓ ▓▓ ▓ ▓ ▓▓▓ ▓▓ ▓▓ ▓▓ ▓▓ ▓▓ ▓▓▓|
- 24:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 24:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 04 ||
 
 05 ||
@@ -98,13 +98,13 @@ t=600 ms
 01 ||
 
 02 |                         ___  ___ ___ _  _ ___ _  _  ___|
- 25:Yellow/Black/BOLD 41:Cyan/Black/BOLD
+ 25:DarkGray/Black/BOLD 41:Gray/Black/BOLD
 03 |                        / _ \| _ \ __| \| |_ _| \| |/ __||
- 24:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 24:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 04 |                       | (_) |  _/ _|| .` || || .` | (_ ||
- 23:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 23:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 05 |                        \___/|_| |___|_|\_|___|_|\_|\___||
- 24:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 24:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 06 ||
 
 07 ||
@@ -128,13 +128,13 @@ t=900 ms
 01 ||
 
 02 |                         ___  ___ ___ _  _ ___ _  _  ___|
- 25:Yellow/Black/BOLD 41:Cyan/Black/BOLD
+ 25:DarkGray/Black/BOLD 41:Gray/Black/BOLD
 03 |                        / _ \| _ \ __| \| |_ _| \| |/ __||
- 24:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 24:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 04 |                       | (_) |  _/ _|| .` || || .` | (_ ||
- 23:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 23:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 05 |                        \___/|_| |___|_|\_|___|_|\_|\___||
- 24:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 24:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 06 ||
 
 07 ||
@@ -158,13 +158,13 @@ t=1600 ms
 01 ||
 
 02 |                         ___  ___ ___ _  _ ___ _  _  ___|
- 25:Yellow/Black/BOLD 41:Cyan/Black/BOLD
+ 25:DarkGray/Black/BOLD 41:Gray/Black/BOLD
 03 |                        / _ \| _ \ __| \| |_ _| \| |/ __||
- 24:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 24:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 04 |                       | (_) |  _/ _|| .` || || .` | (_ ||
- 23:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 23:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 05 |                        \___/|_| |___|_|\_|___|_|\_|\___||
- 24:Yellow/Black/BOLD 40:Cyan/Black/BOLD
+ 24:DarkGray/Black/BOLD 40:Gray/Black/BOLD
 06 ||
 
 07 ||
@@ -188,13 +188,13 @@ t=1900 ms
 01 ||
 
 02 |                         ___  ___ ___ _  _ ___ _  _  ___|
- 25:Yellow/Reset/BOLD 41:Cyan/Reset/BOLD
+ 25:DarkGray/Reset/BOLD 41:Gray/Reset/BOLD
 03 |                        / _ \| _ \ __| \| |_ _| \| |/ __||
- 24:Yellow/Reset/BOLD 40:Cyan/Reset/BOLD
+ 24:DarkGray/Reset/BOLD 40:Gray/Reset/BOLD
 04 |                       | (_) |  _/ _|| .` || || .` | (_ ||
- 23:Yellow/Reset/BOLD 40:Cyan/Reset/BOLD
+ 23:DarkGray/Reset/BOLD 40:Gray/Reset/BOLD
 05 |                        \___/|_| |___|_|\_|___|_|\_|\___||
- 24:Yellow/Reset/BOLD 40:Cyan/Reset/BOLD
+ 24:DarkGray/Reset/BOLD 40:Gray/Reset/BOLD
 06 ||
 
 07 ||

@@ -4,7 +4,7 @@ use ratatui::{
     style::{Color, Style},
 };
 use squad_core::banner::BannerMode;
-use squad_tui::effects::{
+use squad_tui::fx::{
     banner::{BannerCache, ColourTier, Entrance, Level, Palette},
     pick::{Candidate, Kind, Pick, State},
 };
@@ -55,8 +55,8 @@ fn both_pick_banners_hints_and_candidate_snapshots() {
             for level in [Level::Full, Level::Lite, Level::Off] {
                 for tier in [
                     ColourTier::TrueColor,
-                    ColourTier::Indexed,
-                    ColourTier::Ansi,
+                    ColourTier::Indexed256,
+                    ColourTier::Ansi16,
                     ColourTier::NoColor,
                 ] {
                     let pick = pending(kind, false);

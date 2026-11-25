@@ -47,7 +47,7 @@ fn frame(b: &Buffer) -> String {
     }
     s
 }
-use squad_tui::effects::probe::{Branch, Level, Motion, ProbeEffect};
+use squad_tui::fx::probe::{Branch, Level, Motion, ProbeEffect};
 fn tree() -> Buffer {
     report(
         &[

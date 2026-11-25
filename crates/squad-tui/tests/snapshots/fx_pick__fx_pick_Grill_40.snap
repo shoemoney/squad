@@ -26,7 +26,7 @@ Full/TrueColor
 (1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
 (3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
 (1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
-Full/Indexed
+Full/Indexed256
 ||
 |        CHOOSE WHO GETS GRILLED|
 ||
@@ -50,7 +50,7 @@ Full/Indexed
 (1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
 (3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: DIM, diff_option: None, skip: false }
 (1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
-Full/Ansi
+Full/Ansi16
 ||
 |        CHOOSE WHO GETS GRILLED|
 ||
@@ -122,7 +122,7 @@ Lite/TrueColor
 (1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
-Lite/Indexed
+Lite/Indexed256
 ||
 |        CHOOSE WHO GETS GRILLED|
 ||
@@ -146,7 +146,7 @@ Lite/Indexed
 (1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
-Lite/Ansi
+Lite/Ansi16
 ||
 |        CHOOSE WHO GETS GRILLED|
 ||
@@ -218,7 +218,7 @@ Off/TrueColor
 (1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
-Off/Indexed
+Off/Indexed256
 ||
 |        CHOOSE WHO GETS GRILLED|
 ||
@@ -242,7 +242,7 @@ Off/Indexed
 (1,13) Cell { symbol: Some("▸"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (3,13) Cell { symbol: Some("@"), fg: Cyan, bg: Reset, underline_color: Reset, modifier: BOLD, diff_option: None, skip: false }
 (1,14) Cell { symbol: Some(" "), fg: Reset, bg: Reset, underline_color: Reset, modifier: NONE, diff_option: None, skip: false }
-Off/Ansi
+Off/Ansi16
 ||
 |        CHOOSE WHO GETS GRILLED|
 ||

@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Position, Rect},
     style::Color,
 };
-use squad_tui::effects::bubble::{Bubble, Level, Moment};
+use squad_tui::fx::bubble::{Bubble, Level, Moment};
 use std::time::Duration;
 
 fn fixture(moment: Moment, level: Level, no_color: bool) -> (Buffer, Bubble, [Rect; 1]) {

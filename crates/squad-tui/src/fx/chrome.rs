@@ -6,12 +6,7 @@ use ratatui::{
 };
 use std::time::Duration;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Level {
-    Full,
-    Lite,
-    Off,
-}
+pub use crate::fx::FxLevel as Level;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Chrome {

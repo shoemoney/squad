@@ -8,15 +8,15 @@ Full/TrueColor t=400
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Rgb(237, 195, 58)/Rgb(7, 9, 13)/BOLD 36:Rgb(238, 196, 59)/Rgb(7, 9, 13)/BOLD 38:Rgb(241, 199, 59)/Rgb(7, 9, 13)/BOLD 39:Rgb(243, 200, 60)/Rgb(7, 9, 13)/BOLD 40:Rgb(246, 202, 60)/Rgb(7, 9, 13)/BOLD 41:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD 45:Rgb(255, 213, 63)/Rgb(7, 9, 13)/BOLD 46:Rgb(255, 215, 64)/Rgb(7, 9, 13)/BOLD 47:Rgb(255, 217, 65)/Rgb(7, 9, 13)/BOLD 50:Rgb(255, 222, 66)/Rgb(7, 9, 13)/BOLD 51:Rgb(255, 223, 66)/Rgb(7, 9, 13)/BOLD 52:Rgb(255, 224, 67)/Rgb(7, 9, 13)/BOLD 57:Rgb(255, 223, 66)/Rgb(7, 9, 13)/BOLD 58:Rgb(255, 222, 66)/Rgb(7, 9, 13)/BOLD 62:Rgb(255, 215, 64)/Rgb(7, 9, 13)/BOLD 63:Rgb(255, 213, 63)/Rgb(7, 9, 13)/BOLD 64:Rgb(255, 210, 63)/Rgb(7, 9, 13)/BOLD 65:Rgb(253, 208, 62)/Rgb(7, 9, 13)/BOLD 67:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD 71:Rgb(240, 197, 59)/Rgb(7, 9, 13)/BOLD 73:Rgb(237, 195, 58)/Rgb(7, 9, 13)/BOLD 77:Rgb(238, 196, 58)/Rgb(7, 9, 13)/BOLD 79:Rgb(240, 197, 59)/Rgb(7, 9, 13)/BOLD 80:Rgb(242, 199, 59)/Rgb(7, 9, 13)/BOLD 81:Rgb(244, 201, 60)/Rgb(7, 9, 13)/BOLD 82:Rgb(246, 202, 60)/Rgb(7, 9, 13)/BOLD 84:Rgb(251, 206, 62)/Rgb(7, 9, 13)/BOLD 87:Rgb(255, 213, 64)/Rgb(7, 9, 13)/BOLD 88:Rgb(255, 215, 64)/Rgb(7, 9, 13)/BOLD
+ 33:Rgb(234, 190, 29)/Rgb(2, 3, 8)/BOLD 34:Rgb(235, 190, 30)/Rgb(2, 3, 8)/BOLD 35:Rgb(235, 191, 31)/Rgb(2, 3, 8)/BOLD 36:Rgb(236, 192, 34)/Rgb(2, 3, 8)/BOLD 38:Rgb(240, 195, 40)/Rgb(2, 3, 8)/BOLD 39:Rgb(242, 197, 44)/Rgb(2, 3, 8)/BOLD 40:Rgb(245, 200, 48)/Rgb(2, 3, 8)/BOLD 41:Rgb(247, 203, 52)/Rgb(2, 3, 8)/BOLD 45:Rgb(255, 210, 63)/Rgb(2, 3, 8)/BOLD 65:Rgb(253, 208, 61)/Rgb(2, 3, 8)/BOLD 67:Rgb(247, 202, 52)/Rgb(2, 3, 8)/BOLD 71:Rgb(238, 193, 36)/Rgb(2, 3, 8)/BOLD 73:Rgb(235, 191, 31)/Rgb(2, 3, 8)/BOLD 74:Rgb(235, 190, 30)/Rgb(2, 3, 8)/BOLD 75:Rgb(234, 190, 29)/Rgb(2, 3, 8)/BOLD 76:Rgb(235, 190, 30)/Rgb(2, 3, 8)/BOLD 77:Rgb(235, 191, 32)/Rgb(2, 3, 8)/BOLD 79:Rgb(238, 194, 37)/Rgb(2, 3, 8)/BOLD 80:Rgb(240, 195, 41)/Rgb(2, 3, 8)/BOLD 81:Rgb(242, 198, 44)/Rgb(2, 3, 8)/BOLD 82:Rgb(245, 200, 49)/Rgb(2, 3, 8)/BOLD 84:Rgb(251, 206, 57)/Rgb(2, 3, 8)/BOLD 87:Rgb(255, 210, 63)/Rgb(2, 3, 8)/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Rgb(214, 176, 52)/Rgb(7, 9, 13)/BOLD 35:Rgb(214, 177, 53)/Rgb(7, 9, 13)/BOLD 36:Rgb(215, 177, 53)/Rgb(7, 9, 13)/BOLD 37:Rgb(217, 178, 53)/Rgb(7, 9, 13)/BOLD 40:Rgb(223, 183, 55)/Rgb(7, 9, 13)/BOLD 42:Rgb(228, 187, 56)/Rgb(7, 9, 13)/BOLD 44:Rgb(233, 192, 57)/Rgb(7, 9, 13)/BOLD 46:Rgb(238, 196, 58)/Rgb(7, 9, 13)/BOLD 48:Rgb(243, 200, 60)/Rgb(7, 9, 13)/BOLD 49:Rgb(245, 201, 60)/Rgb(7, 9, 13)/BOLD 51:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD 52:Rgb(249, 205, 61)/Rgb(7, 9, 13)/BOLD 57:Rgb(248, 204, 61)/Rgb(7, 9, 13)/BOLD 58:Rgb(246, 203, 60)/Rgb(7, 9, 13)/BOLD 59:Rgb(245, 201, 60)/Rgb(7, 9, 13)/BOLD 61:Rgb(240, 198, 59)/Rgb(7, 9, 13)/BOLD 63:Rgb(235, 194, 58)/Rgb(7, 9, 13)/BOLD 64:Rgb(233, 192, 57)/Rgb(7, 9, 13)/BOLD 65:Rgb(230, 189, 56)/Rgb(7, 9, 13)/BOLD 66:Rgb(227, 187, 56)/Rgb(7, 9, 13)/BOLD 68:Rgb(222, 183, 55)/Rgb(7, 9, 13)/BOLD 70:Rgb(218, 180, 54)/Rgb(7, 9, 13)/BOLD 72:Rgb(215, 177, 53)/Rgb(7, 9, 13)/BOLD 74:Rgb(214, 176, 52)/Rgb(7, 9, 13)/BOLD 77:Rgb(215, 177, 53)/Rgb(7, 9, 13)/BOLD 78:Rgb(216, 177, 53)/Rgb(7, 9, 13)/BOLD 80:Rgb(219, 180, 54)/Rgb(7, 9, 13)/BOLD 81:Rgb(221, 182, 54)/Rgb(7, 9, 13)/BOLD 82:Rgb(223, 183, 55)/Rgb(7, 9, 13)/BOLD 83:Rgb(225, 185, 55)/Rgb(7, 9, 13)/BOLD 85:Rgb(231, 190, 57)/Rgb(7, 9, 13)/BOLD 86:Rgb(233, 192, 57)/Rgb(7, 9, 13)/BOLD 88:Rgb(238, 196, 59)/Rgb(7, 9, 13)/BOLD
+ 32:Rgb(206, 165, 0)/Rgb(2, 3, 8)/BOLD 35:Rgb(207, 166, 0)/Rgb(2, 3, 8)/BOLD 36:Rgb(208, 167, 0)/Rgb(2, 3, 8)/BOLD 37:Rgb(210, 168, 0)/Rgb(2, 3, 8)/BOLD 40:Rgb(217, 175, 0)/Rgb(2, 3, 8)/BOLD 42:Rgb(224, 180, 0)/Rgb(2, 3, 8)/BOLD 44:Rgb(230, 186, 18)/Rgb(2, 3, 8)/BOLD 46:Rgb(236, 191, 33)/Rgb(2, 3, 8)/BOLD 48:Rgb(241, 197, 43)/Rgb(2, 3, 8)/BOLD 49:Rgb(244, 199, 46)/Rgb(2, 3, 8)/BOLD 51:Rgb(247, 202, 52)/Rgb(2, 3, 8)/BOLD 52:Rgb(248, 203, 53)/Rgb(2, 3, 8)/BOLD 53:Rgb(249, 204, 54)/Rgb(2, 3, 8)/BOLD 54:Rgb(249, 204, 55)/Rgb(2, 3, 8)/BOLD 56:Rgb(248, 203, 53)/Rgb(2, 3, 8)/BOLD 57:Rgb(247, 202, 52)/Rgb(2, 3, 8)/BOLD 58:Rgb(245, 201, 49)/Rgb(2, 3, 8)/BOLD 59:Rgb(243, 199, 46)/Rgb(2, 3, 8)/BOLD 61:Rgb(239, 194, 38)/Rgb(2, 3, 8)/BOLD 63:Rgb(233, 188, 26)/Rgb(2, 3, 8)/BOLD 64:Rgb(230, 185, 17)/Rgb(2, 3, 8)/BOLD 65:Rgb(227, 182, 5)/Rgb(2, 3, 8)/BOLD 66:Rgb(224, 180, 0)/Rgb(2, 3, 8)/BOLD 68:Rgb(217, 174, 0)/Rgb(2, 3, 8)/BOLD 70:Rgb(212, 170, 0)/Rgb(2, 3, 8)/BOLD 72:Rgb(208, 167, 0)/Rgb(2, 3, 8)/BOLD 74:Rgb(206, 165, 0)/Rgb(2, 3, 8)/BOLD 77:Rgb(207, 166, 0)/Rgb(2, 3, 8)/BOLD 78:Rgb(208, 167, 0)/Rgb(2, 3, 8)/BOLD 80:Rgb(212, 170, 0)/Rgb(2, 3, 8)/BOLD 81:Rgb(215, 172, 0)/Rgb(2, 3, 8)/BOLD 82:Rgb(218, 175, 0)/Rgb(2, 3, 8)/BOLD 83:Rgb(221, 177, 0)/Rgb(2, 3, 8)/BOLD 85:Rgb(227, 183, 8)/Rgb(2, 3, 8)/BOLD 86:Rgb(230, 186, 19)/Rgb(2, 3, 8)/BOLD 88:Rgb(236, 192, 34)/Rgb(2, 3, 8)/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 33:Rgb(191, 157, 47)/Rgb(7, 9, 13)/BOLD 37:Rgb(194, 160, 48)/Rgb(7, 9, 13)/BOLD 39:Rgb(197, 163, 48)/Rgb(7, 9, 13)/BOLD 40:Rgb(200, 164, 49)/Rgb(7, 9, 13)/BOLD 41:Rgb(202, 166, 50)/Rgb(7, 9, 13)/BOLD 43:Rgb(207, 171, 51)/Rgb(7, 9, 13)/BOLD 45:Rgb(213, 175, 52)/Rgb(7, 9, 13)/BOLD 47:Rgb(218, 179, 53)/Rgb(7, 9, 13)/BOLD 49:Rgb(222, 183, 54)/Rgb(7, 9, 13)/BOLD 50:Rgb(223, 184, 55)/Rgb(7, 9, 13)/BOLD 51:Rgb(225, 185, 55)/Rgb(7, 9, 13)/BOLD 52:Rgb(226, 186, 55)/Rgb(7, 9, 13)/BOLD 54:Rgb(226, 186, 56)/Rgb(7, 9, 13)/BOLD 56:Rgb(226, 186, 55)/Rgb(7, 9, 13)/BOLD 57:Rgb(225, 185, 55)/Rgb(7, 9, 13)/BOLD 59:Rgb(222, 182, 54)/Rgb(7, 9, 13)/BOLD 60:Rgb(220, 181, 54)/Rgb(7, 9, 13)/BOLD 62:Rgb(215, 177, 53)/Rgb(7, 9, 13)/BOLD 66:Rgb(204, 168, 50)/Rgb(7, 9, 13)/BOLD 68:Rgb(199, 164, 49)/Rgb(7, 9, 13)/BOLD 69:Rgb(197, 162, 48)/Rgb(7, 9, 13)/BOLD 70:Rgb(195, 161, 48)/Rgb(7, 9, 13)/BOLD 72:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 75:Rgb(191, 157, 47)/Rgb(7, 9, 13)/BOLD 77:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 79:Rgb(194, 160, 48)/Rgb(7, 9, 13)/BOLD 83:Rgb(202, 167, 50)/Rgb(7, 9, 13)/BOLD 85:Rgb(208, 171, 51)/Rgb(7, 9, 13)/BOLD 87:Rgb(213, 175, 52)/Rgb(7, 9, 13)/BOLD
+ 31:Rgb(178, 142, 0)/Rgb(2, 3, 8)/BOLD 33:Rgb(177, 141, 0)/Rgb(2, 3, 8)/BOLD 37:Rgb(181, 145, 0)/Rgb(2, 3, 8)/BOLD 39:Rgb(185, 148, 0)/Rgb(2, 3, 8)/BOLD 40:Rgb(188, 151, 0)/Rgb(2, 3, 8)/BOLD 41:Rgb(191, 153, 0)/Rgb(2, 3, 8)/BOLD 43:Rgb(198, 158, 0)/Rgb(2, 3, 8)/BOLD 45:Rgb(204, 164, 0)/Rgb(2, 3, 8)/BOLD 47:Rgb(211, 169, 0)/Rgb(2, 3, 8)/BOLD 49:Rgb(216, 174, 0)/Rgb(2, 3, 8)/BOLD 50:Rgb(218, 175, 0)/Rgb(2, 3, 8)/BOLD 51:Rgb(220, 177, 0)/Rgb(2, 3, 8)/BOLD 52:Rgb(221, 178, 0)/Rgb(2, 3, 8)/BOLD 54:Rgb(222, 179, 0)/Rgb(2, 3, 8)/BOLD 55:Rgb(222, 178, 0)/Rgb(2, 3, 8)/BOLD 56:Rgb(221, 178, 0)/Rgb(2, 3, 8)/BOLD 57:Rgb(220, 177, 0)/Rgb(2, 3, 8)/BOLD 59:Rgb(216, 173, 0)/Rgb(2, 3, 8)/BOLD 60:Rgb(213, 171, 0)/Rgb(2, 3, 8)/BOLD 62:Rgb(207, 166, 0)/Rgb(2, 3, 8)/BOLD 66:Rgb(194, 156, 0)/Rgb(2, 3, 8)/BOLD 68:Rgb(188, 150, 0)/Rgb(2, 3, 8)/BOLD 69:Rgb(185, 148, 0)/Rgb(2, 3, 8)/BOLD 70:Rgb(183, 146, 0)/Rgb(2, 3, 8)/BOLD 72:Rgb(179, 143, 0)/Rgb(2, 3, 8)/BOLD 75:Rgb(177, 141, 0)/Rgb(2, 3, 8)/BOLD 76:Rgb(177, 142, 0)/Rgb(2, 3, 8)/BOLD 77:Rgb(178, 142, 0)/Rgb(2, 3, 8)/BOLD 79:Rgb(181, 145, 0)/Rgb(2, 3, 8)/BOLD 83:Rgb(191, 153, 0)/Rgb(2, 3, 8)/BOLD 85:Rgb(198, 159, 0)/Rgb(2, 3, 8)/BOLD 87:Rgb(205, 164, 0)/Rgb(2, 3, 8)/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 33:Rgb(168, 138, 41)/Rgb(7, 9, 13)/BOLD 35:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 36:Rgb(170, 140, 42)/Rgb(7, 9, 13)/BOLD 37:Rgb(171, 141, 42)/Rgb(7, 9, 13)/BOLD 40:Rgb(177, 145, 43)/Rgb(7, 9, 13)/BOLD 42:Rgb(182, 150, 45)/Rgb(7, 9, 13)/BOLD 43:Rgb(184, 152, 45)/Rgb(7, 9, 13)/BOLD 45:Rgb(190, 156, 46)/Rgb(7, 9, 13)/BOLD 46:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 47:Rgb(195, 160, 48)/Rgb(7, 9, 13)/BOLD 49:Rgb(199, 164, 49)/Rgb(7, 9, 13)/BOLD 50:Rgb(200, 165, 49)/Rgb(7, 9, 13)/BOLD 51:Rgb(202, 166, 49)/Rgb(7, 9, 13)/BOLD 52:Rgb(203, 167, 50)/Rgb(7, 9, 13)/BOLD 57:Rgb(202, 166, 49)/Rgb(7, 9, 13)/BOLD 58:Rgb(200, 165, 49)/Rgb(7, 9, 13)/BOLD 60:Rgb(197, 162, 48)/Rgb(7, 9, 13)/BOLD 62:Rgb(192, 158, 47)/Rgb(7, 9, 13)/BOLD 63:Rgb(189, 156, 46)/Rgb(7, 9, 13)/BOLD 64:Rgb(187, 154, 46)/Rgb(7, 9, 13)/BOLD 65:Rgb(184, 152, 45)/Rgb(7, 9, 13)/BOLD 66:Rgb(181, 149, 44)/Rgb(7, 9, 13)/BOLD 69:Rgb(174, 143, 43)/Rgb(7, 9, 13)/BOLD 72:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 74:Rgb(168, 138, 41)/Rgb(7, 9, 13)/BOLD 77:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 79:Rgb(171, 141, 42)/Rgb(7, 9, 13)/BOLD 80:Rgb(173, 142, 42)/Rgb(7, 9, 13)/BOLD 81:Rgb(175, 144, 43)/Rgb(7, 9, 13)/BOLD 82:Rgb(177, 146, 43)/Rgb(7, 9, 13)/BOLD 83:Rgb(179, 148, 44)/Rgb(7, 9, 13)/BOLD 85:Rgb(185, 152, 45)/Rgb(7, 9, 13)/BOLD 87:Rgb(190, 156, 47)/Rgb(7, 9, 13)/BOLD
+ 31:Rgb(150, 119, 0)/Rgb(2, 3, 8)/BOLD 33:Rgb(149, 119, 0)/Rgb(2, 3, 8)/BOLD 35:Rgb(150, 119, 0)/Rgb(2, 3, 8)/BOLD 36:Rgb(151, 120, 0)/Rgb(2, 3, 8)/BOLD 37:Rgb(152, 122, 0)/Rgb(2, 3, 8)/BOLD 40:Rgb(159, 127, 0)/Rgb(2, 3, 8)/BOLD 42:Rgb(166, 132, 0)/Rgb(2, 3, 8)/BOLD 43:Rgb(169, 135, 0)/Rgb(2, 3, 8)/BOLD 45:Rgb(175, 140, 0)/Rgb(2, 3, 8)/BOLD 46:Rgb(179, 143, 0)/Rgb(2, 3, 8)/BOLD 47:Rgb(182, 145, 0)/Rgb(2, 3, 8)/BOLD 49:Rgb(187, 150, 0)/Rgb(2, 3, 8)/BOLD 50:Rgb(189, 151, 0)/Rgb(2, 3, 8)/BOLD 51:Rgb(191, 153, 0)/Rgb(2, 3, 8)/BOLD 52:Rgb(192, 154, 0)/Rgb(2, 3, 8)/BOLD 53:Rgb(193, 154, 0)/Rgb(2, 3, 8)/BOLD 56:Rgb(192, 154, 0)/Rgb(2, 3, 8)/BOLD 57:Rgb(191, 153, 0)/Rgb(2, 3, 8)/BOLD 58:Rgb(189, 151, 0)/Rgb(2, 3, 8)/BOLD 60:Rgb(184, 148, 0)/Rgb(2, 3, 8)/BOLD 62:Rgb(178, 143, 0)/Rgb(2, 3, 8)/BOLD 63:Rgb(175, 140, 0)/Rgb(2, 3, 8)/BOLD 64:Rgb(172, 137, 0)/Rgb(2, 3, 8)/BOLD 65:Rgb(169, 135, 0)/Rgb(2, 3, 8)/BOLD 66:Rgb(165, 132, 0)/Rgb(2, 3, 8)/BOLD 69:Rgb(157, 125, 0)/Rgb(2, 3, 8)/BOLD 72:Rgb(151, 120, 0)/Rgb(2, 3, 8)/BOLD 74:Rgb(149, 119, 0)/Rgb(2, 3, 8)/BOLD 77:Rgb(150, 119, 0)/Rgb(2, 3, 8)/BOLD 79:Rgb(153, 122, 0)/Rgb(2, 3, 8)/BOLD 80:Rgb(155, 123, 0)/Rgb(2, 3, 8)/BOLD 81:Rgb(157, 125, 0)/Rgb(2, 3, 8)/BOLD 82:Rgb(160, 128, 0)/Rgb(2, 3, 8)/BOLD 83:Rgb(163, 130, 0)/Rgb(2, 3, 8)/BOLD 85:Rgb(169, 135, 0)/Rgb(2, 3, 8)/BOLD 87:Rgb(176, 141, 0)/Rgb(2, 3, 8)/BOLD
 06 |                                ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓|
- 32:Rgb(145, 119, 35)/Rgb(7, 9, 13)/BOLD 35:Rgb(146, 120, 36)/Rgb(7, 9, 13)/BOLD 36:Rgb(147, 121, 36)/Rgb(7, 9, 13)/BOLD 37:Rgb(148, 122, 36)/Rgb(7, 9, 13)/BOLD 38:Rgb(150, 123, 37)/Rgb(7, 9, 13)/BOLD 39:Rgb(152, 125, 37)/Rgb(7, 9, 13)/BOLD 41:Rgb(156, 129, 38)/Rgb(7, 9, 13)/BOLD 42:Rgb(159, 131, 39)/Rgb(7, 9, 13)/BOLD 43:Rgb(161, 133, 39)/Rgb(7, 9, 13)/BOLD 44:Rgb(164, 135, 40)/Rgb(7, 9, 13)/BOLD 45:Rgb(167, 137, 41)/Rgb(7, 9, 13)/BOLD 46:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 47:Rgb(172, 141, 42)/Rgb(7, 9, 13)/BOLD 48:Rgb(174, 143, 43)/Rgb(7, 9, 13)/BOLD 49:Rgb(176, 145, 43)/Rgb(7, 9, 13)/BOLD 50:Rgb(177, 146, 43)/Rgb(7, 9, 13)/BOLD 51:Rgb(179, 147, 44)/Rgb(7, 9, 13)/BOLD 52:Rgb(180, 148, 44)/Rgb(7, 9, 13)/BOLD 54:Rgb(181, 149, 44)/Rgb(7, 9, 13)/BOLD 55:Rgb(180, 148, 44)/Rgb(7, 9, 13)/BOLD 57:Rgb(179, 147, 44)/Rgb(7, 9, 13)/BOLD 58:Rgb(177, 146, 43)/Rgb(7, 9, 13)/BOLD 59:Rgb(176, 145, 43)/Rgb(7, 9, 13)/BOLD 61:Rgb(171, 141, 42)/Rgb(7, 9, 13)/BOLD 62:Rgb(169, 139, 41)/Rgb(7, 9, 13)/BOLD 63:Rgb(167, 137, 41)/Rgb(7, 9, 13)/BOLD 64:Rgb(164, 135, 40)/Rgb(7, 9, 13)/BOLD 65:Rgb(161, 133, 39)/Rgb(7, 9, 13)/BOLD 66:Rgb(159, 130, 39)/Rgb(7, 9, 13)/BOLD 67:Rgb(156, 128, 38)/Rgb(7, 9, 13)/BOLD 68:Rgb(154, 126, 38)/Rgb(7, 9, 13)/BOLD 70:Rgb(149, 123, 37)/Rgb(7, 9, 13)/BOLD 71:Rgb(148, 122, 36)/Rgb(7, 9, 13)/BOLD 72:Rgb(147, 121, 36)/Rgb(7, 9, 13)/BOLD 73:Rgb(146, 120, 36)/Rgb(7, 9, 13)/BOLD 74:Rgb(145, 119, 35)/Rgb(7, 9, 13)/BOLD 77:Rgb(146, 120, 36)/Rgb(7, 9, 13)/BOLD 78:Rgb(147, 121, 36)/Rgb(7, 9, 13)/BOLD 79:Rgb(148, 122, 36)/Rgb(7, 9, 13)/BOLD 80:Rgb(150, 123, 37)/Rgb(7, 9, 13)/BOLD 81:Rgb(152, 125, 37)/Rgb(7, 9, 13)/BOLD 82:Rgb(154, 127, 38)/Rgb(7, 9, 13)/BOLD 83:Rgb(156, 129, 38)/Rgb(7, 9, 13)/BOLD 84:Rgb(159, 131, 39)/Rgb(7, 9, 13)/BOLD 85:Rgb(162, 133, 40)/Rgb(7, 9, 13)/BOLD 86:Rgb(164, 135, 40)/Rgb(7, 9, 13)/BOLD 87:Rgb(167, 137, 41)/Rgb(7, 9, 13)/BOLD 88:Rgb(170, 140, 42)/Rgb(7, 9, 13)/BOLD
+ 32:Rgb(122, 97, 0)/Rgb(2, 3, 8)/BOLD 33:Rgb(121, 96, 0)/Rgb(2, 3, 8)/BOLD 34:Rgb(122, 97, 0)/Rgb(2, 3, 8)/BOLD 36:Rgb(123, 98, 0)/Rgb(2, 3, 8)/BOLD 37:Rgb(125, 99, 0)/Rgb(2, 3, 8)/BOLD 38:Rgb(127, 101, 0)/Rgb(2, 3, 8)/BOLD 39:Rgb(129, 103, 0)/Rgb(2, 3, 8)/BOLD 41:Rgb(135, 107, 0)/Rgb(2, 3, 8)/BOLD 42:Rgb(138, 110, 0)/Rgb(2, 3, 8)/BOLD 43:Rgb(141, 112, 0)/Rgb(2, 3, 8)/BOLD 44:Rgb(144, 115, 0)/Rgb(2, 3, 8)/BOLD 45:Rgb(147, 117, 0)/Rgb(2, 3, 8)/BOLD 46:Rgb(150, 120, 0)/Rgb(2, 3, 8)/BOLD 47:Rgb(153, 122, 0)/Rgb(2, 3, 8)/BOLD 48:Rgb(156, 125, 0)/Rgb(2, 3, 8)/BOLD 49:Rgb(158, 126, 0)/Rgb(2, 3, 8)/BOLD 50:Rgb(160, 128, 0)/Rgb(2, 3, 8)/BOLD 51:Rgb(162, 129, 0)/Rgb(2, 3, 8)/BOLD 52:Rgb(163, 130, 0)/Rgb(2, 3, 8)/BOLD 53:Rgb(164, 131, 0)/Rgb(2, 3, 8)/BOLD 56:Rgb(163, 130, 0)/Rgb(2, 3, 8)/BOLD 57:Rgb(162, 129, 0)/Rgb(2, 3, 8)/BOLD 58:Rgb(160, 128, 0)/Rgb(2, 3, 8)/BOLD 59:Rgb(158, 126, 0)/Rgb(2, 3, 8)/BOLD 61:Rgb(153, 122, 0)/Rgb(2, 3, 8)/BOLD 62:Rgb(150, 120, 0)/Rgb(2, 3, 8)/BOLD 63:Rgb(147, 117, 0)/Rgb(2, 3, 8)/BOLD 64:Rgb(144, 115, 0)/Rgb(2, 3, 8)/BOLD 65:Rgb(141, 112, 0)/Rgb(2, 3, 8)/BOLD 66:Rgb(138, 109, 0)/Rgb(2, 3, 8)/BOLD 67:Rgb(134, 107, 0)/Rgb(2, 3, 8)/BOLD 68:Rgb(132, 105, 0)/Rgb(2, 3, 8)/BOLD 70:Rgb(127, 101, 0)/Rgb(2, 3, 8)/BOLD 71:Rgb(125, 99, 0)/Rgb(2, 3, 8)/BOLD 72:Rgb(123, 98, 0)/Rgb(2, 3, 8)/BOLD 73:Rgb(122, 97, 0)/Rgb(2, 3, 8)/BOLD 74:Rgb(122, 96, 0)/Rgb(2, 3, 8)/BOLD 75:Rgb(121, 96, 0)/Rgb(2, 3, 8)/BOLD 76:Rgb(122, 97, 0)/Rgb(2, 3, 8)/BOLD 78:Rgb(124, 98, 0)/Rgb(2, 3, 8)/BOLD 79:Rgb(125, 99, 0)/Rgb(2, 3, 8)/BOLD 80:Rgb(127, 101, 0)/Rgb(2, 3, 8)/BOLD 81:Rgb(130, 103, 0)/Rgb(2, 3, 8)/BOLD 82:Rgb(132, 105, 0)/Rgb(2, 3, 8)/BOLD 83:Rgb(135, 107, 0)/Rgb(2, 3, 8)/BOLD 84:Rgb(138, 110, 0)/Rgb(2, 3, 8)/BOLD 85:Rgb(141, 113, 0)/Rgb(2, 3, 8)/BOLD 86:Rgb(144, 115, 0)/Rgb(2, 3, 8)/BOLD 87:Rgb(148, 118, 0)/Rgb(2, 3, 8)/BOLD 88:Rgb(151, 120, 0)/Rgb(2, 3, 8)/BOLD
 07 ||
 
 08 ||
@@ -40,13 +40,13 @@ Full/TrueColor t=1900
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Rgb(255, 210, 63)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Rgb(232, 191, 57)/Reset/BOLD
+ 32:Rgb(229, 184, 13)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Rgb(209, 172, 51)/Reset/BOLD
+ 31:Rgb(199, 160, 0)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Rgb(186, 153, 45)/Reset/BOLD
+ 31:Rgb(170, 136, 0)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Rgb(163, 134, 40)/Reset/BOLD
+ 32:Rgb(142, 114, 0)/Reset/BOLD
 07 ||
 
 08 ||
@@ -62,21 +62,21 @@ Full/TrueColor t=1900
 13 ||
 
 
-Full/Indexed t=400
+Full/Indexed256 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Indexed(221)/Indexed(16)/BOLD
+ 33:Indexed(178)/Indexed(16)/BOLD 36:Indexed(214)/Indexed(16)/BOLD 39:Indexed(220)/Indexed(16)/BOLD 40:Indexed(221)/Indexed(16)/BOLD 71:Indexed(214)/Indexed(16)/BOLD 73:Indexed(178)/Indexed(16)/BOLD 79:Indexed(214)/Indexed(16)/BOLD 81:Indexed(220)/Indexed(16)/BOLD 82:Indexed(221)/Indexed(16)/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Indexed(179)/Indexed(16)/BOLD 40:Indexed(185)/Indexed(16)/BOLD 44:Indexed(221)/Indexed(16)/BOLD 66:Indexed(185)/Indexed(16)/BOLD 72:Indexed(179)/Indexed(16)/BOLD 80:Indexed(185)/Indexed(16)/BOLD 85:Indexed(221)/Indexed(16)/BOLD
+ 32:Indexed(178)/Indexed(16)/BOLD 46:Indexed(214)/Indexed(16)/BOLD 48:Indexed(220)/Indexed(16)/BOLD 51:Indexed(221)/Indexed(16)/BOLD 59:Indexed(220)/Indexed(16)/BOLD 61:Indexed(214)/Indexed(16)/BOLD 63:Indexed(178)/Indexed(16)/BOLD 88:Indexed(214)/Indexed(16)/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Indexed(179)/Indexed(16)/BOLD 47:Indexed(185)/Indexed(16)/BOLD 62:Indexed(179)/Indexed(16)/BOLD
+ 31:Indexed(136)/Indexed(16)/BOLD 43:Indexed(178)/Indexed(16)/BOLD 66:Indexed(142)/Indexed(16)/BOLD 68:Indexed(136)/Indexed(16)/BOLD 85:Indexed(178)/Indexed(16)/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Indexed(143)/Indexed(16)/BOLD 42:Indexed(179)/Indexed(16)/BOLD 69:Indexed(143)/Indexed(16)/BOLD 83:Indexed(179)/Indexed(16)/BOLD
+ 31:Indexed(100)/Indexed(16)/BOLD 40:Indexed(136)/Indexed(16)/BOLD 72:Indexed(100)/Indexed(16)/BOLD 81:Indexed(136)/Indexed(16)/BOLD
 06 |                                ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓|
- 32:Indexed(137)/Indexed(16)/BOLD 41:Indexed(143)/Indexed(16)/BOLD 51:Indexed(179)/Indexed(16)/BOLD 58:Indexed(143)/Indexed(16)/BOLD 68:Indexed(137)/Indexed(16)/BOLD 83:Indexed(143)/Indexed(16)/BOLD
+ 32:Indexed(94)/Indexed(16)/BOLD 45:Indexed(100)/Indexed(16)/BOLD 48:Indexed(136)/Indexed(16)/BOLD 61:Indexed(100)/Indexed(16)/BOLD 64:Indexed(94)/Indexed(16)/BOLD 87:Indexed(100)/Indexed(16)/BOLD
 07 ||
 
 08 ||
@@ -92,7 +92,7 @@ Full/Indexed t=400
 13 ||
 
 
-Full/Indexed t=1900
+Full/Indexed256 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -100,13 +100,13 @@ Full/Indexed t=1900
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Indexed(221)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Indexed(221)/Reset/BOLD
+ 32:Indexed(178)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(178)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(136)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Indexed(143)/Reset/BOLD
+ 32:Indexed(94)/Reset/BOLD
 07 ||
 
 08 ||
@@ -122,21 +122,21 @@ Full/Indexed t=1900
 13 ||
 
 
-Full/Ansi t=400
+Full/Ansi16 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Yellow/Black/BOLD
+ 33:LightYellow/Black/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Yellow/Black/BOLD
+ 32:LightYellow/Black/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Yellow/Black/BOLD
+ 31:LightYellow/Black/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Yellow/Black/BOLD
+ 31:LightYellow/Black/BOLD
 06 |                                ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓|
- 32:Yellow/Black/BOLD
+ 32:LightYellow/Black/BOLD
 07 ||
 
 08 ||
@@ -144,7 +144,7 @@ Full/Ansi t=400
 09 ||
 
 10 |  PASS 1 · HUNT|
- 2:Yellow/Reset/BOLD
+ 2:LightYellow/Reset/BOLD
 11 ||
 
 12 |  protected reply stays put|
@@ -152,21 +152,21 @@ Full/Ansi t=400
 13 ||
 
 
-Full/Ansi t=1900
+Full/Ansi16 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Yellow/Reset/BOLD
+ 33:LightYellow/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 07 ||
 
 08 ||
@@ -250,13 +250,13 @@ Lite/TrueColor t=400
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Rgb(255, 210, 63)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Rgb(232, 191, 57)/Reset/BOLD
+ 32:Rgb(229, 184, 13)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Rgb(209, 172, 51)/Reset/BOLD
+ 31:Rgb(199, 160, 0)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Rgb(186, 153, 45)/Reset/BOLD
+ 31:Rgb(170, 136, 0)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Rgb(163, 134, 40)/Reset/BOLD
+ 32:Rgb(142, 114, 0)/Reset/BOLD
 07 ||
 
 08 ||
@@ -280,13 +280,13 @@ Lite/TrueColor t=1900
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Rgb(255, 210, 63)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Rgb(232, 191, 57)/Reset/BOLD
+ 32:Rgb(229, 184, 13)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Rgb(209, 172, 51)/Reset/BOLD
+ 31:Rgb(199, 160, 0)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Rgb(186, 153, 45)/Reset/BOLD
+ 31:Rgb(170, 136, 0)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Rgb(163, 134, 40)/Reset/BOLD
+ 32:Rgb(142, 114, 0)/Reset/BOLD
 07 ||
 
 08 ||
@@ -302,7 +302,7 @@ Lite/TrueColor t=1900
 13 ||
 
 
-Lite/Indexed t=400
+Lite/Indexed256 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -310,13 +310,13 @@ Lite/Indexed t=400
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Indexed(221)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Indexed(221)/Reset/BOLD
+ 32:Indexed(178)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(178)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(136)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Indexed(143)/Reset/BOLD
+ 32:Indexed(94)/Reset/BOLD
 07 ||
 
 08 ||
@@ -332,7 +332,7 @@ Lite/Indexed t=400
 13 ||
 
 
-Lite/Indexed t=1900
+Lite/Indexed256 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -340,13 +340,13 @@ Lite/Indexed t=1900
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Indexed(221)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Indexed(221)/Reset/BOLD
+ 32:Indexed(178)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(178)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(136)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Indexed(143)/Reset/BOLD
+ 32:Indexed(94)/Reset/BOLD
 07 ||
 
 08 ||
@@ -362,21 +362,21 @@ Lite/Indexed t=1900
 13 ||
 
 
-Lite/Ansi t=400
+Lite/Ansi16 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Yellow/Reset/BOLD
+ 33:LightYellow/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 07 ||
 
 08 ||
@@ -384,7 +384,7 @@ Lite/Ansi t=400
 09 ||
 
 10 |  PASS 1 · HUNT|
- 2:Yellow/Reset/BOLD
+ 2:LightYellow/Reset/BOLD
 11 ||
 
 12 |  protected reply stays put|
@@ -392,21 +392,21 @@ Lite/Ansi t=400
 13 ||
 
 
-Lite/Ansi t=1900
+Lite/Ansi16 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Yellow/Reset/BOLD
+ 33:LightYellow/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 07 ||
 
 08 ||
@@ -490,13 +490,13 @@ Off/TrueColor t=400
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Rgb(255, 210, 63)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Rgb(232, 191, 57)/Reset/BOLD
+ 32:Rgb(229, 184, 13)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Rgb(209, 172, 51)/Reset/BOLD
+ 31:Rgb(199, 160, 0)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Rgb(186, 153, 45)/Reset/BOLD
+ 31:Rgb(170, 136, 0)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Rgb(163, 134, 40)/Reset/BOLD
+ 32:Rgb(142, 114, 0)/Reset/BOLD
 07 ||
 
 08 ||
@@ -520,13 +520,13 @@ Off/TrueColor t=1900
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Rgb(255, 210, 63)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Rgb(232, 191, 57)/Reset/BOLD
+ 32:Rgb(229, 184, 13)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Rgb(209, 172, 51)/Reset/BOLD
+ 31:Rgb(199, 160, 0)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Rgb(186, 153, 45)/Reset/BOLD
+ 31:Rgb(170, 136, 0)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Rgb(163, 134, 40)/Reset/BOLD
+ 32:Rgb(142, 114, 0)/Reset/BOLD
 07 ||
 
 08 ||
@@ -542,7 +542,7 @@ Off/TrueColor t=1900
 13 ||
 
 
-Off/Indexed t=400
+Off/Indexed256 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -550,13 +550,13 @@ Off/Indexed t=400
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Indexed(221)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Indexed(221)/Reset/BOLD
+ 32:Indexed(178)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(178)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(136)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Indexed(143)/Reset/BOLD
+ 32:Indexed(94)/Reset/BOLD
 07 ||
 
 08 ||
@@ -572,7 +572,7 @@ Off/Indexed t=400
 13 ||
 
 
-Off/Indexed t=1900
+Off/Indexed256 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
@@ -580,13 +580,13 @@ Off/Indexed t=1900
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
  33:Indexed(221)/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Indexed(221)/Reset/BOLD
+ 32:Indexed(178)/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(178)/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Indexed(179)/Reset/BOLD
+ 31:Indexed(136)/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Indexed(143)/Reset/BOLD
+ 32:Indexed(94)/Reset/BOLD
 07 ||
 
 08 ||
@@ -602,21 +602,21 @@ Off/Indexed t=1900
 13 ||
 
 
-Off/Ansi t=400
+Off/Ansi16 t=400
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Yellow/Reset/BOLD
+ 33:LightYellow/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 07 ||
 
 08 ||
@@ -632,21 +632,21 @@ Off/Ansi t=400
 13 ||
 
 
-Off/Ansi t=1900
+Off/Ansi16 t=1900
 00 |  transcript above|
  2:Reset/Reset/NONE
 01 ||
 
 02 |                                 ____ ____   ___  ____ ____   ____ _   _ _____ ____ _  __|
- 33:Yellow/Reset/BOLD
+ 33:LightYellow/Reset/BOLD
 03 |                                / ___|  _ \ / _ \/ ___/ ___| / ___| | | | ____/ ___| |/ /|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 04 |                               | |   | |_) | | | \___ \___ \| |   | |_| |  _|| |   | ' /|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 05 |                               | |___|  _ <| |_| |___) |__) | |___|  _  | |__| |___| . \|
- 31:Yellow/Reset/BOLD
+ 31:LightYellow/Reset/BOLD
 06 |                                \____|_| \_\\___/|____/____/ \____|_| |_|_____\____|_|\_\|
- 32:Yellow/Reset/BOLD
+ 32:LightYellow/Reset/BOLD
 07 ||
 
 08 ||

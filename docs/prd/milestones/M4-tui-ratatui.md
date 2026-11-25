@@ -330,7 +330,7 @@
   - [x] M4.P5.L13.T3 — `squad-tui/tests/fx_pick.rs`: snapshots of both banners and hints at wide and narrow sizes; rejected picks retain highlights, ordinary chat remains usable, accepted picks clear highlights and restored pending picks produce no entrance.
 - **M4.P5.L14 — Effects integration gates**
   - [ ] M4.P5.L14.T1 — `squad-tui/tests/fx_input.rs`: assert animation skip preserves typed keys and the TUI-owned Escape priority and contest-stop confirmation, including a pending pick.
-  - [ ] M4.P5.L14.T2 — `squad-tui/tests/fx_invariants.rs`: extend end-state, protected-glyph, resize and replay properties to daily spend, tournament, grill and pick effects.
+  - [x] M4.P5.L14.T2 — `squad-tui/tests/fx_invariants.rs`: extend end-state, protected-glyph, resize and replay properties to daily spend, tournament, grill and pick effects.
   - [ ] M4.P5.L14.T3 — `squad-tui/benches/fx_frame.rs` and `squad-tui/tests/fx_integration.rs`: re-run the real-widget 12-stream full-effects gate after M4.P5 on both release platforms, including sustained feed bursts and idle timer disarming, as the M4 exit gate referenced by M6.P2.L1.T8.
 - **M4.P5.L15 — Shared engine cues and four-mode banners**
   - [ ] M4.P5.L15.T1 — `squad-tui/src/fx/cue.rs` and `squad-tui/src/feed.rs`: add `ModeBannerReady`, `CensusEstimateReady`, `CrosscheckCellsReady`, `SurveyTallyReady` and `ProbeTreeReady`; emit them only for accepted live state or committed artifacts, never judge streams, rejected output or repair attempts.
@@ -354,7 +354,7 @@
   - [x] M4.P5.L19.T2 — `squad-tui/tests/fx_probe.rs`: snapshot branch progression, unexpected results and inseparable explanations; preserve role and sit-out notices and assert that no explanation becomes a winner.
   - [x] M4.P5.L19.T3 — `squad-tui/tests/fx_probe.rs`: cover rejected report output, partial failure, stop, replay, collapse, resize, narrow wrapping and every effect level against the static probe report.
 - **M4.P5.L20 — Four-mode integration gates**
-  - [ ] M4.P5.L20.T1 — `squad-tui/tests/fx_invariants.rs`: extend final-render, protected-glyph, dropped-cue, duplicate-cue, resize and replay properties to the four modes, including restoration of partial committed reports.
+  - [x] M4.P5.L20.T1 — `squad-tui/tests/fx_invariants.rs`: extend final-render, protected-glyph, dropped-cue, duplicate-cue, resize and replay properties to the four modes, including restoration of partial committed reports.
   - [ ] M4.P5.L20.T2 — `squad-tui/tests/fx_input.rs` and `squad-tui/tests/fx_integration.rs`: verify normal input, skip and Escape handling during each new effect; assert that animation never delays a shared move or barrier and leaves member deliveries and Markdown exports unchanged.
   - [ ] M4.P5.L20.T3 — `squad-tui/benches/fx_frame.rs`: include the 200-cell grid, survey bars and probe tree in real-widget effect workloads; preserve the 256-cue queue, 48-effect cap, under-6-ms frame gate, governor degradation and idle timer disarming on both release platforms.
 

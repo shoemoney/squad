@@ -4,15 +4,15 @@ use ratatui::{
     style::{Color, Modifier},
 };
 use squad_core::banner::{Banner, BannerMode};
-use squad_tui::effects::banner::{
+use squad_tui::fx::banner::{
     BannerCache, Boundaries, ColourTier, Entrance, Level, Palette, Phase, accent_step,
 };
 use std::{fmt::Write, sync::Arc, time::Duration};
 
 const TIERS: [ColourTier; 4] = [
     ColourTier::TrueColor,
-    ColourTier::Indexed,
-    ColourTier::Ansi,
+    ColourTier::Indexed256,
+    ColourTier::Ansi16,
     ColourTier::NoColor,
 ];
 const TIMES: [u64; 7] = [0, 120, 280, 600, 900, 1600, 1900];
@@ -83,7 +83,18 @@ fn storyboard_snapshots() {
                     )
                     .unwrap();
                 }
-                insta::assert_snapshot!(format!("fx_banner_{kind:?}_{w}_{tier:?}"), frames);
+                insta::assert_snapshot!(
+                    format!(
+                        "fx_banner_{kind:?}_{w}_{}",
+                        match tier {
+                            ColourTier::TrueColor => "TrueColor",
+                            ColourTier::Indexed256 => "Indexed",
+                            ColourTier::Ansi16 => "Ansi",
+                            ColourTier::NoColor => "NoColor",
+                        }
+                    ),
+                    frames
+                );
             }
         }
     }
@@ -350,10 +361,10 @@ fn disabled_banners_no_colour_and_step_labels_remain_static() {
         for cell in &buf.content {
             match tier {
                 ColourTier::NoColor => assert_eq!(cell.fg, Color::Reset),
-                ColourTier::Ansi => {
+                ColourTier::Ansi16 => {
                     assert!(!matches!(cell.fg, Color::Rgb(..) | Color::Indexed(..)))
                 }
-                ColourTier::Indexed => assert!(!matches!(cell.fg, Color::Rgb(..))),
+                ColourTier::Indexed256 => assert!(!matches!(cell.fg, Color::Rgb(..))),
                 _ => {}
             }
         }

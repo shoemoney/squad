@@ -1,5 +1,5 @@
 use ratatui::{buffer::Buffer, layout::Rect, style::Color};
-use squad_tui::effects::{
+use squad_tui::fx::{
     tournament::{ChampionReveal, RankingReveal, RankingRow, TournamentFx},
     verdict::{Contender, Level, Tick},
 };

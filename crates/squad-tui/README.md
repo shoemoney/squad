@@ -109,3 +109,80 @@ Pending: the same five-minute release workload at both viewports, with hardware,
 OS/terminal/dependency versions, startup, RSS/peak memory, drawing, scheduled-key
 latency, and CPU measurements. Do not infer a macOS pass from Linux or a short
 run. M4.P1.L1.T3 and the overall cross-platform gate remain incomplete.
+
+## Integrated effects catalogue (2026-11-24)
+
+All 18 effect families now live in `src/fx/`, use the shared `FxLevel`, and
+share startup `ColorTier` and palette helpers. `verdict` and `tournament` use
+`ParticlePool` for celebrations. `fx/mod.rs` documents the app-shell contract:
+queue live committed cues, call `pre`, draw authoritative static widgets, bind
+accepted cues with `attach_pass` and `Pass::catalogue`, then call `post` and arm
+`next_wake`. The same runner clips both in-house and TachyonFX painters against
+protected text and terminal colour capabilities. Stop/resize settle everything;
+collapse/failure/pick completion can settle one contest. Reopening draws the
+committed static report, including partial results.
+
+The additional four-mode cues reference committed passes/artifacts, while their
+replacement keys identify the contest's graphic slot. This lets a new artifact
+replace its predecessor; separate bounded artifact deduplication suppresses a
+second entrance even if the artifact arrives under a new event identity.
+`FxCue::Catalogue` covers local chrome, status, dispatch, command and other UI
+notices without adding protocol events. Candidate row keys include contest and
+member, and `FxContext::pending_pick` removes them when the pick ends.
+
+### Full-catalogue frame gate
+
+```sh
+cargo bench -p squad-tui --bench fx_frame -- --sample-size 10 --measurement-time 2 --warm-up-time 1
+```
+
+On dev1/Linux x64 with the pinned Rust 1.99.1 toolchain, the release workload
+renders 12 streams, a verdict, and all 18 actual catalogue families through the
+manager at 200x60 (31 concurrent entries). The verdict is sampled during its
+pool-based confetti phase; a separate particle burst is also active. Protected
+body rectangles cover all twelve streams. Every family is deliberately painted
+over the same viewport to stress composition rather than model one app layout.
+
+The 200-frame warmed mean was **5.486 ms**, passing the hard **6 ms** gate.
+Criterion estimated **5.541 ms/frame**, interval **5.522–5.557 ms** (10 samples,
+1 s warm-up, 2 s sampling). Timing covers fresh static rendering, manager hooks,
+protected scratch copying and all catalogue painters. Setup and teardown are
+excluded; repeated samples use the same deterministic active timeline instant.
+This is a buffer-rendering measurement without terminal serialization, backend
+flush, input latency, or a macOS claim. The application-shell performance gate
+still needs its real event loop and backend.
+
+### Snapshot changes from shared palette integration
+
+Glyphs/timings remain unchanged except confetti positions, which now follow the
+shared seeded pool. Colour snapshots changed where local helpers used RGB/OKLab
+mixing, clipped out-of-gamut colours, or used a different 256-colour quantizer.
+They now use shared OKLCH interpolation, chroma gamut mapping and nearest cube
+entries. Updated snapshots (all under `tests/snapshots/`):
+
+- `fx_banner__fx_banner_{Round(3),FinalRound,Opening}_{120,80}_{TrueColor,Indexed,Ansi}.snap`
+- `fx_banner__fx_banner_mode_{Census,Crosscheck,Survey,Probe}_{120,80}.snap`
+- `fx_bubble__seal_{0,37,75,150,167}.snap`
+- `fx_command__wipe_140.snap`, `fx_filter__filter_storyboards.snap`
+- `fx_grill__storyboard.snap`, `fx_crosscheck__storyboard_single_and_200_cell_audit.snap`,
+  `fx_probe__storyboard_root_first_unexpected_and_inseparable.snap`
+- `fx_pick__fx_pick_{Debate,Grill}_{120,80,40}.snap` (shared tier names in snapshots)
+- `fx_tournament__tournament_champion_Full_false_{3100,3650}.snap`
+- `fx_verdict__verdict_{full,narrow}_{3100,4200}.snap`
+
+### Reel and verification
+
+`cargo run -p squad-tui --example fx_reel` plays the actual logo/roster, launch
+streak/spoke burst, versus card, horizon-unfold OPENING/ROUND 2/FINAL ROUND
+banners, per-model streaming bubbles/comets/seals, score slams and tug bars,
+VERDICT entrance/reveal/confetti, tournament ranking and survey bar split.
+The verdict totals are computed from its displayed criteria: **34 : 31**.
+`q`/Escape exits, `r` restarts, a key skips the launch/verdict without consuming
+normal input handling.
+
+A 31-second 140x40 PTY smoke reached the survey, exited on `q` with status 0,
+emitted alternate-screen enter/leave, and restored the exact original termios
+settings. Deterministic scene checks also render every phase at 80x24, 140x40
+and 200x60. The expanded invariant suite covers all families' protected glyphs,
+final/off equivalence, replay of 1,000 events, replacement, duplicate artifacts,
+dropped cues, viewport-bounded allocation, and partial-report settlement.

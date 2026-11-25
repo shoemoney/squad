@@ -3,7 +3,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Style},
 };
-use squad_tui::effects::debate::*;
+use squad_tui::fx::debate::*;
 use std::time::Duration;
 fn presentation(level: Level, no_color: bool) -> Presentation {
     Presentation { level, no_color }

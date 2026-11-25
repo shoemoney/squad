@@ -412,3 +412,292 @@ fn third_party_passes_cannot_bypass_color_tiers() {
         }
     }
 }
+
+#[path = "../examples/fx_reel/catalogue.rs"]
+mod catalogue;
+
+fn catalogue_cue(n: u32, effect: CatalogueEffect) -> TimedCue {
+    TimedCue {
+        event_id: id(n),
+        at: Duration::ZERO,
+        cue: FxCue::Catalogue {
+            effect,
+            target: format!("fixture-{effect:?}"),
+            duration: catalogue::duration(effect),
+        },
+    }
+}
+fn bind_catalogue(manager: &mut FxManager<ManualClock>, ctx: &FxContext) {
+    for cue in ctx.cues.iter().rev().take(1) {
+        if let FxCue::Catalogue { effect, .. } = cue.cue {
+            let pass = Pass::catalogue(
+                cue.cue.key(),
+                AREA,
+                PassAccess::Unprotected,
+                catalogue::duration(effect),
+                move |t, b, policy| {
+                    catalogue::paint(
+                        effect,
+                        b,
+                        t,
+                        if policy.fade_only {
+                            FxLevel::Lite
+                        } else {
+                            FxLevel::Full
+                        },
+                    )
+                },
+            );
+            assert!(manager.attach_pass(cue, pass));
+        }
+    }
+}
+#[test]
+fn entire_catalogue_settles_to_off_and_protects_partial_committed_reports() {
+    let area = Rect::new(0, 0, 120, 40);
+    for effect in catalogue::ALL {
+        let (clock, mut manager) = manager(FxLevel::Full);
+        // All glyphs, including blank wide-glyph continuations and partial report
+        // labels, are protected. Dedicated graphics remain outside this rectangle.
+        let protected = Rect::new(4, 5, 60, 3);
+        let mut ctx = FxContext {
+            protected: vec![protected],
+            ..Default::default()
+        };
+        let cue = catalogue_cue(7, effect);
+        manager.queue_mut().push(FeedOrigin::Live, cue.clone());
+        manager.pre(&mut ctx);
+        let pass = Pass::catalogue(
+            cue.cue.key(),
+            area,
+            PassAccess::Unprotected,
+            catalogue::duration(effect),
+            move |t, b, _| catalogue::paint(effect, b, t, FxLevel::Full),
+        );
+        assert!(manager.attach_pass(&cue, pass));
+        let mut baseline = Buffer::empty(area);
+        catalogue::paint(effect, &mut baseline, Duration::ZERO, FxLevel::Off);
+        baseline.set_string(
+            4,
+            5,
+            "Partial committed report 界: evidence stays; pending stays pending",
+            ratatui::style::Style::default(),
+        );
+        for ms in [0, 25, 100, 200, 400, 900, 1800, 3200, 5700, 6500, 6517] {
+            clock.set(Duration::from_millis(ms));
+            manager.pre(&mut ctx);
+            let mut actual = baseline.clone();
+            manager.post(&mut actual, area, clock.now());
+            for y in protected.y..protected.bottom() {
+                for x in protected.x..protected.right() {
+                    assert_eq!(
+                        actual[(x, y)].symbol(),
+                        baseline[(x, y)].symbol(),
+                        "{effect:?} at {ms}"
+                    );
+                }
+            }
+            if ms >= 6500 {
+                assert_eq!(actual, baseline, "{effect:?}");
+                assert_eq!(manager.active_count(), 0);
+            }
+        }
+        assert_eq!(manager.next_wake(), None);
+        // Collapse, failure, stop and resize share the same settlement boundary.
+        manager.settle();
+        let mut actual = baseline.clone();
+        manager.post(&mut actual, area, clock.now());
+        assert_eq!(actual, baseline);
+    }
+}
+#[test]
+fn whole_catalogue_replay_duplicates_drops_and_resize() {
+    for effect in catalogue::ALL {
+        let (clock, mut manager) = manager(FxLevel::Full);
+        for n in 0..1000 {
+            manager
+                .queue_mut()
+                .push(FeedOrigin::Replay, catalogue_cue(n, effect));
+        }
+        let mut ctx = FxContext::default();
+        manager.pre(&mut ctx);
+        assert!(ctx.cues.is_empty());
+        assert_eq!(manager.active_count(), 0);
+        for n in 0..1000 {
+            manager
+                .queue_mut()
+                .push(FeedOrigin::Live, catalogue_cue(n, effect));
+        }
+        assert_eq!(manager.queue_mut().dropped(), 744);
+        manager.pre(&mut ctx);
+        assert_eq!(manager.active_count(), 1);
+        bind_catalogue(&mut manager, &ctx);
+        manager
+            .queue_mut()
+            .push(FeedOrigin::Live, catalogue_cue(999, effect));
+        manager.pre(&mut ctx);
+        assert!(ctx.cues.is_empty());
+        manager.settle();
+        assert_eq!(manager.active_count(), 0);
+        assert_eq!(manager.next_wake(), None);
+        clock.set(Duration::from_secs(3));
+        manager
+            .queue_mut()
+            .push(FeedOrigin::Live, catalogue_cue(1001, effect));
+        manager.pre(&mut ctx);
+        assert!(ctx.cues.is_empty());
+    }
+}
+#[test]
+fn report_cues_replace_and_collapse_by_contest() {
+    let (_, mut manager) = manager(FxLevel::Full);
+    let contest = id(66);
+    let cues = [
+        FxCue::ModeBannerReady {
+            contest_id: contest,
+            mode: ReportMode::Census,
+        },
+        FxCue::CensusEstimateReady {
+            contest_id: contest,
+            pass: 1,
+        },
+        FxCue::CrosscheckCellsReady {
+            contest_id: contest,
+            artifact_id: id(90),
+        },
+        FxCue::SurveyTallyReady {
+            contest_id: contest,
+            artifact_id: id(91),
+        },
+        FxCue::ProbeTreeReady {
+            contest_id: contest,
+        },
+    ];
+    for (n, cue) in cues.iter().enumerate() {
+        manager.queue_mut().push(
+            FeedOrigin::Live,
+            TimedCue {
+                event_id: id(n as u32),
+                at: Duration::ZERO,
+                cue: cue.clone(),
+            },
+        );
+    }
+    let mut ctx = FxContext::default();
+    manager.pre(&mut ctx);
+    assert_eq!(manager.active_count(), 5);
+    manager.settle_contest(&contest.to_string());
+    assert_eq!(manager.active_count(), 0);
+    assert_eq!(manager.next_wake(), None);
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(32))]
+    #[test]
+    fn arbitrary_catalogue_sequence_finishes_like_off(sequence in prop::collection::vec(0usize..18,0..100), sample in 0u64..6500) {
+        let (clock,mut manager)=manager(FxLevel::Full);
+        for (n,index) in sequence.into_iter().enumerate() {manager.queue_mut().push(FeedOrigin::Live,catalogue_cue(n as u32,catalogue::ALL[index]));}
+        let mut ctx=FxContext {protected:vec![BODY],..Default::default()};manager.pre(&mut ctx);
+        // Bind only the newest admitted cue for each replacement key.
+        let mut bound=std::collections::BTreeSet::new();
+        for cue in ctx.cues.iter().rev() {
+            if !bound.insert(cue.cue.key()) {continue;}
+            if let FxCue::Catalogue {effect,..}=cue.cue {
+                prop_assert!(manager.attach_pass(cue,Pass::catalogue(cue.cue.key(),AREA,PassAccess::Unprotected,catalogue::duration(effect),move |t,b,_|catalogue::paint(effect,b,t,FxLevel::Full))));
+            }
+        }
+        let mut baseline=Buffer::empty(AREA);baseline.set_string(2,3,"Partial report 界 evidence remains",ratatui::style::Style::default());
+        clock.set(Duration::from_millis(sample));manager.pre(&mut ctx);let mut actual=baseline.clone();manager.post(&mut actual,AREA,clock.now());
+        for y in BODY.y..BODY.bottom(){for x in BODY.x..BODY.right(){prop_assert_eq!(actual[(x,y)].symbol(),baseline[(x,y)].symbol());}}
+        clock.set(Duration::from_secs(21));manager.pre(&mut ctx);let mut actual=baseline.clone();manager.post(&mut actual,AREA,clock.now());prop_assert_eq!(actual,baseline);prop_assert_eq!(manager.active_count(),0);
+    }
+}
+#[test]
+fn same_artifact_under_a_new_event_does_not_restart_and_new_artifact_replaces() {
+    let (_, mut manager) = manager(FxLevel::Full);
+    let mut ctx = FxContext::default();
+    let make = |event, artifact| TimedCue {
+        event_id: id(event),
+        at: Duration::ZERO,
+        cue: FxCue::SurveyTallyReady {
+            contest_id: id(100),
+            artifact_id: id(artifact),
+        },
+    };
+    manager.queue_mut().push(FeedOrigin::Live, make(1, 10));
+    manager.pre(&mut ctx);
+    assert_eq!(ctx.cues.len(), 1);
+    manager.queue_mut().push(FeedOrigin::Live, make(2, 10));
+    manager.pre(&mut ctx);
+    assert!(ctx.cues.is_empty());
+    manager.queue_mut().push(FeedOrigin::Live, make(3, 11));
+    manager.pre(&mut ctx);
+    assert_eq!(ctx.cues.len(), 1);
+    assert_eq!(manager.active_count(), 1);
+}
+
+#[test]
+fn reel_covers_every_scene_at_wide_and_narrow_sizes_with_honest_totals() {
+    let verdict = catalogue::canned();
+    for side in 0..2 {
+        assert_eq!(
+            verdict.totals[side],
+            verdict.criteria.iter().map(|c| c.scores[side]).sum::<u32>()
+        );
+    }
+    for (w, h) in [(80, 24), (140, 40), (200, 60)] {
+        let area = Rect::new(0, 0, w, h);
+        let inner = Rect::new(2, 2, w - 4, h - 4);
+        for ms in [
+            0, 700, 1300, 2199, 2250, 2450, 2900, 3200, 5000, 5150, 5400, 5600, 5900, 7000, 8599,
+            9000, 12500, 15900, 17000, 18000, 20800, 22000, 24000, 25000, 27000, 27780, 29000,
+        ] {
+            let mut b = Buffer::empty(area);
+            let reveal = squad_tui::fx::verdict::VerdictReveal::new(FxLevel::Full, false, true, 42);
+            catalogue::showcase(&mut b, inner, Duration::from_millis(ms), &reveal);
+            assert_eq!(b.area, area);
+            if ms == 29000 {
+                let text: String = b.content.iter().map(|c| c.symbol()).collect();
+                assert!(text.contains("AGREE 4"));
+                assert!(text.contains("DISAGREE 1"));
+            }
+        }
+    }
+}
+
+#[test]
+fn catalogue_scratch_is_bounded_by_viewport_and_candidate_keys_follow_pending_state() {
+    let mut pass = Pass::catalogue(
+        FxKey::DailySpend,
+        Rect::new(0, 0, u16::MAX, u16::MAX),
+        PassAccess::BlankCells,
+        Duration::from_secs(1),
+        |_, b, _| assert_eq!(b.area, AREA),
+    );
+    let mut buffer = Buffer::empty(AREA);
+    pass.process(Duration::ZERO, &mut buffer, AREA, &[]);
+    let (_, mut manager) = manager(FxLevel::Full);
+    let key = FxKey::Candidate {
+        contest: "pick".into(),
+        member: "claude".into(),
+    };
+    manager.add_tween(
+        key.clone(),
+        Tween {
+            start: Duration::ZERO,
+            duration: Duration::from_secs(2),
+            from: 0.,
+            to: 1.,
+            ease: Ease::Linear,
+        },
+        false,
+    );
+    manager.pre(&mut FxContext {
+        pending_pick: true,
+        ..Default::default()
+    });
+    assert!(manager.contains(&key));
+    manager.pre(&mut FxContext::default());
+    assert!(!manager.contains(&key));
+    assert_eq!(manager.next_wake(), None);
+}
