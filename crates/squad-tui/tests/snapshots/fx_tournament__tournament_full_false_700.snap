@@ -1,0 +1,13 @@
+---
+source: crates/squad-tui/tests/fx_tournament.rs
+expression: "text(&render(&fx, ms, Rect::new(0, 0, 90, 12)))"
+---
+ 1. muse · score 81
+   Novel and feasible.
+   ━━━━━━━━━━━━  61
+ 2. claude · score 81
+   Strong fit; accepted second on the judge's tiebreak.
+   ━━━━━━━━━━━━━━━━  81
+ 3. gemini · score 73 · ELIMINATED
+   Good evidence; the attack remains unanswered.
+   ━━━━━━━━━━━━━━━━  73

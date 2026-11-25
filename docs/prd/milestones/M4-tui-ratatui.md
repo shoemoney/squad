@@ -311,16 +311,16 @@
   - [x] M4.P5.L8.T2 — `squad-tui/tests/fx_banner.rs`: snapshots at 0, 120, 280, 600, 900, 1600, 1900 ms for `ROUND 3`, `FINAL ROUND`, `OPENING` at 120x40 and 80x24, in all colour tiers.
   - [x] M4.P5.L8.T3 — `squad-tui/tests/fx_banner.rs`: assert `VERDICT` entrance occurs on entering `JUDGING`, the verdict arrival does not insert a duplicate banner, and early tokens leave permanent inline art.
 - **M4.P5.L9 — Showpiece: verdict reveal**
-  - [ ] M4.P5.L9.T1 — `squad-tui/src/fx/verdict.rs`: timeline state machine (blackout, criteria rows, suspense hold, winner, confetti, loser section), skip on keypress without consuming the key.
-  - [ ] M4.P5.L9.T2 — `squad-tui/tests/fx_verdict.rs`: snapshots at each storyboard timestamp, an equal-round-tally case, and the `lite` and narrow variants.
-  - [ ] M4.P5.L9.T3 — `squad-tui/examples/fx_reel.rs`: scripted demo that plays launch, a three-round debate and a verdict from canned data, for recording.
+  - [x] M4.P5.L9.T1 — `squad-tui/src/fx/verdict.rs`: timeline state machine (blackout, criteria rows, suspense hold, winner, confetti, loser section), skip on keypress without consuming the key.
+  - [x] M4.P5.L9.T2 — `squad-tui/tests/fx_verdict.rs`: snapshots at each storyboard timestamp, an equal-round-tally case, and the `lite` and narrow variants.
+  - [x] M4.P5.L9.T3 — `squad-tui/examples/fx_reel.rs`: scripted demo that plays launch, a three-round debate and a verdict from canned data, for recording.
 - **M4.P5.L10 — Daily spend effects**
   - [x] M4.P5.L10.T1 — `squad-tui/src/fx/meter.rs`: animate authoritative daily spend and pending reservations; preserve unknown-cost `~` and the always-visible spend/max labels; apply heat thresholds to actual spend.
   - [x] M4.P5.L10.T2 — `squad-tui/tests/fx_meter.rs`: snapshots and state-change tests for 75/90/100%, pending-to-actual replacement, unknown costs, local-day rollover and a raised max, including `lite`, `off` and `NO_COLOR`.
 - **M4.P5.L11 — Tournament effects**
-  - [ ] M4.P5.L11.T1 — `squad-tui/src/fx/tournament.rs`: reveal accepted rankings bottom-up in fixed row positions, stamp the committed elimination and retain the eliminated-row marker through the tournament.
-  - [ ] M4.P5.L11.T2 — `squad-tui/src/fx/tournament.rs` and `squad-tui/src/fx/verdict.rs`: reuse the celebration for `CHAMPION`, with one trophy tick and no debate W-L tick.
-  - [ ] M4.P5.L11.T3 — `squad-tui/tests/fx_tournament.rs`: snapshot ranking, elimination and champion sequences; test duplicate cues, resize, replay, rejected judge output and all effect levels against the static render.
+  - [x] M4.P5.L11.T1 — `squad-tui/src/fx/tournament.rs`: reveal accepted rankings bottom-up in fixed row positions, stamp the committed elimination and retain the eliminated-row marker through the tournament.
+  - [x] M4.P5.L11.T2 — `squad-tui/src/fx/tournament.rs` and `squad-tui/src/fx/verdict.rs`: reuse the celebration for `CHAMPION`, with one trophy tick and no debate W-L tick.
+  - [x] M4.P5.L11.T3 — `squad-tui/tests/fx_tournament.rs`: snapshot ranking, elimination and champion sequences; test duplicate cues, resize, replay, rejected judge output and all effect levels against the static render.
 - **M4.P5.L12 — Grill effects**
   - [ ] M4.P5.L12.T1 — `squad-tui/src/fx/grill.rs`: turn handoff, plan version badge bump and `SURVIVED` treatment keyed to the authoritative completion reason; preserve plan and Q&A glyphs.
   - [ ] M4.P5.L12.T2 — `squad-tui/tests/fx_grill.rs`: snapshots and state-change tests for sequential handoff, `PASS`, rebuild, survived early end, normal completion and leader failure retaining the last good plan.

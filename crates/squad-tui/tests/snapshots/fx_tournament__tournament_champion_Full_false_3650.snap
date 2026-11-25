@@ -1,0 +1,8 @@
+---
+source: crates/squad-tui/tests/fx_tournament.rs
+expression: text(&buf)
+---
+  ▴    ●▴    ◆                                                  ▪● *● *     *
+   ♛ CHAMPION◆· muse                                            ▴▴* ▴◆▪  ●*●
+   MUSE▴◆  ▴◆                                                      ▪▪*● ▪▪* ◆
+  ●▴◆  ▪*●  ●                                                     ◆▪● *● ▴ ▪◆
