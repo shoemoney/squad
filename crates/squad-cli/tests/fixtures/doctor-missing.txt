@@ -1,0 +1,9 @@
+Configuration: skipped until M0 merge (SquadConfig and environment-file loading)
+Credential presence: missing - OPENROUTER_API_KEY is required. Add it to .env or the process environment.
+OpenRouter reachability: skipped until M2
+Model resolution: skipped until M2
+Data directory: FAIL - injected path failure
+Terminal capabilities: unsuitable for TUI (noninteractive commands remain usable); colour: none; size: 80x24
+Daily accounting: skipped until M3
+Model identity: skipped until M3
+Overall: FAIL

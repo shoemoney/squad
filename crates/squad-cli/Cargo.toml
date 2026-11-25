@@ -12,9 +12,17 @@ name = "squad"
 path = "src/main.rs"
 
 [dependencies]
+clap = { workspace = true }
+crossterm = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 squad-protocol = { workspace = true }
 squad-core = { workspace = true }
 squad-tui = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
 
 [lints]
 workspace = true

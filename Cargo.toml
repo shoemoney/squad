@@ -10,6 +10,12 @@ repository = "https://github.com/shoemoney/squad"
 rust-version = "1.99"
 
 [workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
+crossterm = "0.29"
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["registry"] }
+tempfile = "3"
 squad-protocol = { path = "crates/squad-protocol" }
 squad-store = { path = "crates/squad-store" }
 squad-agents = { path = "crates/squad-agents" }
