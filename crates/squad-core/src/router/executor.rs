@@ -212,10 +212,11 @@ pub fn start(
         match squad_store::accounting::start_priced(tx, &grant, group.accepted_at, &day, input_tokens, max) {
             Ok(()) => Ok(RequestResult::Internal(InternalResult::Started(grant))),
             Err(StoreError::Domain(code, message)) => {
-                let mut failure = if code == ErrorCode::DAILY_MAX_REACHED {
-                    let required = squad_store::accounting::dispatch_required_micros(tx, &grant, input_tokens).unwrap_or_default();
-                    crate::router::daily_cap_error(tx, &day, required, max)
-                } else { error(code, message.to_owned()) };
+                let text = if code == ErrorCode::DAILY_MAX_REACHED {
+                    // Exact wording mandated by PRD 02, 04 and 10 for the daily max.
+                    format!("Daily max of ${:.2} reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.", max as f64 / 1e6)
+                } else { message.to_owned() };
+                let mut failure = error(code, text);
                 failure.work_id = Some(work_id);
                 terminal(tx, group, id, &grant.work, failure.clone())?;
                 Ok(RequestResult::Rejected { request_id: id, error: failure })

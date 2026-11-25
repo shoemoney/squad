@@ -321,8 +321,7 @@ fn remaining_attempts(grant: &ExecutionGrant) -> u32 {
         .max(1)
 }
 
-/// What an ordinary dispatch needs reserved in total (for admission messages).
-pub fn dispatch_required_micros(
+fn required_micros(
     db: &Connection,
     grant: &ExecutionGrant,
     input_tokens: Option<u64>,
@@ -352,7 +351,7 @@ fn reserve_dispatch(
             |r| r.get(0),
         )
         .optional()?;
-    let needed = dispatch_required_micros(db, grant, input_tokens)?;
+    let needed = required_micros(db, grant, input_tokens)?;
     if let Some(prior) = prior {
         // Reprice remaining calls after restart or catalog refresh. Started shares
         // retain their original amounts and billing day.
