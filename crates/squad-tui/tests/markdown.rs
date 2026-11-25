@@ -242,3 +242,42 @@ fn nested_fences_are_highlighted_and_entity_controls_cannot_escape() {
     assert!(!rows(&renderer).join("").chars().any(|c| c.is_control()));
     assert_eq!(sanitize("a\u{9d}hidden\u{9c}b\u{90}hidden\x1b\\c"), "abc");
 }
+
+#[test]
+fn prose_wraps_at_words_across_style_spans() {
+    use ratatui::style::{Color, Style};
+    let lines = wrap_lines(
+        &[Line::from(vec![
+            Span::raw("keep "),
+            Span::styled("respon", Style::default().fg(Color::Red)),
+            Span::styled("siveness", Style::default().fg(Color::Cyan)),
+            Span::raw(" visible"),
+        ])],
+        20,
+    );
+    let text = lines
+        .iter()
+        .map(|line| line.to_string().trim().to_owned())
+        .collect::<Vec<_>>();
+    assert_eq!(text, vec!["keep", "responsiveness", "visible"]);
+    assert_eq!(
+        lines[1]
+            .spans
+            .iter()
+            .find(|s| s.content == "r")
+            .unwrap()
+            .style
+            .fg,
+        Some(Color::Red)
+    );
+    assert_eq!(
+        lines[1]
+            .spans
+            .iter()
+            .find(|s| s.content == "v")
+            .unwrap()
+            .style
+            .fg,
+        Some(Color::Cyan)
+    );
+}

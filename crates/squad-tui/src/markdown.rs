@@ -520,7 +520,20 @@ pub fn wrap_lines(lines: &[Line<'_>], width: usize) -> Vec<Line<'static>> {
         let mut source_cells = 0;
         let mut span_index = 0;
         let mut span_end = line.spans.first().map_or(0, |span| span.content.len());
+        let words: std::collections::HashMap<usize, usize> = text
+            .split_word_bound_indices()
+            .filter(|(_, word)| !word.chars().all(char::is_whitespace))
+            .map(|(offset, word)| (offset, word.width()))
+            .collect();
         for (offset, grapheme) in text.grapheme_indices(true) {
+            if let Some(word_width) = words.get(&offset)
+                && *word_width <= available
+                && cells + word_width > available
+                && !row.is_empty()
+            {
+                output.push(padded(std::mem::take(&mut row), padding));
+                cells = 0;
+            }
             while offset >= span_end && span_index + 1 < line.spans.len() {
                 span_index += 1;
                 span_end += line.spans[span_index].content.len();

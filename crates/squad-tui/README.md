@@ -1,5 +1,70 @@
 # squad-tui
 
+
+## Integrated product renderer (2026-11-24)
+
+The demo now uses the prepared Markdown transcript, participant roster, graphical
+spend meter, inline debate/opening/round cards, accepted round scores, tug bar,
+verdict and case widgets. Question-first picks are inline. Generic tournament and
+grill states use their real widgets; typed exchanges/rankings remain an M5 input
+boundary rather than a private TUI JSON schema. The network-free script takes
+60–90 seconds (checked with Tokio's virtual clock), then leaves a grill pick open.
+Page Up/Down and the mouse wheel scroll history; End outside the editor resumes
+following the room. Mouse scrolling over the roster scrolls that panel separately.
+
+`benches/composed_streams.rs` exercises the actual `App`, feed reducer, Markdown,
+widgets and catalogue painters at `SQUAD_FX=full`, with 10,000 prepared historical
+messages, twelve streams at 40 deltas/s each, editor mutations, scrolling,
+resizing, and repeated verdict reveals. It verifies typed input in the completed
+frame. Draw timing starts immediately before `Terminal::draw` and includes
+preparation inside `ui::render`, layout, painting, diff and TestBackend flush.
+Reducer-plus-draw timing additionally includes the current frame's feed/input
+work. Key latency is wall time from scheduled input to its visible frame; CPU
+uses process user+system ticks as in the spike below. These are separate metrics.
+
+Quiet-host gate command (still pending after this integration wave):
+
+```sh
+cargo bench -p squad-tui --bench composed_streams
+```
+
+The default is 300 seconds per viewport with gate assertions enabled. For a
+measurement-only smoke, `COMPOSED_SECS=10 COMPOSED_ENFORCE=0` retains and prints
+failures without terminating before the remaining viewports. It does not convert
+a failed gate into a pass.
+
+### Loaded-host measurements; not release acceptance
+
+Dev1 was running several other workers' Cargo builds. The final measurement-only
+smoke used optimized code, headless TestBackend, truecolor and full effects.
+The server restart interrupted the 200x60 window after startup; no result is
+claimed for that viewport. Load values below are the sampled **1/5/15-minute**
+Linux load averages at each window's start and end.
+
+| Viewport | Seconds / frames | Inside draw p95 / p99 ms | Reducer + draw p95 / p99 ms | Wall key p95 ms | CPU, one core | Load start → end | Observed gate |
+|---|---:|---:|---:|---:|---:|---|---|
+| 140x42 | 10.002 / 600 | 3.939 / 5.154 | 4.168 / 5.419 | 18.653 | 12.298% | 196.18/178.19/138.64 → 167.02/172.53/137.23 | PASS smoke |
+| 80x24 | 10.003 / 600 | 7.053 / 10.684 | 7.366 / 11.931 | 18.920 | 16.596% | 167.02/172.53/137.23 → 142.27/167.05/135.82 | PASS smoke |
+| 200x60 | interrupted | unavailable | unavailable | unavailable | unavailable | unavailable | pending |
+
+Each completed smoke window processed 4,812 deltas. Startup was 1,192.285 ms and
+1,213.207 ms respectively, including the virtual-clock demo fixture, 10,000-message
+cache fill and first draw. These short loaded-host observations do **not** replace
+the five-minute quiet-host exit gate, the 200x60 6 ms effects gate, a real terminal
+measurement, or macOS verification. The orchestrator will rerun the quiet-host
+gate after the wave finishes and update these results.
+
+Retained failed development smokes: before artifact-cache optimization, the
+140x42 10.022 s / 331-frame run measured **reducer-plus-draw** p95/p99
+65.695/231.705 ms, wall key p95 421.713 ms and 19.457% CPU. An optimized but still
+heavily descheduled 16.652 s / 103-frame run measured reducer-plus-draw
+151.882/508.836 ms, wall key p95 10,035.409 ms and 4.624% CPU. Those older runs
+labelled the combined interval “draw”; they did not collect time inside draw
+separately. Load was sampled at 123.38/159.42/124.16 and later
+217.63/176.32/131.36 around this work, and 209.37/181.38/135.88 immediately after
+the latter failure. They cannot establish a quiet-host pass or regression.
+
+
 ## M4.P1.L1: throwaway 12-stream spike
 
 This standalone benchmark uses Ratatui directly, with effects off. It imports no

@@ -1,0 +1,46 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+expression: output
+---
+ SQUAD   /   main   ·   six minds, one room
+$1.57 / $2.00 · pending $0.10 · remaining $0.33
+▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▒▒▱▱▱▱▱ !
+claude               │Originality                            8/10               7/10
+idle                 │Survived attacks                       8/10               7/10
+1-0 · trophies 0     │@claude weighted total: 8.00 / 10
+ready                │@openai weighted total: 7.00 / 10
+                     │Winner: @claude
+fable                │Round tally · @claude: 24
+idle                 │Round tally · @openai: 21
+0-0 · trophies 0     │Round 1
+ready                │@claude: 8/10 · Clear durability contract
+                     │@openai: 7/10 · Strong responsiveness argument
+openai               │Round 2
+idle                 │@claude: 8/10 · Clear durability contract
+0-1 · trophies 0     │@openai: 7/10 · Strong responsiveness argument
+ready                │Round 3
+                     │@claude: 8/10 · Clear durability contract
+gemini               │@openai: 7/10 · Strong responsiveness argument
+idle                 │Durability wins the foundation; take bounded, input-first scheduling from the other proposal. Together they make a
+0-0 · trophies 0     │responsive room that survives restarts.
+ready                │RESPECT · What to steal from the loser
+                     │• Bounded input-first scheduling
+grok                 │[Follow up with @judge]
+idle
+0-0 · trophies 0     │grok · complete
+ready                │  Grill me on this plan: ship one writer, one reducer, and a twelve-stream release gate. Ask what happens when the
+                     │  writer stalls; my answer is bounded backpressure and visible pending receipts, never a frozen keyboard.
+muse
+idle                 │PICK
+0-0 · trophies 0     │CHOOSE WHO GETS GRILLED
+ready                │Type one name, e.g. @grok · Esc to cancel
+                     │ID 00000000-0000-7000-8000-000000000001
+                     │
+                     │pick pending
+                     │▸ @grok · answered · eligible
+
+>
+
+
+
+Pick 1: @grok · other messages remain available

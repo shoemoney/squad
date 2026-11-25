@@ -4,8 +4,8 @@ expression: rows(&renderer)
 ---
 [
     "  Heading  ",
-    "  Plain bold italic gone and i  ",
-    "  nline.  ",
+    "  Plain bold italic gone and   ",
+    "  inline.  ",
     "  │ quoted text  ",
     "  • [x] done  ",
     "  • next  ",

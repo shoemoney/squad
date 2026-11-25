@@ -16,6 +16,7 @@ use squad_protocol::*;
 use std::time::Duration;
 
 pub struct App {
+    pub composed: crate::composed::Composed,
     pub session: Session,
     pub input: InputState,
     pub quotes: Quotes,
@@ -53,6 +54,7 @@ impl App {
         let theme = crate::theme::Theme::new(caps.color);
         Self {
             session: Session::default(),
+            composed: crate::composed::Composed::default(),
             input: InputState::new(),
             quotes: Quotes::default(),
             completion: CompletionState::default(),
@@ -229,6 +231,37 @@ impl App {
             self.dirty = true;
             return;
         }
+        if let Event::Mouse(mouse) = &event {
+            let delta = match mouse.kind {
+                crossterm::event::MouseEventKind::ScrollUp => -3,
+                crossterm::event::MouseEventKind::ScrollDown => 3,
+                _ => 0,
+            };
+            if delta != 0 {
+                self.fx.settle();
+                if self
+                    .composed
+                    .roster_area
+                    .contains((mouse.column, mouse.row).into())
+                {
+                    self.composed.participants.scroll = self
+                        .composed
+                        .participants
+                        .scroll
+                        .saturating_add_signed(delta)
+                        .min(
+                            self.composed
+                                .roster_rows
+                                .saturating_sub(usize::from(self.composed.roster_area.height)),
+                        );
+                } else {
+                    self.composed.scroll(delta);
+                    self.session.transcript.follow = false;
+                }
+                self.dirty = true;
+                return;
+            }
+        }
         if let Event::Key(key) = &event {
             if key.kind == KeyEventKind::Release {
                 return;
@@ -254,6 +287,22 @@ impl App {
                     }
                     KeyCode::F(12) => {
                         self.debug_open = !self.debug_open;
+                        self.dirty = true;
+                        return;
+                    }
+                    KeyCode::PageUp | KeyCode::PageDown => {
+                        self.composed.scroll(if key.code == KeyCode::PageUp {
+                            -(isize::try_from(self.composed.viewport.height).unwrap_or(1))
+                        } else {
+                            isize::try_from(self.composed.viewport.height).unwrap_or(1)
+                        });
+                        self.session.transcript.follow = false;
+                        self.dirty = true;
+                        return;
+                    }
+                    KeyCode::End if !self.focus_input => {
+                        self.session.transcript.follow = true;
+                        self.composed.anchor = None;
                         self.dirty = true;
                         return;
                     }

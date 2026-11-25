@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/ui_composed.rs
+expression: output
+---
+ SQUAD   /   main   ·   six minds, one room
+$0.42 / $2.00 · pending $0.16 · remaining $1.42
+▰▰▰▰▰▰▒▒▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱▱
+claude           │   recovery boring, even when its models are surprising.
+idle
+0-0 · trophies 0 │grok · complete
+ready            │  Twelve models talking at once? Excellent way to discover
+                 │  your supposedly asynchronous UI is a slideshow. Set a
+fable            │  frame budget, bound the queues, and inject a slow judge.
+idle             │  If typing stutters, the benchmark fails. Pretty pixels do
+0-0 · trophies 0 │  not get an exemption.
+ready
+                 │muse · complete
+openai           │  Ship a rehearsal before asking for credentials. Let
+idle             │  someone watch an idea grow, survive a challenge, and
+0-0 · trophies 0 │  become a better plan. The first minute should show the
+ready            │  whole journey: question, disagreement, evidence, and a
+                 │  verdict that keeps the best part of both answers.
+gemini
+>
+
+
+
+F6 Focus · Tab Complete · Ctrl+J Newline · Ctrl+R Recipients · Esc Stop · Ctrl+C

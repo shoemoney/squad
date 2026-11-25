@@ -97,6 +97,28 @@ impl<'a> Canvas<'a> {
         }
         self.span(start, self.row)
     }
+    pub fn markdown(&mut self, text: &str, complete: bool, no_color: bool) -> Rect {
+        let start = self.row;
+        let mut renderer = crate::markdown::MarkdownRenderer::new();
+        renderer.update("inline", text, complete, usize::from(self.area.width));
+        use ratatui::widgets::Widget;
+        for mut line in renderer.visible_rows(0..renderer.row_count()).lines {
+            if no_color {
+                line.style.fg = None;
+                line.style.bg = None;
+                for span in &mut line.spans {
+                    span.style.fg = None;
+                    span.style.bg = None;
+                }
+            }
+            let rect = self.span(self.row, self.row + 1);
+            if !rect.is_empty() {
+                line.render(rect, self.buf);
+            }
+            self.row += 1;
+        }
+        self.span(start, self.row)
+    }
     pub fn art(&mut self, art: &RenderedBanner, style: Style) -> Rect {
         let start = self.row;
         for line in &art.lines {

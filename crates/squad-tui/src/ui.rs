@@ -2,10 +2,8 @@
 //! workers can replace them without changing application or scheduler state.
 use crate::{
     app::App,
-    fx::{FxCue, Pass, PassAccess},
+    fx::FxCue,
     layout,
-    session::{ContestView, DailySpendView, PickView, RoomSnapshot},
-    transcript::Transcript,
     widgets::{
         completion,
         input::InputWidget,
@@ -14,10 +12,8 @@ use crate::{
 };
 use ratatui::{
     Frame,
-    buffer::Buffer,
     layout::Rect,
     style::{Modifier, Style},
-    text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap},
 };
 use std::time::Duration;
@@ -35,46 +31,152 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         app.fx.settle();
         return;
     }
-    let mut context = app.fx_context(vec![geometry.transcript, geometry.input, geometry.spend]);
-    app.fx.pre(&mut context);
+    app.composed
+        .prepare(&app.session, geometry.transcript.width, &theme.palette);
+    let top = if app.session.transcript.follow {
+        app.composed
+            .transcript
+            .total_rows()
+            .saturating_sub(usize::from(geometry.transcript.height.saturating_sub(1)))
+    } else {
+        app.composed
+            .anchor
+            .and_then(|anchor| app.composed.transcript.row_for_anchor(anchor))
+            .or_else(|| {
+                app.session
+                    .transcript
+                    .anchor
+                    .and_then(|(id, source_grapheme)| {
+                        app.composed.transcript.row_for_anchor(
+                            crate::widgets::transcript::TranscriptAnchor {
+                                id,
+                                source_grapheme,
+                                row_in_header: None,
+                            },
+                        )
+                    })
+            })
+            .unwrap_or(0)
+    };
     let buffer = frame.buffer_mut();
     Clear.render(area, buffer);
-    Paragraph::new(" SQUAD   /   main")
+    Paragraph::new(" SQUAD   /   main   ·   six minds, one room")
         .style(theme.chrome())
         .render(geometry.status, buffer);
-    render_budget(&app.session.snapshot.daily_spend, geometry.spend, buffer);
-    render_participants(&app.session.snapshot, geometry.participants, buffer);
-    render_transcript(&app.session.transcript, geometry.transcript, buffer);
-    // Contest state is kept independently from message cards. This temporary
-    // adapter shows the latest contest at the bottom of the transcript region.
-    if let Some(view) = app.session.contests.values().next_back() {
-        let h = geometry
-            .transcript
-            .height
-            .min(if view.verdict.is_some() { 6 } else { 3 });
-        render_contest(
-            view,
-            Rect::new(
-                geometry.transcript.x,
-                geometry.transcript.bottom() - h,
-                geometry.transcript.width,
-                h,
-            ),
-            buffer,
+    let spend = &app.session.snapshot.daily_spend;
+    let budget = crate::widgets::budget::DailySpendView {
+        day: spend.day.clone(),
+        actual: Some((spend.spent_usd * 1_000_000.) as u64),
+        pending: Some((spend.reserved_usd * 1_000_000.) as u64),
+        max: Some((spend.limit_usd * 1_000_000.) as u64),
+        unknown_calls: spend.unknown_calls,
+        refusal: None,
+    };
+    // Two compact rows keep both exact accounting and the graphic meter visible.
+    let spend_area = Rect::new(geometry.spend.x, geometry.spend.y, geometry.spend.width, 2);
+    let budget_rects = crate::widgets::budget::render_effect(
+        &budget,
+        spend_area,
+        buffer,
+        &theme.palette,
+        app.fx.caps().level,
+        now,
+    );
+    let mut transcript_area = geometry.transcript;
+    transcript_area.y += 1;
+    transcript_area.height = transcript_area.height.saturating_sub(1);
+    let mut participants_area = geometry.participants;
+    participants_area.y += 1;
+    participants_area.height = participants_area.height.saturating_sub(1);
+    let members = participant_models(app);
+    let roster = crate::widgets::participants::render(
+        &crate::widgets::participants::ParticipantsView {
+            members: &members,
+            palette: &theme.palette,
+            scroll: app.composed.participants.scroll,
+        },
+        participants_area,
+        buffer,
+    );
+    let transcript = crate::widgets::transcript::render(
+        &app.composed.transcript,
+        top,
+        transcript_area,
+        buffer,
+        &theme.palette,
+    );
+    app.composed.top = top;
+    app.composed.viewport = transcript_area;
+    app.composed.roster_area = participants_area;
+    app.composed.roster_rows = roster.total_rows;
+    app.composed.logo = Rect::default();
+    if app.composed.transcript.is_empty() {
+        let art = app.composed.banners.get(
+            "SQUAD",
+            squad_core::banner::BannerMode::On,
+            transcript_area.width,
+        );
+        let height = (art.height() as u16).min(transcript_area.height);
+        let rect = Rect::new(
+            transcript_area.x,
+            transcript_area.y + transcript_area.height.saturating_sub(height) / 2,
+            transcript_area.width,
+            height,
+        );
+        crate::widgets::banner::render_art(&art, rect, buffer, &theme.palette);
+        app.composed.logo = rect;
+    }
+    let mut protected = transcript.protected.clone();
+    protected.extend(roster.protected.iter().copied());
+    protected.push(geometry.input);
+    protected.push(budget_rects.labels);
+    let mut graphics = roster.names.iter().map(|(_, r)| *r).collect::<Vec<_>>();
+    for (id, shapes) in &app.composed.graphics {
+        for rect in shapes
+            .banners
+            .iter()
+            .map(|(_, r)| *r)
+            .chain([shapes.versus, shapes.tug, shapes.verdict])
+            .chain(shapes.scores.iter().map(|(_, _, r)| *r))
+        {
+            let rect = app.composed.graphic_rect(*id, rect, top, transcript_area);
+            if !rect.is_empty() {
+                graphics.push(rect);
+            }
+        }
+    }
+    // Dedicated graphic cells are available to catalogue painters; prose stays protected.
+    protected = protected
+        .into_iter()
+        .flat_map(|row| subtract_graphics(row, &graphics))
+        .collect();
+    if !app.composed.started {
+        app.composed.started = true;
+        app.fx.queue_mut().push(
+            crate::fx::FeedOrigin::Live,
+            crate::fx::TimedCue {
+                event_id: squad_protocol::EventId::new(),
+                at: now,
+                cue: FxCue::Catalogue {
+                    effect: crate::fx::CatalogueEffect::Chrome,
+                    target: "startup".into(),
+                    duration: Duration::from_millis(1100),
+                },
+            },
         );
     }
-    if let Some(pick) = &app.session.pick {
-        render_pick(
-            pick,
-            Rect::new(
-                geometry.transcript.x,
-                geometry.transcript.y,
-                geometry.transcript.width,
-                3,
-            ),
-            buffer,
-        );
-    }
+    let mut context = app.fx_context(protected);
+    app.fx.pre(&mut context);
+    crate::ui_fx::attach(
+        app,
+        &context,
+        &geometry,
+        transcript_area,
+        &roster,
+        top,
+        &transcript,
+        budget_rects.meter,
+    );
     frame.render_stateful_widget(InputWidget, geometry.input, &mut app.input);
     if app.focus_input
         && let Some((x, y)) = app.input.cursor_in(geometry.input)
@@ -192,26 +294,33 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
             frame.set_cursor_position((x, y));
         }
     }
-    // Attach bounded catalogue painters only after pre admits a fresh live cue.
-    // Geometry and the complete static state already exist at this point.
-    for cue in &context.cues {
-        let rect = match cue.cue {
-            FxCue::DailySpendChanged => geometry.spend,
-            _ => geometry.status,
-        };
-        let gold = theme.palette.chrome();
-        let pass = Pass::catalogue(
-            cue.cue.key(),
-            rect,
-            PassAccess::Unprotected,
-            cue.cue.duration(),
-            move |elapsed, buf, _| {
-                if elapsed < Duration::from_millis(180) {
-                    buf.set_style(rect, Style::default().fg(gold).add_modifier(Modifier::BOLD));
-                }
-            },
-        );
-        app.fx.attach_pass(cue, pass);
+    if app.fx.caps().level != crate::fx::FxLevel::Off {
+        for cursor in &transcript.cursors {
+            let point = ratatui::layout::Position::new(cursor.x, cursor.y);
+            let hue = frame.buffer_mut()[(transcript_area.x, cursor.y)].fg;
+            let bubble = crate::fx::bubble::Bubble {
+                area: transcript_area,
+                rail: Rect::default(),
+                header: Rect::default(),
+                footer: Rect::default(),
+                cursor: Some(point),
+                tail: std::array::from_fn(|i| {
+                    cursor
+                        .x
+                        .checked_sub(i as u16 + 1)
+                        .filter(|x| *x > transcript_area.x)
+                        .map(|x| ratatui::layout::Position::new(x, cursor.y))
+                }),
+                status: Rect::default(),
+                hue,
+                text: ratatui::style::Color::Reset,
+                error: ratatui::style::Color::Red,
+                level: app.fx.caps().level,
+                no_color: theme.palette.tier == crate::fx::ColorTier::NoColor,
+                moment: crate::fx::bubble::Moment::Streaming,
+            };
+            bubble.apply(now, frame.buffer_mut(), &context.protected);
+        }
     }
     app.fx.post(frame.buffer_mut(), area, now);
     if app.debug_open || app.fx.debug_tag().is_some() {
@@ -235,87 +344,82 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     }
 }
 
-pub fn render_budget(view: &DailySpendView, rect: Rect, buffer: &mut Buffer) {
-    Paragraph::new(view.label()).render(rect, buffer);
+fn subtract_graphics(row: Rect, graphics: &[Rect]) -> Vec<Rect> {
+    let mut pieces = vec![row];
+    for graphic in graphics {
+        pieces = pieces
+            .into_iter()
+            .flat_map(|piece| {
+                let overlap = piece.intersection(*graphic);
+                if overlap.is_empty() {
+                    return vec![piece];
+                }
+                let mut out = Vec::new();
+                if overlap.x > piece.x {
+                    out.push(Rect::new(
+                        piece.x,
+                        piece.y,
+                        overlap.x - piece.x,
+                        piece.height,
+                    ));
+                }
+                if overlap.right() < piece.right() {
+                    out.push(Rect::new(
+                        overlap.right(),
+                        piece.y,
+                        piece.right() - overlap.right(),
+                        piece.height,
+                    ));
+                }
+                out
+            })
+            .collect();
+    }
+    pieces
 }
-pub fn render_participants(view: &RoomSnapshot, rect: Rect, buffer: &mut Buffer) {
-    let lines = view
+fn participant_models(app: &App) -> Vec<crate::widgets::participants::ParticipantView> {
+    app.session
+        .snapshot
         .context
         .roster
         .iter()
-        .map(|nick| {
-            let status = view
+        .enumerate()
+        .map(|(slot, nick)| {
+            let presence = app
+                .session
+                .snapshot
                 .participants
                 .iter()
-                .find(|p| &p.nick == nick)
-                .map(|p| format!("{:?}", p.status))
-                .unwrap_or_else(|| "Idle".into());
-            Line::from(format!(" {nick} · {status}"))
+                .find(|p| &p.nick == nick);
+            let score = app
+                .session
+                .snapshot
+                .scoreboard
+                .iter()
+                .find(|s| &s.nick == nick);
+            crate::widgets::participants::ParticipantView {
+                nick: nick.to_string(),
+                version: String::new(),
+                model: String::new(),
+                slot,
+                presence: presence
+                    .map_or(squad_protocol::PresenceStatus::Idle, |p| p.status.clone()),
+                queue_depth: presence.map_or(0, |p| p.queue_depth),
+                contest: None,
+                tokens: None,
+                cost_usd: None,
+                tokens_per_second: app.session.stream_rates.get(nick).copied(),
+                wins: score.map_or(0, |s| s.wins as u32),
+                losses: score.map_or(0, |s| s.losses as u32),
+                trophies: app
+                    .session
+                    .snapshot
+                    .trophies
+                    .get(nick)
+                    .copied()
+                    .unwrap_or(0) as u32,
+                eliminated: false,
+            }
         })
-        .collect::<Vec<_>>();
-    Paragraph::new(lines)
-        .block(Block::default().title("ROOM").borders(Borders::RIGHT))
-        .render(rect, buffer);
-}
-pub fn render_transcript(view: &Transcript, rect: Rect, buffer: &mut Buffer) {
-    let mut lines = vec![];
-    for card in view.cards.values() {
-        let author = match &card.author {
-            squad_protocol::Actor::Member(n) => n.to_string(),
-            squad_protocol::Actor::Me => "me".into(),
-            squad_protocol::Actor::Judge => "judge".into(),
-            squad_protocol::Actor::System => "system".into(),
-        };
-        lines.push(Line::from(Span::styled(
-            format!(" {author}{}", if card.complete { "" } else { " •" }),
-            Style::default().add_modifier(Modifier::BOLD),
-        )));
-        for row in crate::text::wrap(&card.text, usize::from(rect.width.saturating_sub(2)).max(1)) {
-            lines.push(Line::from(format!(
-                " {}",
-                row.cells
-                    .iter()
-                    .map(|c| c.display.as_str())
-                    .collect::<String>()
-            )));
-        }
-        lines.push(Line::default());
-    }
-    let skip = lines.len().saturating_sub(usize::from(rect.height));
-    Paragraph::new(lines.into_iter().skip(skip).collect::<Vec<_>>()).render(rect, buffer);
-}
-pub fn render_contest(view: &ContestView, rect: Rect, buffer: &mut Buffer) {
-    let text = if let Some(v) = &view.verdict {
-        format!(
-            "VERDICT · {} wins\n{}",
-            v.verdict.verdict.winner, v.verdict.verdict.reasoning
-        )
-    } else if let Some(d) = &view.debate {
-        format!(
-            "{} vs {} · Round {}/{} · {:?}",
-            d.debaters[0], d.debaters[1], d.round, d.total_rounds, d.state
-        )
-    } else {
-        format!("{:?}", view.state)
-    };
-    Clear.render(rect, buffer);
-    Paragraph::new(text)
-        .wrap(Wrap { trim: false })
-        .block(Block::default().borders(Borders::TOP))
-        .render(rect, buffer);
-}
-pub fn render_pick(view: &PickView, rect: Rect, buffer: &mut Buffer) {
-    Clear.render(rect, buffer);
-    Paragraph::new(format!(
-        "{}\nPick {}: {}",
-        view.request.banner,
-        view.request.required_picks,
-        view.request
-            .eligible
-            .iter()
-            .map(|n| format!("@{n}"))
-            .collect::<Vec<_>>()
-            .join(" ")
-    ))
-    .render(rect, buffer);
+        .collect()
 }

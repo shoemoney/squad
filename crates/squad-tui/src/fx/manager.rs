@@ -444,6 +444,25 @@ impl<C: Clock> FxManager<C> {
         }
         false
     }
+    /// Rebind an already admitted cue to this frame's widget geometry. Its
+    /// original start time survives stream growth and scroll reflow.
+    pub(crate) fn reflow_pass(&mut self, cue: &TimedCue, pass: Pass) -> bool {
+        if self.policy().snap || (pass.full_buffer && !self.policy().full_buffer) {
+            return false;
+        }
+        if let Some(active) = self
+            .active
+            .iter_mut()
+            .find(|a| a.key == cue.cue.key() && a.cue_id == Some(cue.event_id))
+        {
+            if let (Some(tween), Some(duration)) = (&mut active.tween, pass.catalogue_duration()) {
+                tween.duration = duration.min(Duration::from_secs(20));
+            }
+            active.pass = Some(pass);
+            return true;
+        }
+        false
+    }
     pub fn caps(&self) -> &TerminalCaps {
         &self.caps
     }

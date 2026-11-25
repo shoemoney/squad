@@ -35,3 +35,7 @@ harness = false
 [[bench]]
 name = "twelve_streams"
 harness = false
+
+[[bench]]
+name = "composed_streams"
+harness = false

@@ -465,7 +465,11 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
                     ),
                     style,
                 );
-                out.turn_bodies.push(c.line(&turn.text, body));
+                out.turn_bodies.push(c.markdown(
+                    &turn.text,
+                    turn.is_final,
+                    palette.tier == crate::fx::ColorTier::NoColor,
+                ));
             } else {
                 c.line(&format!("@{nick} · waiting"), style);
             }
@@ -486,7 +490,16 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
                                 &format!("@{nick}: {}/10", value.score),
                                 Style::default().fg(palette.member(nick.as_str(), i)),
                             );
-                            out.score_cells.push((round.round, nick.clone(), rect));
+                            let digits = value.score.to_string().len() as u16;
+                            let offset = nick.as_str().len() as u16 + 3;
+                            let numeric = Rect::new(
+                                rect.x.saturating_add(offset),
+                                rect.y,
+                                digits,
+                                rect.height.min(1),
+                            )
+                            .intersection(rect);
+                            out.score_cells.push((round.round, nick.clone(), numeric));
                             if round.reasons_expanded {
                                 c.line(&value.reason, body);
                             }
