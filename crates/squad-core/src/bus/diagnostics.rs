@@ -4,7 +4,11 @@ pub fn request(id: EventId, owner: Option<&ExecutorKey>) {
     tracing::debug!(request_id=%id,executor=?owner,"bus.request");
 }
 pub fn commit(event: &CommittedEnvelope) {
-    tracing::debug!(event_id=%event.base.id,correlation_id=%event.base.correlation_id,causation_id=?event.base.causation_id,seq=event.commit.seq.get(),commit_index=event.commit.commit_index,commit_size=event.commit.commit_size,"bus.commit");
+    // Read only public identity fields; never log the owning payload or private maps.
+    let wire = serde_json::to_value(&event.content).unwrap_or_default();
+    let payload = &wire["payload"];
+    let identity = |name| payload[name].as_str();
+    tracing::debug!(contest_id=identity("contestId"),debate_id=identity("debateId"),step_id=identity("stepId"),work_id=identity("workId"),attempt=payload["attempt"].as_u64(),case_id=identity("caseId"),event_id=%event.base.id,correlation_id=%event.base.correlation_id,causation_id=?event.base.causation_id,seq=event.commit.seq.get(),commit_index=event.commit.commit_index,commit_size=event.commit.commit_size,"bus.commit");
 }
 pub fn mailbox(executor: &ExecutorKey, coalesced: bool) {
     tracing::debug!(?executor, coalesced, "bus.mailbox");
