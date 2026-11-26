@@ -1274,18 +1274,18 @@ Squad counts **only its own calls**. Usage on your OpenRouter key from other too
 
 ### 💸 What a run costs
 
-Measured on 2026-11-25 with the default roster and settings (partial: an OpenRouter budget limit stopped the study early). Full method and per-run numbers are in [docs/costs.md](docs/costs.md).
+Measured on 2026-11-25 and 2026-11-26 with the default roster and settings, one fresh data directory per run. Full method, per-run numbers and failures are in [docs/costs.md](docs/costs.md).
 
-| Run | Real cost | Time | Reserved up front | Refused at the default $20 cap? |
-|---|---|---|---|---|
-| Ordinary `@all` question | about $0.17 | about 25 s | at least $39.6 | yes |
-| `$debate`, 10 rounds, judged | about $2.85 | about 8 min | $16.77 | no |
-| `$probe` | about $1 | 3 to 4 min | $26.18 | yes |
-| `$crosscheck` | not measured | n/a | $20.61 | yes |
-| `$census` | not measured | n/a | $46.22 | yes |
-| `$grill` | not measured | n/a | $68.67 | yes |
-| `$survey` | not measured | n/a | $108.83 | yes |
-| `$tournament` | not measured | n/a | $110.53 | yes |
+| Run | Mean real cost (min to max) | Mean time | Reserved up front | Reserved ÷ actual | Fits the $150 default cap? |
+|---|---|---|---|---|---|
+| Ordinary `@all` question (3 runs) | $0.09 ($0.04 to $0.17) | 17 s | $43.72 | 490× | yes |
+| `$debate`, 10 rounds, judged (2 runs) | $2.81 ($2.78 to $2.85) | 6 min | $27.87 | 9.9× | yes |
+| `$survey` (2 runs) | $1.61 ($1.50 to $1.72) | 4.1 min | $27.05 | 16.8× | yes |
+| `$tournament` (2 runs) | $1.75 ($1.71 to $1.78) | 4.8 min | $89.69 | 51× | yes |
+| `$probe` (1 run, older build) | $0.96 | 165 s | $26.18 | 27× | yes |
+| `$grill` | pending fix | n/a | n/a | n/a | n/a |
+| `$census` | pending fix | n/a | n/a | n/a | n/a |
+| `$crosscheck` | pending fix | n/a | n/a | n/a | n/a |
 
 Reservations are held back while a run is in flight and are released as calls finish, so the reserved amount is far above what you are charged.
 

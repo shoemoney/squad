@@ -1,12 +1,12 @@
 # 💸 What a Squad run costs
 
-**Status: partial.** Measured on 2026-11-25 with the default roster and default settings. The study stopped early because OpenRouter's **workspace weekly budget ($250)** ran out partway through the first wave: every call after that returned `403 Workspace weekly budget of $250.00 exceeded`. The workspace was already near $241 for the week before the study began, and the study's own runs spent $13.60. Modes or runs that could not be measured are marked **not measured**. A follow-up will fill them in once the budget is raised or resets (2026-11-30 00:00 UTC).
+**Status: ordinary, debate, survey and tournament measured; probe from part 1; grill, census and crosscheck pending fix.** Part 1 (2026-11-25) was cut short by OpenRouter's $250 weekly workspace budget. Part 2 (2026-11-26) re-ran what was missing on a release build of branch `cost-study-2`, which carries the $150 default daily cap and all v0.1.1 fixes. All seven part 2 runs were clean: every call completed, no failures, no 403s.
 
 ## Method
 
-- Binary: `cargo build --release -p squad-cli` from branch `cost-study`.
+- Binary: `cargo build --release -p squad-cli` (`CARGO_BUILD_JOBS=4`). Part 1 used branch `cost-study`; part 2 used `cost-study-2`.
 - One run per fresh `SQUAD_DATA_DIR`, sent with `squad send "<message>" --yes --json`. All runs of the first wave were launched at the same time on one machine.
-- `SQUAD_DAILY_MAX_USD=100`, so the cap would not block. Tournament and survey still reserve more than $100, so those two were refused even at that cap (see below). Default `ROUNDS` (10), `GRILL_ROUNDS` (2), `CENSUS_PASSES` (2) and default reasoning effort were not changed.
+- Part 1 set `SQUAD_DAILY_MAX_USD=100`. **Part 2 left the cap at the new $150 default** (`SQUAD_DAILY_MAX_USD` unset). Tournament and survey still reserve more than $100, so those two were refused even at that cap (see below). Default `ROUNDS` (10), `GRILL_ROUNDS` (2), `CENSUS_PASSES` (2) and default reasoning effort were not changed.
 - **Cost** is the ledger total in `squad.db` (`spend_daily`). It was cross-checked against OpenRouter by looking up every call's `providerRequestId` on `/api/v1/generation`. Where all of a run's calls were found, the OpenRouter sum equals the sum of Squad's `usage.record` costs to the millionth of a dollar. The ledger runs about **$0.0015 higher** than the call sum in every fresh data directory: that is Squad's four startup model-identity probes, paid once per data directory.
 - **Reserved** is the peak `reserved_micros` in the ledger, sampled twice a second. **Estimate** is the `estimatedUsd` Squad shows in the cost preview.
 - Tokens are the sums of the `usage.record` input and output tokens. Output includes reasoning. The reasoning-only count comes from OpenRouter's `native_tokens_reasoning`.
@@ -47,27 +47,47 @@
 
 ord2 and ord3 were sent without `@all` by mistake and rejected with `RECIPIENT_REQUIRED` (cost: startup probes only).
 
+## Part 2 runs (2026-11-26, default $150 cap)
+
+Seven runs launched at the same time, each with a fresh data directory, sent with `squad send "<message>" --yes --json`. The OpenRouter per-call lookup found all 157 of 157 calls, and the sum matched Squad's ledger to the millionth of a dollar (ledger is $0.0015 higher per run for the startup probes, as before).
+
+| Run | Mode | Outcome | Cost (ledger) | Calls (failed) | In / out / reasoning tokens | Wall | Estimate | Reserved |
+|---|---|---|---|---|---|---|---|---|
+| ord4 | ordinary `@all` | COMPLETE | $0.0575 | 6 (0) | 6,360 / 1,677 / 712 | 12 s | none shown | $43.72 |
+| ord5 | ordinary `@all` | COMPLETE | $0.0447 | 6 (0) | 6,360 / 1,319 / 503 | 15 s | none shown | $43.72 |
+| deb3 | debate, `@claude @openai`, judged | COMPLETE | $2.7778 | 33 (0) | 364,991 / 28,940 / 10,334 | 215 s | $13.14 | $27.87 |
+| surv1 | survey `@all` | COMPLETE | $1.7153 | 22 (0) | 109,917 / 46,068 / 19,298 | 223 s | $6.07 | $27.05 |
+| surv2 | survey `@all` | COMPLETE | $1.5004 | 21 (0) | 99,036 / 43,616 / 22,089 | 275 s | $6.07 | $27.05 |
+| tour1 | tournament `@all` | COMPLETE | $1.7842 | 25 (0) | 99,038 / 48,354 / 24,316 | 279 s | $12.40 | $89.69 |
+| tour2 | tournament `@all` | COMPLETE | $1.7071 | 25 (0) | 97,132 / 50,887 / 27,492 | 292 s | $12.40 | $89.69 |
+
+Messages: ordinary `@all What is one practical tip for writing a good commit message?`; debate `@claude @openai $debate Should a new command line tool be written in Rust or Go? @judge`; survey `@all $survey What should a first release of a terminal chat app include, and what should wait?`; tournament `@all $tournament Design a useful CLI`.
+
+Part 2 spent **$9.59** by Squad's ledger ($9.58 of call cost plus $0.01 of startup probes).
+
 ## Per-mode summary
 
-| Mode | Typical cost (clean runs) | Range seen | Time | Reserved / actual | Refused at the default $20 cap? | Notes |
-|---|---|---|---|---|---|---|
-| Ordinary `@all` | $0.16 (one run) | one run | about 23 s | at least 240× | **yes** (≥ $39.6) | n = 1. Needs two more runs for variance. |
-| Debate (10 rounds, judged) | $2.85 (one clean run) | $2.44 to $2.85 (the low one lost its final judge call) | about 8 min | 5.9× | no ($16.77) | The only mode under $20 reserved. |
-| Tournament | not measured | n/a | n/a | n/a | **yes** ($110.53) | Refused even at a $100 cap. |
-| Grill | not measured (failed after 3 calls both times) | $0.17 to $0.19 spent before failing | n/a | n/a | **yes** ($68.67) | Leader step (claude) failed `MODE_INVALID_OUTPUT` twice. |
-| Census | not measured (budget hit) | $1.32 to $1.55 spent before failing | n/a | n/a | **yes** ($46.22) | Estimate $20.35, 28 calls planned. |
-| Crosscheck | not measured (budget hit) | $1.19 to $1.50 spent before failing | n/a | n/a | **yes** ($20.61) | Over the cap by $0.61. |
-| Survey | not measured | n/a | n/a | n/a | **yes** ($108.83) | Refused even at a $100 cap. |
-| Probe | $0.96 (one clean complete run) | $0.96 to $1.24 | 165 to 239 s | 27× | **yes** ($26.18) | 10 to 12 calls. The second run failed at the judge with `JUDGE_INVALID_VERDICT`. |
+Cost and wall time are over the clean runs of both parts. Reserved is the peak reservation seen in the **current build** (part 2). `Reserved ÷ actual` uses the mean cost.
 
-Total spent by the first wave: **$13.60** by Squad's ledger, including the startup probes of 19 data directories. OpenRouter showed $15.22 for the key that day, which also includes about $1.6 spent before the study started.
+| Mode | Runs | Mean cost | Min | Max | Mean wall time | Estimate shown | Reserved | Reserved ÷ actual | Fits $150 cap? |
+|---|---|---|---|---|---|---|---|---|---|
+| Ordinary `@all` | 3 | $0.089 | $0.045 | $0.166 | 17 s (12 to 23) | none | $43.72 | 490× | **yes** |
+| Debate (10 rounds, judged) | 2 | $2.81 | $2.78 | $2.85 | 6 min (3.6 to 8.6) | $13.14 | $27.87 | 9.9× | **yes** |
+| Survey | 2 | $1.61 | $1.50 | $1.72 | 4.1 min (3.7 to 4.6) | $6.07 | $27.05 | 16.8× | **yes** |
+| Tournament | 2 | $1.75 | $1.71 | $1.78 | 4.8 min (4.6 to 4.9) | $12.40 | $89.69 | 51× | **yes** |
+| Probe | 1 (part 1) | $0.96 | n/a | n/a | 165 s | $5.86 | $26.18 (old build, not re-measured) | 27× | yes (reserved was $26.18) |
+| Grill | pending fix | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| Census | pending fix | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| Crosscheck | pending fix | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 ## What this means for a user
 
-- At the default $20 daily cap, **every mode except a 10-round debate is refused on its first message**, because contest reservations are 2 to 20 times the real cost. This is the known oversized-reservation issue. A plain `@all` question also reserved at least $39.6.
-- Real costs are small next to the reservations: about $0.17 for an `@all` question, about $1 for a probe, about $2.50 to $3 for a full judged debate.
-- Mixed-vendor failures are real and not about money: `claude` returned `MODE_INVALID_OUTPUT` in grill (2 of 2) and census (2 of 2), `gemini` once in crosscheck, and the probe judge returned `JUDGE_INVALID_VERDICT` once.
+- **Every measured mode fits the $150 default cap**, including the largest reservation (tournament, $89.69). Reservations were also reshaped by the v0.1.1 fixes: the $110.53 and $108.83 reservations that blocked tournament and survey in part 1 are now $89.69 and $27.05, and an ordinary `@all` question reserves $43.72 instead of at least $39.6.
+- Real cost is still a small fraction of what is held back. Expect about **$0.05 to $0.17** for an `@all` question, about **$1.50 to $1.75** for a survey or a tournament, about **$2.80** for a judged 10-round debate, and about **$1** for a probe. A mode's reservation is released as its calls finish, so it only matters as headroom against the daily cap.
+- Cost per ordinary question depends on the question. Part 1's run answered a longer prompt (7,326 output tokens, $0.17); part 2's short question produced 1,300 to 1,700 output tokens ($0.04 to $0.06). Reasoning tokens are billed as output.
+- Wall time depends on load. All of part 2 ran 7 runs at once; the debate took 215 s there against 515 s in part 1, when 19 runs shared the machine and OpenRouter's budget limit.
+- Part 1's `claude` and `gemini` `MODE_INVALID_OUTPUT` failures, the probe judge's `JUDGE_INVALID_VERDICT`, and the debate judge's mid-run 403 did not recur in part 2. Grill, census and crosscheck failed in part 1 and are being fixed, so they are marked pending.
 
 ## Still to measure
 
-Three ordinary runs, two runs each of tournament, survey, grill, census and crosscheck, a second clean debate, and a second clean probe, with `SQUAD_DAILY_MAX_USD` set high enough for the $110 reservations. A single run of a mode is not enough to quote a range.
+Grill, census and crosscheck, once the invalid-output fixes land (two runs each), and a second clean probe on the current build.
