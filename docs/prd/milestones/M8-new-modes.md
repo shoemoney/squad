@@ -103,28 +103,50 @@ Owns only the `forge` module files listed in **New modes → Files each mode wor
 Owns only the `forecast` module files listed in **New modes → Files each mode worker owns**, migration `0011_forecast.sql` and `docs/modes/forecast.md`.
 
 - **M8.P3.L1 — Contracts and storage**
-  - [ ] M8.P3.L1.T1 — Define `ForecastSetup`, `ForecastFrame`, `ForecastEstimate`, `ForecastBundle`, `ForecastRevision`, `ForecastAggregate`, `ForecastCruxes`, `ForecastReport`, `ForecastCaseMaterial`, the transition enum and `validate_artifact`, with `probabilityPct` bounded 1 to 99 in crate `squad-protocol`, file `crates/squad-protocol/src/forecast.rs`.
-  - [ ] M8.P3.L1.T2 — Add the tables in the mode migration and commit and read the frozen frame, locked first forecasts, each delivered bundle and revisions in crate `squad-store`, files `crates/squad-store/migrations/0011_forecast.sql` and `crates/squad-store/src/forecast.rs`.
-  - [ ] M8.P3.L1.T3 — Add valid and invalid fixtures, including a probability of 0 or 100, two or four factors, a revision citing an unknown label and a crux output carrying a probability, in crate `squad-protocol`, file `crates/squad-protocol/tests/forecast.rs`, and step-visibility tests in crate `squad-store`, file `crates/squad-store/tests/forecast.rs`.
+  - [x] M8.P3.L1.T1 — Define `ForecastSetup`, `ForecastFrame`, `ForecastEstimate`, `ForecastBundle`, `ForecastRevision`, `ForecastAggregate`, `ForecastCruxes`, `ForecastReport`, `ForecastCaseMaterial`, the transition enum and `validate_artifact`, with `probabilityPct` bounded 1 to 99 in crate `squad-protocol`, file `crates/squad-protocol/src/forecast.rs`.
+  - [x] M8.P3.L1.T2 — Add the tables in the mode migration and commit and read the frozen frame, locked first forecasts, each delivered bundle and revisions in crate `squad-store`, files `crates/squad-store/migrations/0011_forecast.sql` and `crates/squad-store/src/forecast.rs`.
+  - [x] M8.P3.L1.T3 — Add valid and invalid fixtures, including a probability of 0 or 100, two or four factors, a revision citing an unknown label and a crux output carrying a probability, in crate `squad-protocol`, file `crates/squad-protocol/tests/forecast.rs`, and step-visibility tests in crate `squad-store`, file `crates/squad-store/tests/forecast.rs`.
 
 - **M8.P3.L2 — Script and tally**
-  - [ ] M8.P3.L2.T1 — Declare the script steps `FRAMING`, `FORECASTING`, the sharing barrier, `REVISING`, `AGGREGATING`, `EXPLAINING` and `REPORTING`, failing with `not_forecastable` before any member call, in crate `squad-core`, file `crates/squad-core/src/orchestrator/forecast.rs`, with commits and transitions in `crates/squad-core/src/router/forecast.rs`.
-  - [ ] M8.P3.L2.T2 — Implement number withholding for bundled prose (percent, decimal, `N in M`, odds) and exclusion of the recipient's own entry in crate `squad-core`, file `crates/squad-core/src/orchestrator/forecast.rs`.
-  - [ ] M8.P3.L2.T3 — Implement the trimmed mean of log-odds with `k = ⌊n/5⌋`, the spread, the split flag and the uncited-move flag as pure functions in crate `squad-core`, file `crates/squad-core/src/orchestrator/forecast.rs`.
-  - [ ] M8.P3.L2.T4 — Carry a missing revision forward as `not revised` and keep the aggregate visible when the crux call fails, in crate `squad-core`, file `crates/squad-core/src/router/forecast.rs`.
-  - [ ] M8.P3.L2.T5 — Supply the `router/bounds.rs` step list from the mode's reservation table and derive `2m + 2` calls and `4m + 6` reserved attempts, in crate `squad-core`, file `crates/squad-core/src/router/forecast.rs`.
+  - [x] M8.P3.L2.T1 — Declare the script steps `FRAMING`, `FORECASTING`, the sharing barrier, `REVISING`, `AGGREGATING`, `EXPLAINING` and `REPORTING`, failing with `not_forecastable` before any member call, in crate `squad-core`, file `crates/squad-core/src/orchestrator/forecast.rs`, with commits and transitions in `crates/squad-core/src/router/forecast.rs`.
+  - [x] M8.P3.L2.T2 — Implement number withholding for bundled prose (percent, decimal, `N in M`, odds) and exclusion of the recipient's own entry in crate `squad-core`, file `crates/squad-core/src/orchestrator/forecast.rs`.
+  - [x] M8.P3.L2.T3 — Implement the trimmed mean of log-odds with `k = ⌊n/5⌋`, the spread, the split flag and the uncited-move flag as pure functions in crate `squad-core`, file `crates/squad-core/src/orchestrator/forecast.rs`.
+  - [x] M8.P3.L2.T4 — Carry a missing revision forward as `not revised` and keep the aggregate visible when the crux call fails, in crate `squad-core`, file `crates/squad-core/src/router/forecast.rs`.
+  - [x] M8.P3.L2.T5 — Supply the `router/bounds.rs` step list from the mode's reservation table and derive `2m + 2` calls and `4m + 6` reserved attempts, in crate `squad-core`, file `crates/squad-core/src/router/forecast.rs`.
 
 - **M8.P3.L3 — Prompts**
-  - [ ] M8.P3.L3.T1 — Write `forecast.frame.md`, `forecast.estimate.md`, `forecast.revise.md` and `forecast.cruxes.md` with the outputs and word budgets in **New modes**, replace the scaffold placeholders, and map typed inputs to placeholders, in crate `squad-core`, files `crates/squad-core/prompts/forecast.*.md` and `crates/squad-core/src/prompts/inputs_forecast.rs`; add the executor in crate `squad-agents`, file `crates/squad-agents/src/agents/forecast.rs`.
+  - [x] M8.P3.L3.T1 — Write `forecast.frame.md`, `forecast.estimate.md`, `forecast.revise.md` and `forecast.cruxes.md` with the outputs and word budgets in **New modes**, replace the scaffold placeholders, and map typed inputs to placeholders, in crate `squad-core`, files `crates/squad-core/prompts/forecast.*.md` and `crates/squad-core/src/prompts/inputs_forecast.rs`; add the executor in crate `squad-agents`, file `crates/squad-agents/src/agents/forecast.rs`.
 
 - **M8.P3.L4 — Report, export and TUI**
-  - [ ] M8.P3.L4.T1 — Assemble the report and `/export forecast [id]`: frame, pooled value with spread or split view, before and after table, uncited moves, cruxes, signposts, and in export the bundles and aggregation inputs, in crate `squad-core`, file `crates/squad-core/src/export/forecast.rs`.
-  - [ ] M8.P3.L4.T2 — Render the `FORECAST` banner, the four dividers and the pooled bar with spread band and member ticks, in crate `squad-tui`, files `crates/squad-tui/src/widgets/forecast.rs` and `crates/squad-tui/src/fx/forecast.rs`, with view tests in `crates/squad-tui/tests/forecast_view.rs`.
+  - [x] M8.P3.L4.T1 — Assemble the report and `/export forecast [id]`: frame, pooled value with spread or split view, before and after table, uncited moves, cruxes, signposts, and in export the bundles and aggregation inputs, in crate `squad-core`, file `crates/squad-core/src/export/forecast.rs`.
+  - [x] M8.P3.L4.T2 — Render the `FORECAST` banner, the four dividers and the pooled bar with spread band and member ticks, in crate `squad-tui`, files `crates/squad-tui/src/widgets/forecast.rs` and `crates/squad-tui/src/fx/forecast.rs`, with view tests in `crates/squad-tui/tests/forecast_view.rs`.
 
 - **M8.P3.L5 — Verification and enable**
   - [ ] M8.P3.L5.T1 — Verify the forecast acceptance tests in **New modes**, including withheld numbers in captured revise requests, plus stop fencing and export, in crate `squad-core`, files `crates/squad-core/tests/forecast_workflows.rs` and `crates/squad-core/tests/forecast_export.rs`, and executor tests in crate `squad-agents`, file `crates/squad-agents/tests/agents_forecast.rs`.
-  - [ ] M8.P3.L5.T2 — Verify the pure functions against hand-computed fixtures: n of 3, 5 and 10 to 1e-9, a bimodal set and a unimodal set, in crate `squad-core`, file `crates/squad-core/tests/forecast_tallies.rs`.
+  - [x] M8.P3.L5.T2 — Verify the pure functions against hand-computed fixtures: n of 3, 5 and 10 to 1e-9, a bimodal set and a unimodal set, in crate `squad-core`, file `crates/squad-core/tests/forecast_tallies.rs`.
   - [ ] M8.P3.L5.T3 — Write the user-facing mode section in `docs/modes/forecast.md` in the README mode-section format, then set `ENABLED = true` in crate `squad-protocol`, file `crates/squad-protocol/src/forecast.rs`.
+
+Forecast worker evidence (2026-11-26): typed strict contracts and schema tests are in
+`squad-protocol/tests/forecast.rs`; migration 0011 and `squad-store/tests/forecast.rs`
+cover durable records and assignment/audience/lease visibility. The owned driver
+and router implement all states and bounds. Pure fixtures in
+`squad-core/tests/forecast_tallies.rs` check n=3/5/10, split and herding. The
+wiremock suite directly admits through the owned entry point and injects the
+owned executor through RuntimeLauncher; it verifies 14 calls/30 reserved attempts,
+captured revise privacy, repair, carried-forward missing revision, quorum,
+not_forecastable, judge failure with retained tally, stop fencing and restart.
+Export and view suites cover committed audit material and the probability bar.
+All four prompts and the frozen mode.repair suffix are implemented. User docs:
+`docs/modes/forecast.md`.
+
+L5.T1 remains open for default-launcher verification: the shared
+`runtime/judge.rs::Executor::execute` omits `new_mode_judge()` from its structured
+judge dispatch and the legacy executor refuses forecast work. L5.T3 remains open
+for enable/discovery/live verification; `ENABLED` stays false until that fix lands.
+The shared failure classifier also omits MODE_INVALID_OUTPUT from InvalidOutput;
+the forecast executor uses its recognized JUDGE_INVALID_MODE_OUTPUT diagnostic
+for member repair pending integrator normalization. Exact changes and the
+unperformed live smoke are documented in `docs/modes/forecast.md`.
 
 ## Phase M8.P4 — Decide
 

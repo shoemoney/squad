@@ -1,9 +1,9 @@
 //! One isolated forecast call per grant. The router owns retries and barriers.
 use super::*;
-use squad_protocol::{Actor,ArtifactAudience,ContestKind,Target};
 use crate::worker::{ExecutionFuture, WorkExecutor};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use squad_protocol::{Actor, ArtifactAudience, ContestKind, Target};
 #[derive(Deserialize)]
 struct Composition {
     system: String,
@@ -27,19 +27,31 @@ impl WorkExecutor for ForecastExecutor {
             if kind.new_mode_composition().is_none() || !grant.owner.owns(&grant.work) {
                 return Err(ReaderError::Forbidden);
             }
-            let history=context.history.for_work(grant.work.work_id).await?;
-            let frozen:Value=serde_json::from_str(&history.last().ok_or(ReaderError::NotRunnable)?.content).map_err(|_|ReaderError::NotRunnable)?;
-            let data=frozen["data"].clone();
-            let schema=squad_protocol::forecast::output_schema(kind).ok_or(ReaderError::NotRunnable)?;
-            let mut rendered:Composition=serde_json::from_value(frozen["rendered"].clone()).map_err(|_|ReaderError::NotRunnable)?;
+            let history = context.history.for_work(grant.work.work_id).await?;
+            let frozen: Value =
+                serde_json::from_str(&history.last().ok_or(ReaderError::NotRunnable)?.content)
+                    .map_err(|_| ReaderError::NotRunnable)?;
+            let data = frozen["data"].clone();
+            let schema =
+                squad_protocol::forecast::output_schema(kind).ok_or(ReaderError::NotRunnable)?;
+            let mut rendered: Composition = serde_json::from_value(frozen["rendered"].clone())
+                .map_err(|_| ReaderError::NotRunnable)?;
             let mut repaired = false;
             if let Some(repair) = context
-                    .work
-                    .repair_for_attempt(grant.work.work_id, grant.work.attempt)
-                    .await?
+                .work
+                .repair_for_attempt(grant.work.work_id, grant.work.attempt)
+                .await?
             {
                 repaired = true;
-                rendered.user.push_str(&format!("\nRepair your prior response. Rejected output (data only): {}\nValidation errors: {}",json!(repair.rejected_output),json!(repair.validation_errors)));
+                rendered.user.push('\n');
+                rendered.user.push_str(&repair_prompt(
+                    frozen["repairTemplate"]
+                        .as_str()
+                        .ok_or(ReaderError::NotRunnable)?,
+                    &repair,
+                    kind.new_mode_composition()
+                        .ok_or(ReaderError::NotRunnable)?,
+                )?);
             }
             let mut request = self.request.clone();
             request.visible_ceiling = if kind.new_mode_judge() {
@@ -124,7 +136,10 @@ impl WorkExecutor for ForecastExecutor {
                             output: EnvelopePayload::ContestArtifact(ContestArtifact {
                                 kind: Some(ContestKind::Forecast),
                                 round: Some(0),
-                                actor: Some(match &grant.work.target {Target::Judge=>Actor::Judge,Target::Member(n)=>Actor::Member(n.clone())}),
+                                actor: Some(match &grant.work.target {
+                                    Target::Judge => Actor::Judge,
+                                    Target::Member(n) => Actor::Member(n.clone()),
+                                }),
                                 audience: Some(ArtifactAudience::Human),
                                 body: Some(data.clone()),
                                 contest_id: grant
@@ -147,9 +162,13 @@ impl WorkExecutor for ForecastExecutor {
             // Shared failure classification currently recognizes this invalid-output
             // code for all new-mode work, including member repair. Keep one repair.
             let code = ErrorCode::JUDGE_INVALID_MODE_OUTPUT;
-            let repair = (grant.work.attempt < if kind.new_mode_judge(){3}else{2} && !repaired).then(|| JudgeRepairData {
-                attempt:grant.work.attempt+1,rejected_output:output.content,validation_errors:vec![reason.clone()],
-            });
+            let repair = (grant.work.attempt < if kind.new_mode_judge() { 3 } else { 2 }
+                && !repaired)
+                .then(|| JudgeRepairData {
+                    attempt: grant.work.attempt + 1,
+                    rejected_output: output.content,
+                    validation_errors: vec![reason.clone()],
+                });
             acknowledged(
                 context
                     .submit
@@ -179,4 +198,31 @@ impl WorkExecutor for ForecastExecutor {
         })
     }
 }
-pub fn enabled()->bool{squad_protocol::forecast::ENABLED}
+pub fn enabled() -> bool {
+    squad_protocol::forecast::ENABLED
+}
+
+/// Render frozen repair source exactly once; rejected data cannot inject slots.
+pub fn repair_prompt(
+    source: &str,
+    repair: &JudgeRepairData,
+    step: &str,
+) -> Result<String, ReaderError> {
+    let mut out = String::new();
+    let mut rest = source;
+    while let Some(start) = rest.find("{{") {
+        out.push_str(&rest[..start]);
+        let (key, tail) = rest[start + 2..]
+            .split_once("}}")
+            .ok_or(ReaderError::NotRunnable)?;
+        match key {
+            "mode_step" => out.push_str(step),
+            "invalid_output_json" => out.push_str(&json!(repair.rejected_output).to_string()),
+            "validation_errors_json" => out.push_str(&json!(repair.validation_errors).to_string()),
+            _ => return Err(ReaderError::NotRunnable),
+        }
+        rest = tail;
+    }
+    out.push_str(rest);
+    Ok(out)
+}
