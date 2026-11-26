@@ -142,9 +142,10 @@ fn ready<T>(mut future: ReaderFuture<'_, T>) -> Result<T, ReaderError> {
     }
 }
 #[test]
-fn mode_snapshot_cascades_with_room_content(){
- let store=Store::open(":memory:").unwrap();let id=ContestId::new();
- store.call(move|db|{
+fn mode_snapshot_cascades_with_room_content() {
+    let store = Store::open(":memory:").unwrap();
+    let id = ContestId::new();
+    store.call(move|db|{
  db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES(?,'readback',1,1,'{}',0)",[id.to_string()])?;
  let setup=squad_protocol::readback::ReadbackSetup{spec:"The service retains records.".into(),participants:vec![],rounds:2,room_words:500,plan_words:1200,models:Default::default(),prompt_refs:Default::default()};
  squad_store::readback::insert(db,id,&setup)?;assert_eq!(squad_store::readback::run(db,id)?.spec,setup.spec);

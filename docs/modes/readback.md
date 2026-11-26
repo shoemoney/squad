@@ -1,5 +1,7 @@
 # Readback
 
+Status: implementation is available on `mode-readback`; the public switch remains disabled until shared runtime fixes and acceptance gates pass.
+
 Use `$readback` to find requirements that different readers would implement differently. It suits tickets, prompts, specifications and contract clauses. Members independently describe what they would build. A blind judge collects differences that change behaviour, and you choose the intended meanings before anything is rewritten.
 
 ```text
@@ -37,8 +39,8 @@ The mode worker owns only the readback paths. The following shared scaffold defe
 - `crates/squad-protocol/src/parser/new_modes_tests.rs` and the disabled readback example in `parser/examples.json`: the original disabled-start fixture must be selected only while the mode is disabled, or explicitly force a disabled test context. Enabling a mode otherwise invalidates the scaffold fixture.
 - `crates/squad-core/tests/human_step.rs`: the synthetic readback human-step fixture needs a `readback_runs` row with its ledger/setup before `/continue`; the implemented callback persists choices there. The old scaffold fixture created only a generic contest and step.
 
-The end-to-end room tests remain active to expose the shared-runtime failures. The direct-runtime tests exercise the owned runtime, scoped readers, real wiremock transport, application validations, transactional barriers and export independently of the shared judge wrapper.
+The three end-to-end room tests reproduced these failures while enabled and are explicitly ignored until the shared fixes land and the switch can be enabled. The direct-runtime tests exercise the owned runtime, scoped readers, real wiremock transport, application validations, transactional barriers and export independently of the shared judge wrapper.
 
 ## Validation evidence
 
-On dev3 with `CARGO_BUILD_JOBS=4`, the owned protocol, agents, store, tally, export and view suites pass. Direct-runtime wiremock workflows pass for partial choices and replacement, literal custom readings, unchanged open passages, convergence, no choices, reservation release, repaired non-verbatim ledgers, round limits, stop reports, and restart with a partial answer a year later. Room-level workflows are blocked by the two shared runtime defects above. Full workspace gates and the release smoke remain pending integration.
+On dev3 with `CARGO_BUILD_JOBS=4`, the owned protocol, agents, store, tally, export and view suites pass. Direct-runtime wiremock workflows pass for partial choices and replacement, literal custom readings, unchanged open passages, convergence, no choices, reservation release, repaired non-verbatim ledgers, round limits, stop reports, and restart with a partial answer a year later. Room-level workflows are blocked by the two shared runtime defects above. Full workspace gates and the release smoke remain pending integration. The public switch is left disabled in accordance with the enable-only-after-green requirement.

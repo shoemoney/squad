@@ -96,9 +96,25 @@ fn blind_quotes_restore_original_bytes_and_hide_configured_identities() {
     assert_eq!(original_passage(&blinded, spec, &tokens).unwrap(), spec);
 }
 #[test]
-fn shared_resolved_passage_can_have_one_consistent_replacement(){
- let mut l=ledger();let mut same=l.entries[0].clone();same.entry_id="other".into();l.entries=vec![l.entries[0].clone(),same];
- let choices=BTreeMap::from([("one".into(),"Thirty days".into()),("other".into(),"Thirty days".into())]);
- let change=ReadbackChange{entry_id:"one".into(),before:"The service retains records.".into(),after:"The service retains records for thirty days.".into()};let mut other=change.clone();other.entry_id="other".into();
- let rewrite=ReadbackRewrite{spec:OLD.replacen(&change.before,&change.after,1),changes:vec![change,other]};verify_rewrite(&rewrite,OLD,&l,&choices,OLD.len(),1200).unwrap();
+fn shared_resolved_passage_can_have_one_consistent_replacement() {
+    let mut l = ledger();
+    let mut same = l.entries[0].clone();
+    same.entry_id = "other".into();
+    l.entries = vec![l.entries[0].clone(), same];
+    let choices = BTreeMap::from([
+        ("one".into(), "Thirty days".into()),
+        ("other".into(), "Thirty days".into()),
+    ]);
+    let change = ReadbackChange {
+        entry_id: "one".into(),
+        before: "The service retains records.".into(),
+        after: "The service retains records for thirty days.".into(),
+    };
+    let mut other = change.clone();
+    other.entry_id = "other".into();
+    let rewrite = ReadbackRewrite {
+        spec: OLD.replacen(&change.before, &change.after, 1),
+        changes: vec![change, other],
+    };
+    verify_rewrite(&rewrite, OLD, &l, &choices, OLD.len(), 1200).unwrap();
 }

@@ -239,7 +239,7 @@ Owns only the `readback` module files listed in **New modes → Files each mode 
 
 Readback implementation evidence (2026-11-26, worker branch `mode-readback`): owned protocol/store/agents/core tally/export/TUI suites pass. Direct-runtime wiremock workflows verify the partial-choice loop, fresh next-round source, convergence, no-choice completion, unused reservation release, repaired non-verbatim ledger, round limit, stop evidence and restart with a year-old partial answer. Exact quote reconstruction rejects changes outside resolved passages. Tests and implementation are in the owned files above.
 
-Integration acceptance and enable remain open: the shared judge wrapper rejects new-mode judge work, the shared failure classifier rejects member repair diagnostics, the scaffold disabled-parser example needs to account for enablement, and the generic human-step fixture lacks the new mode-owned run row. Exact files and required changes are documented in `docs/modes/readback.md`. Room-level failure regressions remain active; no paid smoke was run against the known broken shared dispatch.
+Integration acceptance and enable remain open: the shared judge wrapper rejects new-mode judge work, the shared failure classifier rejects member repair diagnostics, the scaffold disabled-parser example needs to account for enablement, and the generic human-step fixture lacks the new mode-owned run row. Exact files and required changes are documented in `docs/modes/readback.md`. Room-level failure regressions are explicitly ignored pending those fixes and enablement; no paid smoke was run against the known broken shared dispatch.
 
 ## Phase M8.P8 — Debug
 

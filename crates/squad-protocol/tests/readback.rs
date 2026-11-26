@@ -47,21 +47,24 @@ fn strict_member_rewrite_and_provenance_schemas() {
     assert!(output_schema(&WorkKind::Reply).is_none());
 }
 #[test]
-fn enabled_parser_and_choice_grammar() {
-    assert!(ENABLED);
+fn public_switch_and_choice_grammar() {
     let mut ctx = parser::ParseContext {
         roster: ["a", "b", "c"].map(|s| s.parse().unwrap()).to_vec(),
         ..Default::default()
     };
-    assert!(matches!(
-        parse(
-            "@all $readback The service retains records.",
-            &Default::default(),
-            &ctx
-        )
-        .unwrap(),
-        ParsedInput::Readback { rounds: 2, .. }
-    ));
+    let parsed = parse(
+        "@all $readback The service retains records.",
+        &Default::default(),
+        &ctx,
+    );
+    if ENABLED {
+        assert!(matches!(
+            parsed.unwrap(),
+            ParsedInput::Readback { rounds: 2, .. }
+        ));
+    } else {
+        assert_eq!(parsed.unwrap_err().code, ErrorCode::COMMAND_NOT_IMPLEMENTED);
+    }
     ctx.pending_human = Some(parser::PendingHuman {
         contest_id: ContestId::new(),
         kind: ContestKind::Readback,

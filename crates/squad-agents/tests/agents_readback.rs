@@ -8,7 +8,7 @@ fn member_output_and_word_budgets_do_not_accept_identity_metadata() {
     let mut invalid = output;
     invalid["model"] = json!("provider/model");
     assert!(validate_artifact("readback.interpret", &invalid).is_err());
-    assert!(squad_agents::agents::readback::enabled());
+    assert_eq!(squad_agents::agents::readback::enabled(), ENABLED);
     assert_eq!(
         composition(&WorkKind::ReadbackInterpret),
         Some("readback.interpret")

@@ -4,7 +4,8 @@ use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-pub const ENABLED: bool = true;
+// Enable after the integrator lands shared judge dispatch and D75 repair fixes.
+pub const ENABLED: bool = false;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ReadbackStatus {
@@ -62,11 +63,31 @@ pub struct ReadbackSetup {
     pub prompt_refs: BTreeMap<String, PromptRef>,
 }
 impl ReadbackSetup {
- pub fn validate(&self)->ValidationResult {
- ensure(!self.spec.trim().is_empty() && (1..=4).contains(&self.rounds) && (3..=12).contains(&self.participants.len()) && unique(&self.participants),"invalid readback setup")?;
- ensure(self.room_words>0 && self.plan_words>0 && self.models.contains_key("judge") && self.participants.iter().all(|n|self.models.contains_key(n.as_str())),"missing frozen readback binding")?;
- ensure(["readback.interpret","readback.diff","readback.rewrite"].iter().all(|name|self.prompt_refs.contains_key(*name)),"missing frozen readback prompt")
- }
+    pub fn validate(&self) -> ValidationResult {
+        ensure(
+            !self.spec.trim().is_empty()
+                && (1..=4).contains(&self.rounds)
+                && (3..=12).contains(&self.participants.len())
+                && unique(&self.participants),
+            "invalid readback setup",
+        )?;
+        ensure(
+            self.room_words > 0
+                && self.plan_words > 0
+                && self.models.contains_key("judge")
+                && self
+                    .participants
+                    .iter()
+                    .all(|n| self.models.contains_key(n.as_str())),
+            "missing frozen readback binding",
+        )?;
+        ensure(
+            ["readback.interpret", "readback.diff", "readback.rewrite"]
+                .iter()
+                .all(|name| self.prompt_refs.contains_key(*name)),
+            "missing frozen readback prompt",
+        )
+    }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -117,7 +138,13 @@ impl ReadbackInterpretation {
             ),
             "duplicate behaviour id",
         )?;
-        ensure(self.edge_cases.iter().all(|e|!e.case.trim().is_empty() && !e.answer.trim().is_empty()) && self.assumptions.iter().all(|a|!a.text.trim().is_empty()),"empty edge case or assumption")?;
+        ensure(
+            self.edge_cases
+                .iter()
+                .all(|e| !e.case.trim().is_empty() && !e.answer.trim().is_empty())
+                && self.assumptions.iter().all(|a| !a.text.trim().is_empty()),
+            "empty edge case or assumption",
+        )?;
         ensure(
             self.behaviours.iter().all(|b| {
                 [&b.local_id, &b.situation, &b.behaviour, &b.spec_quote]

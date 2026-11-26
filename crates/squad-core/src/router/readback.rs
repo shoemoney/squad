@@ -228,7 +228,7 @@ pub fn prepare(
         models,
         prompt_refs: refs,
     };
-    setup.validate().map_err(|_|invalid())?;
+    setup.validate().map_err(|_| invalid())?;
     let templates = names
         .into_iter()
         .map(|n| super::bounds::template(&pack, n))
@@ -449,17 +449,43 @@ pub fn human_answer(db: &Connection, pending: &parser::PendingHuman, complete: b
     // Shared pending answers retain the text but not whether a single letter
     // came from a token or a literal /answer. Recover that distinction from
     // the committed answer stream, scoped to this human step.
-    let mut literal=BTreeMap::new();
+    let mut literal = BTreeMap::new();
     let mut query=db.prepare("SELECT payload FROM events WHERE kind='contest.human_answered' AND json_extract(payload,'$.contestId')=? AND json_extract(payload,'$.stepId')=? ORDER BY seq")?;
-    let raws=query.query_map(params![pending.contest_id.to_string(),pending.step_id.to_string()],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?;
-    for raw in raws {let event:ContestHumanAnswered=serde_json::from_str(&raw)?;if let Some(text)=event.text{if let Some((n,_))=text.split_once(':'){if let Ok(n)=n.trim().parse::<u32>(){literal.insert(n,true);}}else{for token in text.split_whitespace(){if let Some(n)=token.get(..token.len().saturating_sub(1)).and_then(|n|n.parse::<u32>().ok()){literal.insert(n,false);}}}}}
+    let raws = query
+        .query_map(
+            params![pending.contest_id.to_string(), pending.step_id.to_string()],
+            |r| r.get::<_, String>(0),
+        )?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    for raw in raws {
+        let event: ContestHumanAnswered = serde_json::from_str(&raw)?;
+        if let Some(text) = event.text {
+            if let Some((n, _)) = text.split_once(':') {
+                if let Ok(n) = n.trim().parse::<u32>() {
+                    literal.insert(n, true);
+                }
+            } else {
+                for token in text.split_whitespace() {
+                    if let Some(n) = token
+                        .get(..token.len().saturating_sub(1))
+                        .and_then(|n| n.parse::<u32>().ok())
+                    {
+                        literal.insert(n, false);
+                    }
+                }
+            }
+        }
+    }
     let mut answers = BTreeMap::new();
     for (number, answer) in &pending.answers {
         let entry = ledger
             .entries
             .get(*number as usize - 1)
             .ok_or_else(invalid)?;
-        let reading = if literal.get(number)!=Some(&true) && answer.len() == 1 && answer.as_bytes()[0].is_ascii_lowercase() {
+        let reading = if literal.get(number) != Some(&true)
+            && answer.len() == 1
+            && answer.as_bytes()[0].is_ascii_lowercase()
+        {
             entry
                 .readings
                 .get((answer.as_bytes()[0] - b'a') as usize)
