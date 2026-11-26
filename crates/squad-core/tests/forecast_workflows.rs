@@ -547,7 +547,7 @@ impl RuntimeLauncher for ForecastLauncher {
                 );
                 for key in keys {
                     let owner = serde_json::to_string(&key).unwrap();
-                    if !tasks.contains_key(&owner) {
+                    if let std::collections::btree_map::Entry::Vacant(entry) = tasks.entry(owner) {
                         let context = squad_core::runtime::contexts::agent_context(
                             store.clone(),
                             &bus,
@@ -556,10 +556,7 @@ impl RuntimeLauncher for ForecastLauncher {
                             Arc::new(pack.clone()),
                             child.child_token(),
                         );
-                        tasks.insert(
-                            owner,
-                            squad_agents::worker::spawn(context, executor.clone()),
-                        );
+                        entry.insert(squad_agents::worker::spawn(context, executor.clone()));
                     }
                 }
                 tokio::select! {_=child.cancelled()=>break,_=tokio::time::sleep(Duration::from_millis(10))=>{}}
