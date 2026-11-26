@@ -34,7 +34,7 @@ The Markdown export also includes all accepted drafts, ballots with label maps, 
 
 ## Example run
 
-Live smoke evidence will be recorded after the local gates pass.
+Not run: the shared outer judge dispatch currently rejects `ForgeJudge`. Live provider spend is $0; no observed wall time, actual cost or real report excerpt is available. Run the owner-approved six-model smoke after the integrator fixes that gate and the full-room test passes.
 
 ## Integration status (2026-11-26)
 
@@ -42,7 +42,7 @@ The mode-owned contracts, storage, policy, prompts, executor, report and view ar
 
 Required integrator change, outside the Forge worker's file ownership:
 
-- `crates/squad-core/src/runtime/judge.rs`, `impl WorkExecutor for Executor`: extend the first structured-mode routing condition with `grant.work.kind.new_mode_judge()`. The inner `Runner` already dispatches new modes to `execute_new_mode`; the outer gate currently sends them to `squad_agents::judge::JudgeExecutor`, whose legacy allowlist rejects `ForgeJudge`. A six-seat full-room fixture completes all fourteen member calls, then leaves the judge work running with no provider start.
+- `crates/squad-core/src/runtime/judge.rs`, `impl WorkExecutor for Executor`: extend the first structured-mode routing condition with `grant.work.kind.new_mode_judge()`. The inner `Runner` already dispatches new modes to `execute_new_mode`; the outer gate currently sends them to `squad_agents::judge::JudgeExecutor`, whose legacy allowlist rejects `ForgeJudge`. A six-seat full-room fixture completes all fourteen member calls, then leaves the judge work running without a judge HTTP request.
 
 Two shared repair restrictions have mode-owned workarounds:
 

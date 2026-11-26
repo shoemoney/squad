@@ -56,7 +56,7 @@ pub fn report(r: &ForgeReport) -> String {
         }
     }
     if !r.skipped.is_empty() {
-        let _ = write!(out, "\n## Skipped\n\n{}\n", r.skipped.join("\n"));
+        let _ = writeln!(out, "\n## Skipped\n\n{}", r.skipped.join("\n"));
     }
     out
 }

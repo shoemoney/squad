@@ -35,6 +35,14 @@ fn save(
     s: &ForgeState,
     expected: Option<u64>,
 ) -> Result<()> {
+    let mut canonical = s.clone();
+    canonical.artifact_event_ids = storage::events(tx, s.contest_id)?
+        .into_iter()
+        .filter_map(|e| {
+            matches!(e.content, EnvelopePayload::ContestArtifact(_)).then_some(e.base.id)
+        })
+        .collect();
+    let s = &canonical;
     let seq = g.push(
         tx,
         super::envelope(
@@ -540,16 +548,53 @@ pub(crate) fn advance(
         .collect::<rusqlite::Result<Vec<_>>>()?;
     for wid in &ids {
         let w: WorkId = wid.parse().map_err(|_| invalid())?;
-        let record = squad_store::work::record(tx, w)?.ok_or_else(invalid)?;
+        let mut record = squad_store::work::record(tx, w)?.ok_or_else(invalid)?;
+        let work = squad_store::work::template(tx, w)?.ok_or_else(invalid)?.0;
+        let limit = if work.kind == WorkKind::ForgeJudge {
+            3
+        } else {
+            2
+        };
+        // Recovery preserves consumed provider attempts. A queued last attempt
+        // has no dispatch capacity left and must settle instead of waiting forever.
+        if record.status == WorkStatus::Queued && record.attempt >= limit {
+            let failure = super::error(
+                ErrorCode::PROVIDER_TIMEOUT,
+                "Forge attempt interrupted and exhausted",
+            );
+            let seq = push(
+                tx,
+                g,
+                id,
+                s.contest_id,
+                EnvelopePayload::WorkState(WorkStateEvent {
+                    work_id: w,
+                    trigger_event_id: work.trigger_event_id,
+                    target: work.target,
+                    context_id: work.context_id,
+                    attempt: record.attempt,
+                    status: WorkStatus::Failed,
+                    error: Some(failure),
+                    debate_id: None,
+                    case_id: work.case_id,
+                    contest_id: work.contest_id,
+                }),
+            )?;
+            tx.execute("UPDATE work SET status='failed',runnable=0,lease_fence=lease_fence+1,completed_event_seq=? WHERE work_id=? AND status='queued'",params![seq.get(),w.to_string()])?;
+            squad_store::accounting::release_unstarted_work(tx, w)?;
+            record.status = WorkStatus::Failed;
+        }
         if matches!(record.status, WorkStatus::Queued | WorkStatus::Running) {
             return Ok(());
         }
     }
+    let mut skipped_work_ids = vec![];
     for wid in ids {
         let w: WorkId = wid.parse().map_err(|_| invalid())?;
         let record = squad_store::work::record(tx, w)?.ok_or_else(invalid)?;
         let work = squad_store::work::template(tx, w)?.ok_or_else(invalid)?.0;
         if record.status != WorkStatus::Completed {
+            skipped_work_ids.push(w);
             let e = super::error(
                 ErrorCode::MODE_INVALID_OUTPUT,
                 "Forge slot skipped after exhausted attempts",
@@ -557,6 +602,13 @@ pub(crate) fn advance(
             squad_store::contest_steps::settle_if_pending(tx, step, &work.target, Some(&e))?;
         }
     }
+    let artifact_event_ids = storage::events(tx, s.contest_id)?
+        .into_iter()
+        .filter_map(|e| match e.content {
+            EnvelopePayload::ContestArtifact(a) if a.step_id == step => Some(e.base.id),
+            _ => None,
+        })
+        .collect();
     let seq = push(
         tx,
         g,
@@ -565,8 +617,8 @@ pub(crate) fn advance(
         EnvelopePayload::ContestReport(ContestReport {
             contest_id: s.contest_id,
             step_id: step,
-            artifact_event_ids: vec![],
-            skipped_work_ids: vec![],
+            artifact_event_ids,
+            skipped_work_ids,
             data: json!({"barrier":s.state}),
         }),
     )?;

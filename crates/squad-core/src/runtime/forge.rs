@@ -89,9 +89,9 @@ pub async fn execute(
     if squad_agents::context::estimate(&request.messages)
         > squad_agents::context::input_budget(u64::from(model.context_length), reservation)
     {
-        return Ok(
-            squad_agents::agents::failed(context, grant, ErrorCode::CONTEXT_TOO_LARGE).await?,
-        );
+        return squad_agents::agents::failed(context, grant, ErrorCode::CONTEXT_TOO_LARGE)
+            .await
+            .map_err(Into::into);
     }
     squad_agents::agents::forge::execute(context, grant, client, request, data, cancel).await
 }

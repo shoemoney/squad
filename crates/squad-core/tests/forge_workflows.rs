@@ -161,6 +161,8 @@ enum Scenario {
     RepairFusion,
     OneFusion,
     Original,
+    InterruptedDraft,
+    InterruptedJudge,
     SlowDraft,
     SlowRank,
     SlowFuse,
@@ -193,7 +195,11 @@ impl Respond for Answers {
         } else {
             "draft"
         };
-        if (matches!(self.scenario, Scenario::NoFusions) && stage == "fuse")
+        if matches!(self.scenario, Scenario::InterruptedJudge) && stage == "judge" {
+            return ResponseTemplate::new(500);
+        }
+        if (matches!(self.scenario, Scenario::InterruptedDraft) && stage == "draft")
+            || (matches!(self.scenario, Scenario::NoFusions) && stage == "fuse")
             || (matches!(self.scenario, Scenario::DraftQuorum)
                 && stage == "draft"
                 && !body["model"].as_str().unwrap().ends_with(['0', '1']))
@@ -217,7 +223,7 @@ impl Respond for Answers {
                     .report_calls
                     .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 let over = (matches!(self.scenario, Scenario::RepairFusion) && count == 0)
-                    || (matches!(self.scenario, Scenario::OneFusion) && count % 2 == 0);
+                    || (matches!(self.scenario, Scenario::OneFusion) && count.is_multiple_of(2));
                 serde_json::json!({"body":if over{"too long ".repeat(100)}else{"Fused deliverable with the best opening.".into()},"provenance":[{"element":"Opening","sourceLabels":[d["labels"][0]]}],"handledFlaws":[]})
             }
             "judge" => {
@@ -281,7 +287,7 @@ fn report(f: &Fixture) -> forge::ForgeReport {
     serde_json::from_str(&raw).unwrap()
 }
 async fn run(s: Scenario) -> Fixture {
-    owned_run(s).await
+    controlled_run(s, None, false).await
 }
 #[tokio::test]
 async fn six_members_fifteen_calls_thirty_one_attempts_blind_and_exact_winner() {
@@ -310,6 +316,29 @@ async fn six_members_fifteen_calls_thirty_one_attempts_blind_and_exact_winner() 
         )
         .unwrap();
     assert_eq!(remaining, 0);
+    let contest: ContestId = db
+        .query_row("SELECT contest_id FROM contests", [], |r| {
+            r.get::<_, String>(0)
+        })
+        .unwrap()
+        .parse()
+        .unwrap();
+    let snapshot = squad_core::export::ExportSnapshot {
+        events: squad_store::forge::events(&db, contest).unwrap(),
+        ..Default::default()
+    };
+    let exported = squad_core::export::forge::render(&snapshot, contest).unwrap();
+    for text in [
+        &r.body,
+        "forge.draft",
+        "forge.rank",
+        "forge.fuse",
+        "forge.judge",
+        "Ballot label maps",
+    ] {
+        assert!(exported.contains(text));
+    }
+    assert!(!exported.contains("repairSystem"));
     let mut q=db.prepare("SELECT w.target,i.input_json FROM forge_inputs i JOIN work w USING(work_id) WHERE w.kind='forge.rank'").unwrap();
     for row in q
         .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
@@ -522,7 +551,7 @@ impl PromptRenderer for UnusedRenderer {
         Err(ReaderError::Forbidden)
     }
 }
-async fn owned_run(s: Scenario) -> Fixture {
+async fn controlled_run(s: Scenario, stop: Option<WorkKind>, recover: bool) -> Fixture {
     let f = Fixture::scenario(6, s).await;
     std::fs::create_dir_all(&f.config.data_dir).unwrap();
     let store = squad_store::Store::open(f.config.data_dir.join("squad.db")).unwrap();
@@ -601,6 +630,37 @@ async fn owned_run(s: Scenario) -> Fixture {
         if terminal(&f) {
             break;
         }
+        if recover {
+            let before = store
+                .call(|db| {
+                    let mut q = db.prepare(
+                        "SELECT scope_key,map_json FROM contest_private_maps ORDER BY scope_key",
+                    )?;
+                    Ok(
+                        q.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?
+                            .collect::<rusqlite::Result<Vec<_>>>()?,
+                    )
+                })
+                .unwrap();
+            squad_core::router::recovery::recover_on_open_mode(
+                &store,
+                OpenMode::Interactive,
+                chrono::Utc::now(),
+            )
+            .unwrap();
+            let after = store
+                .call(|db| {
+                    let mut q = db.prepare(
+                        "SELECT scope_key,map_json FROM contest_private_maps ORDER BY scope_key",
+                    )?;
+                    Ok(
+                        q.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?
+                            .collect::<rusqlite::Result<Vec<_>>>()?,
+                    )
+                })
+                .unwrap();
+            assert_eq!(before, after);
+        }
         let ids = store
             .call(|db| {
                 let mut q =
@@ -643,6 +703,67 @@ async fn owned_run(s: Scenario) -> Fixture {
             let grant = squad_agents::worker::start_attempt(&context, &grant, grant.work.attempt)
                 .await
                 .unwrap();
+            if (matches!(s, Scenario::InterruptedDraft)
+                && grant.work.kind == WorkKind::ForgeDraft
+                && grant.work.attempt == 2)
+                || (matches!(s, Scenario::InterruptedJudge)
+                    && grant.work.kind == WorkKind::ForgeJudge
+                    && grant.work.attempt == 3)
+            {
+                store
+                    .call(|db| squad_store::leases::recover(db, true, chrono::Utc::now()))
+                    .unwrap();
+                continue;
+            }
+            if stop.as_ref() == Some(&grant.work.kind) {
+                let result = router
+                    .lock()
+                    .unwrap()
+                    .process(
+                        Request::Stop {
+                            request_id: EventId::new(),
+                            target: None,
+                        },
+                        None,
+                    )
+                    .unwrap();
+                assert!(matches!(result.result, RequestResult::Accepted { .. }));
+                let stale = router
+                    .lock()
+                    .unwrap()
+                    .process(
+                        Request::Internal(InternalRequest::Executor(ExecutorRequest::Result {
+                            work_id: grant.work.work_id,
+                            attempt: grant.work.attempt,
+                            fence: grant.fence,
+                            epoch: grant.epoch,
+                            output: EnvelopePayload::ContestArtifact(ContestArtifact {
+                                kind: Some(ContestKind::Forge),
+                                round: Some(0),
+                                actor: Some(Actor::System),
+                                audience: Some(ArtifactAudience::Human),
+                                body: Some(serde_json::json!({"body":"late"})),
+                                contest_id: grant.work.contest_id.unwrap(),
+                                step_id: grant.work.step_id.unwrap(),
+                                artifact_kind: "forge.draft".parse().unwrap(),
+                                work_id: Some(grant.work.work_id),
+                                source_refs: vec![],
+                                data: serde_json::json!({}),
+                            }),
+                        })),
+                        Some(grant.owner.clone()),
+                    )
+                    .unwrap_err();
+                assert!(
+                    matches!(
+                        stale,
+                        squad_store::StoreError::Domain(ErrorCode::STALE_WORK_ATTEMPT, _)
+                    ),
+                    "{stale:?}"
+                );
+                f.assert_ledger();
+                return f;
+            }
             squad_core::runtime::forge::execute(
                 &context,
                 &grant,
@@ -672,4 +793,63 @@ async fn second_fusion_overrun_leaves_one_candidate() {
         .query_row("SELECT COUNT(*) FROM mode_repairs", [], |r| r.get(0))
         .unwrap();
     assert_eq!(n, 1);
+}
+
+#[tokio::test]
+async fn owned_stop_fences_late_results_at_each_provider_phase() {
+    for kind in [
+        WorkKind::ForgeDraft,
+        WorkKind::ForgeRank,
+        WorkKind::ForgeFuse,
+        WorkKind::ForgeJudge,
+    ] {
+        let f = controlled_run(Scenario::Happy, Some(kind), false).await;
+        let reason: String = f
+            .db()
+            .query_row(
+                "SELECT json_extract(state_json,'$.terminalReason') FROM contests",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(reason, "stopped");
+    }
+}
+#[tokio::test]
+async fn owned_recovery_preserves_labels_tally_and_accepted_work() {
+    let f = controlled_run(Scenario::Happy, None, true).await;
+    assert_eq!(report(&f).reason, "fusion_won");
+    let n: i64 = f
+        .db()
+        .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(n, 15);
+}
+
+#[tokio::test]
+async fn interrupted_last_attempt_settles_without_an_immortal_queue() {
+    for (s, reason) in [
+        (Scenario::InterruptedDraft, "insufficient_drafts"),
+        (Scenario::InterruptedJudge, "judge_failed"),
+    ] {
+        let f = run(s).await;
+        let r: String = f
+            .db()
+            .query_row(
+                "SELECT json_extract(state_json,'$.terminalReason') FROM contests",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(r, reason);
+        let queued: i64 = f
+            .db()
+            .query_row(
+                "SELECT COUNT(*) FROM work WHERE status IN ('queued','running')",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(queued, 0);
+    }
 }
