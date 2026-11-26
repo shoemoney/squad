@@ -5,7 +5,7 @@ pub mod lexer;
 mod parser;
 mod types;
 pub mod validate_context;
-pub use parser::{HELP_EXAMPLES, resolve_recipients};
+pub use parser::{HELP_EXAMPLES, SLASH_COMMANDS, resolve_recipients};
 mod context;
 #[cfg(test)]
 use context::parse_fixture;

@@ -284,6 +284,14 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 .collect::<Vec<_>>()
                 .join(" ")
         )
+    } else if app.tips_enabled
+        && app.input.text().is_empty()
+        && !app.completion_open
+        && !app.search_open
+        && app.export_path.is_none()
+        && area.width >= 60
+    {
+        crate::typeahead::tip(&app.session.snapshot.context, now.as_secs())
     } else if area.width < 100 {
         "F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit".into()
     } else {
@@ -298,9 +306,13 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     } else {
         theme.quiet_chrome()
     };
-    Paragraph::new(footer)
-        .style(help_style)
-        .render(geometry.help, frame.buffer_mut());
+    if footer.starts_with("TIP: ") {
+        crate::typeahead::render_tip(&footer, geometry.help, frame.buffer_mut(), help_style);
+    } else {
+        Paragraph::new(footer)
+            .style(help_style)
+            .render(geometry.help, frame.buffer_mut());
+    }
     if app.participant_details
         && let Some(member) = members.get(app.composed.participants.focused)
     {
@@ -347,7 +359,12 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         Clear.render(rect, frame.buffer_mut());
         Paragraph::new(text).render(rect, frame.buffer_mut());
     }
-    if app.completion_open {
+    if app.completion_open
+        && app.focus_input
+        && !app.search_open
+        && !app.participant_details
+        && app.export_path.is_none()
+    {
         let height = (app.completion.items.len().min(6) as u16).min(geometry.transcript.height);
         completion::render(
             &app.completion,

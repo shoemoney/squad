@@ -317,6 +317,12 @@ fn environment_lines(config: &SquadConfig, effective: &EffectiveEnvironment) -> 
         ),
         ("SQUAD_FX", fx.to_owned(), "full", "full, lite, off"),
         (
+            "SQUAD_TIPS",
+            if config.tips { "on" } else { "off" }.to_owned(),
+            "on",
+            "on, off",
+        ),
+        (
             "SQUAD_DAILY_MAX_USD",
             config.budget.daily_max_usd.to_string(),
             "150",

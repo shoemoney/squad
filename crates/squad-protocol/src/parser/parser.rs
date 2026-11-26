@@ -638,9 +638,34 @@ fn render(raw: &str, tokens: &[Token], vars: &RoomVariables, keep_judge: bool) -
 const SET_USAGE: &str = "/set ROUNDS <1-20> | /set GRILL_ROUNDS <1-10> | /set CENSUS_PASSES <1-5>";
 const EXPORT_USAGE: &str =
     "/export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]";
+/// Slash command vocabulary shared by parsing, help and composer completion.
+pub const SLASH_COMMANDS: &[(&str, &str)] = &[
+    (
+        "/set",
+        "ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5>",
+    ),
+    ("/stop", "[@nick]"),
+    ("/judge", "[debateId]"),
+    ("/regen", "[messageId]"),
+    ("/clear", ""),
+    ("/who", ""),
+    ("/help", ""),
+    (
+        "/export",
+        "room | debate|grill|tournament|census|crosscheck|survey|probe [id]",
+    ),
+    ("/continue", "[\"<plan>\"]"),
+    ("/accept", "<cellId…> -- <reason>"),
+];
 fn slash(raw: &str, ctx: &ParserSnapshot) -> Result<SlashAction, ParseError> {
     let mut words = raw.split_whitespace();
     let name = &words.next().unwrap()[1..];
+    if !SLASH_COMMANDS
+        .iter()
+        .any(|(command, _)| command.strip_prefix('/') == Some(name))
+    {
+        return Err(Rule::UnknownSlash.error(whole(raw), &[("name", name)]));
+    }
     let args = words.collect::<Vec<_>>();
     let usage = |text: &str| Rule::Usage.error(whole(raw), &[("usage", text)]);
     let mut offset = raw.find('/').unwrap() + name.len() + 1;

@@ -31,12 +31,12 @@ n/a tok · n/a
 
 
 
-  $debate
-  $tournament
-  $grill
-  $census
-  $crosscheck
-  $survey
+  $debate  Head-to-head arguments and a judge
+  $tournament  Elimination rounds to choose a winner
+  $grill  Question one model in rounds
+  $census  Collect and refine independent plans
+  $crosscheck  Audit a plan for gaps and risks
+  $survey  Compare independent answers
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────────────────────────────────────────────
 > $
 

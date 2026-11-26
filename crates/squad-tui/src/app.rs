@@ -22,6 +22,10 @@ pub struct App {
     pub quotes: Quotes,
     pub completion: CompletionState,
     pub completion_open: bool,
+    completion_tabbed: bool,
+    completion_starters: bool,
+    pub tips_enabled: bool,
+    tip_epoch: u64,
     pub focus_input: bool,
     /// Transcript message focus, selection and the labeled action menu.
     pub msg_focus: Option<EventId>,
@@ -71,6 +75,10 @@ impl App {
             quotes: Quotes::default(),
             completion: CompletionState::default(),
             completion_open: false,
+            completion_tabbed: false,
+            completion_starters: false,
+            tips_enabled: std::env::var("SQUAD_TIPS").as_deref() != Ok("off"),
+            tip_epoch: 0,
             focus_input: true,
             msg_focus: None,
             msg_selected: Vec::new(),
@@ -486,6 +494,10 @@ impl App {
         self.dirty = true;
     }
     pub fn expire(&mut self, now: Duration) {
+        if self.tips_enabled && self.tip_epoch != now.as_secs() / 8 {
+            self.tip_epoch = now.as_secs() / 8;
+            self.dirty = true;
+        }
         if self.stop_confirmation.is_some_and(|until| now >= until) {
             self.stop_confirmation = None;
             self.notice = None;
@@ -498,6 +510,8 @@ impl App {
         [
             self.stop_confirmation,
             self.session.transcript.batch_deadline,
+            self.tips_enabled
+                .then(|| Duration::from_secs((self.tip_epoch + 1) * 8)),
         ]
         .into_iter()
         .flatten()
@@ -572,6 +586,64 @@ impl App {
             {
                 self.escape(now);
                 return;
+            }
+            if self.focus_input
+                && !self.participant_details
+                && !self.search_open
+                && self.export_path.is_none()
+            {
+                let plain = !key
+                    .modifiers
+                    .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT);
+                if plain
+                    && self.completion_open
+                    && !key.modifiers.contains(KeyModifiers::SHIFT)
+                    && matches!(key.code, KeyCode::Up | KeyCode::Down)
+                {
+                    self.completion.move_selection(key.code == KeyCode::Down);
+                    self.completion_tabbed = true;
+                    self.dirty = true;
+                    return;
+                }
+                if plain && key.kind == KeyEventKind::Press {
+                    match key.code {
+                        KeyCode::BackTab | KeyCode::Tab
+                            if key.code == KeyCode::BackTab
+                                || key.modifiers.contains(KeyModifiers::SHIFT) =>
+                        {
+                            if !self.completion_open {
+                                self.refresh_completion_with_starters(true);
+                                self.completion_open = !self.completion.items.is_empty();
+                            }
+                            self.completion.move_selection(false);
+                            self.completion_tabbed = true;
+                            self.dirty = true;
+                            return;
+                        }
+                        KeyCode::Tab => {
+                            if self.completion_open && self.completion_tabbed {
+                                self.accept_completion();
+                            } else {
+                                self.refresh_completion_with_starters(true);
+                                self.completion_open = !self.completion.items.is_empty();
+                                self.completion_tabbed = true;
+                            }
+                            self.dirty = true;
+                            return;
+                        }
+                        KeyCode::Enter
+                            if self.completion_open
+                                && !key.modifiers.contains(KeyModifiers::SHIFT) =>
+                        {
+                            self.accept_completion();
+                            return;
+                        }
+                        _ => {}
+                    }
+                }
+                if key.code == KeyCode::Tab && key.kind == KeyEventKind::Repeat {
+                    return;
+                }
             }
             if self.export_path.is_none() && key.kind == KeyEventKind::Press {
                 match key.code {
@@ -691,25 +763,6 @@ impl App {
                         self.edit(EditorAction::Insert(text));
                         return;
                     }
-                    KeyCode::Tab => {
-                        if self.completion_open {
-                            self.accept_completion();
-                        } else {
-                            self.refresh_completion();
-                            self.completion_open = !self.completion.items.is_empty();
-                        }
-                        self.dirty = true;
-                        return;
-                    }
-                    KeyCode::Up | KeyCode::Down if self.completion_open => {
-                        self.completion.move_selection(key.code == KeyCode::Down);
-                        self.dirty = true;
-                        return;
-                    }
-                    KeyCode::Enter if self.completion_open => {
-                        self.accept_completion();
-                        return;
-                    }
                     KeyCode::Char('y' | 'n')
                         if !self.session.snapshot.preflights.is_empty() && !self.awaiting_ack =>
                     {
@@ -816,19 +869,27 @@ impl App {
             ));
         }
         self.refresh_preview();
-        if self.completion_open {
-            self.refresh_completion();
-            self.completion_open = !self.completion.items.is_empty();
-        }
+        let starters = self.completion_open && self.completion_starters;
+        self.refresh_completion_with_starters(starters);
+        self.completion_open = !self.completion.items.is_empty();
+        self.completion_tabbed = false;
         self.dirty = true;
     }
-    fn refresh_completion(&mut self) {
-        self.completion = CompletionState::at(
+    fn refresh_completion_with_starters(&mut self, starters: bool) {
+        self.completion_starters = starters;
+        self.completion = CompletionState::with_starters(
             self.input.text(),
             self.input.cursor(),
             &self.session.snapshot.context,
             &self.quotes.metadata(),
+            starters,
         );
+        self.completion.descriptions = self
+            .completion
+            .items
+            .iter()
+            .map(|token| crate::typeahead::describe(token, &self.session.snapshot.models))
+            .collect();
     }
     fn accept_completion(&mut self) {
         if let Some(value) = self.completion.replacement() {

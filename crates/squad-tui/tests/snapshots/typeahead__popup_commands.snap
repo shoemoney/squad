@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/typeahead.rs
+expression: "screen(&mut app, 80)"
+---
+ SQUAD   /   main   ·   six minds, one room
+$0.00 ???????? $0.00 · pending $0.00 · remaining $0.00
+···· · grok-reso
+idle W0 L0
+········ · deeps
+idle W0 L0
+······· · debora
+idle W0 L0
+                                 ____   ___  _   _   _    ____
+                                / ___| / _ \| | | | / \  |  _ \
+                                \___ \| | | | | | |/ _ \ | | | |
+                                 ___) | |_| | |_| / ___ \| |_| |
+                                |____/ \__\_\\___/_/   \_\____/
+  /set  ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5>
+  /stop  [@nick]
+  /judge  [debateId]
+  /regen  [messageId]
+  /clear
+  /who
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+> /
+
+
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

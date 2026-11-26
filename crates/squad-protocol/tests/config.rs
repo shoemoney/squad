@@ -839,3 +839,19 @@ fn usd_settings_accept_only_plain_decimal_syntax() {
         }
     }
 }
+
+#[test]
+fn tips_default_validation_and_file_environment_precedence() {
+    let f = Fixture::new();
+    assert!(f.load(&[]).unwrap().tips);
+    assert!(!f.load(&[("SQUAD_TIPS", "off")]).unwrap().tips);
+    assert!(f.load(&[("SQUAD_TIPS", "on")]).unwrap().tips);
+    assert_eq!(
+        f.load(&[("SQUAD_TIPS", "yes")]).unwrap_err(),
+        ConfigError::Tips
+    );
+    let mut f = Fixture::new();
+    f.options.env_file = Some(f.write("tips.env", "SQUAD_TIPS=off\n"));
+    assert!(!f.load(&[]).unwrap().tips);
+    assert!(f.load(&[("SQUAD_TIPS", "on")]).unwrap().tips);
+}

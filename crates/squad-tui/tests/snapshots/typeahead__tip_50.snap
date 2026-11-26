@@ -1,0 +1,5 @@
+---
+source: crates/squad-tui/tests/typeahead.rs
+expression: lines(&buf)
+---
+
