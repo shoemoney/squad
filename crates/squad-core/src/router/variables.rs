@@ -10,6 +10,10 @@ pub fn apply(
     for update in updates {
         let max = match update.name {
             VariableName::Rounds => 20,
+            VariableName::NegotiateRounds => 6,
+            VariableName::ReadbackRounds => 4,
+            VariableName::DebugRounds => 6,
+
             VariableName::GrillRounds => 10,
             VariableName::CensusPasses => 5,
         };

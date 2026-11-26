@@ -31,6 +31,7 @@ pub(crate) struct ParserSnapshot {
     pub variables: RoomVariables,
     pub metadata: SubmissionMetadata,
     pub pending_pick: Option<PendingPick>,
+    pub pending_human: Option<PendingHuman>,
     /// Oldest to newest; only summaries, never executable source text.
     pub records: Vec<SourceSummary>,
     /// One stored batch, never a union of unrelated latest replies.
@@ -112,6 +113,15 @@ pub(crate) fn validate_snapshot(parsed: &ParsedInput, ctx: &ParserSnapshot) -> P
             leader, grillers, ..
         } => std::iter::once(leader).chain(grillers.iter()).collect(),
         ParsedInput::QuestionFirst { candidates, .. } => candidates.iter().collect(),
+        ParsedInput::Forge { participants, .. } |
+        ParsedInput::Forecast { participants, .. } |
+        ParsedInput::Decide { participants, .. } |
+        ParsedInput::Negotiate { participants, .. } |
+        ParsedInput::BlowItUp { participants, .. } |
+        ParsedInput::Readback { participants, .. } |
+        ParsedInput::Debugging { participants, .. } |
+        ParsedInput::Trace { participants, .. } |
+        ParsedInput::Rank { participants, .. } |
         ParsedInput::Census { participants, .. }
         | ParsedInput::Crosscheck { participants, .. }
         | ParsedInput::Survey { participants, .. }
@@ -247,6 +257,15 @@ pub(crate) fn validate_snapshot(parsed: &ParsedInput, ctx: &ParserSnapshot) -> P
                 mode: QuestionFirstMode::Grill,
                 ..
             } => ContestKind::Grill,
+ParsedInput::Forge { .. } => ContestKind::Forge,
+ParsedInput::Forecast { .. } => ContestKind::Forecast,
+ParsedInput::Decide { .. } => ContestKind::Decide,
+ParsedInput::Negotiate { .. } => ContestKind::Negotiate,
+ParsedInput::BlowItUp { .. } => ContestKind::BlowItUp,
+ParsedInput::Readback { .. } => ContestKind::Readback,
+ParsedInput::Debugging { .. } => ContestKind::Debugging,
+ParsedInput::Trace { .. } => ContestKind::Trace,
+ParsedInput::Rank { .. } => ContestKind::Rank,
             ParsedInput::Tournament { .. } => ContestKind::Tournament,
             ParsedInput::Census { .. } => ContestKind::Census,
             ParsedInput::Crosscheck { .. } => ContestKind::Crosscheck,

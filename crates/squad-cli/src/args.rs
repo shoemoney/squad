@@ -112,6 +112,16 @@ impl Export {
             ExportScope::Crosscheck,
             ExportScope::Survey,
             ExportScope::Probe,
+ExportScope::Forge,
+ExportScope::Forecast,
+ExportScope::Decide,
+ExportScope::Negotiate,
+ExportScope::BlowItUp,
+ExportScope::Readback,
+ExportScope::Debugging,
+ExportScope::Trace,
+ExportScope::Rank,
+
         ]
         .into_iter()
         .map(|scope| {

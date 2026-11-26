@@ -9,6 +9,11 @@ pub struct Output<'a> {
     pub stderr: &'a mut dyn Write,
 }
 impl Output<'_> {
+    pub fn human_pending(&mut self,pending: &parser::PendingHuman) -> io::Result<()> {
+      if self.json {self.record(json!({"type":"contest.awaiting_human","contestId":pending.contest_id,"pending":pending}))}
+      else {writeln!(self.stdout,"{} · AWAITING_HUMAN · {}",pending.kind.as_str(),pending.contest_id)?;for line in squad_tui::widgets::human_step::lines(pending) {writeln!(self.stdout,"{}",sanitize(&line))?;}Ok(())}
+    }
+
     pub fn record(&mut self, value: Value) -> io::Result<()> {
         // JSON escapes C0, but serde leaves Unicode C1 controls literal. Escape
         // those too so terminal output stays safe and decoded records stay intact.

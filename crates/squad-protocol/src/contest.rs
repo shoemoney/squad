@@ -6,6 +6,25 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase", rename_all_fields = "camelCase")]
 pub enum ContestKind {
+    #[serde(rename = "forge")]
+    Forge,
+    #[serde(rename = "forecast")]
+    Forecast,
+    #[serde(rename = "decide")]
+    Decide,
+    #[serde(rename = "negotiate")]
+    Negotiate,
+    #[serde(rename = "blow_it_up")]
+    BlowItUp,
+    #[serde(rename = "readback")]
+    Readback,
+    #[serde(rename = "debug")]
+    Debugging,
+    #[serde(rename = "trace")]
+    Trace,
+    #[serde(rename = "rank")]
+    Rank,
+
     Debate,
     Tournament,
     Grill,
@@ -108,6 +127,25 @@ pub struct GenericContestState {
     rename_all_fields = "camelCase"
 )]
 pub enum ContestState {
+    #[serde(rename = "forge")]
+    Forge(ForgeState),
+    #[serde(rename = "forecast")]
+    Forecast(ForecastState),
+    #[serde(rename = "decide")]
+    Decide(DecideState),
+    #[serde(rename = "negotiate")]
+    Negotiate(NegotiateState),
+    #[serde(rename = "blow_it_up")]
+    BlowItUp(BlowItUpState),
+    #[serde(rename = "readback")]
+    Readback(ReadbackState),
+    #[serde(rename = "debug")]
+    Debugging(DebuggingState),
+    #[serde(rename = "trace")]
+    Trace(TraceState),
+    #[serde(rename = "rank")]
+    Rank(RankState),
+
     Generic(GenericContestState),
     Selection(ContestSelectionState),
     Debate(DebateState),
@@ -196,6 +234,18 @@ pub struct ContestAssignment {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ContestArtifact {
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<ContestKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub round: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor: Option<Actor>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audience: Option<ArtifactAudience>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<serde_json::Value>,
+
     pub contest_id: ContestId,
     pub step_id: StepId,
     pub artifact_kind: Text,
@@ -232,6 +282,25 @@ pub struct ContestTransitionSubmission {
     rename_all_fields = "camelCase"
 )]
 pub enum ContestTransition {
+    #[serde(rename = "forge")]
+    Forge(ForgeTransition),
+    #[serde(rename = "forecast")]
+    Forecast(ForecastTransition),
+    #[serde(rename = "decide")]
+    Decide(DecideTransition),
+    #[serde(rename = "negotiate")]
+    Negotiate(NegotiateTransition),
+    #[serde(rename = "blow_it_up")]
+    BlowItUp(BlowItUpTransition),
+    #[serde(rename = "readback")]
+    Readback(ReadbackTransition),
+    #[serde(rename = "debug")]
+    Debugging(DebuggingTransition),
+    #[serde(rename = "trace")]
+    Trace(TraceTransition),
+    #[serde(rename = "rank")]
+    Rank(RankTransition),
+
     Grill(GrillTransition),
     Debate(DebateTransition),
     Tournament(TournamentTransition),
@@ -244,6 +313,15 @@ pub enum ContestTransition {
 impl ContestKind {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Forge => "forge",
+            Self::Forecast => "forecast",
+            Self::Decide => "decide",
+            Self::Negotiate => "negotiate",
+            Self::BlowItUp => "blow_it_up",
+            Self::Readback => "readback",
+            Self::Debugging => "debug",
+            Self::Trace => "trace",
+            Self::Rank => "rank",
             Self::Debate => "debate",
             Self::Tournament => "tournament",
             Self::Grill => "grill",
@@ -254,6 +332,18 @@ impl ContestKind {
         }
     }
     pub fn is_built(self) -> bool {
+        match self {
+            Self::Forge => return forge::ENABLED,
+            Self::Forecast => return forecast::ENABLED,
+            Self::Decide => return decide::ENABLED,
+            Self::Negotiate => return negotiate::ENABLED,
+            Self::BlowItUp => return blow_it_up::ENABLED,
+            Self::Readback => return readback::ENABLED,
+            Self::Debugging => return debugging::ENABLED,
+            Self::Trace => return trace::ENABLED,
+            Self::Rank => return rank::ENABLED,
+            _ => {}
+        }
         matches!(
             self,
             Self::Debate
@@ -282,3 +372,33 @@ impl ContestTransitionSubmission {
         Ok((self.contest_id, self.expected_state_version, transition))
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag="kind", rename_all="lowercase", deny_unknown_fields)]
+pub enum ArtifactAudience { Human, Case, Members { recipients: Vec<MemberNick> } }
+impl ContestArtifact {
+ pub fn validate_mode(&self) -> crate::validation::ValidationResult {
+  use crate::validation::{ensure,unique};
+  let kind=self.kind.ok_or_else(||crate::validation::ValidationError{message:"artifact requires kind".into()})?;
+  ensure(self.round.is_some() && self.actor.is_some() && self.body.as_ref().is_some_and(|b|b.is_object()), "mode artifact requires round, actor and object body")?;
+  match &self.audience { Some(ArtifactAudience::Members {recipients}) => ensure(!recipients.is_empty() && unique(recipients), "explicit distinct artifact recipients required")?, Some(_) => {}, None => return ensure(false,"artifact audience required") }
+  let body=self.body.as_ref().expect("checked");
+  match kind {
+ContestKind::Forge => forge::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::Forecast => forecast::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::Decide => decide::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::Negotiate => negotiate::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::BlowItUp => blow_it_up::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::Readback => readback::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::Debugging => debugging::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::Trace => trace::validate_artifact(self.artifact_kind.as_str(), body),
+ContestKind::Rank => rank::validate_artifact(self.artifact_kind.as_str(), body),
+_ => ensure(false,"not a new-mode artifact") }
+ }
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all="camelCase", deny_unknown_fields)]
+pub struct ContestHumanRequested { pub pending: parser::PendingHuman }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all="camelCase", deny_unknown_fields)]
+pub struct ContestHumanAnswered { pub contest_id: ContestId, pub step_id: StepId, pub expected_state_version: u64, pub text: Option<String>, pub complete: bool }

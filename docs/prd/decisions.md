@@ -98,7 +98,7 @@ All 34 confirmed by the owner. Where a decision conflicts with text elsewhere in
 
 ### New modes (owner, 2026-11-26)
 
-The owner approved nine further modes after a blind brainstorm across the room's own models. [New modes](10-new-modes.md) is the binding specification; these rows record the choices made in it.
+The owner approved nine further modes after a blind brainstorm across the room's own models. [New modes](11-new-modes.md) is the binding specification; these rows record the choices made in it.
 
 | ID | Decision |
 |---|---|

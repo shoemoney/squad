@@ -16,6 +16,7 @@ fn core_snapshot_and_feed_use_the_same_reducer() {
             rounds: 4,
             grill_rounds: 3,
             census_passes: 2,
+ negotiate_rounds:3,readback_rounds:2,debug_rounds:3,
         },
         participants: vec![Presence {
             nick: nick.clone(),

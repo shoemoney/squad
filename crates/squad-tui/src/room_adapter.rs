@@ -39,8 +39,13 @@ pub fn snapshot(state: &RoomState, events: Vec<CommittedEnvelope>) -> RoomSnapsh
         (VariableName::Rounds, state.vars.rounds),
         (VariableName::GrillRounds, state.vars.grill_rounds),
         (VariableName::CensusPasses, state.vars.census_passes),
+(VariableName::NegotiateRounds,state.vars.negotiate_rounds),
+(VariableName::ReadbackRounds,state.vars.readback_rounds),
+(VariableName::DebugRounds,state.vars.debug_rounds),
+
     ]
     .into();
+    view.context.pending_human=parser::restore_pending_human(&events);
     view.context.active_contest = state.active_contest.clone();
     if let Some(ContestState::Selection(s)) = &state.active_contest {
         view.context.pending_pick =

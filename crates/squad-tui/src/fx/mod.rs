@@ -54,3 +54,21 @@ pub mod status;
 pub mod survey;
 pub mod tournament;
 pub mod verdict;
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;

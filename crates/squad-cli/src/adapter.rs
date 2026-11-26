@@ -125,6 +125,9 @@ impl RoomApi for RoomHandle {
             return Progress::Failed;
         }
         let related = related(state, request);
+        let pending=parser::restore_pending_human(&state.events);
+        if pending.as_ref().is_some_and(|p| state.events.iter().any(|e| related.contains(&e.base.id) && match &e.content {EnvelopePayload::ContestHumanRequested(v)=>v.pending.contest_id==p.contest_id,_=>false})) {return Progress::AwaitingHuman;}
+
         // Causal relevance may reach earlier material (for example regeneration).
         // Only transitions at or after this invocation can determine its result.
         let start = state
@@ -470,6 +473,7 @@ mod tests {
                     rounds: 3,
                     grill_rounds: 3,
                     census_passes: 3,
+ negotiate_rounds:3,readback_rounds:2,debug_rounds:3,
                 },
                 participants: vec![],
                 debates: vec![],

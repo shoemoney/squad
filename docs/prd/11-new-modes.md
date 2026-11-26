@@ -6,7 +6,7 @@
 
 This section specifies nine contest modes added after v0.1.2: `$forge`, `$forecast`, `$decide`, `$negotiate`, `$blow_it_up`, `$readback`, `$debug`, `$trace` and `$rank`. The names are final (D73). With the seven existing modes Squad has sixteen.
 
-This file shares the number 10 with [Hardening and launch](10-hardening-and-launch.md). Cross-references call this section **New modes**.
+This is section 11; section 10 is [Hardening and launch](10-hardening-and-launch.md).
 
 Everything in [Contests](08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md) still applies unless this section says otherwise: the shared contest engine and its eight moves, one active-contest claim per room, structural blindness, blind text redaction, preflight and admission, participant holds, the daily cap, `/stop`, restart recovery, and the markdown export path. The nine modes are scripts over the same moves. They add one engine capability, the **human step**, specified below.
 

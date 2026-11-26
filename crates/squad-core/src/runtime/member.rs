@@ -119,6 +119,9 @@ impl squad_agents::worker::WorkExecutor for Executor {
                 )
                 .await;
             }
+            if let Some(kind)=grant.work.kind.new_mode_kind() {
+                return super::execute_new_mode(kind,context,&grant,&self.client,&self.pack,&self.config,cancel).await.map_err(|_| ReaderError::NotRunnable);
+            }
             if grant.work.kind.is_probe() {
                 let pack = PromptPack::from_override_dir(self.config.prompts.directory.as_deref())
                     .map_err(|_| ReaderError::NotRunnable)?;

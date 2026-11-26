@@ -16,6 +16,16 @@ pub fn apply(
         .optional()?;
     let mut stopped_contest = None;
     if let Some((contest, raw)) = active {
+        let kind:String=tx.query_row("SELECT kind FROM contests WHERE contest_id=?",[&contest],|r|r.get(0))?;
+        let kind:ContestKind=serde_json::from_value(serde_json::Value::String(kind))?;
+        if matches!(kind,ContestKind::Forge|ContestKind::Forecast|ContestKind::Decide|ContestKind::Negotiate|ContestKind::BlowItUp|ContestKind::Readback|ContestKind::Debugging|ContestKind::Trace|ContestKind::Rank) {
+            let id_contest:ContestId=contest.parse().map_err(|_|StoreError::Unavailable)?;
+            let participant=target.as_ref().is_none_or(|nick| {
+                tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE contest_id=? AND target=?)",params![&contest,nick.as_str()],|r|r.get::<_,bool>(0)).unwrap_or(false)
+            });
+            if participant {super::new_mode_stop(kind,tx,group,id,id_contest)?;stopped_contest=Some(id_contest);}
+        }
+
         if let Ok(mut state) = serde_json::from_str::<ContestSelectionState>(&raw) {
             if target.is_none() {
                 state.state = ContestSelectionStatus::Stopped;

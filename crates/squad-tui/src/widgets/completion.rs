@@ -139,7 +139,7 @@ impl CompletionState {
         } else if prefix.starts_with('$') {
             candidates.extend(
                 crate::typeahead::MODES
-                    .iter()
+                    .iter().filter(|(token,_)| crate::typeahead::enabled(token))
                     .map(|(name, _)| name.to_string()),
             );
             // Preserve variable completion for an explicit uppercase prefix.
@@ -190,7 +190,7 @@ impl CompletionState {
             if !has_mode && !slash_line {
                 candidates.extend(
                     crate::typeahead::MODES
-                        .iter()
+                        .iter().filter(|(token,_)| crate::typeahead::enabled(token))
                         .map(|(name, _)| name.to_string()),
                 );
             }

@@ -124,7 +124,7 @@ pub fn failure_policy(
             work_id,
             next_attempt: attempt + 1,
             repair: invalid
-                && matches!(
+                && (kind.new_mode_kind().is_some() || matches!(
                     kind,
                     WorkKind::Judge
                         | WorkKind::JudgeRound
@@ -134,12 +134,13 @@ pub fn failure_policy(
                         | WorkKind::SurveyExtract
                         | WorkKind::SurveyReport
                         | WorkKind::ProbeReport
-                ),
+                )),
         }
     } else {
         match kind {
             WorkKind::JudgeRound => AttemptDecision::Unscored(work_id),
             WorkKind::Judge | WorkKind::ProbeReport => AttemptDecision::JudgeFailed(work_id),
+            kind if kind.new_mode_judge() => AttemptDecision::JudgeFailed(work_id),
             _ => AttemptDecision::Forfeit(work_id),
         }
     }

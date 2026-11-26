@@ -48,6 +48,44 @@ pub async fn stream_attempt(
     forward_deltas: bool,
 ) -> Result<StreamOutput, ExecutionError> {
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
+WorkKind::ForgeDraft => DeadlineClass::DebateTurn,
+WorkKind::ForgeRank => DeadlineClass::DebateTurn,
+WorkKind::ForgeFuse => DeadlineClass::DebateTurn,
+WorkKind::ForgeJudge => DeadlineClass::FinalJudge,
+WorkKind::ForecastFrame => DeadlineClass::FinalJudge,
+WorkKind::ForecastEstimate => DeadlineClass::DebateTurn,
+WorkKind::ForecastRevise => DeadlineClass::DebateTurn,
+WorkKind::ForecastCruxes => DeadlineClass::FinalJudge,
+WorkKind::DecideOptions => DeadlineClass::DebateTurn,
+WorkKind::DecideShortlist => DeadlineClass::FinalJudge,
+WorkKind::DecideCriteria => DeadlineClass::DebateTurn,
+WorkKind::DecideFreeze => DeadlineClass::FinalJudge,
+WorkKind::DecideScore => DeadlineClass::DebateTurn,
+WorkKind::DecideExplain => DeadlineClass::FinalJudge,
+WorkKind::NegotiateMap => DeadlineClass::DebateTurn,
+WorkKind::NegotiateBrief => DeadlineClass::FinalJudge,
+WorkKind::NegotiatePackage => DeadlineClass::DebateTurn,
+WorkKind::NegotiateMove => DeadlineClass::DebateTurn,
+WorkKind::NegotiateCounter => DeadlineClass::DebateTurn,
+WorkKind::NegotiatePlaybook => DeadlineClass::FinalJudge,
+WorkKind::BlowItUpAttack => DeadlineClass::DebateTurn,
+WorkKind::BlowItUpChallenge => DeadlineClass::DebateTurn,
+WorkKind::BlowItUpRule => DeadlineClass::FinalJudge,
+WorkKind::ReadbackInterpret => DeadlineClass::DebateTurn,
+WorkKind::ReadbackDiff => DeadlineClass::FinalJudge,
+WorkKind::ReadbackRewrite => DeadlineClass::FinalJudge,
+WorkKind::DebuggingHypothesize => DeadlineClass::DebateTurn,
+WorkKind::DebuggingMerge => DeadlineClass::FinalJudge,
+WorkKind::DebuggingTest => DeadlineClass::DebateTurn,
+WorkKind::DebuggingSelect => DeadlineClass::FinalJudge,
+WorkKind::DebuggingReport => DeadlineClass::FinalJudge,
+WorkKind::TraceExtract => DeadlineClass::DebateTurn,
+WorkKind::TraceMerge => DeadlineClass::FinalJudge,
+WorkKind::TraceVerify => DeadlineClass::DebateTurn,
+WorkKind::TraceAssemble => DeadlineClass::FinalJudge,
+WorkKind::RankCompare => DeadlineClass::DebateTurn,
+WorkKind::RankExplain => DeadlineClass::FinalJudge,
+
         WorkKind::CensusHunt | WorkKind::CensusRate => DeadlineClass::DebateTurn,
         WorkKind::CensusMerge | WorkKind::CensusFinal => DeadlineClass::FinalJudge,
         WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit => {
@@ -288,3 +326,21 @@ pub async fn failed_with(
 }
 
 pub mod tournament;
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;

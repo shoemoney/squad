@@ -293,6 +293,16 @@ impl Session {
             ContestState::Census(s) => s.contest_id,
             ContestState::Survey(s) => s.contest_id,
             ContestState::Probe(s) => s.contest_id,
+ContestState::Forge(s) => s.contest_id,
+ContestState::Forecast(s) => s.contest_id,
+ContestState::Decide(s) => s.contest_id,
+ContestState::Negotiate(s) => s.contest_id,
+ContestState::BlowItUp(s) => s.contest_id,
+ContestState::Readback(s) => s.contest_id,
+ContestState::Debugging(s) => s.contest_id,
+ContestState::Trace(s) => s.contest_id,
+ContestState::Rank(s) => s.contest_id,
+
             ContestState::Grill(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Tournament(s) => s.contest_id,
@@ -1072,6 +1082,17 @@ impl Session {
                     duration: Duration::from_secs(6),
                 });
             }
+EnvelopePayload::ForgeState(s) => { self.restore_contest(ContestState::Forge(s.clone())); },
+EnvelopePayload::ForecastState(s) => { self.restore_contest(ContestState::Forecast(s.clone())); },
+EnvelopePayload::DecideState(s) => { self.restore_contest(ContestState::Decide(s.clone())); },
+EnvelopePayload::NegotiateState(s) => { self.restore_contest(ContestState::Negotiate(s.clone())); },
+EnvelopePayload::BlowItUpState(s) => { self.restore_contest(ContestState::BlowItUp(s.clone())); },
+EnvelopePayload::ReadbackState(s) => { self.restore_contest(ContestState::Readback(s.clone())); },
+EnvelopePayload::DebuggingState(s) => { self.restore_contest(ContestState::Debugging(s.clone())); },
+EnvelopePayload::TraceState(s) => { self.restore_contest(ContestState::Trace(s.clone())); },
+EnvelopePayload::RankState(s) => { self.restore_contest(ContestState::Rank(s.clone())); },
+            EnvelopePayload::ContestHumanRequested(v) => { self.snapshot.context.pending_human=Some(v.pending.clone()); },
+            EnvelopePayload::ContestHumanAnswered(v) => { if v.complete {self.snapshot.context.pending_human=None;} else {let mut events=self.snapshot.events.clone();if let Some(commit)=committed {events.push(CommittedEnvelope {base:base.clone(),content:content.clone(),commit:commit.clone()});}self.snapshot.context.pending_human=parser::restore_pending_human(&events);} },
             EnvelopePayload::ContestArtifact(a) => {
                 if a.artifact_kind.as_str() == "crosscheck.cell"
                     && let Some(work_id) = a.work_id
@@ -1290,6 +1311,16 @@ pub fn contest_active(s: &ContestState) -> bool {
         ContestState::Census(s) => !s.status.is_terminal(),
         ContestState::Survey(s) => !s.state.is_terminal(),
         ContestState::Probe(p) => !p.state.is_terminal(),
+ContestState::Forge(s) => !s.state.is_terminal(),
+ContestState::Forecast(s) => !s.state.is_terminal(),
+ContestState::Decide(s) => !s.state.is_terminal(),
+ContestState::Negotiate(s) => !s.state.is_terminal(),
+ContestState::BlowItUp(s) => !s.state.is_terminal(),
+ContestState::Readback(s) => !s.state.is_terminal(),
+ContestState::Debugging(s) => !s.state.is_terminal(),
+ContestState::Trace(s) => !s.state.is_terminal(),
+ContestState::Rank(s) => !s.state.is_terminal(),
+
         ContestState::Grill(p) => !p.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,

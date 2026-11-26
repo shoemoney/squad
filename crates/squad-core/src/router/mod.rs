@@ -341,11 +341,13 @@ impl Router {
                 return Ok(RequestResult::Rejected {request_id:id,error:error(code,text)});
             }
             match request {
+                Request::HumanAnswer {request_id,contest_id,expected_state_version,text} => { human::answer(tx,group,request_id,contest_id,expected_state_version,text)?; return Ok(group.accepted(request_id)) },
                 Request::UserMessage {input,parsed,preconfirmed}=> {
                     let meta=parser::SubmissionMeta {quote:input.quote.clone().unwrap_or_default(),reply_to:input.reply_to.clone().unwrap_or_default()};
                     let ctx=snapshot(tx,roster.clone())?;
                     let authoritative=match parse(input.text.as_str(),&meta,&ctx) {Ok(parsed)=>parsed,Err(e)=>return Ok(RequestResult::Rejected {request_id:id,error:error(e.code,e.message)})};
                     if authoritative!=parsed {return Err(StoreError::Domain(ErrorCode::INVALID_COMMAND,"Parsed input does not match authoritative state"));}
+                    if let Some(kind)=new_mode_parsed_kind(&parsed) { return preflight::prepare_new_mode(kind,tx,group,id,&input,&parsed); }
                     if matches!(parsed,ParsedInput::Survey {..}) {return survey::admit(tx,group,id,input,parsed,&bindings,survey_max,survey_threshold,preconfirmed,survey_config.as_ref());}
                     if matches!(parsed,ParsedInput::QuestionFirst {..}) {picks::collect(tx,group,id,input,parsed,&bindings)?;return Ok(group.accepted(id));}
                     if let ParsedInput::Tournament { input: conversation, entrants, prompt } = &parsed {
@@ -705,6 +707,7 @@ impl Router {
                             )?;
                             squad_store::work::finish(tx, work_id, WorkStatus::Completed, seq)?;
                         }
+                        EnvelopePayload::ContestArtifact(artifact) if work.kind.new_mode_kind().is_some()=>new_mode_accepted_work(work.kind.new_mode_kind().expect("checked"),tx,&work,artifact,seq)?,
                         EnvelopePayload::ContestArtifact(artifact) if work.kind.census_composition().is_some()=>squad_store::census::accept(tx,&work,artifact,seq)?,
                         EnvelopePayload::ContestArtifact(artifact)=>{ if matches!(work.kind,WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit|WorkKind::CrosscheckGoal | WorkKind::CrosscheckNormalize | WorkKind::CrosscheckRule) {crosscheck::validate_artifact(tx,&work,artifact)?;} squad_store::contest_steps::artifact(tx,artifact,seq)?; },
                         EnvelopePayload::SurveyClaims(_) | EnvelopePayload::SurveyVote(_) | EnvelopePayload::SurveyRevote(_) | EnvelopePayload::SurveyReport(_) => {
@@ -950,6 +953,17 @@ pub fn request_id(request: &Request) -> EventId {
         _ => EventId::new(),
     }
 }
+pub(crate) fn load_new_mode_state(db: &rusqlite::Connection, id:ContestId, kind:ContestKind) -> Result<ContestState> {match kind {
+ContestKind::Forge=> Ok(ContestState::Forge(forge::load_state(db,id)?)),
+ContestKind::Forecast=> Ok(ContestState::Forecast(forecast::load_state(db,id)?)),
+ContestKind::Decide=> Ok(ContestState::Decide(decide::load_state(db,id)?)),
+ContestKind::Negotiate=> Ok(ContestState::Negotiate(negotiate::load_state(db,id)?)),
+ContestKind::BlowItUp=> Ok(ContestState::BlowItUp(blow_it_up::load_state(db,id)?)),
+ContestKind::Readback=> Ok(ContestState::Readback(readback::load_state(db,id)?)),
+ContestKind::Debugging=> Ok(ContestState::Debugging(debugging::load_state(db,id)?)),
+ContestKind::Trace=> Ok(ContestState::Trace(trace::load_state(db,id)?)),
+ContestKind::Rank=> Ok(ContestState::Rank(rank::load_state(db,id)?)),
+_=>Err(StoreError::Unavailable)}}
 fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser::ParseContext> {
     let mut ctx = parser::ParseContext {
         roster,
@@ -1056,7 +1070,10 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
         })
         .optional()?
     {
-        if let Ok(state) = serde_json::from_str::<ContestSelectionState>(&raw) {
+        let (id,kind):(String,String)=db.query_row("SELECT contest_id,kind FROM contests WHERE active=1",[],|r|Ok((r.get(0)?,r.get(1)?)))?;
+        let kind:ContestKind=serde_json::from_value(serde_json::Value::String(kind))?;
+        if matches!(kind,ContestKind::Forge|ContestKind::Forecast|ContestKind::Decide|ContestKind::Negotiate|ContestKind::BlowItUp|ContestKind::Readback|ContestKind::Debugging|ContestKind::Trace|ContestKind::Rank) {ctx.active_contest=Some(load_new_mode_state(db,id.parse().map_err(|_|StoreError::Unavailable)?,kind)?);}
+        else if let Ok(state) = serde_json::from_str::<ContestSelectionState>(&raw) {
             if state.state == ContestSelectionStatus::AwaitingPick {
                 ctx.pending_pick = Some(parser::PendingPick {
                     contest_id: state.contest_id,
@@ -1069,6 +1086,15 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
                 });
             }
             ctx.active_contest = Some(ContestState::Selection(state));
+        } else if let Ok(state) = serde_json::from_str::<ForgeState>(&raw) { ctx.active_contest=Some(ContestState::Forge(state));
+        } else if let Ok(state) = serde_json::from_str::<ForecastState>(&raw) { ctx.active_contest=Some(ContestState::Forecast(state));
+        } else if let Ok(state) = serde_json::from_str::<DecideState>(&raw) { ctx.active_contest=Some(ContestState::Decide(state));
+        } else if let Ok(state) = serde_json::from_str::<NegotiateState>(&raw) { ctx.active_contest=Some(ContestState::Negotiate(state));
+        } else if let Ok(state) = serde_json::from_str::<BlowItUpState>(&raw) { ctx.active_contest=Some(ContestState::BlowItUp(state));
+        } else if let Ok(state) = serde_json::from_str::<ReadbackState>(&raw) { ctx.active_contest=Some(ContestState::Readback(state));
+        } else if let Ok(state) = serde_json::from_str::<DebuggingState>(&raw) { ctx.active_contest=Some(ContestState::Debugging(state));
+        } else if let Ok(state) = serde_json::from_str::<TraceState>(&raw) { ctx.active_contest=Some(ContestState::Trace(state));
+        } else if let Ok(state) = serde_json::from_str::<RankState>(&raw) { ctx.active_contest=Some(ContestState::Rank(state));
         } else if let Ok(state) = serde_json::from_str::<GrillState>(&raw) {
             ctx.active_contest = Some(ContestState::Grill(state));
         } else if let Ok(state) = serde_json::from_str::<TournamentState>(&raw) {
@@ -1087,6 +1113,7 @@ fn snapshot(db: &rusqlite::Connection, roster: Vec<MemberNick>) -> Result<parser
             };
         }
     }
+    ctx.pending_human=squad_store::contest_steps::pending_human(db)?;
     Ok(ctx)
 }
 
@@ -1135,3 +1162,95 @@ mod storage_guard_tests {
         assert_eq!(code, ErrorCode::STORAGE_LIMIT);
     }
 }
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;
+
+pub(crate) fn new_mode_prepare(kind: ContestKind, tx: &rusqlite::Transaction<'_>, group: &mut squad_store::commit::CommitGroup, id: EventId, input: &UserMessageInput, parsed: &ParsedInput) -> squad_store::Result<RequestResult> { match kind {
+ContestKind::Forge => forge::prepare(tx,group,id,input,parsed),
+ContestKind::Forecast => forecast::prepare(tx,group,id,input,parsed),
+ContestKind::Decide => decide::prepare(tx,group,id,input,parsed),
+ContestKind::Negotiate => negotiate::prepare(tx,group,id,input,parsed),
+ContestKind::BlowItUp => blow_it_up::prepare(tx,group,id,input,parsed),
+ContestKind::Readback => readback::prepare(tx,group,id,input,parsed),
+ContestKind::Debugging => debugging::prepare(tx,group,id,input,parsed),
+ContestKind::Trace => trace::prepare(tx,group,id,input,parsed),
+ContestKind::Rank => rank::prepare(tx,group,id,input,parsed),
+_ => Err(squad_store::StoreError::Unavailable) } }
+
+pub(crate) fn new_mode_accepted_work(kind: ContestKind, tx: &rusqlite::Connection, work: &Work, artifact: &ContestArtifact, seq: Cursor) -> squad_store::Result<()> { match kind {
+ContestKind::Forge => forge::accepted_work(tx,work,artifact,seq),
+ContestKind::Forecast => forecast::accepted_work(tx,work,artifact,seq),
+ContestKind::Decide => decide::accepted_work(tx,work,artifact,seq),
+ContestKind::Negotiate => negotiate::accepted_work(tx,work,artifact,seq),
+ContestKind::BlowItUp => blow_it_up::accepted_work(tx,work,artifact,seq),
+ContestKind::Readback => readback::accepted_work(tx,work,artifact,seq),
+ContestKind::Debugging => debugging::accepted_work(tx,work,artifact,seq),
+ContestKind::Trace => trace::accepted_work(tx,work,artifact,seq),
+ContestKind::Rank => rank::accepted_work(tx,work,artifact,seq),
+_ => Err(squad_store::StoreError::Unavailable) } }
+
+pub(crate) fn new_mode_human_answer(kind: ContestKind, tx: &rusqlite::Connection, pending: &parser::PendingHuman, complete: bool) -> squad_store::Result<()> { match kind {
+ContestKind::Forge => forge::human_answer(tx,pending,complete),
+ContestKind::Forecast => forecast::human_answer(tx,pending,complete),
+ContestKind::Decide => decide::human_answer(tx,pending,complete),
+ContestKind::Negotiate => negotiate::human_answer(tx,pending,complete),
+ContestKind::BlowItUp => blow_it_up::human_answer(tx,pending,complete),
+ContestKind::Readback => readback::human_answer(tx,pending,complete),
+ContestKind::Debugging => debugging::human_answer(tx,pending,complete),
+ContestKind::Trace => trace::human_answer(tx,pending,complete),
+ContestKind::Rank => rank::human_answer(tx,pending,complete),
+_ => Err(squad_store::StoreError::Unavailable) } }
+
+pub(crate) fn new_mode_stop(kind: ContestKind, tx: &rusqlite::Connection, group: &mut squad_store::commit::CommitGroup, id: EventId, contest: ContestId) -> squad_store::Result<()> { match kind {
+ContestKind::Forge => forge::stop(tx,group,id,contest),
+ContestKind::Forecast => forecast::stop(tx,group,id,contest),
+ContestKind::Decide => decide::stop(tx,group,id,contest),
+ContestKind::Negotiate => negotiate::stop(tx,group,id,contest),
+ContestKind::BlowItUp => blow_it_up::stop(tx,group,id,contest),
+ContestKind::Readback => readback::stop(tx,group,id,contest),
+ContestKind::Debugging => debugging::stop(tx,group,id,contest),
+ContestKind::Trace => trace::stop(tx,group,id,contest),
+ContestKind::Rank => rank::stop(tx,group,id,contest),
+_ => Err(squad_store::StoreError::Unavailable) } }
+
+pub(crate) fn new_mode_recover(kind: ContestKind, tx: &rusqlite::Connection, contest: ContestId) -> squad_store::Result<()> { match kind {
+ContestKind::Forge => forge::recover(tx,contest),
+ContestKind::Forecast => forecast::recover(tx,contest),
+ContestKind::Decide => decide::recover(tx,contest),
+ContestKind::Negotiate => negotiate::recover(tx,contest),
+ContestKind::BlowItUp => blow_it_up::recover(tx,contest),
+ContestKind::Readback => readback::recover(tx,contest),
+ContestKind::Debugging => debugging::recover(tx,contest),
+ContestKind::Trace => trace::recover(tx,contest),
+ContestKind::Rank => rank::recover(tx,contest),
+_ => Err(squad_store::StoreError::Unavailable) } }
+
+pub(crate) fn new_mode_parsed_kind(parsed: &ParsedInput) -> Option<ContestKind> { match parsed {
+ParsedInput::Forge {..} => Some(ContestKind::Forge),
+ParsedInput::Forecast {..} => Some(ContestKind::Forecast),
+ParsedInput::Decide {..} => Some(ContestKind::Decide),
+ParsedInput::Negotiate {..} => Some(ContestKind::Negotiate),
+ParsedInput::BlowItUp {..} => Some(ContestKind::BlowItUp),
+ParsedInput::Readback {..} => Some(ContestKind::Readback),
+ParsedInput::Debugging {..} => Some(ContestKind::Debugging),
+ParsedInput::Trace {..} => Some(ContestKind::Trace),
+ParsedInput::Rank {..} => Some(ContestKind::Rank),
+_ => None } }
+
+pub mod human;

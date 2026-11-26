@@ -132,6 +132,18 @@ pub fn render(
     id: Option<ContestId>,
 ) -> Result<String, ExportError> {
     check_scope(&scope, id)?;
+    match scope {
+ExportScope::Forge => return forge::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::Forecast => return forecast::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::Decide => return decide::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::Negotiate => return negotiate::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::BlowItUp => return blow_it_up::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::Readback => return readback::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::Debugging => return debugging::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::Trace => return trace::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+ExportScope::Rank => return rank::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+_ => {}
+    }
     let mut events: Vec<_> = snapshot.events.iter().collect();
     events.sort_by_key(|e| e.commit.seq);
     let mut ids = BTreeSet::new();
@@ -189,6 +201,16 @@ pub fn render(
             ExportScope::Crosscheck => ContestKind::Crosscheck,
             ExportScope::Survey => ContestKind::Survey,
             ExportScope::Probe => ContestKind::Probe,
+ExportScope::Forge => ContestKind::Forge,
+ExportScope::Forecast => ContestKind::Forecast,
+ExportScope::Decide => ContestKind::Decide,
+ExportScope::Negotiate => ContestKind::Negotiate,
+ExportScope::BlowItUp => ContestKind::BlowItUp,
+ExportScope::Readback => ContestKind::Readback,
+ExportScope::Debugging => ContestKind::Debugging,
+ExportScope::Trace => ContestKind::Trace,
+ExportScope::Rank => ContestKind::Rank,
+
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -869,3 +891,21 @@ impl ExportSource for squad_store::Store {
         .map_err(|_| ExportError::ReadFailed)
     }
 }
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;

@@ -107,6 +107,16 @@ pub fn scope_name(scope: &ExportScope) -> &'static str {
         ExportScope::Crosscheck => "crosscheck",
         ExportScope::Survey => "survey",
         ExportScope::Probe => "probe",
+ExportScope::Forge => "forge",
+ExportScope::Forecast => "forecast",
+ExportScope::Decide => "decide",
+ExportScope::Negotiate => "negotiate",
+ExportScope::BlowItUp => "blow_it_up",
+ExportScope::Readback => "readback",
+ExportScope::Debugging => "debug",
+ExportScope::Trace => "trace",
+ExportScope::Rank => "rank",
+
     }
 }
 /// The four report scopes added after the original room/debate/grill/tournament set.
@@ -126,6 +136,16 @@ pub fn scope_for(kind: ContestKind) -> ExportScope {
         ContestKind::Crosscheck => ExportScope::Crosscheck,
         ContestKind::Survey => ExportScope::Survey,
         ContestKind::Probe => ExportScope::Probe,
+ContestKind::Forge => ExportScope::Forge,
+ContestKind::Forecast => ExportScope::Forecast,
+ContestKind::Decide => ExportScope::Decide,
+ContestKind::Negotiate => ExportScope::Negotiate,
+ContestKind::BlowItUp => ExportScope::BlowItUp,
+ContestKind::Readback => ExportScope::Readback,
+ContestKind::Debugging => ExportScope::Debugging,
+ContestKind::Trace => ExportScope::Trace,
+ContestKind::Rank => ExportScope::Rank,
+
     }
 }
 /// Export a contest report to a destination chosen by the caller. Success is

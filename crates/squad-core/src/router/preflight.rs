@@ -336,3 +336,7 @@ fn reject(
         error,
     })
 }
+
+pub(crate) fn prepare_new_mode(kind: ContestKind, tx: &Transaction<'_>, group: &mut CommitGroup, id: EventId, input:&UserMessageInput, parsed:&ParsedInput) -> Result<RequestResult> {
+ super::new_mode_prepare(kind,tx,group,id,input,parsed)
+}

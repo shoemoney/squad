@@ -1,6 +1,6 @@
 # M8 — New modes (nine)
 
-**Goal:** Add `$forge`, `$forecast`, `$decide`, `$negotiate`, `$blow_it_up`, `$readback`, `$debug`, `$trace` and `$rank` as scripts over the shared contest engine, exactly as specified in [New modes](../10-new-modes.md), with one registry scaffold landing first so nine mode workers can build in separate files.
+**Goal:** Add `$forge`, `$forecast`, `$decide`, `$negotiate`, `$blow_it_up`, `$readback`, `$debug`, `$trace` and `$rank` as scripts over the shared contest engine, exactly as specified in [New modes](../11-new-modes.md), with one registry scaffold landing first so nine mode workers can build in separate files.
 
 **Exit criteria:**
 

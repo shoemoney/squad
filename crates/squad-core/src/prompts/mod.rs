@@ -202,3 +202,21 @@ impl squad_protocol::PromptRenderer for PromptPack {
 pub mod inputs_tournament;
 
 pub mod inputs_census;
+
+pub mod inputs_forge;
+
+pub mod inputs_forecast;
+
+pub mod inputs_decide;
+
+pub mod inputs_negotiate;
+
+pub mod inputs_blow_it_up;
+
+pub mod inputs_readback;
+
+pub mod inputs_debugging;
+
+pub mod inputs_trace;
+
+pub mod inputs_rank;

@@ -112,6 +112,16 @@ pub fn outcome(state: &ContestState) -> RunOutcome {
         ContestState::Census(s) => format!("{:?}", s.status).to_ascii_lowercase(),
         ContestState::Survey(s) => format!("{:?}", s.state).to_ascii_lowercase(),
         ContestState::Probe(s) => format!("{:?}", s.state).to_ascii_lowercase(),
+ContestState::Forge(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::Forecast(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::Decide(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::Negotiate(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::BlowItUp(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::Readback(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::Debugging(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::Trace(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+ContestState::Rank(s) => format!("{:?}",s.state).to_ascii_lowercase(),
+
         ContestState::Grill(s) => format!("{:?}", s.state).to_ascii_lowercase(),
     };
     match word.as_str() {
