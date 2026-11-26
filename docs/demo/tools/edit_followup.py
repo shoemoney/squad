@@ -53,5 +53,5 @@ subprocess.run([
 subprocess.run(["gifsicle", "-O3", "--lossy=60", "--colors", "128", str(temporary), "-o", str(out)], check=True)
 print(json.dumps({"mode": mode, "raw_seconds": end, "report_seconds": report_end,
     "wait_start": wait_start, "wait_end": wait_end, "speed": speed,
-    "gif_seconds": wait_start + (wait_end-wait_start)/speed + 14 + report_end,
+    "gif_seconds": duration(out),
     "gif_bytes": out.stat().st_size}))

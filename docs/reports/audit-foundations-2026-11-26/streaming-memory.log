@@ -1,0 +1,34 @@
+
+running 1 test
+M6 soak elapsed_s=52 waves=6 combined_process_peak_rss_kib=60172
+test six_and_twelve_agent_streaming_for_thirty_minutes has been running for over 60 seconds
+M6 soak elapsed_s=114 waves=12 combined_process_peak_rss_kib=67404
+M6 soak elapsed_s=177 waves=18 combined_process_peak_rss_kib=71140
+M6 soak elapsed_s=241 waves=24 combined_process_peak_rss_kib=79652
+M6 soak elapsed_s=306 waves=30 combined_process_peak_rss_kib=82220
+M6 soak elapsed_s=372 waves=36 combined_process_peak_rss_kib=82220
+M6 soak elapsed_s=438 waves=42 combined_process_peak_rss_kib=82420
+M6 soak elapsed_s=504 waves=48 combined_process_peak_rss_kib=85476
+M6 soak elapsed_s=571 waves=54 combined_process_peak_rss_kib=88604
+M6 soak elapsed_s=638 waves=60 combined_process_peak_rss_kib=90716
+M6 soak elapsed_s=706 waves=66 combined_process_peak_rss_kib=92784
+M6 soak elapsed_s=775 waves=72 combined_process_peak_rss_kib=104164
+M6 soak elapsed_s=844 waves=78 combined_process_peak_rss_kib=107200
+M6 soak elapsed_s=913 waves=84 combined_process_peak_rss_kib=109324
+M6 soak elapsed_s=983 waves=90 combined_process_peak_rss_kib=114488
+M6 soak elapsed_s=1054 waves=96 combined_process_peak_rss_kib=116392
+M6 soak elapsed_s=1127 waves=102 combined_process_peak_rss_kib=123084
+M6 soak elapsed_s=1199 waves=108 combined_process_peak_rss_kib=127028
+M6 soak elapsed_s=1272 waves=114 combined_process_peak_rss_kib=130432
+M6 soak elapsed_s=1345 waves=120 combined_process_peak_rss_kib=131504
+M6 soak elapsed_s=1418 waves=126 combined_process_peak_rss_kib=132372
+M6 soak elapsed_s=1493 waves=132 combined_process_peak_rss_kib=139784
+M6 soak elapsed_s=1568 waves=138 combined_process_peak_rss_kib=150832
+M6 soak elapsed_s=1643 waves=144 combined_process_peak_rss_kib=152132
+M6 soak elapsed_s=1719 waves=150 combined_process_peak_rss_kib=154156
+M6 soak elapsed_s=1795 waves=156 combined_process_peak_rss_kib=155588
+M6 soak PASS elapsed_s=1805 rosters=6,12 waves=156 combined_process_peak_rss_kib=155588
+test six_and_twelve_agent_streaming_for_thirty_minutes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1805.88s
+

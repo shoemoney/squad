@@ -1,0 +1,10 @@
+
+running 1 test
+M6 soak elapsed_s=52 waves=6 combined_process_peak_rss_kib=61976
+test six_and_twelve_agent_streaming_for_thirty_minutes has been running for over 60 seconds
+M6 soak elapsed_s=115 waves=12 combined_process_peak_rss_kib=75088
+M6 soak elapsed_s=180 waves=18 combined_process_peak_rss_kib=93992
+M6 soak elapsed_s=246 waves=24 combined_process_peak_rss_kib=117372
+M6 soak elapsed_s=311 waves=30 combined_process_peak_rss_kib=139576
+M6 soak elapsed_s=377 waves=36 combined_process_peak_rss_kib=164300
+M6 soak elapsed_s=443 waves=42 combined_process_peak_rss_kib=197992

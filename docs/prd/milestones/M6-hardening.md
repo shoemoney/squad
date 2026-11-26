@@ -167,7 +167,7 @@ stalled; this unresolved validation failure is retained in the report.
   - [x] M6.P2.L1.T4 — Add boundary checks for message size, queues, context selection, bounded delivery, and durable paging in `crates/squad-core/tests/limits.rs`.
   - [x] M6.P2.L1.T5 — Verify `STORAGE_LIMIT`, history preservation, and transactional `/clear` followed by `VACUUM` in `crates/squad-store/tests/storage.rs`.
   - [x] M6.P2.L1.T6 — Add repeatable latency and whole-process memory measurements in `crates/squad-cli/tests/performance.rs`.
-  - [ ] M6.P2.L1.T7 — Record streaming and transcript memory results for `squad-cli` and `squad-tui` in `docs/performance.md`.
+  - [x] M6.P2.L1.T7 — Record streaming and transcript memory results for `squad-cli` and `squad-tui` in `docs/performance.md`. (covered by streaming_memory_audit.rs::six_and_twelve_agent_streaming_for_thirty_minutes and memory_audit.rs::five_hundred_displayed_messages_process_rss; 1,805.88 s / 155,588 KiB streaming and 109,084 KiB transcript, with fixture/reference-host limits in docs/performance.md)
   - [x] M6.P2.L1.T8 — Run the 12-stream latency and memory gate with `SQUAD_FX=full` in `crates/squad-cli/tests/performance.rs` and record results for `squad-cli` and `squad-tui` in `docs/performance.md`.
   - [x] M6.P2.L1.T9 — Verify the frame-budget governor sheds effects under load and that `SQUAD_FX=off` and `NO_COLOR` each produce no animation frames when idle in `crates/squad-tui/tests/effects.rs`.
   - [x] M6.P2.L1.T10 — Verify capacity-1 synchronous mailbox `try_send`, Full as a pending wake-up, no router waits on agent-owned channels, bounded ingress, and feed-lag recovery from the last cursor in `crates/squad-core/tests/limits.rs`.

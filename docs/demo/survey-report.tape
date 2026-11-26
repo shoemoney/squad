@@ -37,6 +37,13 @@ Hide
 Type "clear"
 Enter
 Show
+Type "sed -n '/^### Lone insights/,/^### [0-9a-f]/p' survey.md | fold -sw 110"
+Enter
+Sleep 12s
+Hide
+Type "clear"
+Enter
+Show
 Type "grep '^Limitations:' survey.md | fold -sw 110"
 Enter
 Sleep 12s

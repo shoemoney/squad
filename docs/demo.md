@@ -37,10 +37,12 @@ Both runs use the published **v0.1.2 Linux x64 archive**, verified against its r
 
 The source key is loaded off-screen from a private mode-0600 file. No real `.env` is read into a recording or committed. A $150 daily admission ceiling permits the default roster's conservative reservations; it is **not actual spend** and is not a provider-side hard cap. The owner authorized these small live calls.
 
-| Run | Accepted calls | Recorded actual spend | Final outstanding reservation | Outcome |
+| Run | Mode calls | Recorded actual spend | Final outstanding reservation | Outcome |
 |---|---:|---:|---:|---|
 | Survey | 20 | $1.391816 | $0 | COMPLETE; all required participation accepted |
 | Probe | 10 | $0.591611 | $0 | Complete; decision tree and prediction matrix committed |
+
+Call counts exclude four startup alias probes per run; the spend figures include those probes.
 
 Final published runs total **$1.983427**. Including two discarded captures, the recorded total is **$3.902313**; the discarded probe also retains an unresolved started call/reservation, so its unknown charge is not presented as zero. The first captures failed when VHS frame storage hit the `/tmp` quota. The successful captures use disk-backed `TMPDIR` and request 10 fps. Complete final raw MP4s are retained outside git. The failed frame captures were discarded; their room databases remain private.
 
@@ -53,10 +55,10 @@ Final published runs total **$1.983427**. Including two discarded captures, the 
 Time cuts use raw-video positions; no wait is silently deleted. `docs/demo/tools/edit_followup.py` keeps the first 35 seconds and last 14 seconds in real time, speeds the intervening model wait up **20×** with a permanent on-screen label, then appends the offline continuation in real time with its own label. Full raw MP4s remain unchanged.
 | GIF | Main raw duration | Sped-up raw interval | Offline continuation | Encoded length | Size |
 |---|---:|---|---:|---:|---:|
-| `survey.gif` | 356.04 s | 35.00–342.04 s at 20× | 28.96 s | 93.312 s | 5,202,940 bytes |
-| `probe.gif` | 336.36 s | 35.00–322.36 s at 20× | 24.04 s | 87.408 s | 1,727,498 bytes |
+| `survey.gif` | 356.04 s | 35.00–342.04 s at 20× | 46.64 s | 111.010 s | 5,481,468 bytes |
+| `probe.gif` | 336.36 s | 35.00–322.36 s at 20× | 24.04 s | 87.380 s | 1,727,498 bytes |
 
-**Credential inspection:** 1,116 repository/capture/raw-media files were compared in-process with the literal credential: zero matches. OCR of 60 GIF frames sampled every three seconds found zero literal-key, key-prefix, `sk-or` or `Bearer` matches. Raw and export contact sheets were visually inspected; setup is hidden, reports match the committed exports, and the GIFs label both the time cut and export continuation. Counts only are retained in [credential-inspection.json](reports/audit-foundations-2026-11-26/credential-inspection.json); no credential or OCR text is committed.
+**Credential inspection:** 1,125 repository/capture/raw-media/database files were compared in-process with the literal credential: zero matches. OCR of 66 GIF frames sampled every three seconds found zero literal-key, key-prefix, `sk-or` or `Bearer` matches. Raw and export contact sheets were visually inspected; setup is hidden, reports match the committed exports, and the GIFs label both the time cut and export continuation. Counts only are retained in [credential-inspection.json](reports/audit-foundations-2026-11-26/credential-inspection.json); no credential or OCR text is committed.
 
 ![Live default-roster survey with its offline claim-map export and caveats.](media/survey.gif)
 

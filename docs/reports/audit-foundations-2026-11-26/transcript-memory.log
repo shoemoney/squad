@@ -1,0 +1,104 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling errno v0.3.15
+   Compiling serde v1.0.229
+   Compiling log v0.4.35
+   Compiling zerocopy v0.8.65
+   Compiling signal-hook-registry v1.4.8
+   Compiling mio v1.2.5
+   Compiling zerocopy-derive v0.8.65
+   Compiling strsim v0.11.1
+   Compiling tokio v1.54.1
+   Compiling futures-util v0.3.34
+   Compiling darling_core v0.24.1
+   Compiling indexmap v2.14.2
+   Compiling darling_macro v0.24.1
+   Compiling tracing-core v0.1.36
+   Compiling tracing v0.1.44
+   Compiling darling v0.24.1
+   Compiling strum_macros v0.28.0
+   Compiling fluent-uri v0.4.1
+   Compiling tokio-util v0.7.20
+   Compiling h2 v0.4.21
+   Compiling ahash v0.8.13
+   Compiling crossbeam-utils v0.8.23
+   Compiling strum v0.28.0
+   Compiling time v0.3.55
+   Compiling ratatui-core v0.1.2
+   Compiling chrono v0.4.45
+   Compiling referencing v0.46.10
+   Compiling hyper v1.13.0
+   Compiling email_address v0.2.10
+   Compiling crossbeam-epoch v0.9.21
+   Compiling jsonschema v0.46.10
+   Compiling instability v0.3.14
+   Compiling tower v0.5.3
+   Compiling schemars v1.2.3
+   Compiling hyper-util v0.1.21
+   Compiling derive_more-impl v2.1.1
+   Compiling tokio-rustls v0.26.6
+   Compiling signal-hook v0.3.18
+   Compiling ppv-lite86 v0.2.21
+   Compiling futures-executor v0.3.34
+   Compiling crossbeam-deque v0.8.8
+   Compiling futures v0.3.34
+   Compiling squad-protocol v0.1.2 (/home/shoemoney/.t3/worktrees/Squad/audit-1-m0-m2-m6-m7-012d551dd81299dc/crates/squad-protocol)
+   Compiling rand_chacha v0.9.0
+   Compiling hyper-rustls v0.27.10
+   Compiling signal-hook-mio v0.2.5
+   Compiling derive_more v2.1.1
+   Compiling tower-http v0.6.11
+   Compiling serde_urlencoded v0.7.1
+   Compiling rayon-core v1.13.0
+   Compiling tempfile v3.27.0
+   Compiling ratatui-widgets v0.3.2
+   Compiling reqwest v0.12.28
+   Compiling bon-macros v3.10.3
+   Compiling crossterm v0.29.0
+   Compiling rand v0.9.5
+   Compiling half v2.7.1
+   Compiling ciborium-io v0.2.2
+   Compiling plotters-backend v0.3.7
+   Compiling plotters-svg v0.3.7
+   Compiling clap_builder v4.6.10
+   Compiling ciborium-ll v0.2.2
+   Compiling plist v1.10.4
+   Compiling bon v3.10.3
+   Compiling ratatui-crossterm v0.1.2
+   Compiling ratatui-macros v0.7.2
+   Compiling bincode v1.3.3
+   Compiling itertools v0.13.0
+   Compiling cast v0.3.0
+   Compiling rusty-fork v0.3.1
+   Compiling tachyonfx v0.25.2
+   Compiling criterion-plot v0.6.0
+   Compiling deadpool v0.12.3
+   Compiling syntect v5.3.0
+   Compiling ratatui v0.30.2
+   Compiling clap v4.6.10
+   Compiling rayon v1.12.0
+   Compiling ciborium v0.2.2
+   Compiling plotters v0.3.7
+   Compiling assert-json-diff v2.0.2
+   Compiling tinytemplate v1.2.1
+   Compiling anes v0.1.6
+   Compiling oorandom v11.1.5
+   Compiling insta v1.49.0
+   Compiling proptest v1.12.0
+   Compiling criterion v0.7.0
+   Compiling squad-agents v0.1.2 (/home/shoemoney/.t3/worktrees/Squad/audit-1-m0-m2-m6-m7-012d551dd81299dc/crates/squad-agents)
+   Compiling squad-store v0.1.2 (/home/shoemoney/.t3/worktrees/Squad/audit-1-m0-m2-m6-m7-012d551dd81299dc/crates/squad-store)
+   Compiling wiremock v0.6.5
+   Compiling squad-core v0.1.2 (/home/shoemoney/.t3/worktrees/Squad/audit-1-m0-m2-m6-m7-012d551dd81299dc/crates/squad-core)
+   Compiling squad-tui v0.1.2 (/home/shoemoney/.t3/worktrees/Squad/audit-1-m0-m2-m6-m7-012d551dd81299dc/crates/squad-tui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 45.84s
+     Running tests/memory_audit.rs (target/debug/deps/memory_audit-55979e3b3dcff532)
+
+running 1 test
+M6 transcript messages=500 width=140 height=42 body_bytes=900 process_rss_kib=109084
+test five_hundred_displayed_messages_process_rss ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.95s
+
