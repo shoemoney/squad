@@ -49,7 +49,15 @@ fn calendar_dates_are_real_and_never_panic_on_unicode() {
         reason: Text::new("Observable").unwrap(),
     };
     frame.validate().unwrap();
-    for date in ["2027-02-29", "2027-11-31", "💥💥xx", "2027-00-01"] {
+    for date in [
+        "2027-02-29",
+        "2027-11-31",
+        "💥💥xx",
+        "2027-00-01",
+        "2027-+1-01",
+        "2027-01-+1",
+        "+027-01-01",
+    ] {
         frame.resolution_date = date.into();
         assert!(frame.validate().is_err());
     }

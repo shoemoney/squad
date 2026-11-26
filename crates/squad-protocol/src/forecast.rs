@@ -236,7 +236,12 @@ impl ForecastFrame {
     pub fn validate(&self) -> ValidationResult {
         let d = self.resolution_date.as_bytes();
         ensure(
-            d.len() == 10 && self.resolution_date.is_ascii() && d[4] == b'-' && d[7] == b'-',
+            d.len() == 10
+                && d[4] == b'-'
+                && d[7] == b'-'
+                && d.iter()
+                    .enumerate()
+                    .all(|(i, byte)| matches!(i, 4 | 7) || byte.is_ascii_digit()),
             "resolutionDate must be YYYY-MM-DD",
         )?;
         let year = self.resolution_date[..4].parse::<u32>().unwrap_or(0);
