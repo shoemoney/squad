@@ -191,7 +191,7 @@ pub struct BlowItUpTally {
 pub struct Finding {
     pub finding_id: Text,
     pub title: Text,
-    #[schemars(length(min = 1, max = 84))]
+    #[schemars(length(min = 1, max = 96))]
     pub source_vector_ids: Vec<Text>,
     pub severity: Severity,
     pub likelihood: Likelihood,
@@ -214,7 +214,7 @@ pub struct KilledNote {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BlowItUpRuling {
-    #[schemars(length(max = 84))]
+    #[schemars(length(max = 96))]
     pub findings: Vec<Finding>,
     #[schemars(length(max = 72))]
     pub killed_notes: Vec<KilledNote>,
@@ -413,7 +413,7 @@ impl BlowItUpChallenge {
 impl BlowItUpRuling {
     pub fn validate(&self) -> ValidationResult {
         ensure(
-            self.findings.len() <= 84
+            self.findings.len() <= 96
                 && self.killed_notes.len() <= 72
                 && unique(
                     &self
@@ -516,5 +516,62 @@ pub fn composition(kind: &WorkKind) -> Option<&'static str> {
         WorkKind::BlowItUpChallenge => Some("blow_it_up.challenge"),
         WorkKind::BlowItUpRule => Some("blow_it_up.rule"),
         _ => None,
+    }
+}
+
+impl BlowItUpCaseMaterial {
+    pub fn validate(&self) -> ValidationResult {
+        ensure(
+            !self.target.trim().is_empty() && self.vectors.len() <= 96,
+            "invalid case target or pool",
+        )?;
+        ensure(
+            unique(
+                &self
+                    .vectors
+                    .iter()
+                    .map(|v| &v.vector_id)
+                    .collect::<Vec<_>>(),
+            ),
+            "duplicate pooled vector",
+        )?;
+        ensure(
+            self.tallies.vectors.len() == self.vectors.len()
+                && unique(
+                    &self
+                        .tallies
+                        .vectors
+                        .iter()
+                        .map(|v| &v.vector_id)
+                        .collect::<Vec<_>>(),
+                ),
+            "invalid case tally coverage",
+        )?;
+        for t in &self.tallies.vectors {
+            ensure(
+                self.vectors.iter().any(|v| v.vector_id == t.vector_id)
+                    && t.accepted <= 11
+                    && t.false_positive <= t.accepted
+                    && t.weak <= t.accepted - t.false_positive,
+                "invalid case tally",
+            )?;
+            let expected = if t.accepted < 2 {
+                VectorStatus::Unchallenged
+            } else if t.false_positive * 2 > t.accepted {
+                VectorStatus::Killed
+            } else if (t.false_positive + t.weak) * 2 > t.accepted {
+                VectorStatus::Contested
+            } else {
+                VectorStatus::Standing
+            };
+            ensure(t.status == expected, "case tally status mismatch")?;
+        }
+        for c in &self.challenges {
+            ensure(
+                self.vectors.iter().any(|v| v.vector_id == c.vector_id),
+                "unknown challenge vector",
+            )?;
+        }
+        Ok(())
     }
 }

@@ -58,13 +58,7 @@ pub fn render(view: &View) -> Vec<String> {
     out
 }
 pub fn severity_color(severity: squad_protocol::blow_it_up::Severity) -> ratatui::style::Color {
-    use squad_protocol::blow_it_up::Severity::*;
-    match severity {
-        Critical => ratatui::style::Color::Red,
-        High => ratatui::style::Color::LightRed,
-        Medium => ratatui::style::Color::Yellow,
-        Low => ratatui::style::Color::Cyan,
-    }
+    crate::fx::blow_it_up::severity_color(severity)
 }
 pub fn styled_lines(view: &View) -> Vec<ratatui::text::Line<'static>> {
     render(view)

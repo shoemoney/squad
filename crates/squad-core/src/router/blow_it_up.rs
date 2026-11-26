@@ -177,6 +177,9 @@ pub fn prepare(
             .map_err(|_| invalid())?;
         let (repair_system, repair_user) =
             pack.composition_source(name, true).map_err(|_| invalid())?;
+        // Remove the shared judge preamble's hard-coded room nick from blind cases.
+        let system = system.replace("@fable", "an unrelated room member");
+        let repair_system = repair_system.replace("@fable", "an unrelated room member");
         // Freeze the step literal: the shared mode_step placeholder whitelist is still M5-only.
         let repair_user = repair_user.replace("{{mode_step}}", name);
         prompts.insert(name.into(),json!({"system":system,"user":user,"repairSystem":repair_system,"repairUser":repair_user,"hash":squad_store::commit::digest(&(system,user,repair_system,repair_user))?}));
@@ -1102,6 +1105,7 @@ fn allocate(
                 d.as_object_mut().ok_or_else(invalid)?.remove("wordLimit");
                 serde_json::from_value(d)?
             };
+            material.validate().map_err(|_| invalid())?;
             // The scaffold's shared CaseOpened validator still rejects all M8 modes.
             // Store the typed case against its explicit human-only case artifact.
             let case_seq = system_artifact(
