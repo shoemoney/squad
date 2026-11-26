@@ -64,3 +64,46 @@ Combined release gates after `fix-empty-content`, `demo-gif` and main `75013a1`:
 - Full workspace tests: 1,292 unique tests passed, zero failures, four ignored entries (1,293 raw passes including the duplicated WAL subprocess). The newly merged empty-answer accounting, retry, captured reasoning-only truncation and typed content-part tests all pass alongside the audit tracing tests.
 - All-target locked workspace Clippy with `-D warnings`: passed.
 - `cargo fmt --all -- --check` and diff whitespace check: passed.
+
+
+## macOS PTY release blocker
+
+The orchestrator cancelled CI run 45897997543 after `m4b_pty_e2e_audit` hung on
+hueb, with its PTY child already exiting (`?NEs`). The retained binary reproduced
+the failure outside the runner: every input phase reached `PTY_COMPLETE`, then
+the driver stopped reading and blocked in exit/cleanup. A bounded reproduction
+also recorded the child in Darwin's `?Es` state. It left no processes behind
+after supervised process-group termination.
+
+The driver now keeps the master nonblocking and drains output while polling for
+exit. Restoration is checked through the master: after the session leader exits,
+Darwin revokes the slave and `tcgetattr(slave)` fails with `ENOTTY`. Failure
+cleanup closes PTY descriptors before signalling/reaping and has a bounded wait.
+The corrected driver passed against the same retained macOS binary without any
+Rust production change.
+
+The Rust fixture writes 256 KiB after `PTY_COMPLETE`, forcing the driver to drain
+past the marker. The original driver hangs on that fixture on dev3 and was
+terminated by a two-second supervisor deadline; the corrected driver passes.
+
+Every CLI PTY test (including the canonical audit) and the FakeRoom PTY test now
+runs in an isolated subprocess under a 60-second wall-clock supervisor. The
+supervisor captures output in a regular file, avoids descendant stdout EOF
+waits, and on timeout enumerates/kills all owned process groups, including PTY
+children that created separate sessions. Reaping is bounded and failure output
+includes the test, deadline, process states/groups and retained output. Two
+regressions prove nested groups are terminated and inherited stdout handles do
+not stall successful completion. All nine CLI PTY tests and all three active TUI
+PTY/supervisor tests passed on dev3. A three-second deadline also contained the
+original Darwin hang and released its groups; the exact PIDs were checked gone.
+
+Latest main was merged again, incorporating the restored CI push-branch filter
+(`713b7ae`) and the revert of accidentally landed specification docs (`6a488aa`).
+The release retains the dispatch-only macOS performance workflow and no stray
+specification changes from that main/revert pair.
+
+Final gates after the Darwin PTY fix and latest main merge: 1,294 unique workspace
+tests passed, zero failures, four ignored entries (1,295 raw passes including the
+WAL child-process duplicate). All-target locked Clippy with warnings denied and
+formatting passed. PTY child/subtest summaries are captured by the supervisor,
+so they are not counted again in the parent Cargo totals.

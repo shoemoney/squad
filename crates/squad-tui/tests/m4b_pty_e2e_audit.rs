@@ -1,7 +1,13 @@
 //! Real PTY transport and terminal restoration; the room is entirely scripted.
 #[cfg(unix)]
+#[path = "../../squad-agents/tests/support/pty_deadline.rs"]
+mod pty_deadline;
+#[cfg(unix)]
 #[test]
 fn fake_room_terminal_input_and_restoration() {
+    if pty_deadline::run_test("fake_room_terminal_input_and_restoration") {
+        return;
+    }
     let result = std::process::Command::new("python3")
         .arg("-c")
         .arg(include_str!("m4b_pty_support/drive.py"))
@@ -169,4 +175,83 @@ async fn pty_child() {
     drop(terminal);
     guard.restore().unwrap();
     println!("PTY_COMPLETE");
+    // More than a PTY output queue: the driver must keep reading after the
+    // completion marker, rather than block in wait() while this write drains.
+    io::stdout().write_all(&vec![b'.'; 256 * 1024]).unwrap();
+    io::stdout().flush().unwrap();
+}
+
+#[cfg(unix)]
+#[test]
+fn deadline_kills_nested_process_groups_and_reports_the_last_output() {
+    use std::{ffi::OsStr, time::Instant};
+    let root = tempfile::tempdir().unwrap();
+    let pid = root.path().join("grandchild.pid");
+    let script = r#"
+import pathlib, subprocess, sys, time
+child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)
+pathlib.Path(sys.argv[1]).write_text(str(child.pid))
+print('PTY deadline fixture ready', flush=True)
+time.sleep(60)
+"#;
+    let started = Instant::now();
+    let result = pty_deadline::run_command(
+        &[
+            OsStr::new("python3"),
+            OsStr::new("-c"),
+            OsStr::new(script),
+            pid.as_os_str(),
+        ],
+        2.0,
+    );
+    assert_eq!(result.status.code(), Some(124));
+    assert!(started.elapsed() < std::time::Duration::from_secs(8));
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(stderr.contains("PTY overall deadline exceeded"), "{stderr}");
+    assert!(stderr.contains("PTY deadline fixture ready"), "{stderr}");
+    let pid = std::fs::read_to_string(pid).unwrap();
+    let state = std::process::Command::new("ps")
+        .args(["-p", pid.trim(), "-o", "stat="])
+        .output()
+        .unwrap();
+    let state = String::from_utf8_lossy(&state.stdout);
+    assert!(
+        state.trim().is_empty() || state.contains('Z'),
+        "descendant in its own process group survived the deadline: {pid} {state}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn supervisor_does_not_wait_for_descendant_stdout_eof() {
+    use std::{ffi::OsStr, time::Instant};
+    let root = tempfile::tempdir().unwrap();
+    let pid = root.path().join("grandchild.pid");
+    let script = r#"
+import pathlib, subprocess, sys
+child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'], start_new_session=True)
+pathlib.Path(sys.argv[1]).write_text(str(child.pid))
+"#;
+    let started = Instant::now();
+    let result = pty_deadline::run_command(
+        &[
+            OsStr::new("python3"),
+            OsStr::new("-c"),
+            OsStr::new(script),
+            pid.as_os_str(),
+        ],
+        2.0,
+    );
+    let pid = std::fs::read_to_string(pid).unwrap();
+    let cleanup = std::process::Command::new("python3")
+        .args([
+            "-c",
+            "import os,signal,sys; os.killpg(int(sys.argv[1]), signal.SIGKILL)",
+            pid.trim(),
+        ])
+        .status()
+        .unwrap();
+    assert!(cleanup.success());
+    assert!(result.status.success(), "{:?}", result);
+    assert!(started.elapsed() < std::time::Duration::from_secs(5));
 }

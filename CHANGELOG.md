@@ -23,6 +23,9 @@ All notable changes to Squad will be documented in this file, following
 
 ### Fixed
 
+- macOS PTY tests keep draining terminal output through child exit and inspect
+  restored termios through the master. Every real PTY test now has a 60-second
+  overall deadline that kills its subprocess groups and reports diagnostics.
 - Empty OpenRouter answers now fail with distinct reasons, including reasoning
   exhausting the output budget, while retaining billed failed attempts and
   ordinary retry limits. Typed visible content is preserved without exposing

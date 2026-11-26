@@ -5,6 +5,8 @@
 #![allow(dead_code)]
 #[path = "../../squad-agents/tests/support/fake_openrouter.rs"]
 mod fake_openrouter;
+#[path = "../../squad-agents/tests/support/pty_deadline.rs"]
+mod pty_deadline;
 use fake_openrouter::{FakeOpenRouter, MODEL};
 use portable_pty::{Child, CommandBuilder, MasterPty, PtySize, native_pty_system};
 use std::{
@@ -232,6 +234,9 @@ fn ready_screen(screen: &str) -> bool {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn at_all_hello_streams_replies_and_ctrl_c_restores_the_terminal() {
+    if pty_deadline::run_test("at_all_hello_streams_replies_and_ctrl_c_restores_the_terminal") {
+        return;
+    }
     let server = provider(vec![
         fake_openrouter::streaming("Alpha fixture answer", "stop"),
         fake_openrouter::streaming("Beta fixture answer", "stop"),
@@ -300,6 +305,9 @@ fn integrity_ok(root: &Path) -> bool {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn sigint_exits_130_after_restoring_the_terminal() {
+    if pty_deadline::run_test("sigint_exits_130_after_restoring_the_terminal") {
+        return;
+    }
     let server = provider(vec![fake_openrouter::streaming("unused", "stop"); 4]).await;
     let root = tempfile::tempdir().unwrap();
     let mut pty = Pty::spawn(root.path(), Some(&server), &[]);
@@ -312,6 +320,11 @@ async fn sigint_exits_130_after_restoring_the_terminal() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn hangup_mid_stream_exits_leaves_the_store_sound_and_the_next_start_recovers() {
+    if pty_deadline::run_test(
+        "hangup_mid_stream_exits_leaves_the_store_sound_and_the_next_start_recovers",
+    ) {
+        return;
+    }
     // The reply is held open by the provider, so the work is in flight at hangup.
     let server = provider(vec![
         fake_openrouter::delayed(Duration::from_secs(120)),
@@ -373,6 +386,11 @@ async fn hangup_mid_stream_exits_leaves_the_store_sound_and_the_next_start_recov
 
 #[test]
 fn missing_key_prints_the_message_and_never_enters_the_alternate_screen() {
+    if pty_deadline::run_test(
+        "missing_key_prints_the_message_and_never_enters_the_alternate_screen",
+    ) {
+        return;
+    }
     let root = tempfile::tempdir().unwrap();
     let mut pty = Pty::spawn(root.path(), None, &[]);
     let status = pty.wait_exit();
@@ -393,6 +411,10 @@ fn missing_key_prints_the_message_and_never_enters_the_alternate_screen() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn too_small_terminal_shows_the_resize_message_and_recovers_on_resize() {
+    if pty_deadline::run_test("too_small_terminal_shows_the_resize_message_and_recovers_on_resize")
+    {
+        return;
+    }
     let server = provider(vec![fake_openrouter::streaming("unused", "stop"); 4]).await;
     let root = tempfile::tempdir().unwrap();
     let mut pty = Pty::spawn_sized(root.path(), Some(&server), &[], 60, 15);
@@ -436,6 +458,9 @@ fn any_colour(pty: &Pty) -> bool {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn no_color_renders_without_colour_and_colour_is_the_default() {
+    if pty_deadline::run_test("no_color_renders_without_colour_and_colour_is_the_default") {
+        return;
+    }
     let server = provider(vec![
         fake_openrouter::streaming("Alpha fixture answer", "stop"),
         fake_openrouter::streaming("Beta fixture answer", "stop"),
@@ -480,6 +505,9 @@ async fn no_color_renders_without_colour_and_colour_is_the_default() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn startup_draws_before_catalog_and_ctrl_c_cancels_and_restores() {
+    if pty_deadline::run_test("startup_draws_before_catalog_and_ctrl_c_cancels_and_restores") {
+        return;
+    }
     use wiremock::{
         Mock, ResponseTemplate,
         matchers::{method, path},
@@ -513,6 +541,9 @@ async fn startup_draws_before_catalog_and_ctrl_c_cancels_and_restores() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn startup_reports_each_seat_before_the_last_probe_finishes() {
+    if pty_deadline::run_test("startup_reports_each_seat_before_the_last_probe_finishes") {
+        return;
+    }
     use wiremock::{
         Mock,
         matchers::{body_partial_json, method, path},

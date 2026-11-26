@@ -1,3 +1,4 @@
+import errno
 import fcntl
 import os
 import pty
@@ -25,14 +26,30 @@ child = subprocess.Popen(
     stdin=slave, stdout=slave, stderr=slave, env=env, preexec_fn=setup,
 )
 transcript = bytearray()
+os.set_blocking(master, False)
+overall_deadline = time.monotonic() + 45
+
+
+def read_ready(timeout):
+    if not select.select([master], [], [], timeout)[0]:
+        return False
+    try:
+        data = os.read(master, 65536)
+    except BlockingIOError:
+        return False
+    except OSError as error:
+        if error.errno in (errno.EIO, errno.ENXIO):
+            return False
+        raise
+    transcript.extend(data)
+    return bool(data)
 
 
 def until(marker):
-    deadline = time.monotonic() + 15
+    deadline = min(overall_deadline, time.monotonic() + 15)
     while marker not in transcript:
         assert time.monotonic() < deadline, (marker, bytes(transcript[-3000:]))
-        if select.select([master], [], [], 0.1)[0]:
-            transcript.extend(os.read(master, 65536))
+        read_ready(0.1)
         assert child.poll() is None or marker in transcript, bytes(transcript[-3000:])
 
 
@@ -51,13 +68,25 @@ try:
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
     os.kill(child.pid, signal.SIGWINCH)
     until(b"PTY_COMPLETE")
-    assert child.wait(timeout=5) == 0, bytes(transcript[-3000:])
-    assert termios.tcgetattr(slave) == before, "raw mode was not restored"
+    # Darwin can block process exit while the controlling PTY has unread
+    # output. Keep draining through exit, including libtest's final output.
+    deadline = min(overall_deadline, time.monotonic() + 5)
+    while child.poll() is None and time.monotonic() < deadline:
+        read_ready(0.05)
+    assert child.poll() == 0, ("PTY child exit timed out", bytes(transcript[-3000:]))
+    # Darwin revokes the slave on session-leader exit (ENOTTY); the master's
+    # termios remains available, as in the portable-pty CLI harness.
+    assert termios.tcgetattr(master) == before, "raw mode was not restored"
     for sequence in [b"\x1b[?1049h", b"\x1b[?2004h", b"\x1b[?2004l", b"\x1b[?25h", b"\x1b[?1049l"]:
         assert sequence in transcript, (sequence, bytes(transcript[-3000:]))
 finally:
-    if child.poll() is None:
-        child.kill()
-        child.wait()
+    # Release the master before reaping: on Darwin a killed child may already
+    # be exiting inside tty close. Never wait indefinitely during cleanup.
     os.close(master)
     os.close(slave)
+    if child.poll() is None:
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+        child.wait(timeout=2)

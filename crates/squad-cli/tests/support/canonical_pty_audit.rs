@@ -104,6 +104,11 @@ fn resize(pty: &Pty, cols: u16, rows: u16) {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn canonical_flow_commands_quotes_recall_search_regeneration_export_stop_and_recovery() {
+    if pty_deadline::run_test(
+        "canonical_pty_audit::canonical_flow_commands_quotes_recall_search_regeneration_export_stop_and_recovery",
+    ) {
+        return;
+    }
     let server = FakeOpenRouter::start().await;
     server.catalog(serde_json::json!({"data":[
         {"id":MODEL,"context_length":1000000,"top_provider":{"max_completion_tokens":65536},"supported_parameters":["reasoning","response_format"],"pricing":{"prompt":"0.000001","completion":"0.000002"}},
