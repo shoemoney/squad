@@ -1272,6 +1272,23 @@ Squad tracks two numbers for each local day.
 
 Squad counts **only its own calls**. Usage on your OpenRouter key from other tools is not in the ledger.
 
+### 💸 What a run costs
+
+Measured on 2026-11-25 with the default roster and settings (partial: an OpenRouter budget limit stopped the study early). Full method and per-run numbers are in [docs/costs.md](docs/costs.md).
+
+| Run | Real cost | Time | Reserved up front | Refused at the default $20 cap? |
+|---|---|---|---|---|
+| Ordinary `@all` question | about $0.17 | about 25 s | at least $39.6 | yes |
+| `$debate`, 10 rounds, judged | about $2.85 | about 8 min | $16.77 | no |
+| `$probe` | about $1 | 3 to 4 min | $26.18 | yes |
+| `$crosscheck` | not measured | n/a | $20.61 | yes |
+| `$census` | not measured | n/a | $46.22 | yes |
+| `$grill` | not measured | n/a | $68.67 | yes |
+| `$survey` | not measured | n/a | $108.83 | yes |
+| `$tournament` | not measured | n/a | $110.53 | yes |
+
+Reservations are held back while a run is in flight and are released as calls finish, so the reserved amount is far above what you are charged.
+
 ## 🧾 How a call is priced
 
 Squad reserves money **before** it sends any provider call. That includes ordinary messages, not just contests. The reservation is made when the reply starts, and it is priced from the model's catalog entry.
