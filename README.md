@@ -724,7 +724,7 @@ Each round has these steps. `GRILL_ROUNDS` defaults to **2** and can be 1 to 10.
 ### 🔢 Calls and cost
 Normal calls are **`R × (2G + 1)`**: each griller asks once per round, the leader answers once per griller, and the leader rebuilds once. For example, 5 grillers and 2 rounds give **22** calls.
 
-Each planned call reserves **twice** its nominal cost. Each member call gets 2 attempts, with the second issued by Squad, and a 180-second deadline.
+Each planned call reserves **twice** its own bounded cost (two attempts, each priced from the shared floor it can see at that point). Each member call gets 2 attempts, with the second issued by Squad, and a 180-second deadline.
 
 ### 🏁 How it ends
 - After the last round's rebuild, the grill completes with reason `rounds_complete`.
@@ -1291,6 +1291,8 @@ For each call:
 - **Attempts reserved.** An ordinary reply reserves **2** attempts, which includes one automatic retry. Judge work reserves **3**, except `judge.round`, which reserves **2**. Each attempt is priced from its own prompt, and a retry re-prices the attempts that remain when it starts. The attempt limits come from one shared table, so retries and reservations cannot disagree.
 - **Rounding.** Reservations round **up** to the next millionth of a dollar. Reported costs round to the nearest.
 - **Contests** reserve their whole plan up front. As each call starts, its share is set aside from that plan.
+- **How a contest plan is sized.** Every planned step is priced from what that step can actually receive, never from the model's context window: its frozen prompt templates, its response schema, the frozen inputs (plan, brief, question), and the accepted artifacts of earlier steps, each capped by its own word limit or output ceiling (`4` bytes per output token, `8` per word). Only a step that cannot fit its model's window is refused (`CONTEXT_TOO_LARGE`). Each step reserves every attempt it is allowed (members 2, judge 3, tournament rounds twice for the replay), and every attempt can draw a frozen per-step share, so a started call is never under-reserved. A census plan that grows between passes (`/continue "<plan>"`) is re-priced and needs a revised preflight; a plan that does not grow keeps its frozen bounds.
+- **Estimate versus reserve.** The estimate is each planned call's first attempt at its ceilings. The reserve adds every retry, schema repair and replay the script allows, so it is the worst case and typically three to six times the estimate. Output ceilings (visible plus reasoning budget at the model's output price) are most of it, so a roster of Opus-class members and judge reserves far more than a cheap one even when prompts are tiny.
 
 **No price, no paid call.** If the catalog has no usable price for a model, Squad refuses the call with `COST_UNKNOWN` and the message `Resolved model pricing is unavailable`. Nothing is sent.
 

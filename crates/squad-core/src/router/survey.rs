@@ -35,6 +35,114 @@ pub fn save(
     }
     Ok(())
 }
+
+/// Frozen survey steps: optional answer collection, claim extraction, two ballot
+/// rounds and the report. `histories` holds each collected member's private
+/// history bytes (collection only).
+pub fn steps(
+    pack: &crate::prompts::PromptPack,
+    setup: &SurveySetup,
+    histories: &BTreeMap<String, u64>,
+    words: (u32, u32),
+) -> Result<Vec<super::bounds::Step>> {
+    use super::bounds::{Step, artifact, json_text, limited, project, schema_bytes, template};
+    let m = setup.participants.len() as u64;
+    let member = constants::DEBATE_TURN_VISIBLE_TOKENS;
+    let judge = constants::NEW_MODE_JUDGE_VISIBLE_TOKENS;
+    let question = json_text(setup.question.as_str());
+    let answers = if setup.collect {
+        m * artifact(member)
+    } else {
+        setup
+            .answers
+            .iter()
+            .map(|a| json_text(a.text.as_str()) + 128)
+            .sum()
+    };
+    // Claim ids and answer ids are enumerated in the response schema.
+    let enums = 128 * (m + 25);
+    let claims = project(limited(judge, words.1));
+    let ballots = m * project(limited(member, words.0));
+    let step = |kind,
+                target: &str,
+                composition: &str,
+                schema: u64,
+                data,
+                visible,
+                calls,
+                attempts|
+     -> Result<Step> {
+        Ok(Step {
+            kind,
+            target: target.into(),
+            alternatives: vec![],
+            template: template(pack, composition)?,
+            schema: schema + enums,
+            data,
+            visible,
+            calls,
+            attempts,
+        })
+    };
+    let ballot = schema_bytes(validation::schema::<SurveyBallot>());
+    let mut out = vec![];
+    for nick in &setup.participants {
+        if setup.collect {
+            out.push(Step {
+                kind: WorkKind::Reply,
+                target: nick.to_string(),
+                alternatives: vec![],
+                template: template(pack, "reply")?,
+                schema: 0,
+                data: histories.get(nick.as_str()).copied().unwrap_or(0) + question + 512,
+                visible: member,
+                calls: 1,
+                attempts: 2,
+            });
+        }
+        out.push(step(
+            WorkKind::SurveyVote,
+            nick.as_str(),
+            "survey.vote",
+            ballot,
+            question + claims,
+            member,
+            1,
+            2,
+        )?);
+        out.push(step(
+            WorkKind::SurveyRevote,
+            nick.as_str(),
+            "survey.revote",
+            ballot,
+            question + claims + ballots,
+            member,
+            1,
+            2,
+        )?);
+    }
+    out.push(step(
+        WorkKind::SurveyExtract,
+        "judge",
+        "survey.extract",
+        schema_bytes(validation::schema::<SurveyExtraction>()),
+        question + answers,
+        judge,
+        1,
+        3,
+    )?);
+    out.push(step(
+        WorkKind::SurveyReport,
+        "judge",
+        "survey.report",
+        schema_bytes(validation::schema::<SurveyReportText>()),
+        question + claims + 2 * ballots,
+        judge,
+        1,
+        3,
+    )?);
+    Ok(out)
+}
 #[allow(clippy::too_many_arguments)]
 pub fn admit(
     tx: &Transaction<'_>,
@@ -100,43 +208,34 @@ pub fn admit(
         .map(|c| crate::orchestrator::blind::tokens(c, bindings))
         .unwrap_or_else(|| setup.participants.iter().map(ToString::to_string).collect());
     let (calls, attempts) = SurveyPreflight::counts(participants.len(), collect);
-    // Reserve conservative frozen input/output bounds for every invocation.
-    // Actual rendered requests are independently checked against that context.
-    let mut max_call = 0.0_f64;
-    for target in participants
-        .iter()
-        .map(|n| n.as_str())
-        .chain(std::iter::once("judge"))
-    {
-        let b = bindings.get(target).ok_or(StoreError::Domain(
-            ErrorCode::MODEL_UNAVAILABLE,
-            "Survey executor is unavailable",
-        ))?;
-        let (length, raw): (i64, String) = tx.query_row(
-            "SELECT context_length,pricing_json FROM catalog WHERE slug=?",
-            [b.model.as_str()],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
-        let prices: serde_json::Value = serde_json::from_str(&raw)?;
-        let price = |key: &str| {
-            prices[key]
-                .as_str()
-                .and_then(|s| s.parse::<f64>().ok())
-                .or_else(|| prices[key].as_f64())
-                .unwrap_or(0.0)
-        };
-        let input_bound =
-            (serde_json::to_vec(&setup)?.len() + setup.participants.len() * 32768 + 65536) as f64;
-        let cost = input_bound.min(length as f64) * price("prompt") + 12288.0 * price("completion");
-        if !cost.is_finite() || cost < 0.0 {
-            return Err(invalid());
+    let pack = crate::prompts::PromptPack::from_override_dir(
+        config.and_then(|c| c.prompts.directory.as_deref()),
+    )
+    .map_err(|_| StoreError::Domain(ErrorCode::CONFIG_INVALID, "Invalid survey prompt pack"))?;
+    let mut histories = BTreeMap::new();
+    if collect {
+        for nick in &setup.participants {
+            let size: i64 = tx.query_row(
+                "SELECT COALESCE(SUM(length(content)),0) FROM history WHERE context_id=?",
+                [nick.as_str()],
+                |r| r.get(0),
+            )?;
+            histories.insert(nick.to_string(), size as u64);
         }
-        max_call = max_call.max(cost);
     }
-    let reserved = squad_store::accounting::reservation_micros(max_call)
-        .map_err(|_| invalid())?
-        .checked_mul(i64::from(attempts))
-        .ok_or_else(invalid)?;
+    let priced = super::bounds::price(
+        tx,
+        bindings,
+        &steps(
+            &pack,
+            &setup,
+            &histories,
+            config.map_or((constants::ROOM_WORDS, constants::PLAN_WORDS), |c| {
+                (c.prompts.limits.room_words, c.prompts.limits.plan_words)
+            }),
+        )?,
+    )?;
+    let reserved = priced.reserved_micros;
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
     match squad_store::accounting::admit(tx, &day, reserved, max) {
         Ok(()) => {}
@@ -155,7 +254,7 @@ pub fn admit(
         expires_at: group.accepted_at
             + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64),
         estimate: DebateEstimate {
-            estimated_usd: max_call * f64::from(calls),
+            estimated_usd: priced.estimated_usd,
             reserved_usd: reserved as f64 / 1e6,
             remaining_usd: (max
                 - squad_store::accounting::daily(tx, &day)?.spent_micros
@@ -165,9 +264,15 @@ pub fn admit(
             model_calls: calls,
         },
         participants,
-        confirmation_required: max_call * f64::from(calls) > threshold,
+        confirmation_required: priced.estimated_usd > threshold,
         warning: None,
-        settings: serde_json::json!({"collect":collect,"reservedAttempts":attempts,"admissionMaxMicros":max}),
+        settings: {
+            let mut settings = priced.settings();
+            settings["collect"] = collect.into();
+            settings["reservedAttempts"] = attempts.into();
+            settings["admissionMaxMicros"] = max.into();
+            settings
+        },
     };
     let state = SurveyState {
         contest_id: contest,

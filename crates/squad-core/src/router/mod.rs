@@ -1,6 +1,7 @@
 //! Serialized authority for all room mutations. Executors receive scoped ingress only.
 pub mod accounting;
 pub mod authorization;
+pub mod bounds;
 pub mod cases;
 pub mod census;
 pub mod clear;

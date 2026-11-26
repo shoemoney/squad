@@ -40,7 +40,8 @@ async fn error_codes(room: &squad_core::room::RoomHandle) -> Vec<ErrorCode> {
 
 #[tokio::test]
 async fn census_at_five_passes_and_twelve_members_is_bounded_and_priced_up_front() {
-    let f = rich().await;
+    let mut f = rich().await;
+    f.config.budget.debate_confirm_usd = 0.;
     let room = f.open(OpenMode::OneShot).await;
     let result = room
         .submit(f.request("@all $census A plan to review $CENSUS_PASSES=5"))
@@ -186,7 +187,8 @@ async fn context_that_cannot_fit_fails_admission_before_any_provider_call() {
 
 #[tokio::test]
 async fn paged_reads_of_a_large_roster_stay_bounded_and_complete() {
-    let f = rich().await;
+    let mut f = rich().await;
+    f.config.budget.debate_confirm_usd = 0.;
     let room = f.open(OpenMode::OneShot).await;
     room.submit(f.request("@all $census A plan to review $CENSUS_PASSES=5"))
         .await;

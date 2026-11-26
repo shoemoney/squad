@@ -113,7 +113,7 @@ impl Output<'_> {
                     writeln!(
                         self.stdout,
                         "Settings: {}",
-                        terminal_json(serde_json::to_string_pretty(&p.settings)?)
+                        terminal_json(serde_json::to_string_pretty(&public_settings(&p.settings))?)
                     )?;
                     if let Some(warning) = &p.warning {
                         writeln!(self.stdout, "Warning: {}", sanitize(warning.as_str()))?;
@@ -220,4 +220,15 @@ fn diagnostic(code: ErrorCode, message: &str) -> String {
     } else {
         message.to_owned()
     }
+}
+
+/// Plan settings without the frozen internals the store reads (per-attempt
+/// reservation shares and per-step input bounds).
+fn public_settings(settings: &serde_json::Value) -> serde_json::Value {
+    let mut settings = settings.clone();
+    if let Some(map) = settings.as_object_mut() {
+        map.remove("attemptShares");
+        map.remove("stepInputBounds");
+    }
+    settings
 }

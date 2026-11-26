@@ -729,7 +729,7 @@ async fn human_preflight_is_printed_and_not_confirmed_when_noninteractive() {
     );
     assert!(out.starts_with("census preflight:"), "{out}");
     assert!(
-        out.contains("28 model calls") && out.contains("reserved $8.65"),
+        out.contains("28 model calls") && out.contains("reserved $2.65"),
         "{out}"
     );
     assert!(!out.contains("Accepted"));

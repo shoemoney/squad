@@ -154,8 +154,6 @@ pub fn prepare(
             .map_err(|_| StoreError::Domain(ErrorCode::CONFIG_INVALID, "Invalid grill prompts"))?;
     let mut prompts = serde_json::Map::new();
     let mut state = crate::orchestrator::grill::initial_state(&setup).map_err(|_| invalid())?;
-    let mut nominal = 0.;
-    let mut reserved = 0.;
     let mut frozen_bindings = BTreeMap::new();
     let mut models = serde_json::Map::new();
     for nick in setup.participants() {
@@ -170,10 +168,17 @@ pub fn prepare(
                 .clone(),
         );
     }
-    let bound = setup.initial_plan.len() as u64
-        + setup.focus.len() as u64
-        + 32768
-        + u64::from(setup.total_rounds) * setup.grillers.len() as u64 * 32768;
+    // The shared floor holds the plan, focus and every earlier question and
+    // answer, each bounded by its output ceiling, and one rebuilt plan per round.
+    let griller_count = setup.grillers.len() as u64;
+    let floor_base = super::bounds::json_text(&setup.initial_plan)
+        + super::bounds::json_text(&setup.focus)
+        + 1024;
+    let visible = constants::DEBATE_TURN_VISIBLE_TOKENS;
+    let question = super::bounds::limited(visible, constants::GRILL_QUESTION_WORDS);
+    let exchange = question + super::bounds::limited(visible, frozen.answer_words);
+    let rebuilt = super::bounds::limited(constants::PLAN_VISIBLE_TOKENS, frozen.plan_words);
+    let mut steps: Vec<super::bounds::Step> = vec![];
     for round in 1..=setup.total_rounds {
         state.round = round;
         for version in 1..=round {
@@ -211,43 +216,45 @@ pub fn prepare(
                         |r| Ok((r.get(0)?, r.get(1)?)),
                     )?;
                     models.insert(w.target.to_string(),serde_json::json!({"contextLength":length,"pricing":serde_json::from_str::<serde_json::Value>(&pricing)?,"binding":binding}));
-                    let reasoning = match binding.effort {
-                        ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
-                        ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
-                        ReasoningEffort::High => constants::REASONING_HIGH_TOKENS,
-                    };
-                    let output = w.max_output_tokens.unwrap_or(2048) + reasoning;
-                    let input_bound = bound + serde_json::to_string(&rendered)?.len() as u64;
-                    if input_bound + u64::from(output) + 4096 > length as u64 {
-                        return Err(StoreError::Domain(
-                            ErrorCode::CONTEXT_TOO_LARGE,
-                            "Grill floor does not fit the model context",
-                        ));
+                    if version != round {
+                        continue;
                     }
-                    let prices: serde_json::Value = serde_json::from_str(&pricing)?;
-                    let price = |key: &str| -> Result<f64> {
-                        prices[key]
-                            .as_str()
-                            .and_then(|s| s.parse().ok())
-                            .or_else(|| prices[key].as_f64())
-                            .filter(|v| v.is_finite() && *v >= 0.)
-                            .ok_or(StoreError::Domain(
-                                ErrorCode::MODEL_UNAVAILABLE,
-                                "Grill pricing is unavailable",
-                            ))
+                    let prior = u64::from(round - 1) * griller_count + u64::from(turn);
+                    let floor = floor_base + prior * exchange + u64::from(round - 1) * rebuilt;
+                    let asked = if w.kind == WorkKind::GrillQuestion {
+                        prior * question
+                    } else {
+                        0
                     };
-                    let cost = input_bound as f64 * price("prompt")?
-                        + f64::from(output) * price("completion")?;
-                    if version == round {
-                        nominal += cost;
-                        reserved += cost * 2.;
-                    }
+                    steps.push(super::bounds::Step {
+                        kind: w.kind.clone(),
+                        target: w.target.to_string(),
+                        alternatives: vec![],
+                        template: super::bounds::template(
+                            &pack,
+                            w.kind.grill_composition().ok_or_else(invalid)?,
+                        )?,
+                        schema: 0,
+                        data: floor + asked + exchange,
+                        visible: w.max_output_tokens.unwrap_or(2048),
+                        calls: 1,
+                        attempts: 2,
+                    });
                 }
             }
         }
     }
+    let priced = super::bounds::price(tx, &frozen_bindings, &steps).map_err(|e| match e {
+        StoreError::Domain(ErrorCode::CONTEXT_TOO_LARGE, _) => StoreError::Domain(
+            ErrorCode::CONTEXT_TOO_LARGE,
+            "Grill floor does not fit the model context",
+        ),
+        e => e,
+    })?;
+    let nominal = priced.estimated_usd;
+    let reserved = priced.reserved_usd();
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let amount = squad_store::accounting::reservation_micros(reserved).map_err(|_| invalid())?;
+    let amount = priced.reserved_micros;
     match squad_store::accounting::admit(tx, &day, amount, max) {
         Ok(()) => {}
         Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
@@ -274,7 +281,12 @@ pub fn prepare(
         participants: setup.participants(),
         confirmation_required: nominal > threshold && !preconfirmed,
         warning: None,
-        settings: serde_json::to_value(&frozen)?,
+        settings: {
+            let mut settings = serde_json::to_value(&frozen)?;
+            settings["attemptShares"] = serde_json::json!(priced.shares);
+            settings["stepInputBounds"] = serde_json::json!(priced.input_bounds);
+            settings
+        },
     };
     state = crate::orchestrator::grill::initial_state(&setup).map_err(|_| invalid())?;
     if plan.confirmation_required {

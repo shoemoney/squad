@@ -4,6 +4,18 @@ All notable changes to Squad will be documented in this file, following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Contest plan reservations are sized from what each planned step can actually
+  receive (frozen templates, response schema, frozen inputs and accepted
+  artifacts bounded by their word limits and output ceilings) instead of assuming
+  prompts fill the model's context window. Every permitted attempt is still
+  reserved, each started attempt draws a frozen per-step share, and a census plan
+  that grows between passes needs a revised preflight. A six-member grill no
+  longer fails with `CONTEXT_TOO_LARGE` on 256k-context models.
+
 ## [0.1.1] - 2026-11-25
 
 Test-coverage and keyboard-reachability release: six gap branches merged on top

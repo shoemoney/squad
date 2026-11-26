@@ -87,6 +87,13 @@ pub fn insert(
         )?;
         if let Some(raw) = raw {
             let value: serde_json::Value = decode(raw)?;
+            let frozen_share = value
+                .get("settings")
+                .or_else(|| value.get("base").and_then(|b| b.get("settings")))
+                .and_then(|s| s.get("attemptShares"))
+                .and_then(|s| s.get(kind.as_str().unwrap_or_default()))
+                .and_then(|n| n.as_i64())
+                .filter(|n| *n > 0);
             let (plan_id, reserved, calls) = if work.kind.grill_composition().is_some() {
                 let plan: ContestPreflight = serde_json::from_value(value)?;
                 (
@@ -142,7 +149,7 @@ pub fn insert(
             };
             let total = crate::accounting::reservation_micros(reserved)
                 .map_err(|_| invalid("Invalid plan reservation"))?;
-            let share = total / i64::from(calls);
+            let share = frozen_share.unwrap_or(total / i64::from(calls));
             meta["planId"] = serde_json::json!(plan_id);
             meta["attemptReservationMicros"] = serde_json::json!(share);
         }

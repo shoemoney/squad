@@ -37,6 +37,120 @@ pub fn put(tx: &Connection, id: ContestId, key: &str, value: &impl serde::Serial
     tx.execute("INSERT INTO contest_private_maps VALUES (?,?,?) ON CONFLICT(contest_id,scope_key) DO UPDATE SET map_json=excluded.map_json",params![id.to_string(),key,serde_json::json!({"value":value}).to_string()])?;
     Ok(())
 }
+
+/// Frozen crosscheck steps. `goal` is the supplied goal text; without it the
+/// judge extracts one from the plan, bounded by its output ceiling.
+pub fn steps(
+    pack: &crate::prompts::PromptPack,
+    participants: &[MemberNick],
+    plan: &str,
+    goal: Option<&str>,
+    words: (u32, u32),
+) -> Result<Vec<super::bounds::Step>> {
+    use super::bounds::{Step, blinded, json_text, limited, project, schema_bytes, template};
+    let m = participants.len() as u64;
+    let member = constants::DEBATE_TURN_VISIBLE_TOKENS;
+    let judge = constants::NEW_MODE_JUDGE_VISIBLE_TOKENS;
+    let plan = blinded(plan);
+    let goal_bytes = goal.map_or_else(|| limited(judge, words.1), |g| json_text(g) + 512);
+    let grid = project(limited(judge, words.1));
+    let review = project(limited(member, words.0));
+    let step = |kind,
+                target: &str,
+                alternatives: Vec<String>,
+                composition: &str,
+                schema: serde_json::Value,
+                data: u64,
+                visible: u32,
+                calls: u32,
+                attempts: u32|
+     -> Result<Step> {
+        Ok(Step {
+            kind,
+            target: target.into(),
+            alternatives,
+            template: template(pack, composition)?,
+            schema: schema_bytes(schema),
+            data,
+            visible,
+            calls,
+            attempts,
+        })
+    };
+    let mut out = vec![];
+    if goal.is_none() {
+        out.push(step(
+            WorkKind::CrosscheckGoal,
+            "judge",
+            vec![],
+            "crosscheck.normalize.extract_goal",
+            validation::schema::<CrosscheckGoal>(),
+            plan,
+            judge,
+            1,
+            3,
+        )?);
+    }
+    for nick in participants {
+        out.push(step(
+            WorkKind::CrosscheckInventory,
+            nick.as_str(),
+            vec![],
+            "crosscheck.inventory",
+            validation::schema::<CrosscheckInventoryResponse>(),
+            goal_bytes + 512,
+            member,
+            1,
+            2,
+        )?);
+        out.push(step(
+            WorkKind::CrosscheckCell,
+            nick.as_str(),
+            vec![],
+            "crosscheck.cell",
+            validation::schema::<CrosscheckReviewResponse>(),
+            plan + grid,
+            member,
+            1,
+            2,
+        )?);
+    }
+    out.push(step(
+        WorkKind::CrosscheckNormalize,
+        "judge",
+        vec![],
+        "crosscheck.normalize.normalize_inventory",
+        validation::schema::<CrosscheckNormalization>(),
+        goal_bytes + m * review,
+        judge,
+        1,
+        3,
+    )?);
+    // Two auditors are drawn at run time: price the dearest member twice.
+    out.push(step(
+        WorkKind::CrosscheckAudit,
+        participants[0].as_str(),
+        participants[1..].iter().map(ToString::to_string).collect(),
+        "crosscheck.audit",
+        validation::schema::<CrosscheckAuditResponse>(),
+        plan + grid + m * review,
+        member,
+        2,
+        2,
+    )?);
+    out.push(step(
+        WorkKind::CrosscheckRule,
+        "judge",
+        vec![],
+        "crosscheck.rule",
+        validation::schema::<CrosscheckRuling>(),
+        plan + grid + m * review + 2 * review,
+        judge,
+        1,
+        3,
+    )?);
+    Ok(out)
+}
 #[allow(clippy::too_many_arguments)]
 pub fn prepare(
     tx: &Transaction<'_>,
@@ -106,46 +220,27 @@ pub fn prepare(
     let extraction = setup.goal.is_none();
     let m = participants.len() as u32;
     let reserved_attempts = 4 * m + 10 + 3 * u32::from(extraction);
-    let mut estimated = 0.;
-    let mut reserved = 0.;
-    for target in participants
-        .iter()
-        .map(|n| n.as_str())
-        .chain(std::iter::once("judge"))
-    {
-        let b = bindings.get(target).ok_or(StoreError::Domain(
-            ErrorCode::MODEL_UNAVAILABLE,
-            "Crosscheck model unavailable",
-        ))?;
-        let pricing: String = tx.query_row(
-            "SELECT pricing_json FROM catalog WHERE slug=?",
-            [b.model.as_str()],
-            |r| r.get(0),
-        )?;
-        let p: serde_json::Value = serde_json::from_str(&pricing)?;
-        let price = |key: &str| {
-            p[key]
-                .as_str()
-                .and_then(|s| s.parse::<f64>().ok())
-                .or(p[key].as_f64())
-                .unwrap_or(0.)
-        };
-        let unit = 32768. * price("prompt")
-            + (f64::from(constants::NEW_MODE_JUDGE_VISIBLE_TOKENS) + 16384.) * price("completion");
-        let calls = if target == "judge" {
-            2 + u32::from(extraction)
-        } else {
-            2
-        } as f64;
-        estimated += calls * unit;
-        reserved += calls * unit * if target == "judge" { 3. } else { 2. };
-        if target != "judge" {
-            estimated += 2. * unit / m as f64;
-            reserved += 4. * unit / m as f64;
-        }
-    }
+    let pack = crate::prompts::PromptPack::from_override_dir(
+        config.and_then(|c| c.prompts.directory.as_deref()),
+    )
+    .map_err(|_| StoreError::Domain(ErrorCode::CONFIG_INVALID, "Invalid crosscheck prompt pack"))?;
+    let priced = super::bounds::price(
+        tx,
+        bindings,
+        &steps(
+            &pack,
+            &participants,
+            setup.plan.as_str(),
+            setup.goal.as_ref().map(|g| g.goal.as_str()),
+            config.map_or((constants::ROOM_WORDS, constants::PLAN_WORDS), |c| {
+                (c.prompts.limits.room_words, c.prompts.limits.plan_words)
+            }),
+        )?,
+    )?;
+    let estimated = priced.estimated_usd;
+    let reserved = priced.reserved_usd();
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let reserve = squad_store::accounting::reservation_micros(reserved).map_err(|_| invalid())?;
+    let reserve = priced.reserved_micros;
     match squad_store::accounting::admit(tx, &day, reserve, daily_max) {
         Ok(()) => {}
         Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) => {
@@ -191,7 +286,11 @@ pub fn prepare(
             participants,
             confirmation_required: estimated > threshold,
             warning: None,
-            settings: serde_json::json!({"extractionRequired":extraction}),
+            settings: {
+                let mut settings = priced.settings();
+                settings["extractionRequired"] = extraction.into();
+                settings
+            },
         },
         extraction_required: extraction,
         reserved_attempts,

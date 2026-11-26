@@ -57,6 +57,80 @@ pub fn save(
     }
     Ok(())
 }
+/// Frozen probe steps: every member proposes or checks blind, explainers predict
+/// over all contributions, and the judge reports over everything accepted.
+pub fn steps(
+    pack: &crate::prompts::PromptPack,
+    setup: &ProbeSetup,
+    words: (u32, u32),
+) -> Result<Vec<super::bounds::Step>> {
+    use super::bounds::{Step, blinded, limited, project, schema_bytes, template};
+    let m = setup.participants.len() as u64;
+    let member = constants::DEBATE_TURN_VISIBLE_TOKENS;
+    let judge = constants::FINAL_JUDGE_VISIBLE_TOKENS;
+    let brief = blinded(setup.brief.observation.as_str()) + 512;
+    let contribution = project(limited(member, words.0));
+    let contributions = m * contribution;
+    let rows = (m / 2) * contribution;
+    let mut out = vec![];
+    let mut push =
+        |kind, target: &str, composition: &str, schema, data, visible, attempts| -> Result<()> {
+            out.push(Step {
+                kind,
+                target: target.into(),
+                alternatives: vec![],
+                template: template(pack, composition)?,
+                schema: schema_bytes(schema),
+                data,
+                visible,
+                calls: 1,
+                attempts,
+            });
+            Ok(())
+        };
+    for nick in &setup.participants {
+        if setup.explainers.contains(nick) {
+            push(
+                WorkKind::ProbeExplain,
+                nick.as_str(),
+                "probe.explain",
+                validation::schema::<ProbeExplanation>(),
+                brief,
+                member,
+                2,
+            )?;
+            push(
+                WorkKind::ProbePredict,
+                nick.as_str(),
+                "probe.predict",
+                validation::schema::<ProbePrediction>(),
+                brief + contributions,
+                member,
+                2,
+            )?;
+        } else {
+            push(
+                WorkKind::ProbeCheck,
+                nick.as_str(),
+                "probe.check",
+                validation::schema::<ProbeCheck>(),
+                brief,
+                member,
+                2,
+            )?;
+        }
+    }
+    push(
+        WorkKind::ProbeReport,
+        "judge",
+        "probe.report",
+        validation::schema::<ProbeReport>(),
+        brief + contributions + rows,
+        judge,
+        3,
+    )?;
+    Ok(out)
+}
 /// Admission freezes the resolved roster and split before any call can be made.
 #[allow(clippy::too_many_arguments)]
 pub fn prepare(
@@ -110,72 +184,32 @@ pub fn prepare(
         sitting_out,
     };
     setup.validate().map_err(|_| invalid())?;
-    // Every stage is bounded conservatively by bytes (one byte per token),
-    // including all prior visible outputs and a full invalid report for repair.
-    let bound = brief.len() as u64 + 16384 + participants.len() as u64 * 16384;
-    let mut max_cost = 0_f64;
-    let mut nominal = 0_f64;
-    for target in participants
-        .iter()
-        .map(|n| n.as_str())
-        .chain(std::iter::once("judge"))
-    {
-        let binding = bindings.get(target).ok_or(StoreError::Domain(
-            ErrorCode::MODEL_UNAVAILABLE,
-            "Missing probe model",
-        ))?;
-        let (length, pricing): (i64, String) = tx.query_row(
-            "SELECT context_length,pricing_json FROM catalog WHERE slug=?",
-            [binding.model.as_str()],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
-        let reasoning = match if target == "judge" {
-            constants::NEW_MODE_JUDGE_REASONING_EFFORT
-        } else {
-            binding.effort
-        } {
-            ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
-            ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
-            ReasoningEffort::High => constants::REASONING_HIGH_TOKENS,
-        };
-        let visible = if target == "judge" {
-            constants::FINAL_JUDGE_VISIBLE_TOKENS
-        } else {
-            constants::DEBATE_TURN_VISIBLE_TOKENS
-        };
-        if bound + u64::from(visible + reasoning) + 4096 > length as u64 {
-            return Err(StoreError::Domain(
-                ErrorCode::CONTEXT_TOO_LARGE,
-                "Probe evidence does not fit the model context",
-            ));
-        }
-        let pricing: serde_json::Value = serde_json::from_str(&pricing)?;
-        let price = |key: &str| -> Result<f64> {
-            let p = pricing[key]
-                .as_str()
-                .and_then(|s| s.parse::<f64>().ok())
-                .or_else(|| pricing[key].as_f64())
-                .filter(|v| v.is_finite() && *v >= 0.);
-            p.ok_or(StoreError::Domain(
-                ErrorCode::MODEL_UNAVAILABLE,
-                "Probe pricing is unavailable",
-            ))
-        };
-        let cost =
-            bound as f64 * price("prompt")? + f64::from(visible + reasoning) * price("completion")?;
-        let calls = if target == "judge" {
-            1
-        } else if setup.explainers.iter().any(|n| n.as_str() == target) {
-            2
-        } else {
-            1
-        };
-        nominal += cost * f64::from(calls);
-        max_cost = max_cost.max(cost);
-    }
-    let worst = max_cost * f64::from(setup.attempts());
+    let pack = crate::prompts::PromptPack::from_override_dir(
+        config.and_then(|c| c.prompts.directory.as_deref()),
+    )
+    .map_err(|_| StoreError::Domain(ErrorCode::CONFIG_INVALID, "Invalid probe prompt pack"))?;
+    let priced = super::bounds::price(
+        tx,
+        bindings,
+        &steps(
+            &pack,
+            &setup,
+            config.map_or((300, 1500), |c| {
+                (c.prompts.limits.room_words, c.prompts.limits.plan_words)
+            }),
+        )?,
+    )
+    .map_err(|e| match e {
+        StoreError::Domain(ErrorCode::CONTEXT_TOO_LARGE, _) => StoreError::Domain(
+            ErrorCode::CONTEXT_TOO_LARGE,
+            "Probe evidence does not fit the model context",
+        ),
+        e => e,
+    })?;
+    let nominal = priced.estimated_usd;
+    let worst = priced.reserved_usd();
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let reserve = squad_store::accounting::reservation_micros(worst).map_err(|_| invalid())?;
+    let reserve = priced.reserved_micros;
     if let Err(StoreError::Domain(ErrorCode::DAILY_MAX_REACHED, _)) =
         squad_store::accounting::admit(tx, &day, reserve, max)
     {
@@ -226,7 +260,7 @@ pub fn prepare(
             warning: setup.sitting_out.as_ref().map(|n| {
                 Text::new(format!("@{n} sits out to keep equal groups")).expect("nonempty")
             }),
-            settings: serde_json::json!({"scriptVersion":"probe-v1","packVersion":pack.version(),"prompts":frozen_prompts,"bindings":bindings,"roomWords":config.map(|c|c.prompts.limits.room_words).unwrap_or(300),"planWords":config.map(|c|c.prompts.limits.plan_words).unwrap_or(1500)}),
+            settings: serde_json::json!({"attemptShares":priced.shares,"stepInputBounds":priced.input_bounds,"scriptVersion":"probe-v1","packVersion":pack.version(),"prompts":frozen_prompts,"bindings":bindings,"roomWords":config.map(|c|c.prompts.limits.room_words).unwrap_or(300),"planWords":config.map(|c|c.prompts.limits.plan_words).unwrap_or(1500)}),
         },
         reserved_attempts: setup.attempts(),
         setup: setup.clone(),

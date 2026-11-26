@@ -864,7 +864,7 @@ async fn confirmation_rechecks_daily_cap_after_restart() {
         })
         .await;
     assert!(
-        matches!(&result,RequestResult::Rejected{error,..} if error.code==ErrorCode::DAILY_MAX_REACHED&&error.text.as_str().starts_with("Daily max of $0.05 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $")&&error.text.as_str().contains(" today; this request needs up to $3.633212 reserved.)")),
+        matches!(&result,RequestResult::Rejected{error,..} if error.code==ErrorCode::DAILY_MAX_REACHED&&error.text.as_str().starts_with("Daily max of $0.05 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $")&&error.text.as_str().contains(" today; this request needs up to $1.287732 reserved.)")),
         "{result:?}"
     );
     assert_eq!(status(&f), "FAILED");

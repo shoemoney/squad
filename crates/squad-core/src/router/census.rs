@@ -108,6 +108,91 @@ pub fn source(db: &Connection, source: &parser::PlanSource) -> Result<(String, V
     };
     Ok((text, vec![event.base.id]))
 }
+
+/// Frozen steps of `passes` census passes over `plan`; `templates` are the hunt,
+/// merge, rate and final template bytes. Merge sees every hunt, rating the
+/// anonymous ledger, and the final call the ledger, every rating and additions.
+pub fn steps(
+    participants: &[MemberNick],
+    passes: u32,
+    plan: &str,
+    templates: &[u64],
+    words: (u32, u32),
+) -> Vec<super::bounds::Step> {
+    use super::bounds::{Step, blinded, limited, project, schema_bytes};
+    let m = participants.len() as u64;
+    let plan = blinded(plan);
+    let member = constants::DEBATE_TURN_VISIBLE_TOKENS;
+    let judge = constants::NEW_MODE_JUDGE_VISIBLE_TOKENS;
+    let ledger = project(limited(judge, words.1));
+    let rating = project(limited(member, words.0));
+    let step =
+        |kind, target: &str, template, schema: serde_json::Value, data, visible, attempts| Step {
+            kind,
+            target: target.into(),
+            alternatives: vec![],
+            template,
+            schema: schema_bytes(schema),
+            data,
+            visible,
+            calls: passes,
+            attempts,
+        };
+    let mut out = vec![];
+    for nick in participants {
+        out.push(step(
+            WorkKind::CensusHunt,
+            nick.as_str(),
+            templates[0],
+            validation::schema::<CensusHuntOutput>(),
+            plan + 512,
+            member,
+            2,
+        ));
+        out.push(step(
+            WorkKind::CensusRate,
+            nick.as_str(),
+            templates[2],
+            validation::schema::<CensusRatingOutput>(),
+            plan + ledger,
+            member,
+            2,
+        ));
+    }
+    out.push(step(
+        WorkKind::CensusMerge,
+        "judge",
+        templates[1],
+        validation::schema::<CensusMergeOutput>(),
+        plan + m * rating,
+        judge,
+        3,
+    ));
+    out.push(step(
+        WorkKind::CensusFinal,
+        "judge",
+        templates[3],
+        validation::schema::<CensusFinalOutput>(),
+        plan + ledger + m * rating,
+        judge,
+        3,
+    ));
+    out
+}
+fn settings(
+    priced: &super::bounds::Priced,
+    passes: u32,
+    reserved_calls: u32,
+    plan_version: u32,
+    plan_bytes: usize,
+) -> serde_json::Value {
+    let mut value = priced.settings();
+    value["passes"] = passes.into();
+    value["reservedCalls"] = reserved_calls.into();
+    value["planVersion"] = plan_version.into();
+    value["planBytes"] = plan_bytes.into();
+    value
+}
 #[allow(clippy::too_many_arguments)]
 pub fn prepare(
     tx: &Transaction<'_>,
@@ -201,53 +286,30 @@ pub fn prepare(
             .collect(),
     };
     setup.validate().map_err(|_| invalid())?;
-    // A conservative frozen input bound includes all possible generated material
-    // for the most expensive finalization, with output and safety reservations.
-    let input_bound =
-        setup.plan.text.as_str().len() as u64 + 32_768 + setup.participants.len() as u64 * 16_384;
-    let mut normal = 0.0_f64;
-    let mut reserved = 0.0_f64;
-    for key in setup
-        .participants
-        .iter()
-        .map(|n| n.as_str())
-        .chain(std::iter::once("judge"))
-    {
-        let binding = &setup.models[key];
-        let (length, pricing): (i64, String) = tx.query_row(
-            "SELECT context_length,pricing_json FROM catalog WHERE slug=?",
-            [binding.model.as_str()],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
-        let output = if key == "judge" {
-            constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
-        } else {
-            2048
-        };
-        let reasoning = match binding.effort {
-            ReasoningEffort::Low => constants::REASONING_LOW_TOKENS,
-            ReasoningEffort::Medium => constants::REASONING_MEDIUM_TOKENS,
-            ReasoningEffort::High => constants::REASONING_HIGH_TOKENS,
-        };
-        if input_bound + u64::from(output + reasoning) + 1024 > length as u64 {
-            return Err(StoreError::Domain(
-                ErrorCode::CONTEXT_TOO_LARGE,
-                "Census input exceeds model context",
-            ));
-        }
-        let pricing: serde_json::Value = serde_json::from_str(&pricing)?;
-        let price = |key: &str| {
-            pricing[key]
-                .as_str()
-                .and_then(|s| s.parse::<f64>().ok())
-                .or_else(|| pricing[key].as_f64())
-                .unwrap_or(0.0)
-        };
-        let cost = input_bound as f64 * price("prompt")
-            + f64::from(output + reasoning) * price("completion");
-        normal += 2.0 * f64::from(passes) * cost;
-        reserved += if key == "judge" { 6.0 } else { 4.0 } * f64::from(passes) * cost;
-    }
+    let templates = ["census.hunt", "census.merge", "census.rate", "census.final"]
+        .map(|name| super::bounds::template(&pack, name))
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
+    let priced = super::bounds::price(
+        tx,
+        &setup.models,
+        &steps(
+            &setup.participants,
+            u32::from(passes),
+            setup.plan.text.as_str(),
+            &templates,
+            (setup.room_words, setup.plan_words),
+        ),
+    )
+    .map_err(|e| match e {
+        StoreError::Domain(ErrorCode::CONTEXT_TOO_LARGE, _) => StoreError::Domain(
+            ErrorCode::CONTEXT_TOO_LARGE,
+            "Census input exceeds model context",
+        ),
+        e => e,
+    })?;
+    let normal = priced.estimated_usd;
+    let reserved = priced.reserved_usd();
     let mut state = CensusState {
         contest_id: contest,
         state_version: 1,
@@ -311,7 +373,13 @@ pub fn prepare(
         participants: setup.participants.clone(),
         confirmation_required: normal > threshold,
         warning: None,
-        settings: serde_json::json!({"passes":passes,"reservedCalls":setup.reserved_calls(),"planVersion":1,"inputBound":input_bound}),
+        settings: settings(
+            &priced,
+            u32::from(passes),
+            setup.reserved_calls(),
+            1,
+            setup.plan.text.as_str().len(),
+        ),
     };
     CensusPreflight {
         base: plan.clone(),
@@ -477,12 +545,9 @@ pub fn continue_plan(
         |r| r.get(0),
     )?;
     let mut preflight: ContestPreflight = serde_json::from_str(&raw)?;
-    let original = squad_store::census::setup(tx, contest)?
-        .plan
-        .text
-        .as_str()
-        .len();
-    let revised = plan.text.as_str().len() > original;
+    let original = squad_store::census::setup(tx, contest)?.plan.text;
+    let revised =
+        super::bounds::json_text(plan.text.as_str()) > super::bounds::json_text(original.as_str());
     let seq = push(tx, group, id, EnvelopePayload::CensusPlan(plan.clone()))?;
     state.pass += 1;
     state.plan_version = plan.version;
@@ -500,33 +565,52 @@ pub fn continue_plan(
     )?;
     if revised {
         let setup = squad_store::census::setup(tx, contest)?;
-        let bound =
-            plan.text.as_str().len() as u64 + 32_768 + setup.participants.len() as u64 * 16_384;
-        for binding in setup.models.values() {
-            let length: i64 = tx.query_row(
-                "SELECT context_length FROM catalog WHERE slug=?",
-                [binding.model.as_str()],
-                |r| r.get(0),
-            )?;
-            if bound + u64::from(constants::REASONING_HIGH_TOKENS) + 8192 > length as u64 {
-                return Err(StoreError::Domain(
-                    ErrorCode::CONTEXT_TOO_LARGE,
-                    "Replacement census plan exceeds model context",
-                ));
-            }
-        }
-        let old_bound = preflight.settings["inputBound"]
-            .as_f64()
-            .ok_or_else(invalid)?;
         let remaining = u32::from(setup.passes - state.pass + 1);
-        let ratio = bound as f64 / old_bound;
+        let frozen: String = tx.query_row(
+            "SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='census.prompts'",
+            [contest.to_string()],
+            |r| r.get(0),
+        )?;
+        let frozen: serde_json::Value = serde_json::from_str(&frozen)?;
+        let templates = ["census.hunt", "census.merge", "census.rate", "census.final"]
+            .iter()
+            .map(|name| {
+                let c = &frozen["compositions"][*name];
+                Ok(c["system"].as_str().ok_or_else(invalid)?.len() as u64
+                    + c["user"].as_str().ok_or_else(invalid)?.len() as u64)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let priced = super::bounds::price(
+            tx,
+            &setup.models,
+            &steps(
+                &setup.participants,
+                remaining,
+                plan.text.as_str(),
+                &templates,
+                (setup.room_words, setup.plan_words),
+            ),
+        )
+        .map_err(|e| match e {
+            StoreError::Domain(ErrorCode::CONTEXT_TOO_LARGE, _) => StoreError::Domain(
+                ErrorCode::CONTEXT_TOO_LARGE,
+                "Replacement census plan exceeds model context",
+            ),
+            e => e,
+        })?;
         preflight.plan_id = PlanId::new();
         preflight.expires_at = group.accepted_at
             + chrono::Duration::milliseconds(squad_protocol::constants::PREFLIGHT_EXPIRY_MS as i64);
-        preflight.estimate.estimated_usd *= ratio * f64::from(remaining) / f64::from(setup.passes);
-        preflight.estimate.reserved_usd *= ratio * f64::from(remaining) / f64::from(setup.passes);
+        preflight.estimate.estimated_usd = priced.estimated_usd;
+        preflight.estimate.reserved_usd = priced.reserved_usd();
         preflight.estimate.model_calls = remaining * (2 * setup.participants.len() as u32 + 2);
-        preflight.settings = serde_json::json!({"passes":remaining,"reservedCalls":remaining*(4*setup.participants.len() as u32+6),"inputBound":bound,"planVersion":plan.version});
+        preflight.settings = settings(
+            &priced,
+            remaining,
+            remaining * (4 * setup.participants.len() as u32 + 6),
+            plan.version,
+            plan.text.as_str().len(),
+        );
         let pending: String = tx.query_row(
             "SELECT pending_request_json FROM contests WHERE contest_id=?",
             [contest.to_string()],

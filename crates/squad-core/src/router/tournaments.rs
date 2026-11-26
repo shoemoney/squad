@@ -74,6 +74,54 @@ pub fn save(
     }
     Ok(())
 }
+
+/// Frozen tournament steps. Round `r` has `k - r + 1` entrants answering from
+/// their own history, the prompt and their earlier answers and results, then one
+/// blind judge call over every answer; each logical round may be replayed once.
+pub fn steps(
+    pack: &PromptPack,
+    entrants: &[MemberNick],
+    prompt: &str,
+    history: u64,
+) -> Result<Vec<super::bounds::Step>> {
+    use super::bounds::{
+        Step, artifact, json_text, project, raw_templates, schema_bytes, template,
+    };
+    let k = entrants.len() as u32;
+    let reply = constants::REPLY_VISIBLE_TOKENS;
+    let judge = constants::FINAL_JUDGE_VISIBLE_TOKENS;
+    let prompt = json_text(prompt) + 512;
+    let entry = template(pack, "tournament.entry")?;
+    let judge_template = raw_templates(pack, &["judge.system", "tournament.judge"])?;
+    let judge_schema = schema_bytes(validation::schema::<TournamentJudgeResponse>());
+    let mut out = vec![];
+    for round in 1..k {
+        let remaining = k - round + 1;
+        out.push(Step {
+            kind: WorkKind::Reply,
+            target: entrants[0].to_string(),
+            alternatives: entrants[1..].iter().map(ToString::to_string).collect(),
+            template: entry,
+            schema: 0,
+            data: history + prompt + u64::from(round - 1) * (artifact(reply) + 1024),
+            visible: reply,
+            calls: remaining,
+            attempts: 4,
+        });
+        out.push(Step {
+            kind: WorkKind::JudgeTournament,
+            target: "judge".into(),
+            alternatives: vec![],
+            template: judge_template,
+            schema: judge_schema,
+            data: prompt + u64::from(remaining) * project(artifact(reply)),
+            visible: judge,
+            calls: 1,
+            attempts: 6,
+        });
+    }
+    Ok(out)
+}
 #[allow(clippy::too_many_arguments)]
 pub fn prepare(
     tx: &Transaction<'_>,
@@ -239,55 +287,24 @@ pub fn prepare(
         &serde_json::json!({"tokens":tokens}),
     )?;
     let (normal, reserved) = crate::orchestrator::tournament::call_counts(entrants.len() as u32);
-    // Bound the largest permitted member history and blind judge request in UTF-8
-    // bytes (conservative tokens), including complete reasoning allowances.
-    let mut estimated = 0.;
-    let mut reserve = 0.;
-    let price = |binding: &ExecutorBinding, input: u64, output: u64| -> Result<f64> {
-        let raw: String = tx.query_row(
-            "SELECT pricing_json FROM catalog WHERE slug=?",
-            [binding.model.as_str()],
-            |r| r.get(0),
-        )?;
-        let value: serde_json::Value = serde_json::from_str(&raw)?;
-        let p = |key: &str| {
-            value[key]
-                .as_str()
-                .and_then(|s| s.parse::<f64>().ok())
-                .or_else(|| value[key].as_f64())
-                .unwrap_or(0.)
-        };
-        Ok(input as f64 * p("prompt") + output as f64 * p("completion"))
-    };
-    let mut max_entry = 0_f64;
+    let pack = PromptPack::from_override_dir(config.and_then(|c| c.prompts.directory.as_deref()))
+        .map_err(|_| invalid())?;
+    let mut history = 0_u64;
     for n in entrants {
         let len: i64 = tx.query_row(
             "SELECT COALESCE(SUM(length(content)),0) FROM history WHERE context_id=?",
             [n.as_str()],
             |r| r.get(0),
         )?;
-        let c = price(
-            &bindings[n.as_str()],
-            len as u64
-                + setup.prompt.len() as u64
-                + 16384
-                + setup.total_rounds as u64 * u64::from(constants::REPLY_VISIBLE_TOKENS) * 4
-                + u64::from(constants::FINAL_JUDGE_VISIBLE_TOKENS) * 4,
-            u64::from(constants::REPLY_VISIBLE_TOKENS + constants::REASONING_HIGH_TOKENS),
-        )?;
-        max_entry = max_entry.max(c);
+        history = history.max(len as u64);
     }
-    let judge_cost = price(
-        judge,
-        setup.prompt.len() as u64
-            + entrants.len() as u64 * u64::from(constants::REPLY_VISIBLE_TOKENS) * 4
-            + 16384,
-        u64::from(constants::FINAL_JUDGE_VISIBLE_TOKENS + constants::REASONING_HIGH_TOKENS),
+    let priced = super::bounds::price(
+        tx,
+        bindings,
+        &steps(&pack, entrants, setup.prompt.as_str(), history)?,
     )?;
-    for n in 2..=entrants.len() as u32 {
-        estimated += n as f64 * max_entry + judge_cost;
-        reserve += 2. * (2. * n as f64 * max_entry + 3. * judge_cost);
-    }
+    let estimated = priced.estimated_usd;
+    let reserve = priced.reserved_usd();
     let day = chrono::Local::now().format("%Y-%m-%d").to_string();
     let used = squad_store::accounting::daily(tx, &day)?;
     let plan = TournamentPreflight {
@@ -308,7 +325,14 @@ pub fn prepare(
             participants: entrants.to_vec(),
             confirmation_required: estimated > threshold,
             warning: None,
-            settings: serde_json::json!({"reservedCalls":reserved,"replays":1,"entryAttempts":2,"judgeAttempts":3}),
+            settings: {
+                let mut settings = priced.settings();
+                settings["reservedCalls"] = reserved.into();
+                settings["replays"] = 1.into();
+                settings["entryAttempts"] = 2.into();
+                settings["judgeAttempts"] = 3.into();
+                settings
+            },
         },
         total_rounds: setup.total_rounds,
         entry_attempts: 2,
@@ -324,10 +348,10 @@ pub fn prepare(
         EnvelopePayload::TournamentPreflight(plan.clone()),
     )?;
     if let Err(StoreError::Domain(code, message)) =
-        squad_store::accounting::admit(tx, &day, (reserve * 1e6).ceil() as i64, max)
+        squad_store::accounting::admit(tx, &day, priced.reserved_micros, max)
     {
         let rejection = if code == ErrorCode::DAILY_MAX_REACHED {
-            super::daily_cap_error(tx, &day, (reserve * 1e6).ceil() as i64, max)
+            super::daily_cap_error(tx, &day, priced.reserved_micros, max)
         } else {
             error(code, message)
         };
