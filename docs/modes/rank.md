@@ -58,3 +58,9 @@ Required shared changes, outside this worker's ownership:
 - Resolve the two-member replication boundary: cap `v` at `m` (implemented), or require at least three participants through parser-owned rules. Six-member runs follow the binding formula exactly.
 
 After integration, run owned/workspace gates, enable `squad_protocol::rank::ENABLED`, update shared disabled-start fixtures, verify parser/typeahead/TIP/help, and perform the owner-approved single real `squad send` using the default six-model roster, a temporary data directory and `SQUAD_DAILY_MAX_USD=150`. Record real cost, wall time, reserved versus actual, and a report excerpt here.
+
+## Validation record (2026-11-26, dev3)
+
+With `CARGO_BUILD_JOBS=4`, the final full `cargo test --workspace --no-fail-fast` passed: 1,353 passing Cargo summary entries, zero failed, four ignored. The WAL subprocess repeats one passing case, so there are 1,352 unique passing tests. The 27 new owned tests cover protocol contracts (3), scoped store reads/repairs (3), agent output contracts (1), tally/design (7), provider/runtime workflows (7), report/export (3), and TUI projection (3). The existing release suite also built the optimized CLI successfully. Full-suite code head: `3989b50`; the subsequent split-pair presentation improvement is checked by the final owned suite.
+
+All-target workspace Clippy with warnings denied and formatting checks pass. No real-provider smoke was run: enablement and the public failure-path acceptance remain blocked as described above. No provider cost, wall time, reserved amount or real report excerpt is claimed. Phase M8.P10 has twelve completed tasks; L5.T1 and L5.T3 remain open for integration, public enablement and live verification.

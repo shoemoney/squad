@@ -73,7 +73,25 @@ pub fn report_text(report: &RankReport, full: bool) -> String {
             if t.split_pairs.is_empty() {
                 "none".into()
             } else {
-                t.split_pairs.join(", ")
+                t.split_pairs
+                    .iter()
+                    .map(|id| {
+                        s.pairs.iter().find(|p| p.pair_id == *id).map_or_else(
+                            || id.clone(),
+                            |p| {
+                                format!(
+                                    "{}: {} vs {} ({}–{})",
+                                    id,
+                                    s.items[p.left].item_id,
+                                    s.items[p.right].item_id,
+                                    t.wins[p.left][p.right],
+                                    t.wins[p.right][p.left]
+                                )
+                            },
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("; ")
             }
         );
         if t.components.len() > 1 {

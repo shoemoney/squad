@@ -48,8 +48,16 @@ fn report() -> RankReport {
 }
 #[test]
 fn report_preserves_app_order_audit_and_judge_failure() {
-    let r = report();
+    let mut r = report();
+    let pair = r
+        .setup
+        .pairs
+        .iter()
+        .find(|p| (p.left, p.right) == (1, 2))
+        .unwrap();
+    r.tally.as_mut().unwrap().split_pairs = vec![pair.pair_id.clone()];
     let human = report_text(&r, false);
+    assert!(human.contains("I2 vs I3 (2–1)"));
     let full = report_text(&r, true);
     assert!(human.contains("1. I1 — Fix data loss"));
     assert!(human.contains("judge_failed"));
