@@ -50,6 +50,11 @@ fn enabled_mode_appears_in_typeahead_and_help() {
         ..Default::default()
     };
     assert!(squad_tui::typeahead::enabled("$blow_it_up"));
+    assert!(
+        squad_tui::typeahead::examples(&ctx)
+            .iter()
+            .any(|s| s.contains("$blow_it_up"))
+    );
     let raw = "@all $bl";
     let c = squad_tui::widgets::completion::CompletionState::at(
         raw,
