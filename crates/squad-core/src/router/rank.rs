@@ -132,7 +132,7 @@ pub fn prepare(
     }
     let config = a.config.ok_or_else(invalid)?;
     script::prepare(parsed).map_err(|_| invalid())?;
-    if participants.len() < 3 {
+    if participants.len() < 2 {
         return Err(invalid());
     }
     let sources = vec![];
@@ -229,7 +229,7 @@ pub fn prepare(
             script_version: "rank-v1".parse().expect("version"),
             participants: participants.clone(),
             source_event_ids: sources,
-            settings: serde_json::json!({"criterion":setup.criterion,"items":setup.items}),
+            settings: serde_json::json!({"criterion":setup.criterion,"items":setup.items,"judgments":setup.pairs.len()*setup.votes_per_pair}),
         }),
     )?;
     super::variables::apply(tx, g, id, &conversation.variable_updates)?;
@@ -387,7 +387,18 @@ pub fn accepted_work(
     if rank::prose_words(output) > data["wordLimit"].as_u64().ok_or_else(invalid)? as usize {
         return Err(invalid());
     }
-    squad_store::contest_steps::artifact(db, artifact, seq)
+    squad_store::contest_steps::artifact(db, artifact, seq)?;
+    let mut run = squad_store::rank::run(db, artifact.contest_id)?;
+    match &work.target {
+        Target::Member(nick) => {
+            run.batches
+                .insert(nick.clone(), serde_json::from_value(output.clone())?);
+        }
+        Target::Judge => {
+            run.explanation = Some(serde_json::from_value(output.clone())?);
+        }
+    }
+    squad_store::rank::save(db, artifact.contest_id, &run)
 }
 
 pub fn steps(setup: &RankSetup, templates: &[u64]) -> Result<Vec<super::bounds::Step>> {
@@ -622,6 +633,7 @@ pub(crate) fn drive_move(
         return Ok(g.accepted(id));
     }
     let step = s.step_id.ok_or_else(invalid)?;
+    tx.execute("UPDATE work SET status='failed',runnable=0 WHERE step_id=? AND status='queued' AND attempt>=CASE WHEN kind='rank.explain' THEN 3 ELSE 2 END",[step.to_string()])?;
     let rows = {
         let mut q =
             tx.prepare("SELECT work_id FROM contest_assignments WHERE step_id=? ORDER BY target")?;
@@ -774,17 +786,34 @@ fn allocate(
                         .find(|d| d.pair_id == choice.pair_id)
                         .ok_or_else(invalid)?;
                     if involved.contains(&(pair.a.min(pair.b), pair.a.max(pair.b))) {
+                        let winner = if choice.winner == RankWinner::A {
+                            pair.a
+                        } else {
+                            pair.b
+                        };
                         reasons
                             .entry(choice.pair_id.clone())
                             .or_default()
-                            .push(choice.reason.clone());
+                            .push(format!(
+                                "{} beats {}: {}",
+                                setup.items[winner].item_id,
+                                setup.items[if winner == pair.a { pair.b } else { pair.a }].item_id,
+                                blind(&choice.reason, &tokens).0
+                            ));
                     }
                 }
             }
             // Ten top-item pairs plus three edges per displayed cycle: at most forty.
             let reasons = reasons.into_iter().take(40).collect::<BTreeMap<_, _>>();
             let mut value = serde_json::json!({"criterion":setup.criterion,"items":setup.items,"tally":tally,"reasons":reasons,"topIds":tally.order.iter().take(5).map(|i|setup.items[*i].item_id.clone()).collect::<Vec<_>>(),"cycleIds":tally.cycles.iter().map(|c|c.cycle_id.clone()).collect::<Vec<_>>(),"wordLimit":words});
-            blind_value(&mut value, &tokens);
+            value["criterion"] = serde_json::json!(blind(&setup.criterion, &tokens).0);
+            if let Some(items) = value["items"].as_array_mut() {
+                for item in items {
+                    if let Some(text) = item["text"].as_str() {
+                        item["text"] = serde_json::json!(blind(text, &tokens).0);
+                    }
+                }
+            }
             value
         } else {
             let Target::Member(nick) = &target else {

@@ -125,7 +125,9 @@ impl RankSetup {
             ),
             "duplicate pair",
         )?;
-        let v = (60 * self.participants.len() / self.pairs.len()).clamp(1, 3);
+        let v = (60 * self.participants.len() / self.pairs.len())
+            .clamp(1, 3)
+            .min(self.participants.len());
         ensure(
             self.votes_per_pair == v && self.deal.len() == self.participants.len(),
             "invalid vote count",

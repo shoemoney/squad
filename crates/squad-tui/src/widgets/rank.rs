@@ -16,10 +16,14 @@ pub fn lines(state: &RankState) -> Vec<String> {
 pub struct View {
     pub state: Option<RankState>,
     pub artifacts: std::collections::BTreeMap<EventId, ContestArtifact>,
+    pub planned_judgments: usize,
 }
 impl View {
     pub fn apply(&mut self, event: EventId, payload: &EnvelopePayload) {
         match payload {
+            EnvelopePayload::RankSetup(s) => {
+                self.planned_judgments = s.settings["judgments"].as_u64().unwrap_or(0) as usize;
+            }
             EnvelopePayload::RankState(s)
             | EnvelopePayload::ContestState(ContestState::Rank(s)) => self.state = Some(s.clone()),
             EnvelopePayload::ContestArtifact(a) if a.kind == Some(ContestKind::Rank) => {
@@ -46,7 +50,7 @@ pub fn render(view: &View) -> Vec<String> {
         }
         if a.artifact_kind.as_str() == "rank.report"
             && let Some(body) = &a.body
-            && let Ok(r) = serde_json::from_value::<squad_protocol::rank::RankReport>(body.clone())
+            && let Ok(r) = validation::decode::<squad_protocol::rank::RankReport>(body)
         {
             let mut lines = vec![
                 "RANK".into(),
@@ -94,6 +98,13 @@ pub fn render(view: &View) -> Vec<String> {
             return lines;
         }
     }
-    out.push(format!("COMPARING {returned} judgments returned"));
+    out.push(if view.planned_judgments > 0 {
+        format!(
+            "COMPARING {returned}/{} judgments returned",
+            view.planned_judgments
+        )
+    } else {
+        format!("COMPARING {returned} judgments returned")
+    });
     out
 }

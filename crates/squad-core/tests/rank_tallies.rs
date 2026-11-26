@@ -54,10 +54,10 @@ fn balanced_complete_set_and_phantom_have_unit_strength() {
 }
 #[test]
 fn undefeated_and_winless_pair_match_analytic_strengths() {
-    // One real win, phantom half-win/half-loss each: p1=3, p2=1/3.
+    // Independent root of p^3 - p^2 - p - 3 = 0; symmetry gives q=1/p.
     let t = fit(&[vec![0, 1], vec![0, 0]], &[]);
-    assert!((t.strengths[0] - 3.0).abs() < 1e-8);
-    assert!((t.strengths[1] - 1.0 / 3.0).abs() < 1e-9);
+    assert!((t.strengths[0] - 2.1303954347672787).abs() < 1e-8);
+    assert!((t.strengths[1] - 0.4693964245699947).abs() < 1e-9);
     assert_eq!(t.order, vec![0, 1]);
     assert_eq!(t.gaps[0].label, "clear");
 }
