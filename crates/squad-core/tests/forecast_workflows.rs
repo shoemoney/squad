@@ -366,6 +366,11 @@ async fn six_members_fourteen_calls_reserves_thirty_and_exports_blind_bundles() 
     assert!(export.contains("Pooled probability: **55.0%**"));
     assert!(export.contains("forecast.bundle"));
     assert!(export.contains("trimmedLogOdds"));
+    assert_eq!(
+        export.matches("\"trimmedLogOdds\"").count(),
+        2,
+        "both stored rounds must export their unrounded aggregates"
+    );
     f.assert_ledger();
     room.shutdown().await.unwrap();
     let room = f.open(OpenMode::Interactive).await;

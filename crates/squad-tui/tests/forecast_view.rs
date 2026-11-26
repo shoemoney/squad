@@ -64,4 +64,24 @@ fn pooled_bar_keeps_spread_band_and_individual_ticks() {
         }),
     );
     assert!(render(&v).iter().any(|s| s.contains("Pooled 50.0%")));
+    let final_aggregate = squad_core::orchestrator::forecast::aggregate(&[60, 70, 80]).unwrap();
+    let mut final_artifact = v.artifacts.values().next().unwrap().clone();
+    final_artifact.body = Some(serde_json::to_value(&final_aggregate).unwrap());
+    v.apply(
+        "ffffffff-ffff-7fff-bfff-ffffffffffff".parse().unwrap(),
+        &EnvelopePayload::ContestArtifact(final_artifact),
+    );
+    let rendered = render(&v);
+    assert_eq!(
+        rendered
+            .iter()
+            .filter(|line| line.starts_with("Pooled "))
+            .count(),
+        1
+    );
+    assert!(
+        rendered
+            .iter()
+            .any(|line| line.contains(&format!("Pooled {:.1}%", 100.0 * final_aggregate.p)))
+    );
 }

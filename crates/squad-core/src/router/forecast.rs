@@ -697,6 +697,14 @@ pub fn drive_move(
                 &aggregate,
                 Some(seq),
             )?;
+            artifact(
+                tx,
+                g,
+                id,
+                &state,
+                "forecast.aggregate",
+                serde_json::to_value(&aggregate)?,
+            )?;
             tx.execute(
                 "UPDATE forecast_runs SET first_aggregate_json=? WHERE contest_id=?",
                 params![

@@ -65,11 +65,22 @@ pub fn render(view: &View) -> Vec<String> {
         return vec![];
     };
     let mut out = lines(state);
-    for a in view
+    let latest_aggregate = view
         .artifacts
-        .values()
-        .filter(|a| a.contest_id == state.contest_id)
+        .iter()
+        .rev()
+        .find(|(_, a)| {
+            a.contest_id == state.contest_id && a.artifact_kind.as_str() == "forecast.aggregate"
+        })
+        .map(|(id, _)| id);
+    for (event, a) in view
+        .artifacts
+        .iter()
+        .filter(|(_, a)| a.contest_id == state.contest_id)
     {
+        if a.artifact_kind.as_str() == "forecast.aggregate" && Some(event) != latest_aggregate {
+            continue;
+        }
         if let Some(body) = &a.body {
             match a.artifact_kind.as_str() {
                 "forecast.frame" => {
