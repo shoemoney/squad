@@ -176,3 +176,19 @@ fn map_schemas_leave_openai_strict_mode() {
     .unwrap();
     assert_eq!(body["response_format"]["json_schema"]["strict"], true);
 }
+
+#[test]
+fn openai_and_xai_reasoning_uses_effort_not_a_token_budget() {
+    for (model, effort) in [("openai/gpt-5-nano", "medium"), ("x-ai/grok-4.20", "medium")] {
+        let mut req = request(model, json!({"type": "object"}));
+        req.supports_reasoning = true;
+        req.reasoning_effort = ReasoningEffort::Medium;
+        let body = req.body().unwrap();
+        assert_eq!(body["reasoning"], json!({"effort": effort}), "{model}");
+        assert_eq!(body["max_tokens"], 2048 + 4096);
+    }
+    let mut req = request("anthropic/claude-haiku-5.5", json!({"type": "object"}));
+    req.supports_reasoning = true;
+    req.reasoning_effort = ReasoningEffort::Medium;
+    assert_eq!(req.body().unwrap()["reasoning"], json!({"max_tokens": 4096}));
+}
