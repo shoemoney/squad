@@ -234,8 +234,27 @@ impl PreflightView {
     }
 }
 pub fn render(view: &PreflightView, area: Rect, buffer: &mut Buffer) {
-    Paragraph::new(view.text())
-        .wrap(Wrap { trim: false })
-        .block(Block::default().borders(Borders::ALL).title("Preflight"))
-        .render(area, buffer);
+    let block = Block::default().borders(Borders::ALL).title("Preflight");
+    let inner = block.inner(area);
+    block.render(area, buffer);
+    if inner.height == 0 {
+        return;
+    }
+    let text = view.text();
+    let (body, controls) = text.rsplit_once('\n').unwrap_or(("", text.as_str()));
+    Paragraph::new(body).wrap(Wrap { trim: false }).render(
+        Rect {
+            height: inner.height - 1,
+            ..inner
+        },
+        buffer,
+    );
+    Paragraph::new(controls).render(
+        Rect {
+            y: inner.bottom() - 1,
+            height: 1,
+            ..inner
+        },
+        buffer,
+    );
 }

@@ -382,7 +382,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
             geometry.transcript.x,
             geometry.transcript.y,
             geometry.transcript.width,
-            9.min(geometry.transcript.height),
+            14.min(geometry.transcript.height),
         );
         Clear.render(rect, frame.buffer_mut());
         preflight::render(

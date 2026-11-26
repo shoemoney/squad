@@ -132,6 +132,27 @@ async fn real_runtime_preflight_actions_committed_snapshots_and_export() {
         presentation.contains("Plan from @alpha:\nInitial plan: one writer."),
         "{presentation}"
     );
+    let mut long_plan = preflight.clone();
+    if let PendingPreflight::Contest(plan) = &mut long_plan {
+        plan.settings["setup"]["initialPlan"] = serde_json::Value::String(format!(
+            "Initial plan: one writer.\n{}",
+            "More source evidence\n".repeat(100)
+        ));
+    }
+    for width in [80, 120] {
+        let mut buffer = Buffer::empty(Rect::new(0, 0, width, 14));
+        squad_tui::widgets::preflight::render(
+            &squad_tui::widgets::preflight::PreflightView {
+                plan: long_plan.clone(),
+                pending: false,
+            },
+            buffer.area,
+            &mut buffer,
+        );
+        let output: String = buffer.content.iter().map(|c| c.symbol()).collect();
+        assert!(output.contains("Initial plan: one writer."), "{output}");
+        assert!(output.contains("Y Confirm · N Cancel"), "{output}");
+    }
     let scoreboard = room.state().await.scoreboard;
     let mut session = Session::default();
     session.restore(snapshot(&room.state().await, events(&room).await));

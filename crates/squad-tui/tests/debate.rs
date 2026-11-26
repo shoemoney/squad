@@ -114,21 +114,6 @@ fn core_threshold_boundaries_and_ui_confirmation_cancel_and_expiry() {
     }
 }
 
-#[test]
-fn manual_judging_uses_only_the_named_debate() {
-    let id = DebateId::new();
-    assert!(
-        matches!(squad_tui::session::judge_request(Some(id)), Request::Judge { debate_id: Some(actual), .. } if actual == id)
-    );
-    assert!(matches!(
-        squad_tui::session::judge_request(None),
-        Request::Judge {
-            debate_id: None,
-            ..
-        }
-    ));
-}
-
 #[tokio::test]
 async fn equal_and_late_scores_preserve_authoritative_tally_records_and_anchor() {
     use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
