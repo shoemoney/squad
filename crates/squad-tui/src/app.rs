@@ -430,7 +430,11 @@ impl App {
             self.composed.invalidate_artifacts();
             self.composed.prepare(
                 &self.session,
-                self.composed.viewport.width.max(80),
+                if self.composed.viewport.width == 0 {
+                    80
+                } else {
+                    self.composed.viewport.width
+                },
                 &self.theme.palette,
             );
             row = self

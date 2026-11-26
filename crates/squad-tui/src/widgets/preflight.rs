@@ -227,10 +227,7 @@ impl PreflightView {
     }
 }
 pub fn render(view: &PreflightView, area: Rect, buffer: &mut Buffer) {
-    Paragraph::new(view.text())
-        .wrap(Wrap { trim: false })
-        .block(Block::default().borders(Borders::ALL).title("Preflight"))
-        .render(area, buffer);
+    render_with_source(view, "", area, buffer);
 }
 
 /// Frozen human-visible source context from the same committed setup as the plan.
@@ -297,14 +294,32 @@ pub fn source_preview(plan: &PendingPreflight, session: &crate::session::Session
 }
 
 pub fn render_with_source(view: &PreflightView, source: &str, area: Rect, buffer: &mut Buffer) {
-    let mut text = view.text();
-    if !source.is_empty() {
-        // Keep confirmation last so the source preview cannot masquerade as a control.
-        let control = text.rfind('\n').unwrap_or(text.len());
-        text.insert_str(control, &format!("\n{source}"));
+    let text = view.text();
+    let (body, controls) = text.rsplit_once('\n').unwrap_or((&text, ""));
+    let body = if source.is_empty() {
+        body.to_owned()
+    } else {
+        format!("{body}\n{source}")
+    };
+    let block = Block::default().borders(Borders::ALL).title("Preflight");
+    let inner = block.inner(area);
+    block.render(area, buffer);
+    if inner.height == 0 {
+        return;
     }
-    Paragraph::new(text)
-        .wrap(Wrap { trim: false })
-        .block(Block::default().borders(Borders::ALL).title("Preflight"))
-        .render(area, buffer);
+    // The composer can occupy eight rows. Keep plan-bound controls visible even
+    // when its source preview exceeds the remaining transcript height.
+    Paragraph::new(body).wrap(Wrap { trim: false }).render(
+        Rect::new(
+            inner.x,
+            inner.y,
+            inner.width,
+            inner.height.saturating_sub(1),
+        ),
+        buffer,
+    );
+    Paragraph::new(controls).render(
+        Rect::new(inner.x, inner.bottom() - 1, inner.width, 1),
+        buffer,
+    );
 }

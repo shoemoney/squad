@@ -239,6 +239,7 @@ async fn census_report_search_reveals_copy_and_quote_without_delivering() {
         1,
         "retained report versions share one exported source"
     );
+    assert!(draw(&mut app, 80, 24).contains("unique-needle"));
 }
 
 #[test]
@@ -328,4 +329,9 @@ fn source_references_and_shared_script_progress_reach_the_ui() {
         "{modal}"
     );
     assert!(modal.contains("Y Confirm · N Cancel"), "{modal}");
+    app.input
+        .apply(EditorAction::Insert("draft\n".repeat(10)))
+        .unwrap();
+    let expanded = draw(&mut app, 80, 24);
+    assert!(expanded.contains("Y Confirm · N Cancel"), "{expanded}");
 }
