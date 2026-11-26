@@ -17,7 +17,30 @@ This file is the timed script for the canonical Squad demonstration, the walkthr
 | Survey (live) | `docs/demo/survey.tape` | none: **failed live** (see below) | `~/squad-demo-raw/live-survey.mp4` (348 s) |
 | Probe (live) | `docs/demo/probe.tape` | none: **failed live** (see below) | `~/squad-demo-raw/live-probe.mp4` (189 s) |
 
-The canonical live `docs/demo/squad.tape` (six members, then a judged debate on the default models) was **not** recorded. The "canonical demo" in the README is the scripted rehearsal that ships in the repository, which costs nothing and shows the same room.
+## 🏠 Hero demo (README)
+
+The README hero is `docs/media/squad-demo.gif`, recorded live on 2026-11-26 from the **v0.1.2 release binary** with the default six-model roster and `SQUAD_DAILY_MAX_USD=150`. Tape: `docs/demo/squad.tape`. Complete uncut recording: `docs/demo/squad-raw.mp4` (210 s, in git). Live spend for the final take: about $0.25 (the spend bar reads $0.24); three takes in all, about $0.6.
+
+Script: the instant startup checklist ticks in, Tab on an empty line opens the starter menu, `@` + Tab lists the members and `@all` is picked, a one-sentence question streams from all six, `$` + Tab shows the contest modes, `/set ROUNDS 1`, then `@grok @gemini $debate ... @judge`, the preflight card is confirmed with `y`, and the verdict card ends the clip with the idle TIP line showing.
+
+The GIF is 46 s at 1400 px. It is built by `docs/demo/tools/edit_hero.py`, and every speed-up carries an on-screen label:
+
+| Raw time | GIF treatment | Label |
+|---|---|---|
+| 0:00 to 0:03.5 | real time (checklist) | none |
+| 0:03.5 to 0:06.5 | x3 | `typing sped up x3` |
+| 0:06.5 to 0:09.6 | real time (Tab starter menu) | none |
+| 0:09.6 to 0:18.5 | x2 (`@` menu, `@all`, question typed) | `typing sped up x2` |
+| 0:18.5 to 0:29 | real time (six models stream) | none |
+| 0:29 to 0:53 | x12 | `TIME CUT - 24 s of model wait sped up x12` |
+| 0:53 to 1:06 | x2.5 (`$` menu, `/set`, debate typed) | `typing sped up x2.5` |
+| 1:06 to 1:09.5 | real time (preflight card) | none |
+| 1:09.5 to 2:19 | x16 (debate and judging) | `TIME CUT - 70 s of model wait sped up x16` |
+| 2:19 to 2:28 | real time (verdict card and TIP line) | none |
+
+Rebuild: `python3 docs/demo/tools/edit_hero.py docs/demo/squad-raw.mp4 docs/media/squad-demo.gif 1400 10 0.3:3.5:1 3.5:6.5:3 6.5:9.6:1 9.6:18.5:2 18.5:29:1 29:53:12 53:66:2.5 66:69.5:1 69.5:139:16 139:148:1`.
+
+The tape needs two typeahead workarounds. Escape closes an open suggestion list before Enter (an open list makes Enter accept the completion instead of sending), and `Ctrl+A` then Backspace clears a draft (Ctrl+U does nothing).
 
 ---
 

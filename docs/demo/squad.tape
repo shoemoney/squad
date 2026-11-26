@@ -1,10 +1,11 @@
-# Squad canonical demo (M7.P2.L2.T1). Record with: vhs docs/demo/squad.tape
-# Runs the PUBLISHED release binary (`squad` on PATH from the GitHub Release archive).
+# Squad canonical hero demo (README). Record with: vhs docs/demo/squad.tape
+# Runs the PUBLISHED v0.1.2 release binary (`squad` on PATH from the GitHub Release archive).
 # The API key is loaded from the environment off-screen; it is never typed or shown.
 # Long model waits are cut in the edited GIF and labelled on screen; the raw MP4 keeps them.
+# Script: instant startup checklist, Tab starter menu, @ + Tab picks @all, six stream at
+# once, $ + Tab shows the modes, a judged two-model debate with preflight, verdict, TIP line.
 
 Output docs/demo/squad-raw.mp4
-Output docs/demo/squad-raw.gif
 
 Set Shell "bash"
 Set FontSize 14
@@ -12,47 +13,74 @@ Set Width 1400
 Set Height 860
 Set Padding 12
 Set Theme "Catppuccin Mocha"
-Set TypingSpeed 35ms
+Set TypingSpeed 45ms
 Set WindowBar Colorful
 
 Hide
-Type 'cd "$(mktemp -d)" && export SQUAD_DATA_DIR="$PWD/data" SQUAD_DAILY_MAX_USD=5 SQUAD_DEBATE_CONFIRM_USD=0 && source "$DEMO_ENV" && clear'
+Type 'cd "$(mktemp -d)" && export SQUAD_DATA_DIR="$PWD/data" SQUAD_DAILY_MAX_USD=150 SQUAD_DEBATE_CONFIRM_USD=0 && source "$DEMO_ENV" && clear'
 Enter
 Sleep 1s
 Show
 
-# 1. Open the room
+# 1. Open the room: the startup checklist ticks in
 Type "squad"
 Sleep 600ms
 Enter
+Sleep 5s
+
+# 2. Tab on an empty line: the typeahead starter menu
+Tab
 Sleep 3s
-
-# 2. Six models, one question, all streaming at once
-Type "@all In one sentence: what's the most underrated Unix command, and why?"
+Escape
 Sleep 500ms
-Enter
-Sleep 45s
 
-# 3. Short debate between two of them, judged
-Type "/set ROUNDS 1"
-Enter
+# 3. @ + Tab: the member list; pick @all
+Type "@"
 Sleep 1s
-Type "@grok @gemini $debate Which of your two picks would save a new developer more time? @judge"
+Tab
+Sleep 2s
+Up
+Sleep 1500ms
+Enter
+Sleep 500ms
+
+# 4. Short punchy question, six models stream side by side
+Type "In one sentence: what is the most underrated Unix command?"
+Sleep 800ms
+Enter
+Sleep 35s
+
+# 5. $ + Tab: the contest modes
+Type "$"
+Sleep 800ms
+Tab
+Sleep 3s
+Escape
+Sleep 300ms
+Ctrl+A
+Sleep 300ms
+Backspace
+Sleep 500ms
+
+# 6. Judged debate, one round
+Type "/set ROUNDS 1"
 Sleep 500ms
 Enter
-Sleep 4s
-# Cost preview: confirm
+Sleep 1500ms
+Type "@grok @gemini $debate Which pick would save a new developer more time? @judge"
+Sleep 800ms
+Escape
+Sleep 300ms
+Enter
+Sleep 5s
+# Preflight card: confirm
 Type "y"
-Sleep 120s
+Sleep 130s
 
-# 4. Verdict card is on screen; show the spend bar, then export
-Sleep 6s
-Type "/export debate"
-Enter
-Sleep 2s
-# accept the pre-filled export path
-Enter
-Sleep 3s
+# 7. Verdict card, then the idle TIP line
+Sleep 8s
+Escape
+Sleep 12s
 
 Ctrl+C
 Sleep 1s
