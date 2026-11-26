@@ -35,23 +35,27 @@ mod review_tests;
 mod controls_tests;
 
 #[cfg(test)]
-thread_local! { static ENABLE_NEW_MODES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+thread_local! { static ENABLE_NEW_MODES: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) }; }
 fn mode_enabled(kind: crate::ContestKind) -> bool {
     #[cfg(test)]
-    if ENABLE_NEW_MODES.with(|v| v.get()) {
-        return true;
+    if let Some(enabled) = ENABLE_NEW_MODES.with(|v| v.get()) {
+        return enabled;
     }
     kind.is_built()
 }
 #[cfg(test)]
 fn with_new_modes<T>(f: impl FnOnce() -> T) -> T {
-    struct Reset(bool);
+    with_mode_activation(true, f)
+}
+#[cfg(test)]
+fn with_mode_activation<T>(enabled: bool, f: impl FnOnce() -> T) -> T {
+    struct Reset(Option<bool>);
     impl Drop for Reset {
         fn drop(&mut self) {
             ENABLE_NEW_MODES.with(|v| v.set(self.0));
         }
     }
-    let _reset = Reset(ENABLE_NEW_MODES.with(|v| v.replace(true)));
+    let _reset = Reset(ENABLE_NEW_MODES.with(|v| v.replace(Some(enabled))));
     f()
 }
 
