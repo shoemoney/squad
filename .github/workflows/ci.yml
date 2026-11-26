@@ -17,9 +17,10 @@ env:
   CARGO_TERM_COLOR: always
   OPENROUTER_API_KEY: ''
   CARGO_BUILD_JOBS: '4'
-  # Cargo's per-binary test fan-out must also fit the four-CPU Linux runner.
-  RUST_TEST_THREADS: '4'
-  NEXTEST_TEST_THREADS: '4'
+  # Each room fixture already runs multiple workers. Keep fixture fan-out
+  # within the quota-limited runner without relaxing lifecycle deadlines.
+  RUST_TEST_THREADS: '1'
+  NEXTEST_TEST_THREADS: '1'
 
 jobs:
   rust:
