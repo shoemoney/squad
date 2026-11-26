@@ -197,3 +197,16 @@ DROP TABLE vars;
 ALTER TABLE vars_m9 RENAME TO vars;
 INSERT INTO vars(name,value,updated_seq) VALUES('TUNE_GENERATIONS',3,NULL);
 PRAGMA legacy_alter_table=OFF;
+
+-- The durable script journal is updated in the same transaction as each step.
+CREATE TABLE tune_runs (
+ contest_id TEXT PRIMARY KEY REFERENCES contests(contest_id) ON DELETE CASCADE,
+ run_json TEXT NOT NULL CHECK(json_valid(run_json))
+);
+CREATE TABLE tune_executions (
+ contest_id TEXT NOT NULL REFERENCES contests(contest_id) ON DELETE CASCADE,
+ candidate_id TEXT NOT NULL,
+ case_label TEXT NOT NULL,
+ execution_json TEXT NOT NULL CHECK(json_valid(execution_json)),
+ PRIMARY KEY(contest_id,candidate_id,case_label)
+);
