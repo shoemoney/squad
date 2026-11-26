@@ -161,7 +161,7 @@ fn help_is_parser_owned_and_covers_every_new_verb_and_export() {
     }
     assert_eq!(
         actions::help_lines().len(),
-        squad_protocol::parser::HELP_EXAMPLES.len()
+        squad_protocol::parser::help_examples().len()
     );
     assert!(matches!(actions::help(), Request::Help));
     assert!(matches!(actions::who(), Request::Who));
@@ -188,13 +188,16 @@ fn every_help_export_example_parses_to_an_export_scope() {
 
 #[tokio::test]
 async fn export_scopes_name_files_and_new_reports_are_flagged() {
-    assert_eq!(actions::EXPORT_SCOPES.len(), 8);
+    assert_eq!(actions::EXPORT_SCOPES.len(), 9);
     let new: Vec<_> = actions::EXPORT_SCOPES
         .iter()
         .filter(|s| actions::is_new_report_scope(s))
         .map(actions::scope_name)
         .collect();
-    assert_eq!(new, ["census", "crosscheck", "survey", "probe"]);
+    assert_eq!(
+        new,
+        ["census", "crosscheck", "survey", "probe", "blow_it_up"]
+    );
     let id = ContestId::new();
     assert_eq!(
         actions::export_file_name(&ExportScope::Survey, Some(id)),

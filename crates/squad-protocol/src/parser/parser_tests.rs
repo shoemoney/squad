@@ -130,7 +130,7 @@ fn every_spec_example() {
         let ctx = example_context(i);
         let before = format!("{ctx:?}");
         let input = case["input"].as_str().unwrap();
-        let result = parse(input, &ctx);
+        let result = super::with_mode_enablement(false, || parse(input, &ctx));
         if let Some(error) = case.get("error") {
             assert_eq!(
                 result.as_ref().unwrap_err().to_string(),
