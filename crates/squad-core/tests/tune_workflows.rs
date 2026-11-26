@@ -40,7 +40,7 @@ impl Fixture {
             .collect();
         config.judge.model = "fixture/judge".into();
         config.budget.daily_max_usd = 20.;
-        config.budget.debate_confirm_usd = 100.;
+        config.budget.debate_confirm_usd = 0.;
         let fake = FakeOpenRouter::start().await;
         let models=config.agents.iter().map(|a|a.model.clone()).chain(std::iter::once(config.judge.model.clone())).map(|id|serde_json::json!({"id":id,"context_length":1000000,"top_provider":{"max_completion_tokens":65536},"supported_parameters":["reasoning"],"pricing":{"prompt":"0.000001","completion":"0.000002"}})).collect::<Vec<_>>();
         fake.catalog(serde_json::json!({"data":models})).await;
@@ -60,82 +60,39 @@ impl Fixture {
         }
     }
     async fn open(&self, mode: OpenMode) -> RoomHandle {
-        RoomHandle::open_with_launcher(
+        RoomHandle::open_with_client(
             self.config.clone(),
             "main",
             mode,
             OpenRouterClient::new(&self.fake.base_url(), "fake-key").unwrap(),
-            &TuneLauncher,
         )
         .await
         .unwrap()
     }
-    fn admit(&self, named: bool) -> RequestResult {
-        self.admit_with_confirmation(named, true)
+    async fn admit(&self, room: &RoomHandle, named: bool) -> RequestResult {
+        self.admit_with_confirmation(room, named, true).await
     }
-    fn admit_with_confirmation(&self, named: bool, preconfirmed: bool) -> RequestResult {
-        let id = EventId::new();
-        let raw = "@all $tune PROMPT answer clearly\n--\ntask";
-        let input = UserMessageInput {
-            message_id: id.to_string().parse().unwrap(),
-            text: Text::new(raw).unwrap(),
-            quote: None,
-            reply_to: None,
+    async fn admit_with_confirmation(
+        &self,
+        room: &RoomHandle,
+        named: bool,
+        preconfirmed: bool,
+    ) -> RequestResult {
+        let ctx = ParseContext {
+            roster: self.config.agents.iter().map(|a| a.nick.clone()).collect(),
+            ..Default::default()
         };
-        let participants = self.config.agents.iter().map(|a| a.nick.clone()).collect();
-        let parsed = ParsedInput::Tune {
-            input: parser::ConversationalInput {
-                raw: raw.into(),
-                quote: vec![],
-                variable_updates: vec![],
-            },
-            participants,
-            prompt: parser::PlanSource::Pasted {
-                text: "PROMPT answer clearly".into(),
-            },
-            task: "provide helpful concise answers".into(),
-            executor: named.then(|| nick("member0")),
-            generations: 1,
-        };
-        let bindings = self
-            .config
-            .agents
-            .iter()
-            .map(|a| {
-                (
-                    a.nick.to_string(),
-                    ExecutorBinding {
-                        model: Text::new(&a.model).unwrap(),
-                        effort: ReasoningEffort::Low,
-                    },
-                )
-            })
-            .chain(std::iter::once((
-                "judge".into(),
-                ExecutorBinding {
-                    model: Text::new(&self.config.judge.model).unwrap(),
-                    effort: ReasoningEffort::Low,
-                },
-            )))
-            .collect();
-        squad_store::commit::commit(&mut self.db(), id, "tune-test", "fixture", |tx, g| {
-            squad_core::router::tune::prepare(
-                tx,
-                g,
-                id,
-                &input,
-                &parsed,
-                &squad_core::router::NewModeAdmission {
-                    bindings: &bindings,
-                    config: Some(&self.config),
-                    daily_max: 20_000_000,
-                    confirmation_threshold: 0.,
-                    preconfirmed,
-                },
-            )
-        })
-        .unwrap()
-        .result
+        let meta = SubmissionMeta::default();
+        let raw = format!(
+            "$TUNE_GENERATIONS=1 @all $tune PROMPT answer clearly\n--\nprovide helpful concise answers{}",
+            if named { "\n--\n@member0" } else { "" }
+        );
+        let parsed = parse(&raw, &meta, &ctx).unwrap();
+        room.submit(
+            squad_protocol::Request::from_parsed(EventId::new(), parsed, &meta, preconfirmed)
+                .unwrap(),
+        )
+        .await
     }
     fn db(&self) -> rusqlite::Connection {
         rusqlite::Connection::open(self.config.data_dir.join("squad.db")).unwrap()
@@ -235,6 +192,8 @@ enum Scenario {
     ScoreFail,
     ExecuteFail,
     HoldoutMissing,
+    OneHoldoutMissing,
+    OneBaselineMissing,
     Incomplete,
     EmptyGeneration,
     Slow,
@@ -281,6 +240,9 @@ impl Respond for Answers {
                     .contains("improved");
                 if self.scenario == Scenario::ExecuteFail
                     || (self.scenario == Scenario::HoldoutMissing && execution >= 12)
+                    || (self.scenario == Scenario::OneHoldoutMissing
+                        && (12..14).contains(&execution))
+                    || (self.scenario == Scenario::OneBaselineMissing && execution < 2)
                     || (self.scenario == Scenario::Incomplete && mutation)
                 {
                     return ResponseTemplate::new(500);
@@ -374,7 +336,7 @@ impl Respond for Answers {
 async fn run(scenario: Scenario) -> (Fixture, RoomHandle, ContestId) {
     let f = Fixture::scenario(6, scenario).await;
     let room = f.open(OpenMode::Interactive).await;
-    let receipt = f.admit(false);
+    let receipt = f.admit(&room, false).await;
     assert!(
         matches!(receipt, RequestResult::Accepted { .. }),
         "{receipt:?}"
@@ -520,7 +482,7 @@ async fn invalid_notes_repair_once_and_skipped_member_keeps_quorum() {
 async fn named_executor_is_removed_and_stop_fences_work() {
     let f = Fixture::scenario(4, Scenario::Slow).await;
     let room = f.open(OpenMode::Interactive).await;
-    let receipt = f.admit(true);
+    let receipt = f.admit(&room, true).await;
     assert!(
         matches!(receipt, RequestResult::Accepted { .. }),
         "{receipt:?}"
@@ -560,124 +522,6 @@ async fn named_executor_is_removed_and_stop_fences_work() {
     f.assert_ledger();
 }
 
-// Exercise the owned runner through the supported runtime injection seam. The
-// production judge wrapper still needs the integrator's new-mode dispatch arm.
-struct TuneLauncher;
-struct TuneRuntime {
-    cancel: tokio_util::sync::CancellationToken,
-    task: tokio::task::JoinHandle<()>,
-}
-impl squad_core::room::RoomRuntime for TuneRuntime {
-    fn ready(&mut self) -> squad_core::room::RoomFuture<'_, ()> {
-        Box::pin(async { Ok(()) })
-    }
-    fn wake(&self, _: &[WorkId]) {}
-    fn shutdown(self: Box<Self>) -> squad_core::room::RoomFuture<'static, ()> {
-        Box::pin(async move {
-            self.cancel.cancel();
-            self.task.await.unwrap();
-            Ok(())
-        })
-    }
-}
-impl squad_core::room::RuntimeLauncher for TuneLauncher {
-    fn recover_on_open_mode(
-        &self,
-        store: &squad_store::Store,
-        mode: OpenMode,
-        now: DateTime,
-    ) -> Result<(), squad_core::room::RoomError> {
-        squad_core::router::recovery::recover_on_open_mode(store, mode, now)
-            .map(|_| ())
-            .map_err(Into::into)
-    }
-    fn start_with_mode(
-        &self,
-        config: &SquadConfig,
-        store: squad_store::Store,
-        bus: squad_core::bus::InProcessBus,
-        client: OpenRouterClient,
-        _resolution: squad_agents::resolver::ResolutionSnapshot,
-        _mode: OpenMode,
-    ) -> Result<Box<dyn squad_core::room::RoomRuntime>, squad_core::room::RoomError> {
-        let config = config.clone();
-        let cancel = tokio_util::sync::CancellationToken::new();
-        let stop = cancel.clone();
-        let task = tokio::spawn(async move {
-            let pack = std::sync::Arc::new(
-                squad_core::prompts::PromptPack::from_override_dir(None).unwrap(),
-            );
-            let roster = config.agents.iter().map(|a| a.nick.clone()).collect();
-            let mut router =
-                squad_core::router::Router::new(store.clone(), roster, BTreeMap::new(), 20_000_000)
-                    .unwrap();
-            router.engine_config = Some(config.clone());
-            loop {
-                if stop.is_cancelled() {
-                    break;
-                }
-                squad_core::orchestrator::tune::drive(&mut router).unwrap();
-                let next=store.call(|db|{let mut q=db.prepare("SELECT work_id FROM work WHERE status='queued' AND runnable=1 AND kind LIKE 'tune.%' ORDER BY rowid LIMIT 1")?;let ids=q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?;Ok(ids.first().cloned())}).unwrap();
-                if let Some(raw) = next {
-                    let wid: WorkId = raw.parse().unwrap();
-                    let (work, _) = store
-                        .call(move |db| Ok(squad_store::work::template(db, wid)?.unwrap()))
-                        .unwrap();
-                    let owner = match &work.target {
-                        Target::Member(n) => ExecutorKey::Member(n.clone()),
-                        Target::Judge => ExecutorKey::Case(work.case_id.unwrap()),
-                    };
-                    let epoch = store
-                        .call(|db| {
-                            Ok(db.query_row("SELECT epoch FROM room_meta", [], |r| {
-                                r.get::<_, i64>(0)
-                            })?)
-                        })
-                        .unwrap();
-                    let context = squad_core::runtime::contexts::agent_context(
-                        store.clone(),
-                        &bus,
-                        owner,
-                        epoch as u64,
-                        pack.clone(),
-                        stop.child_token(),
-                    );
-                    if let RequestResult::Internal(InternalResult::Claimed(grant)) = context
-                        .submit
-                        .submit(ExecutorRequest::Claim { work_id: wid })
-                        .await
-                    {
-                        let Ok(grant) = squad_agents::worker::start_attempt(
-                            &context,
-                            &grant,
-                            grant.work.attempt,
-                        )
-                        .await
-                        else {
-                            continue;
-                        };
-                        let result = squad_core::runtime::tune::execute(
-                            &context,
-                            &grant,
-                            &client,
-                            &pack,
-                            &config,
-                            stop.child_token(),
-                        )
-                        .await;
-                        assert!(
-                            result.is_ok() || stop.is_cancelled(),
-                            "owned runtime failed: {result:?}"
-                        );
-                    }
-                } else {
-                    tokio::select! {_=stop.cancelled()=>break,_=tokio::time::sleep(Duration::from_millis(2))=>{}}
-                }
-            }
-        });
-        Ok(Box::new(TuneRuntime { cancel, task }))
-    }
-}
 #[tokio::test]
 async fn restart_keeps_seed_suite_and_accepted_execution_pairs() {
     for (phase, state) in [
@@ -691,7 +535,7 @@ async fn restart_keeps_seed_suite_and_accepted_execution_pairs() {
     ] {
         let f = Fixture::scenario(6, Scenario::Pause(phase)).await;
         let room = f.open(OpenMode::Interactive).await;
-        f.admit(false);
+        f.admit(&room, false).await;
         f.wait(|| {
             f.db()
                 .query_row(
@@ -764,7 +608,7 @@ async fn restart_keeps_seed_suite_and_accepted_execution_pairs() {
 }
 
 #[tokio::test]
-async fn stop_at_each_paid_phase_fences_results_and_releases_reservations() {
+async fn stop_at_each_paid_phase_fences_results_and_releases_unstarted_reservations() {
     for (phase, state) in [
         ("cases", "BUILDING_CASES"),
         ("freeze", "FREEZING"),
@@ -776,7 +620,7 @@ async fn stop_at_each_paid_phase_fences_results_and_releases_reservations() {
     ] {
         let f = Fixture::scenario(6, Scenario::Pause(phase)).await;
         let room = f.open(OpenMode::Interactive).await;
-        f.admit(false);
+        f.admit(&room, false).await;
         f.wait(|| {
             f.db()
                 .query_row(
@@ -815,10 +659,15 @@ async fn stop_at_each_paid_phase_fences_results_and_releases_reservations() {
             run.setup
         );
         assert!(!f.db().query_row("SELECT EXISTS(SELECT 1 FROM work WHERE kind LIKE 'tune.%' AND status IN ('queued','running'))", [], |r| r.get::<_, bool>(0)).unwrap());
+        // A cancelled in-flight call may still be billed. Keep unknown-attempt
+        // holds, but release every unstarted reservation and conserve the ledger.
         assert!(
             !f.db()
-                .query_row("SELECT EXISTS(SELECT 1 FROM reservations)", [], |r| r
-                    .get::<_, bool>(0))
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM reservations WHERE unresolved=0)",
+                    [],
+                    |r| r.get::<_, bool>(0)
+                )
                 .unwrap()
         );
         f.assert_ledger();
@@ -881,7 +730,10 @@ async fn report_commit_is_atomic_and_terminal_restart_makes_no_provider_call() {
 async fn named_executor_completes_without_proposing_or_mutating() {
     let f = Fixture::scenario(4, Scenario::Happy).await;
     let room = f.open(OpenMode::Interactive).await;
-    assert!(matches!(f.admit(true), RequestResult::Accepted { .. }));
+    assert!(matches!(
+        f.admit(&room, true).await,
+        RequestResult::Accepted { .. }
+    ));
     f.wait(|| {
         f.db()
             .query_row("SELECT active=0 FROM contests", [], |r| r.get::<_, bool>(0))
@@ -933,7 +785,7 @@ async fn preflight_restart_preserves_setup_and_can_confirm_or_stop_without_calls
         let RequestResult::PendingConfirmation {
             preflight: PendingPreflight::Contest(plan),
             ..
-        } = f.admit_with_confirmation(false, false)
+        } = f.admit_with_confirmation(&room, false, false).await
         else {
             panic!("missing preflight")
         };
@@ -996,6 +848,71 @@ async fn preflight_restart_preserves_setup_and_can_confirm_or_stop_without_calls
                 .setup,
             before.setup
         );
+        f.assert_ledger();
+        room.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn one_shot_default_launcher_drives_tune_to_report() {
+    let f = Fixture::scenario(6, Scenario::Happy).await;
+    let room = f.open(OpenMode::OneShot).await;
+    assert!(matches!(
+        f.admit(&room, false).await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| {
+        f.db()
+            .query_row("SELECT active=0 FROM contests", [], |r| r.get::<_, bool>(0))
+            .unwrap_or(false)
+    })
+    .await;
+    let id: String = f
+        .db()
+        .query_row("SELECT contest_id FROM contests", [], |r| r.get(0))
+        .unwrap();
+    let run = squad_store::tune::load(&f.db(), id.parse().unwrap()).unwrap();
+    assert_eq!(run.report.unwrap().reason, "tuned");
+    assert!(
+        room.export(ExportScope::Tune, Some(id.parse().unwrap()))
+            .await
+            .unwrap()
+            .contains("Reusable suite")
+    );
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn missing_case_is_dropped_consistently_without_discarding_the_pass() {
+    for scenario in [Scenario::OneBaselineMissing, Scenario::OneHoldoutMissing] {
+        let (f, room, id) = run(scenario).await;
+        let run = squad_store::tune::load(&f.db(), id).unwrap();
+        assert_eq!(run.report.as_ref().unwrap().reason, "tuned");
+        let suite = run.suite.as_ref().unwrap();
+        if scenario == Scenario::OneBaselineMissing {
+            assert_eq!(suite.train.len(), 2);
+            assert!(
+                suite
+                    .dropped
+                    .iter()
+                    .any(|c| c.why == "baseline execution missing")
+            );
+            assert!(squad_core::export::tune::report(&run).contains("baseline execution missing"));
+        } else {
+            let holdout = run.holdout.as_ref().unwrap();
+            assert_eq!(holdout.dropped, ["H1"]);
+            let sheet = &run.sheets.iter().find(|s| s.holdout).unwrap().sheet;
+            assert_eq!(sheet.cases.len(), 2);
+            assert!(sheet.cases.iter().all(|c| c.case_label != "H1"));
+            assert!(
+                sheet
+                    .cases
+                    .iter()
+                    .all(|c| c.outputs.len() == holdout.finalists.len())
+            );
+            assert!(squad_core::export::tune::report(&run).contains("Dropped held-out case H1"));
+        }
         f.assert_ledger();
         room.shutdown().await.unwrap();
     }

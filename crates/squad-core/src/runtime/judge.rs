@@ -25,7 +25,8 @@ impl squad_agents::worker::WorkExecutor for Executor {
         grant: ExecutionGrant,
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
-        if grant.work.kind == WorkKind::ProbeReport
+        if grant.work.kind.new_mode_kind().is_some()
+            || grant.work.kind == WorkKind::ProbeReport
             || grant.work.kind.census_judge()
             || matches!(
                 grant.work.kind,

@@ -297,6 +297,7 @@ fn descriptions_use_resolved_models_and_parser_command_hints() {
         let raw = match *name {
             "$debate" => "@grok @deepseek $debate topic @judge".to_string(),
             "$crosscheck" => "@all $crosscheck plan\n--\ngoal".to_string(),
+            "$tune" => "@all $tune prompt\n--\ntask".to_string(),
             _ => format!("@all {name} topic"),
         };
         let mut ctx = context();

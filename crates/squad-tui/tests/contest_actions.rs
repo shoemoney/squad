@@ -161,7 +161,7 @@ fn help_is_parser_owned_and_covers_every_new_verb_and_export() {
     }
     assert_eq!(
         actions::help_lines().len(),
-        squad_protocol::parser::HELP_EXAMPLES.len()
+        squad_protocol::parser::help_examples().len()
     );
     assert!(matches!(actions::help(), Request::Help));
     assert!(matches!(actions::who(), Request::Who));

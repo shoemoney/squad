@@ -68,6 +68,11 @@ fn tune_discovery_follows_the_public_switch_and_examples_parse() {
     let examples = squad_tui::typeahead::examples(&ctx);
     let tune: Vec<_> = examples.iter().filter(|s| s.contains("$tune")).collect();
     assert_eq!(tune.len(), usize::from(ENABLED));
+    let tip_count = (0..examples.len() + squad_tui::typeahead::KEY_TIPS.len())
+        .map(|i| squad_tui::typeahead::tip(&ctx, i as u64 * 8))
+        .filter(|tip| tip.contains("$tune"))
+        .count();
+    assert_eq!(tip_count, usize::from(ENABLED));
     for example in tune {
         assert!(matches!(
             parse(example, &SubmissionMeta::default(), &ctx).unwrap(),

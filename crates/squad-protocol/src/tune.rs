@@ -3,7 +3,7 @@ use crate::validation::{ValidationResult, ensure, unique};
 use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-pub const ENABLED: bool = false;
+pub const ENABLED: bool = true;
 pub const MAX_PROPOSED_CASES: usize = 3;
 pub const MAX_PROPOSED_CRITERIA: usize = 3;
 pub const MIN_FROZEN_CASES: usize = 4;

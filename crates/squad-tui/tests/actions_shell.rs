@@ -98,6 +98,11 @@ fn disabled_scaffold_modes_are_absent_from_completion_and_help() {
         "tune",
         "bass_ackwards_prd",
     ] {
+        let kind: squad_protocol::ContestKind =
+            serde_json::from_value(serde_json::json!(mode)).unwrap();
+        if kind.is_built() {
+            continue;
+        }
         let token = format!("${mode}");
         assert!(!squad_tui::typeahead::MODES.iter().any(|(m, _)| *m == token));
         assert!(
