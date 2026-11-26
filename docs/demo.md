@@ -14,10 +14,53 @@ This file is the timed script for the canonical Squad demonstration, the walkthr
 | Grill (live) | `docs/demo/grill.tape` | `grill.gif` | `~/squad-demo-raw/live-grill.mp4` (169 s) |
 | Census (live) | `docs/demo/census.tape` | `census.gif` | `~/squad-demo-raw/live-census.mp4` (161 s) |
 | Crosscheck (live) | `docs/demo/crosscheck.tape` | `crosscheck.gif` | `~/squad-demo-raw/live-crosscheck.mp4` (206 s) |
-| Survey (live) | `docs/demo/survey.tape` | none: **failed live** (see below) | `~/squad-demo-raw/live-survey.mp4` (348 s) |
-| Probe (live) | `docs/demo/probe.tape` | none: **failed live** (see below) | `~/squad-demo-raw/live-probe.mp4` (189 s) |
+| Survey (live v0.1.2) | `docs/demo/survey.tape` + `survey-report.tape` | [survey.gif](media/survey.gif) | `~/squad-demo-raw/audit-survey-v0.1.2.mp4` + report continuation |
+| Probe (live v0.1.2) | `docs/demo/probe.tape` + `probe-report.tape` | [probe.gif](media/probe.gif) | `~/squad-demo-raw/audit-probe-v0.1.2.mp4` + report continuation |
 
 The canonical live `docs/demo/squad.tape` (six members, then a judged debate on the default models) was **not** recorded. The "canonical demo" in the README is the scripted rehearsal that ships in the repository, which costs nothing and shows the same room.
+
+---
+
+## Survey and probe follow-up (2026-11-26, v0.1.2)
+
+Both runs use the published **v0.1.2 Linux x64 archive**, verified against its release SHA-256 file, and the **default six-model roster** with unchanged member reasoning settings:
+
+| Nick | Resolved model |
+|---|---|
+| claude | `anthropic/claude-opus-5.5` |
+| fable | `anthropic/claude-fable-5.2` |
+| openai | `openai/gpt-6.2-sol` |
+| gemini | `google/gemini-4-neon` |
+| grok | `x-ai/grok-4.7` |
+| muse | `meta/muse-wonder` |
+| judge (separate case) | `anthropic/claude-fable-5.2` |
+
+The source key is loaded off-screen from a private mode-0600 file. No real `.env` is read into a recording or committed. A $150 daily admission ceiling permits the default roster's conservative reservations; it is **not actual spend** and is not a provider-side hard cap. The owner authorized these small live calls.
+
+| Run | Accepted calls | Recorded actual spend | Final outstanding reservation | Outcome |
+|---|---:|---:|---:|---|
+| Survey | 20 | $1.391816 | $0 | COMPLETE; all required participation accepted |
+| Probe | 10 | $0.591611 | $0 | Complete; decision tree and prediction matrix committed |
+
+Final published runs total **$1.983427**. Including two discarded captures, the recorded total is **$3.902313**; the discarded probe also retains an unresolved started call/reservation, so its unknown charge is not presented as zero. The first captures failed when VHS frame storage hit the `/tmp` quota. The successful captures use disk-backed `TMPDIR` and request 10 fps. Complete final raw MP4s are retained outside git. The failed frame captures were discarded; their room databases remain private.
+
+**What is shown:** the survey collects six independent answers, extracts claims, accepts first ballots, presents anonymous reasons, revotes selected claims, and commits the claim map. The probe splits six members into three explainers and three checkers, collects blind proposals, predicts outcomes, and commits a tree and matrix. These checks are proposals for a human to execute; no checks were executed and no explanation was declared true. Survey agreement and vote changes are not proof, and shared model blind spots remain.
+
+**UI limitation retained:** v0.1.2 leaves the survey TUI on “awaiting ruling” even after the report is durably complete; the spend bar can retain a stale reservation. The probe's expanded transcript also exceeds one viewport. Each GIF therefore appends an explicitly labelled **offline export continuation from the same completed database**. This shows the real report, limitations and successful export without another provider call. It does not imply that the live survey card refreshed. The exported survey includes three unresolved classifications, which remain visible in its limitations.
+
+`survey-report.tape` and `probe-report.tape` take `DEMO_DATA` and `DEMO_CONTEST` from the corresponding recorded room, in addition to the private `DEMO_ENV`. They use `squad export <mode> <contest-id> -o <file>` and display excerpts from that actual export.
+
+Time cuts use raw-video positions; no wait is silently deleted. `docs/demo/tools/edit_followup.py` keeps the first 35 seconds and last 14 seconds in real time, speeds the intervening model wait up **20×** with a permanent on-screen label, then appends the offline continuation in real time with its own label. Full raw MP4s remain unchanged.
+| GIF | Main raw duration | Sped-up raw interval | Offline continuation | Encoded length | Size |
+|---|---:|---|---:|---:|---:|
+| `survey.gif` | 356.04 s | 35.00–342.04 s at 20× | 28.96 s | 93.312 s | 5,202,940 bytes |
+| `probe.gif` | 336.36 s | 35.00–322.36 s at 20× | 24.04 s | 87.408 s | 1,727,498 bytes |
+
+**Credential inspection:** 1,116 repository/capture/raw-media files were compared in-process with the literal credential: zero matches. OCR of 60 GIF frames sampled every three seconds found zero literal-key, key-prefix, `sk-or` or `Bearer` matches. Raw and export contact sheets were visually inspected; setup is hidden, reports match the committed exports, and the GIFs label both the time cut and export continuation. Counts only are retained in [credential-inspection.json](reports/audit-foundations-2026-11-26/credential-inspection.json); no credential or OCR text is committed.
+
+![Live default-roster survey with its offline claim-map export and caveats.](media/survey.gif)
+
+![Live default-roster probe with its prediction matrix, decision tree and limitations.](media/probe.gif)
 
 ---
 

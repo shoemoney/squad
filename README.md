@@ -959,6 +959,10 @@ The export has the setup (plan and goal), the inventories, the normalised items,
 
 ## 📊 Survey
 
+![Survey on the default six models, followed by the same run's offline claim-map export and limitations.](docs/media/survey.gif)
+
+[Recording details and time cuts](docs/demo.md#survey-and-probe-follow-up-2026-11-26-v012). The v0.1.2 survey card remains on “awaiting ruling”; the labelled export continuation shows the completed report.
+
 ### 🎯 What it's for
 Find what a group agrees on, what it doesn't, and what would settle the disagreements.
 
@@ -1027,6 +1031,10 @@ The export has the question and its source (new or existing answers), each answe
 ---
 
 ## 🔬 Probe
+
+![Probe on the default six models, with the decision tree and offline prediction-matrix export.](docs/media/probe.gif)
+
+[Recording details, spend and caveats](docs/demo.md#survey-and-probe-follow-up-2026-11-26-v012).
 
 ### 🎯 What it's for
 Turn a symptom into a short list of **cheap checks** that separate the possible explanations. Squad proposes the checks. **You run them yourself.** Nothing is executed.

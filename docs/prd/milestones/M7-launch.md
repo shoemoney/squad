@@ -59,6 +59,6 @@
   - [x] M7.P2.L2.T4 — Prepare the release artifact inventory and owner publication decision record for `squad-cli` in `docs/release-checklist.md`.
   - [x] M7.P2.L2.T5 — Record the public repository visibility under D61 and the owner’s M7 boundary check-in for the workspace crates in `docs/release-checklist.md`.
   - [x] M7.P2.L2.T6 — If publication is explicitly authorized, publish only approved `squad-cli` artifacts and record installation verification in `docs/release-checklist.md`.
-  - [ ] M7.P2.L2.T7 (census and crosscheck recorded; survey and probe fail live on v0.1.0, see docs/demo.md) — Record and link separate census, crosscheck, survey, and probe walkthroughs showing blind steps, costs, reports, stop caveats, and exports; disclose time cuts and inspect for credentials in `docs/demo.md` and `README.md`.
+  - [x] M7.P2.L2.T7 — Record and link separate census, crosscheck, survey, and probe walkthroughs showing blind steps, costs, reports, stop caveats, and exports; disclose time cuts and inspect for credentials in `docs/demo.md` and `README.md`. (covered by docs/media/{census,crosscheck,survey,probe}.gif; v0.1.2 default-roster survey/probe runs, labelled offline report continuations, time cuts, spend and credential inspection in docs/demo.md)
 
 
