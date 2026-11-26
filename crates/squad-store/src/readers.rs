@@ -1,5 +1,6 @@
 //! Executor capabilities bind ownership and the room epoch, never a caller-selected context.
 use crate::{Store, StoreError};
+use rusqlite::OptionalExtension;
 use squad_protocol::*;
 #[derive(Clone)]
 pub struct ScopedReaders {
@@ -225,6 +226,10 @@ impl WorkReader for ScopedReaders {
                 if let Target::Member(nick) = &work.target {
                     values.insert("nick".into(), nick.to_string());
                     values.insert("round_data_json".into(), serde_json::json!({"debate_id":debate,"round":work.round,"rounds":state.total_rounds,"self":nick,"opponent":values.get("opponent"),"closing_required":work.round.is_some_and(|r|r>0 && r==state.total_rounds)}).to_string());
+                }
+                if work.kind == WorkKind::DebateTurn {
+                    let limit: Option<u32> = db.query_row("SELECT json_extract(map_json, CASE WHEN ?>0 AND ?=? THEN '$.prompts.final_turn_words' ELSE '$.prompts.turn_words' END) FROM contest_private_maps WHERE contest_id=? AND scope_key='engine.plan'", rusqlite::params![work.round,work.round,state.total_rounds,debate.to_string()], |r| r.get(0)).optional().map_err(|_| ReaderError::NotRunnable)?.flatten();
+                    if let Some(limit) = limit { values.insert("turn_word_limit".into(), limit.to_string()); }
                 }
                 values.insert("rounds".into(), state.total_rounds.to_string());
                 if let Some(round) = work.round { values.insert("round".into(), round.to_string()); }

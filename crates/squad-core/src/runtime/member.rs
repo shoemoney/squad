@@ -49,15 +49,14 @@ impl PromptRenderer for Renderer {
         let final_round = values
             .get("round")
             .is_some_and(|r| r != "0" && Some(r) == values.get("rounds"));
-        values.insert(
-            "turn_word_limit".into(),
+        values.entry("turn_word_limit".into()).or_insert_with(|| {
             if final_round {
                 self.config.prompts.limits.final_turn_words
             } else {
                 self.config.prompts.limits.turn_words
             }
-            .to_string(),
-        );
+            .to_string()
+        });
         let id = prompt.template_id.as_str().trim_end_matches(".md");
         let composition = self.pack.composition(id).is_ok();
         let source = if composition {
