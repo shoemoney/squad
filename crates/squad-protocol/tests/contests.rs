@@ -230,8 +230,8 @@ fn shared_parser_api_maps_modes_picks_and_all_export_scopes() {
 }
 
 #[test]
-fn nine_mode_registries_roundtrip_and_remain_disabled() {
-    assert!(!ContestKind::Forge.is_built());
+fn nine_mode_registries_roundtrip() {
+    assert_eq!(ContestKind::Forge.is_built(), forge::ENABLED);
     assert_eq!(serde_json::to_value(ContestKind::Forge).unwrap(), "forge");
     let state = ForgeState {
         contest_id: ContestId::new(),

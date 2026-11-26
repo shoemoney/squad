@@ -441,9 +441,16 @@ async fn original_winner_is_byte_identical() {
     );
 }
 #[tokio::test]
-#[ignore = "Shared runtime/judge.rs outer gate and blind prompt header require integrator fixes"]
 async fn full_room_completes_with_fifteen_blind_calls() {
-    let f = Fixture::scenario(6, Scenario::Happy).await;
+    let mut f = Fixture::scenario(6, Scenario::Happy).await;
+    for (agent, name) in f
+        .config
+        .agents
+        .iter_mut()
+        .zip(["claude", "fable", "openai", "gemini", "grok", "muse"])
+    {
+        agent.nick = nick(name);
+    }
     let room = f.open(OpenMode::Interactive).await;
     assert!(matches!(
         room.submit(request(&f.config, BRIEF)).await,
@@ -490,7 +497,6 @@ fn accepted_work(f: &Fixture) -> Vec<String> {
 }
 
 #[tokio::test]
-#[ignore = "Shared runtime/judge.rs outer gate must route new_mode_judge() work; integrator-owned"]
 async fn restart_and_stop_fence_each_provider_state() {
     for scenario in [
         Scenario::SlowDraft,

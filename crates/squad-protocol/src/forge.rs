@@ -4,7 +4,7 @@ use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 // Kept disabled until the integrator fixes the shared outer judge dispatch gate.
-pub const ENABLED: bool = false;
+pub const ENABLED: bool = true;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ForgeStatus {
