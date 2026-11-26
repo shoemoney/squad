@@ -384,8 +384,33 @@ pub fn prepare(
             cursor: e.commit.seq,
         });
     }
-    resolve(tx, group, id, contest, plan.base.plan_id, false)
+    resolve(tx, group, id, contest, plan.base.plan_id, false, max)
 }
+
+enum PreflightDecision {
+    Confirm,
+    Cancel,
+    Expire,
+}
+
+pub(crate) fn expire(
+    tx: &Transaction<'_>,
+    group: &mut CommitGroup,
+    id: EventId,
+    contest: ContestId,
+    plan_id: PlanId,
+) -> Result<RequestResult> {
+    resolve_preflight(
+        tx,
+        group,
+        id,
+        contest,
+        plan_id,
+        PreflightDecision::Expire,
+        0,
+    )
+}
+
 pub fn resolve(
     tx: &Transaction<'_>,
     group: &mut CommitGroup,
@@ -393,6 +418,24 @@ pub fn resolve(
     contest: ContestId,
     plan_id: PlanId,
     cancel: bool,
+    current_max: i64,
+) -> Result<RequestResult> {
+    let decision = if cancel {
+        PreflightDecision::Cancel
+    } else {
+        PreflightDecision::Confirm
+    };
+    resolve_preflight(tx, group, id, contest, plan_id, decision, current_max)
+}
+
+fn resolve_preflight(
+    tx: &Transaction<'_>,
+    group: &mut CommitGroup,
+    id: EventId,
+    contest: ContestId,
+    plan_id: PlanId,
+    decision: PreflightDecision,
+    current_max: i64,
 ) -> Result<RequestResult> {
     let mut state = squad_store::tournaments::state(tx, contest)?;
     let raw: String = tx.query_row(
@@ -404,13 +447,14 @@ pub fn resolve(
     if state.state != TournamentStatus::Preflight || plan_id != plan.base.plan_id {
         return Err(invalid());
     }
-    let expired = plan.base.expires_at <= group.accepted_at;
-    let status = if cancel {
-        PreflightStatus::Cancelled
-    } else if expired {
+    let status = if plan.base.expires_at <= group.accepted_at {
         PreflightStatus::Expired
     } else {
-        PreflightStatus::Confirmed
+        match decision {
+            PreflightDecision::Confirm => PreflightStatus::Confirmed,
+            PreflightDecision::Cancel => PreflightStatus::Cancelled,
+            PreflightDecision::Expire => return Err(invalid()),
+        }
     };
     let raw: String = tx.query_row(
         "SELECT pending_request_json FROM contests WHERE contest_id=?",
@@ -419,8 +463,11 @@ pub fn resolve(
     )?;
     let pending: serde_json::Value = serde_json::from_str(&raw)?;
     let confirmation: Confirmation = serde_json::from_value(pending["confirmation"].clone())?;
-    if !cancel && !expired {
-        let max = pending["admissionMaxMicros"].as_i64().ok_or_else(invalid)?;
+    if status == PreflightStatus::Confirmed {
+        let max = pending["admissionMaxMicros"]
+            .as_i64()
+            .ok_or_else(invalid)?
+            .min(current_max);
         let day = chrono::Local::now().format("%Y-%m-%d").to_string();
         if let Err(failure) = squad_store::accounting::reserve(
             tx,
@@ -459,6 +506,12 @@ pub fn resolve(
             });
         }
     }
+    let confirmed = status == PreflightStatus::Confirmed;
+    let terminal_reason = match status {
+        PreflightStatus::Expired => Some("expired"),
+        PreflightStatus::Cancelled => Some("cancelled"),
+        _ => None,
+    };
     emit(
         tx,
         group,
@@ -467,16 +520,16 @@ pub fn resolve(
         EnvelopePayload::ContestPreflightResult(ContestPreflightResult {
             contest_id: contest,
             plan_id,
-            confirmation: (status == PreflightStatus::Confirmed).then_some(confirmation),
+            confirmation: confirmed.then_some(confirmation),
             status,
             error: None,
         }),
     )?;
     let old = state.state_version;
     state.state_version += 1;
-    if cancel || expired {
+    if let Some(reason) = terminal_reason {
         state.state = TournamentStatus::Stopped;
-        state.terminal_reason = Some(if cancel { "cancelled" } else { "expired" }.into());
+        state.terminal_reason = Some(reason.into());
     } else {
         let v = pending;
         tx.execute(

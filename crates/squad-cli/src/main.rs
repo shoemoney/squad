@@ -152,6 +152,32 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
         }
         return Ok(report.code);
     }
+    if let Some(Command::Mcp(args)) = cli.command {
+        if cli.bus_log.is_some() {
+            return Err(CliFailure::config(
+                "--bus-log is not supported in MCP mode".into(),
+            ));
+        }
+        let config = config.map_err(|errors| {
+            errors
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("\n")
+        });
+        let stdio = args.http.is_none();
+        let runtime = tokio::runtime::Runtime::new().map_err(|_| "Cannot start async runtime.")?;
+        let result = runtime.block_on(squad_cli::mcp::run(config, *args));
+        if stdio {
+            // The blocking stdio fallback can leave a read pending until EOF.
+            // The MCP service and room have completed their shutdown by now.
+            runtime.shutdown_timeout(std::time::Duration::from_secs(1));
+        }
+        return result.map(|()| 0).map_err(|message| CliFailure {
+            code: ErrorCode::UNAVAILABLE,
+            message,
+        });
+    }
     let config = config.map_err(|errors| {
         CliFailure::config(
             errors

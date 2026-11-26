@@ -39,6 +39,87 @@ pub struct DailySpend {
     pub has_unreconciled_charges: bool,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestActivity {
+    pub work: ContestWorkCounts,
+    pub usage: ContestUsage,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestWorkCounts {
+    pub queued: u64,
+    pub running: u64,
+    pub completed: u64,
+    pub failed: u64,
+    pub cancelled: u64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestUsage {
+    pub calls: u64,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub cost_usd: f64,
+    pub unknown_calls: u64,
+}
+
+/// Read work and attempt totals in the caller's transaction.
+pub(crate) fn contest_activity(db: &Connection, contest_id: ContestId) -> Result<ContestActivity> {
+    let id = contest_id.to_string();
+    let exists = db.query_row(
+        "SELECT EXISTS(SELECT 1 FROM contests WHERE contest_id=? AND epoch=(SELECT epoch FROM room_meta))",
+        [&id],
+        |row| row.get::<_, bool>(0),
+    )?;
+    if !exists {
+        return Err(StoreError::Domain(
+            ErrorCode::CONTEST_NOT_FOUND,
+            "Contest not found",
+        ));
+    }
+    let work = db.query_row(
+        "SELECT COUNT(*) FILTER (WHERE status='queued'),
+                COUNT(*) FILTER (WHERE status='running'),
+                COUNT(*) FILTER (WHERE status='completed'),
+                COUNT(*) FILTER (WHERE status='failed'),
+                COUNT(*) FILTER (WHERE status='cancelled')
+           FROM work WHERE contest_id=?",
+        [&id],
+        |row| {
+            Ok(ContestWorkCounts {
+                queued: row.get::<_, i64>(0)? as u64,
+                running: row.get::<_, i64>(1)? as u64,
+                completed: row.get::<_, i64>(2)? as u64,
+                failed: row.get::<_, i64>(3)? as u64,
+                cancelled: row.get::<_, i64>(4)? as u64,
+            })
+        },
+    )?;
+    let mut usage = ContestUsage::default();
+    let mut cost_micros = 0_u128;
+    let mut attempts = db.prepare(
+        "SELECT a.usage_json, a.reported_cost_micros, a.unresolved
+           FROM work w JOIN attempts a ON a.work_id=w.work_id
+          WHERE w.contest_id=? AND a.contest_id=w.contest_id",
+    )?;
+    let mut rows = attempts.query([&id])?;
+    while let Some(row) = rows.next()? {
+        usage.calls += 1;
+        if let Some(json) = row.get::<_, Option<String>>(0)? {
+            let recorded: Usage = serde_json::from_str(&json)?;
+            usage.input_tokens = usage.input_tokens.saturating_add(recorded.input_tokens);
+            usage.output_tokens = usage.output_tokens.saturating_add(recorded.output_tokens);
+        }
+        cost_micros += row.get::<_, Option<i64>>(1)?.unwrap_or_default() as u128;
+        usage.unknown_calls += u64::from(row.get::<_, bool>(2)?);
+    }
+    usage.cost_usd = cost_micros as f64 / 1e6;
+    Ok(ContestActivity { work, usage })
+}
+
 /// Read within the caller's transaction so all durable projections share a snapshot.
 /// Presence observations are ephemeral; queue depths always come from durable work.
 pub fn snapshot(

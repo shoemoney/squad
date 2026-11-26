@@ -30,10 +30,17 @@ squad-protocol = { workspace = true }
 squad-core = { workspace = true }
 squad-store = { workspace = true }
 serde = { workspace = true }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "signal", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "signal", "time", "net", "io-util", "process"] }
 rusqlite = { version = "0.39", features = ["bundled"] }
 chrono = "0.4"
 squad-tui = { workspace = true }
+rmcp = { version = "3.11.0", default-features = false, features = ["server", "macros", "transport-io", "transport-streamable-http-server"] }
+axum = { version = "0.8", features = ["http1", "json", "tokio"] }
+jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
+subtle = "2"
+uuid = "1"
+tokio-util = "0.7"
+schemars = "1"
 
 [dev-dependencies]
 squad-agents = { workspace = true }
@@ -42,6 +49,7 @@ insta = { workspace = true }
 tempfile = { workspace = true }
 portable-pty = "=0.9.0"
 vt100 = "=0.18.1"
+p256 = "0.13"
 
 [lints]
 workspace = true

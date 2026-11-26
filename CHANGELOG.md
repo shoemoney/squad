@@ -6,6 +6,14 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
+### Added
+
+- Built-in MCP server: local stdio and authenticated Streamable HTTP for Claude,
+  Codex, ChatGPT and API clients. Tournament tools share the room's durable
+  receipts, roster and budget; remote OAuth uses an external authorization server.
+- MCP client setup and a Supabase product planning tournament example.
+
+
 ### Changed
 
 - The default `SQUAD_DAILY_MAX_USD` is now `150` (was `20`). Worst-case up-front

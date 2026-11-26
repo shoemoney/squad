@@ -177,7 +177,7 @@ impl Router {
                     let mut s=squad_store::tournaments::state(tx,contest)?;
                     let capped:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE contest_id=? AND json_extract(error_json,'$.code')='DAILY_MAX_REACHED')",[contest.to_string()],|r|r.get(0))?;
                     if capped {let old=s.state_version;s.state_version+=1;s.state=TournamentStatus::Failed;s.terminal_reason=Some("DAILY_MAX_REACHED".into());gate::save(tx,group,id,&s,Some(old))?;tx.execute("UPDATE work SET status='cancelled',runnable=0,lease_fence=lease_fence+1 WHERE contest_id=? AND status IN ('queued','running')",[contest.to_string()])?;return Ok(group.accepted(id));}
-                    if s.state==TournamentStatus::Preflight {let raw:String=tx.query_row("SELECT plan_json FROM contests WHERE contest_id=?",[contest.to_string()],|r|r.get(0))?;let p:TournamentPreflight=serde_json::from_str(&raw)?;return gate::resolve(tx,group,id,contest,p.base.plan_id,false);}
+                    if s.state==TournamentStatus::Preflight {let raw:String=tx.query_row("SELECT plan_json FROM contests WHERE contest_id=?",[contest.to_string()],|r|r.get(0))?;let p:TournamentPreflight=serde_json::from_str(&raw)?;return gate::expire(tx,group,id,contest,p.base.plan_id);}
                     let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='tournament.prompts'",[contest.to_string()],|r|r.get(0))?;
                     let pack:PromptPack=serde_json::from_str(&frozen)?;
                     let setup=squad_store::tournaments::setup(tx,contest)?;

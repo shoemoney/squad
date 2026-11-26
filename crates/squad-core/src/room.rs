@@ -1,7 +1,11 @@
 //! Single room API for human clients. Subscribe before loading the initial page.
 //! On broadcast lag, replay committed events with `events_after(last_seen, limit)`;
 //! provisional token text is never reconstructed from SQLite.
-use crate::{bus::InProcessBus, router::Router, state::RoomState};
+use crate::{
+    bus::InProcessBus,
+    router::Router,
+    state::{ContestActivity, RoomState},
+};
 use squad_agents::{
     openrouter::OpenRouterClient,
     resolver::{self, ResolutionSnapshot},
@@ -585,6 +589,17 @@ impl RoomHandle {
                 self.cached.lock().expect("room state").clone()
             }
         }
+    }
+    /// Snapshot durable work statuses and provider attempts attributed to this contest.
+    pub async fn contest_activity(
+        &self,
+        contest_id: ContestId,
+    ) -> Result<ContestActivity, RoomError> {
+        let _guard = self.gate.read().await;
+        Ok(self.store()?.call(move |db| {
+            let tx = db.transaction()?;
+            crate::state::contest_activity(&tx, contest_id)
+        })?)
     }
     pub async fn export(
         &self,

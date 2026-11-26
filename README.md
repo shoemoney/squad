@@ -24,6 +24,7 @@ All seven contest modes (debate, tournament, grill, census, crosscheck, survey, 
 - [⚙️ Configuration](#configuration)
 - [💬 Using the room](#using-the-room)
 - [🖥️ CLI one-shot use](#cli-one-shot-use)
+- [🔌 MCP server](#mcp-server)
 - [🏗️ Architecture](#architecture)
 - [🔓 Public repository](#public-repository)
 - [🧪 Development checks](#development-checks)
@@ -408,6 +409,16 @@ squad doctor [--env] [--online]
 | `2` | Invalid command-line syntax or flags. |
 | `130` | Interrupted with Ctrl+C, after cleanup. |
 
+## 🔌 MCP server
+
+Use Squad from Claude Code, Codex, ChatGPT, or the OpenAI API. The built-in MCP server exposes roster discovery and tournament start, confirmation, status, result, cancellation, and history tools. Tournaments use the configured room and its existing daily budget.
+
+```sh
+squad --env-file /path/to/squad.env --data-dir /path/to/squad-room mcp
+```
+
+Local clients use stdio. Remote clients use Streamable HTTP through an HTTPS proxy, with a private bearer token file or an external OAuth provider. See [MCP setup and tournament examples](docs/mcp.md), including a Supabase product planning brief.
+
 ## 🏗️ Architecture
 
 Squad is a Cargo workspace of six crates. Each crate has one job, and the table shows the `[dependencies]` edges from each crate's `Cargo.toml`. Dev-only links are left out.
@@ -419,7 +430,7 @@ Squad is a Cargo workspace of six crates. Each crate has one job, and the table 
 | `squad-agents` | Agent executors: OpenRouter client, model registry and context-bound workers. | `squad-protocol` only, so it never sees the store or `rusqlite` |
 | `squad-core` | Bus, router, contest engine, prompts, export and the room handle. | `squad-protocol`, `squad-store`, `squad-agents` |
 | `squad-tui` | Terminal UI built on Ratatui. | `squad-protocol`, `squad-core` |
-| `squad-cli` | The `squad` binary: argument parsing, one-shot commands, `doctor`, `models` and export. | `squad-protocol`, `squad-core`, `squad-store`, `squad-tui` |
+| `squad-cli` | The `squad` binary: argument parsing, one-shot commands, MCP server, `doctor`, `models` and export. | `squad-protocol`, `squad-core`, `squad-store`, `squad-tui` |
 
 ```mermaid
 flowchart TD

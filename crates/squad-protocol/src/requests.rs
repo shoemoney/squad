@@ -70,6 +70,17 @@ pub enum Request {
         contest_id: ContestId,
         plan_id: PlanId,
     },
+    /// Expire a tournament's pending estimate after its deadline.
+    ContestExpire {
+        request_id: EventId,
+        contest_id: ContestId,
+        plan_id: PlanId,
+    },
+    /// Stop a running tournament and fence only work belonging to it.
+    ContestStop {
+        request_id: EventId,
+        contest_id: ContestId,
+    },
     CensusContinue {
         request_id: EventId,
         contest_id: ContestId,

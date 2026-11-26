@@ -29,6 +29,8 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Serve Squad tools over MCP (stdio by default, authenticated HTTP optionally)
+    Mcp(Box<Mcp>),
     /// Open the room headless and submit one message through RoomHandle
     Send(Send),
     /// Read SQLite without opening the room runtime
@@ -44,6 +46,28 @@ pub enum Command {
         #[arg(long)]
         online: bool,
     },
+}
+
+#[derive(Debug, Args)]
+pub struct Mcp {
+    /// Listen on a loopback address for Streamable HTTP; otherwise use stdio
+    #[arg(long, value_name = "ADDR")]
+    pub http: Option<std::net::SocketAddr>,
+    /// Private bearer-token file for HTTP clients; never pass a token as an argument
+    #[arg(long, requires = "http", conflicts_with = "oauth_issuer")]
+    pub token_file: Option<PathBuf>,
+    /// Client-facing HTTPS /mcp URL behind a TLS proxy (required for OAuth)
+    #[arg(long, requires = "http")]
+    pub public_url: Option<reqwest::Url>,
+    /// External OAuth issuer that signs access tokens for this server
+    #[arg(long, requires_all = ["http", "public_url", "oauth_audience", "oauth_subject"], conflicts_with = "token_file")]
+    pub oauth_issuer: Option<reqwest::Url>,
+    /// Dedicated OAuth access-token audience for Squad
+    #[arg(long, requires = "oauth_issuer")]
+    pub oauth_audience: Option<String>,
+    /// Exact owner subject authorized to use this single-owner room
+    #[arg(long, requires = "oauth_issuer")]
+    pub oauth_subject: Option<String>,
 }
 
 #[derive(Debug, Args)]
@@ -240,6 +264,70 @@ mod tests {
                 online: false
             })
         ));
+    }
+
+    #[test]
+    fn mcp_transports_require_complete_auth_configuration() {
+        for args in [
+            vec!["squad", "mcp"],
+            vec![
+                "squad",
+                "mcp",
+                "--http",
+                "127.0.0.1:8790",
+                "--token-file",
+                "token",
+            ],
+            vec![
+                "squad",
+                "mcp",
+                "--http",
+                "127.0.0.1:8790",
+                "--public-url",
+                "https://squad.example/mcp",
+                "--oauth-issuer",
+                "https://issuer.example",
+                "--oauth-audience",
+                "squad",
+                "--oauth-subject",
+                "owner",
+            ],
+        ] {
+            assert!(matches!(
+                Cli::try_parse_from(args).unwrap().command,
+                Some(Command::Mcp(_))
+            ));
+        }
+        for args in [
+            vec!["squad", "mcp", "--token-file", "token"],
+            vec!["squad", "mcp", "--oauth-subject", "owner"],
+            vec![
+                "squad",
+                "mcp",
+                "--http",
+                "127.0.0.1:8790",
+                "--oauth-issuer",
+                "https://issuer.example",
+            ],
+            vec![
+                "squad",
+                "mcp",
+                "--http",
+                "127.0.0.1:8790",
+                "--token-file",
+                "token",
+                "--public-url",
+                "https://squad.example/mcp",
+                "--oauth-issuer",
+                "https://issuer.example",
+                "--oauth-audience",
+                "squad",
+                "--oauth-subject",
+                "owner",
+            ],
+        ] {
+            assert!(Cli::try_parse_from(args).is_err());
+        }
     }
 
     #[test]

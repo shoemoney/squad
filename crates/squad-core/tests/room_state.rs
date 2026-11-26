@@ -5,6 +5,115 @@ mod support;
 use squad_protocol::*;
 use std::collections::BTreeMap;
 use support::*;
+
+#[tokio::test]
+async fn contest_activity_counts_durable_starts_and_ledger_settlements_after_reopen() {
+    let root = tempfile::tempdir().unwrap();
+    let launcher = Launcher::default();
+    let (room, _) = open4(root.path(), &launcher, OpenMode::Interactive).await;
+    let pending = room
+        .submit(message4("@all $tournament Compare plans", EventId::new()))
+        .await;
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = pending
+    else {
+        panic!("expected tournament preflight, got {pending:?}");
+    };
+    let contest_id = plan.contest_id;
+    accepted(
+        room.submit(Request::ContestConfirm {
+            request_id: EventId::new(),
+            contest_id,
+            plan_id: plan.plan_id,
+        })
+        .await,
+    );
+    let activity = room.contest_activity(contest_id).await.unwrap();
+    assert_eq!(activity.work.queued, 4);
+    assert_eq!(activity.usage.calls, 0);
+
+    store(&launcher)
+        .call(move |db| {
+            let tx = db.transaction()?;
+            let now = chrono::Utc::now();
+            let day = chrono::Local::now().format("%Y-%m-%d").to_string();
+            for name in ["m0", "m1", "m2"] {
+                let id: String = tx.query_row(
+                    "SELECT work_id FROM work WHERE contest_id=? AND target=?",
+                    [contest_id.to_string().as_str(), name],
+                    |r| r.get(0),
+                )?;
+                let owner = ExecutorKey::Member(nick(name));
+                let grant =
+                    squad_store::leases::claim(&tx, id.parse().unwrap(), &owner, now, None)?
+                        .unwrap();
+                squad_store::accounting::start(&tx, &grant, now, &day, 200_000_000)?;
+                if name == "m2" {
+                    continue;
+                }
+                let paid = name == "m1";
+                squad_store::accounting::reconcile(
+                    &tx,
+                    &UsageRecord {
+                        work_id: grant.work.work_id,
+                        attempt: grant.work.attempt,
+                        target: grant.work.target,
+                        context_id: grant.work.context_id,
+                        provider_request_id: None,
+                        model: grant.binding.model,
+                        started_at: now,
+                        ended_at: Some(now),
+                        outcome: if paid {
+                            UsageOutcome::Completed
+                        } else {
+                            UsageOutcome::Failed
+                        },
+                        usage: paid.then_some(Usage {
+                            input_tokens: 11,
+                            output_tokens: 17,
+                            cost_usd: Some(0.00000149),
+                        }),
+                        estimated_cost_usd: None,
+                        debate_id: None,
+                        case_id: None,
+                        contest_id: Some(contest_id),
+                        response_model: None,
+                        day: day.clone(),
+                    },
+                )?;
+            }
+            tx.commit()?;
+            Ok(())
+        })
+        .unwrap();
+
+    let activity = room.contest_activity(contest_id).await.unwrap();
+    assert_eq!(
+        serde_json::to_value(&activity).unwrap(),
+        serde_json::json!({
+            "work": {"queued": 1, "running": 3, "completed": 0, "failed": 0, "cancelled": 0},
+            "usage": {"calls": 3, "inputTokens": 11, "outputTokens": 17, "costUsd": 0.000001, "unknownCalls": 1}
+        })
+    );
+    room.shutdown().await.unwrap();
+    let (room, _) = open4(root.path(), &launcher, OpenMode::Interactive).await;
+    assert_eq!(room.contest_activity(contest_id).await.unwrap(), activity);
+    accepted(
+        room.submit(Request::Clear {
+            request_id: EventId::new(),
+        })
+        .await,
+    );
+    assert_eq!(
+        room.contest_activity(contest_id).await.unwrap_err().code,
+        ErrorCode::CONTEST_NOT_FOUND
+    );
+    assert_eq!(room.try_state().await.unwrap().daily_spend.unknown_calls, 1);
+    room.shutdown().await.unwrap();
+}
+
 #[tokio::test]
 async fn queue_roster_models_variables_and_wire_names_are_authoritative() {
     let root = tempfile::tempdir().unwrap();

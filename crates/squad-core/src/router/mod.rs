@@ -420,13 +420,17 @@ impl Router {
                 Request::ContestCancel {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Grill)? => return grill::resolve(tx,group,id,contest_id,plan_id,true,max),
                 Request::ContestConfirm {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,false,max),
                 Request::ContestCancel {contest_id,plan_id,..} if squad_store::schema::validate_contest_kind(tx,contest_id,ContestKind::Probe)? => return probe::resolve(tx,group,id,contest_id,plan_id,true,max),
+                Request::ContestExpire {contest_id,plan_id,..} => return tournaments::expire(tx,group,id,contest_id,plan_id),
+                Request::ContestStop {contest_id,..}=>stop::tournament(tx,group,id,contest_id)?,
                 Request::CrosscheckAccept {contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason,..}=>crosscheck::accept(tx,group,id,contest_id,expected_state_version,plan_event_id,grid_event_id,cell_ids,reason)?,
                 Request::DebateConfirm {debate_id,plan_id,..}|Request::ContestConfirm {contest_id:debate_id,plan_id,..}=>{
+                    if squad_store::schema::validate_contest_kind(tx,debate_id,ContestKind::Tournament)? { return tournaments::resolve(tx,group,id,debate_id,plan_id,false,max); }
                     if survey::is_survey(tx,debate_id)? { return survey::resolve(tx,group,id,debate_id,plan_id,false); }
                     if squad_store::schema::validate_contest_kind(tx,debate_id,ContestKind::Census)? { return census::resolve(tx,group,id,debate_id,plan_id,false); }
                     return preflight::resolve(tx,group,id,debate_id,plan_id,false);
                 },
                 Request::DebateCancel {debate_id,plan_id,..}|Request::ContestCancel {contest_id:debate_id,plan_id,..}=>{
+                    if squad_store::schema::validate_contest_kind(tx,debate_id,ContestKind::Tournament)? { return tournaments::resolve(tx,group,id,debate_id,plan_id,true,max); }
                     if survey::is_survey(tx,debate_id)? { return survey::resolve(tx,group,id,debate_id,plan_id,true); }
                     if squad_store::schema::validate_contest_kind(tx,debate_id,ContestKind::Census)? { return census::resolve(tx,group,id,debate_id,plan_id,true); }
                     return preflight::resolve(tx,group,id,debate_id,plan_id,true);
@@ -930,6 +934,8 @@ pub fn request_id(request: &Request) -> EventId {
         | Request::ContestPick { request_id, .. }
         | Request::ContestConfirm { request_id, .. }
         | Request::ContestCancel { request_id, .. }
+        | Request::ContestExpire { request_id, .. }
+        | Request::ContestStop { request_id, .. }
         | Request::CensusContinue { request_id, .. }
         | Request::CrosscheckAccept { request_id, .. } => *request_id,
         Request::Internal(InternalRequest::Executor(

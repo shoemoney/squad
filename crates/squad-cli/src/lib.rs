@@ -4,6 +4,7 @@ pub mod buslog;
 pub mod diagnostics;
 pub mod export;
 pub mod lifecycle;
+pub mod mcp;
 pub mod models;
 pub mod output;
 pub mod room_api;
