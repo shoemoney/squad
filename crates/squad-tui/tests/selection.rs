@@ -51,6 +51,7 @@ mod sources {
             },
             MessagePreview {
                 id,
+                event_id: squad_protocol::EventId::new(),
                 author: String::new(),
                 text: "plan  text\nmore".into(),
             },
@@ -82,7 +83,11 @@ mod sources {
         let ok = DebateSolutionSelection::resolve(&st, &all, &previews, "a very\n long topic");
         assert!(ok.ready());
         let meta = ok.meta().unwrap();
-        assert_eq!(meta.reply_to.len(), 2);
+        assert_eq!(
+            meta.reply_to,
+            vec![previews[0].event_id, previews[1].event_id]
+        );
+        assert_ne!(meta.reply_to[0].to_string(), a.id.to_string());
         assert!(meta.quote.is_empty());
         assert!(ok.preview_lines()[1].contains("plan text more"));
         assert!(ok.preview_lines()[0].contains("a very long topic"));
@@ -99,7 +104,11 @@ mod sources {
         assert_eq!(none.gap, Some(PlanSourceGap::Missing));
         let quoted = GrillPlanSelection::resolve(&st, &all, &[a.id], &previews);
         assert!(quoted.ready());
-        assert_eq!(quoted.meta().unwrap().quote.len(), 1);
+        assert_eq!(quoted.meta().unwrap().quote, vec![previews[0].event_id]);
+        assert_ne!(
+            quoted.meta().unwrap().quote[0].to_string(),
+            a.id.to_string()
+        );
         let mut st = SelectionState::default();
         pick(&mut st, &a);
         let dup = GrillPlanSelection::resolve(&st, &all, &[a.id], &previews);

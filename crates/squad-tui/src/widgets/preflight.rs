@@ -142,7 +142,16 @@ impl PreflightView {
             return None;
         };
         let list = p.settings.get("sourceEventIds")?.as_array()?;
-        (!list.is_empty()).then(|| format!("sources: {}", list.len()))
+        (!list.is_empty()).then(|| {
+            format!(
+                "sources: {} · {}",
+                list.len(),
+                list.iter()
+                    .filter_map(|id| id.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
     }
     /// Tournaments are blind and never swap judges, so a substitution warning is
     /// never displayed for them even if one arrives.
@@ -218,8 +227,99 @@ impl PreflightView {
     }
 }
 pub fn render(view: &PreflightView, area: Rect, buffer: &mut Buffer) {
-    Paragraph::new(view.text())
-        .wrap(Wrap { trim: false })
-        .block(Block::default().borders(Borders::ALL).title("Preflight"))
-        .render(area, buffer);
+    render_with_source(view, "", area, buffer);
+}
+
+/// Frozen human-visible source context from the same committed setup as the plan.
+pub fn source_preview(plan: &PendingPreflight, session: &crate::session::Session) -> String {
+    let PendingPreflight::Contest(plan) = plan else {
+        return String::new();
+    };
+    let id = plan.contest_id;
+    let text = match plan.kind {
+        ContestKind::Census => session
+            .census
+            .get(&id)
+            .and_then(|v| v.setup.as_ref())
+            .map(|s| {
+                format!(
+                    "Plan v{} · sources {} · {}",
+                    s.plan.version,
+                    s.plan
+                        .source_event_ids
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    s.plan.text
+                )
+            }),
+        ContestKind::Crosscheck => session
+            .contests
+            .get(&id)
+            .and_then(|v| v.crosscheck.setup.as_ref())
+            .map(|s| format!("Plan {} v{} · {}", s.plan_id, s.plan_version, s.plan)),
+        ContestKind::Survey => session
+            .contests
+            .get(&id)
+            .and_then(|v| v.survey.as_ref())
+            .and_then(|v| {
+                v.artifacts.iter().find_map(|a| {
+                    if let EnvelopePayload::SurveySetup(s) = a {
+                        Some(format!(
+                            "Question: {} · answers {}",
+                            s.question,
+                            s.answers
+                                .iter()
+                                .map(|a| a.message_id.to_string())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        ))
+                    } else {
+                        None
+                    }
+                })
+            }),
+        ContestKind::Probe => session
+            .probes
+            .get(&id)
+            .and_then(|v| v.setup.as_ref())
+            .map(|s| format!("Brief: {}", s.brief.observation)),
+        _ => None,
+    };
+    crate::markdown::sanitize(text.as_deref().unwrap_or(""))
+        .chars()
+        .take(240)
+        .collect()
+}
+
+pub fn render_with_source(view: &PreflightView, source: &str, area: Rect, buffer: &mut Buffer) {
+    let text = view.text();
+    let (body, controls) = text.rsplit_once('\n').unwrap_or((&text, ""));
+    let body = if source.is_empty() {
+        body.to_owned()
+    } else {
+        format!("{body}\n{source}")
+    };
+    let block = Block::default().borders(Borders::ALL).title("Preflight");
+    let inner = block.inner(area);
+    block.render(area, buffer);
+    if inner.height == 0 {
+        return;
+    }
+    // The composer can occupy eight rows. Keep plan-bound controls visible even
+    // when its source preview exceeds the remaining transcript height.
+    Paragraph::new(body).wrap(Wrap { trim: false }).render(
+        Rect::new(
+            inner.x,
+            inner.y,
+            inner.width,
+            inner.height.saturating_sub(1),
+        ),
+        buffer,
+    );
+    Paragraph::new(controls).render(
+        Rect::new(inner.x, inner.bottom() - 1, inner.width, 1),
+        buffer,
+    );
 }

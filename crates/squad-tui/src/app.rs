@@ -211,7 +211,11 @@ impl App {
             .context
             .records
             .iter()
-            .filter(|r| r.eligible && !r.superseded && r.message_id.is_some())
+            .filter(|r| {
+                r.eligible
+                    && !r.superseded
+                    && (r.message_id.is_some() || r.kind.as_str().ends_with(".report"))
+            })
             .collect();
         records.sort_by_key(|r| r.seq);
         records.into_iter().map(|r| r.event_id).collect()
@@ -363,7 +367,7 @@ impl App {
     }
     /// Rebuilds matches from the loaded durable cards; in-flight text is not searchable.
     pub fn refresh_search(&mut self) {
-        let documents: Vec<_> = self
+        let mut documents: Vec<_> = self
             .session
             .transcript
             .cards
@@ -375,6 +379,26 @@ impl App {
                 collapsed: false,
             })
             .collect();
+        // Each exported report source already includes the retained earlier versions.
+        // Search it once per contest rather than duplicating every earlier match.
+        let mut reports = std::collections::BTreeMap::new();
+        for record in &self.session.snapshot.context.records {
+            if record.kind.as_str().ends_with(".report")
+                && let Some(id) = record.contest_id
+            {
+                reports.insert(id, record);
+            }
+        }
+        documents.extend(
+            reports
+                .into_iter()
+                .map(|(id, record)| crate::search::SearchDocument {
+                    id: id.to_string().parse().expect("protocol UUID"),
+                    source: record.content.clone(),
+                    durable: true,
+                    collapsed: true,
+                }),
+        );
         let before = self.session.snapshot.cursor;
         self.search.refresh(&documents, false, before);
         self.reveal_current_match();
@@ -390,10 +414,57 @@ impl App {
         let Some(found) = self.search.current.and_then(|i| self.search.matches.get(i)) else {
             return;
         };
+        let mut row = None;
+        if found.reveal {
+            let id: ContestId = found.id.to_string().parse().expect("protocol UUID");
+            self.composed.verdict_expanded = true;
+            if let Some(view) = self.session.probes.get_mut(&id) {
+                view.matrix_collapsed = false;
+            }
+            if let Some(contest) = self.session.contests.get_mut(&id) {
+                contest.crosscheck.collapsed_cells.clear();
+                if let Some(view) = &mut contest.survey {
+                    view.collapsed = false;
+                }
+            }
+            self.composed.invalidate_artifacts();
+            self.composed.prepare(
+                &self.session,
+                if self.composed.viewport.width == 0 {
+                    80
+                } else {
+                    self.composed.viewport.width
+                },
+                &self.theme.palette,
+            );
+            row = self
+                .composed
+                .transcript
+                .message(found.id)
+                .and_then(|message| {
+                    message
+                        .widget_rows
+                        .iter()
+                        .position(|line| line.to_string().contains(&self.search.query))
+                });
+            if let Some(record) =
+                self.session
+                    .snapshot
+                    .context
+                    .records
+                    .iter()
+                    .rev()
+                    .find(|record| {
+                        record.contest_id == Some(id) && record.kind.as_str().ends_with(".report")
+                    })
+            {
+                self.msg_focus = Some(record.event_id);
+            }
+        }
         self.composed.anchor = Some(crate::widgets::transcript::TranscriptAnchor {
             id: found.id,
             source_grapheme: found.graphemes.start,
-            row_in_header: None,
+            row_in_header: row,
         });
         self.session.transcript.sync_activity();
         self.session.transcript.follow = false;
@@ -732,6 +803,11 @@ impl App {
                         self.session.transcript.follow = false;
                         for view in self.session.probes.values_mut() {
                             view.toggle_matrix();
+                        }
+                        for contest in self.session.contests.values_mut() {
+                            if let Some(view) = &mut contest.survey {
+                                view.collapsed = !view.collapsed;
+                            }
                         }
                         self.dirty = true;
                         return;

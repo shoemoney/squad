@@ -382,14 +382,16 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
             geometry.transcript.x,
             geometry.transcript.y,
             geometry.transcript.width,
-            9.min(geometry.transcript.height),
+            geometry.transcript.height,
         );
         Clear.render(rect, frame.buffer_mut());
-        preflight::render(
+        let source = preflight::source_preview(plan, &app.session);
+        preflight::render_with_source(
             &PreflightView {
                 plan: plan.clone(),
                 pending: app.awaiting_ack,
             },
+            &source,
             rect,
             frame.buffer_mut(),
         );
@@ -457,6 +459,19 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
             frame.buffer_mut(),
         );
         if app.debug_open {
+            let mut diagnostics = crate::widgets::debug::Diagnostics::default();
+            diagnostics
+                .counter("draws", app.draws)
+                .counter("feed_items", app.feed_items)
+                .counter("max_feed_batch", app.max_feed_batch as u64);
+            let mut diagnostic_rect = debug_rect;
+            diagnostic_rect.y += 1;
+            diagnostic_rect.height = diagnostic_rect.height.saturating_sub(1);
+            crate::widgets::debug::render_diagnostics(
+                &diagnostics,
+                diagnostic_rect,
+                frame.buffer_mut(),
+            );
             let mut details = app
                 .session
                 .debates
@@ -476,8 +491,8 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 details.push_str(&format!("\nContest {id}"));
             }
             let mut detail_rect = debug_rect;
-            detail_rect.y += 3;
-            detail_rect.height = detail_rect.height.saturating_sub(3);
+            detail_rect.y += 5;
+            detail_rect.height = detail_rect.height.saturating_sub(5);
             Paragraph::new(details)
                 .wrap(Wrap { trim: false })
                 .render(detail_rect, frame.buffer_mut());
