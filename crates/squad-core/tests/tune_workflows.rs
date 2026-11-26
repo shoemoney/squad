@@ -264,7 +264,12 @@ impl Respond for Answers {
                     response
                 };
             }
-            return streaming("startup answer");
+            let response = streaming("startup answer");
+            return if self.scenario == Scenario::Pause("reply") {
+                response.set_delay(Duration::from_secs(2))
+            } else {
+                response
+            };
         };
         let stage = input["step"].as_str().unwrap();
         let answer = match stage {
@@ -422,6 +427,10 @@ async fn complete_blind_tune_reuses_outputs_and_balances_ledger() {
     assert!(export.contains("SECRET_CASE"));
     assert!(export.contains("maps"));
     f.assert_ledger();
+    let outstanding: (i64, i64) = f.db().query_row(
+        "SELECT COALESCE(SUM(reserved_micros),0),COALESCE(SUM(unknown_calls),0) FROM spend_daily",
+        [], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+    assert_eq!(outstanding, (0, 0));
     room.shutdown().await.unwrap();
 }
 #[tokio::test]
@@ -913,6 +922,74 @@ async fn missing_case_is_dropped_consistently_without_discarding_the_pass() {
             );
             assert!(squad_core::export::tune::report(&run).contains("Dropped held-out case H1"));
         }
+        f.assert_ledger();
+        room.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn waiting_for_prior_member_work_survives_restart_and_can_stop() {
+    for resume in [false, true] {
+        let f = Fixture::scenario(6, Scenario::Pause("reply")).await;
+        let room = f.open(OpenMode::Interactive).await;
+        assert!(matches!(
+            room.submit(request(&f.config, "@member0 earlier question"))
+                .await,
+            RequestResult::Accepted { .. }
+        ));
+        f.wait(|| {
+            f.db()
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM work WHERE kind='reply' AND status='running')",
+                    [],
+                    |r| r.get::<_, bool>(0),
+                )
+                .unwrap()
+        })
+        .await;
+        assert!(matches!(
+            f.admit(&room, false).await,
+            RequestResult::Accepted { .. }
+        ));
+        let id: String = f
+            .db()
+            .query_row("SELECT contest_id FROM contests", [], |r| r.get(0))
+            .unwrap();
+        let id: ContestId = id.parse().unwrap();
+        assert_eq!(
+            squad_core::router::tune::load_state(&f.db(), id)
+                .unwrap()
+                .state,
+            TuneStatus::WaitingForParticipants
+        );
+        let setup = squad_store::tune::load(&f.db(), id).unwrap().setup;
+        let calls: i64 = f.db().query_row("SELECT COUNT(*) FROM attempts a JOIN work w USING(work_id) WHERE w.kind LIKE 'tune.%'", [], |r| r.get(0)).unwrap();
+        assert_eq!(calls, 0);
+        room.shutdown().await.unwrap();
+        let room = f.open(OpenMode::Interactive).await;
+        if !resume {
+            assert!(matches!(
+                room.submit(request(&f.config, "/stop")).await,
+                RequestResult::Accepted { .. }
+            ));
+        }
+        f.wait(|| {
+            f.db()
+                .query_row("SELECT active=0 FROM contests", [], |r| r.get::<_, bool>(0))
+                .unwrap()
+        })
+        .await;
+        assert_eq!(
+            squad_core::router::tune::load_state(&f.db(), id)
+                .unwrap()
+                .state,
+            if resume {
+                TuneStatus::Complete
+            } else {
+                TuneStatus::Stopped
+            }
+        );
+        assert_eq!(squad_store::tune::load(&f.db(), id).unwrap().setup, setup);
         f.assert_ledger();
         room.shutdown().await.unwrap();
     }

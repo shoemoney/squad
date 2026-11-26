@@ -130,7 +130,38 @@ fn every_spec_example() {
         let ctx = example_context(i);
         let before = format!("{ctx:?}");
         let input = case["input"].as_str().unwrap();
-        let result = parse(input, &ctx);
+        let mut result = parse(input, &ctx);
+        // Check enabled scopes, then preserve the original 166 fixtures and
+        // their snapshots by removing only those additive usage-list entries.
+        if case["error"]
+            .as_str()
+            .is_some_and(|s| s.starts_with("Usage: /export"))
+            && let Err(error) = &mut result
+        {
+            for kind in [
+                ContestKind::Forge,
+                ContestKind::Forecast,
+                ContestKind::Decide,
+                ContestKind::Negotiate,
+                ContestKind::BlowItUp,
+                ContestKind::Readback,
+                ContestKind::Debugging,
+                ContestKind::Trace,
+                ContestKind::Rank,
+                ContestKind::Tune,
+                ContestKind::BassAckwardsPrd,
+            ] {
+                if kind.is_built() {
+                    let entry = format!("|{}", kind.as_str());
+                    assert_eq!(
+                        error.message.matches(&entry).count(),
+                        1,
+                        "missing enabled export scope"
+                    );
+                    error.message = error.message.replace(&entry, "");
+                }
+            }
+        }
         if let Some(error) = case.get("error") {
             assert_eq!(
                 result.as_ref().unwrap_err().to_string(),
