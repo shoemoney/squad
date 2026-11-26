@@ -1058,34 +1058,15 @@ pub fn drive_move(
             }
         }
         Revising | Finalizing | Applying => {
-            let mut doc: BassAckwardsPrdDocument =
-                serde_json::from_value(accepted[0].1["document"].clone())?;
             let prior = document(tx, s.contest_id)?;
             let material: Value =
                 store::get(tx, s.contest_id, &format!("work:{}", accepted[0].0.work_id))?;
-            let projected: BassAckwardsPrdDocument =
-                serde_json::from_value(material["data"]["document"].clone())?;
-            let touched = if s.state == Applying {
-                serde_json::from_value::<BassAckwardsPrdApplication>(accepted[0].1.clone())?
-                    .applied
-                    .into_iter()
-                    .flat_map(|a| a.applied_to)
-                    .collect::<Vec<_>>()
-            } else {
-                serde_json::from_value::<BassAckwardsPrdDecisions>(accepted[0].1.clone())?
-                    .decisions
-                    .into_iter()
-                    .filter(|d| d.verdict == "accept")
-                    .flat_map(|d| d.applied_to)
-                    .collect()
-            };
-            script::restore_unaddressed(
-                &prior,
-                &projected,
-                &mut doc,
-                &touched,
-                s.state == Finalizing,
-            );
+            let expanded =
+                expand_edits(&material["data"], &accepted[0].1).map_err(|_| invalid())?;
+            let edits: Vec<BassAckwardsPrdEdit> =
+                serde_json::from_value(accepted[0].1["edits"].clone())?;
+            // Apply only explicit fields to stored bytes, never the blind/redacted copy.
+            let mut doc = apply_edits(&prior, &edits).map_err(|_| invalid())?;
             doc.validate().map_err(|_| invalid())?;
             mint_committed(tx, s.contest_id, &mut doc)?;
             let version: u32 = store::get(tx, s.contest_id, "version")?;
@@ -1097,7 +1078,7 @@ pub fn drive_move(
                 tx,
                 s.contest_id,
                 &format!("decisions:{:?}", s.state),
-                &accepted[0].1,
+                &expanded,
             )?;
             if s.state == Revising {
                 MustHaves

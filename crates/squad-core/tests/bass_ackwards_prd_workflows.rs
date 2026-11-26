@@ -182,11 +182,27 @@ impl Respond for Answers {
         } else if schema.get("additions").is_some() {
             json!({"additions":[{"localId":"a","text":"Add operations guide","under":d["keys"]["milestones"][0]["key"],"dependsOn":[],"serves":["D1"],"ownerRole":"Operator","risk":"Missing documentation","why":"Make operations repeatable"}]})
         } else if schema.get("applied").is_some() {
-            json!({"applied":d["notes"].as_array().unwrap().iter().map(|n|json!({"note":n["ref"],"appliedTo":[],"conflict":"This fixture records a conflict"})).collect::<Vec<_>>(),"document":d["document"]})
+            json!({"applied":d["notes"].as_array().unwrap().iter().map(|n|json!({"note":n["ref"],"appliedTo":[],"conflict":"This fixture records a conflict"})).collect::<Vec<_>>(),"edits":[]})
         } else {
-            json!({"decisions":d["sourceIds"].as_array().unwrap().iter().map(|id|json!({"ref":id,"verdict":"reject","reason":"Already covered","appliedTo":[],"removes":[]})).collect::<Vec<_>>(),"document":d["document"]})
+            json!({"decisions":d["sourceIds"].as_array().unwrap().iter().map(|id|json!({"ref":id,"verdict":"reject","reason":"Already covered","appliedTo":[],"removes":[]})).collect::<Vec<_>>(),"edits":[]})
         };
         let scenario = d["endResult"].as_str().unwrap_or("");
+        if scenario.contains("ACCEPT_PATCH") && schema.get("decisions").is_some() {
+            let refs = d["sourceIds"].as_array().unwrap();
+            if d.get("comments").is_some() {
+                let key = &d["document"]["milestones"][0]["phases"][0]["lineItems"][0]["key"];
+                output["decisions"][0] = json!({"ref":refs[0],"verdict":"accept","reason":"Clarify verification","appliedTo":[key],"removes":[]});
+                output["edits"] = json!([{"op":"setText","key":key,"field":"risk","value":"Tested sparse revision"}]);
+            } else {
+                let mut line = d["document"]["milestones"][0]["phases"][0]["lineItems"][0].clone();
+                line["key"] = Value::Null;
+                line["localId"] = json!("operations-guide");
+                line["text"] = json!("Publish operations guide");
+                line["sources"] = json!([refs[0]]);
+                output["decisions"][0] = json!({"ref":refs[0],"verdict":"accept","reason":"Document operations","appliedTo":["operations-guide"],"removes":[]});
+                output["edits"] = json!([{"op":"addLine","phaseKey":d["document"]["milestones"][0]["phases"][0]["key"],"line":line}]);
+            }
+        }
         if scenario.contains("BROKEN_DONE") && schema.get("items").is_some() {
             output = json!({"items":[]});
         }
@@ -194,8 +210,7 @@ impl Respond for Answers {
             && schema.get("decisions").is_some()
             && d.get("comments").is_some()
         {
-            output["document"]["milestones"][0]["phases"][0]["lineItems"][0]["text"] =
-                json!("Unauthorized edit");
+            output["edits"] = json!([{"op":"setText","key":d["document"]["milestones"][0]["phases"][0]["lineItems"][0]["key"],"field":"text","value":"Unauthorized edit"}]);
         }
         if scenario.contains("EMPTY_ROUNDS") {
             if schema.get("comments").is_some() {
@@ -802,4 +817,51 @@ async fn every_stage_checkpoint_and_report_before_write_survive_reopen() {
     assert_eq!(h.state().state, BassAckwardsPrdStatus::Complete);
     assert_eq!(f.fake.captured_bodies().await.len(), 28);
     f.assert_ledger();
+}
+
+#[tokio::test]
+async fn accepted_sparse_revision_and_final_addition_are_saved() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(
+        &f.config,
+        "@all $bass_ackwards_prd ACCEPT_PATCH status page",
+    ))
+    .await;
+    f.wait(|| {
+        f.db()
+            .query_row("SELECT COUNT(*) FROM contests WHERE active=0", [], |r| {
+                r.get::<_, i64>(0)
+            })
+            .unwrap()
+            == 1
+    })
+    .await;
+    let db = f.db();
+    let state: String = db
+        .query_row("SELECT state_json FROM contests", [], |r| r.get(0))
+        .unwrap();
+    let state: BassAckwardsPrdState = serde_json::from_str(&state).unwrap();
+    assert_eq!(state.state, BassAckwardsPrdStatus::Complete, "{state:?}");
+    let version: String = db
+        .query_row(
+            "SELECT body FROM bass_ackwards_prd_records WHERE record_key='version'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(version, "3");
+    let raw: String = db
+        .query_row(
+            "SELECT body FROM bass_ackwards_prd_records WHERE record_key='saved'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let saved: BassAckwardsPrdSaved = serde_json::from_str(&raw).unwrap();
+    let text = std::fs::read_to_string(saved.path).unwrap();
+    assert!(text.contains("Tested sparse revision"));
+    assert!(text.contains("Publish operations guide"));
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
 }

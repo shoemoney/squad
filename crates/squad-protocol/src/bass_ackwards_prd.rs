@@ -266,6 +266,194 @@ pub struct BassAckwardsPrdDecisions {
     pub decisions: Vec<BassAckwardsPrdDecision>,
     pub document: BassAckwardsPrdDocument,
 }
+/// Sparse wire output: unchanged PRD bytes never consume judge output tokens.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "op", rename_all = "camelCase", deny_unknown_fields)]
+pub enum BassAckwardsPrdEdit {
+    SetText {
+        key: String,
+        field: String,
+        value: String,
+    },
+    SetList {
+        key: String,
+        field: String,
+        values: Vec<String>,
+    },
+    AddMilestone {
+        milestone: BassAckwardsPrdMilestone,
+    },
+    AddPhase {
+        #[serde(rename = "milestoneKey")]
+        milestone_key: String,
+        phase: BassAckwardsPrdPhase,
+    },
+    AddLine {
+        #[serde(rename = "phaseKey")]
+        phase_key: String,
+        line: BassAckwardsPrdLineItem,
+    },
+    Remove {
+        key: String,
+    },
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BassAckwardsPrdPatchDecisions {
+    pub decisions: Vec<BassAckwardsPrdDecision>,
+    #[schemars(length(max = 120))]
+    pub edits: Vec<BassAckwardsPrdEdit>,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BassAckwardsPrdPatchApplication {
+    pub applied: Vec<BassAckwardsPrdApplied>,
+    #[schemars(length(max = 120))]
+    pub edits: Vec<BassAckwardsPrdEdit>,
+}
+
+/// Apply to either the frozen blind projection (validation) or stored PRD
+/// (commit). Addressing is by permanent key; positions and identities cannot be set.
+pub fn apply_edits(
+    prior: &BassAckwardsPrdDocument,
+    edits: &[BassAckwardsPrdEdit],
+) -> Result<BassAckwardsPrdDocument, validation::ValidationError> {
+    use serde_json::{Value, json};
+    fn err() -> validation::ValidationError {
+        validation::ValidationError {
+            message: "invalid PRD edit target, field or operation".into(),
+        }
+    }
+    fn find<'a>(v: &'a mut Value, key: &str) -> Option<&'a mut Value> {
+        if v.get("key").and_then(Value::as_str) == Some(key) {
+            return Some(v);
+        }
+        match v {
+            Value::Object(o) => o.values_mut().find_map(|v| find(v, key)),
+            Value::Array(a) => a.iter_mut().find_map(|v| find(v, key)),
+            _ => None,
+        }
+    }
+    fn remove(v: &mut Value, key: &str) -> bool {
+        match v {
+            Value::Array(a) => {
+                if let Some(i) = a.iter().position(|v| v["key"].as_str() == Some(key)) {
+                    a.remove(i);
+                    true
+                } else {
+                    a.iter_mut().any(|v| remove(v, key))
+                }
+            }
+            Value::Object(o) => o.values_mut().any(|v| remove(v, key)),
+            _ => false,
+        }
+    }
+    ensure(edits.len() <= 120, "too many PRD edits")?;
+    let mut doc = serde_json::to_value(prior).map_err(|_| err())?;
+    for edit in edits {
+        match edit {
+            BassAckwardsPrdEdit::SetText { key, field, value } => {
+                ensure(
+                    [
+                        "title",
+                        "overview",
+                        "goal",
+                        "text",
+                        "ownerRole",
+                        "precondition",
+                        "risk",
+                    ]
+                    .contains(&field.as_str()),
+                    "invalid text field",
+                )?;
+                let target = if key == "$document" {
+                    &mut doc
+                } else {
+                    find(&mut doc, key).ok_or_else(err)?
+                };
+                ensure(
+                    target.get(field).is_some_and(Value::is_string),
+                    "invalid text target",
+                )?;
+                target[field] = json!(value);
+            }
+            BassAckwardsPrdEdit::SetList { key, field, values } => {
+                ensure(
+                    ["serves", "dependsOn", "sources", "openQuestions"].contains(&field.as_str()),
+                    "invalid list field",
+                )?;
+                let target = if key == "$document" {
+                    &mut doc
+                } else {
+                    find(&mut doc, key).ok_or_else(err)?
+                };
+                ensure(
+                    target.get(field).is_some_and(Value::is_array),
+                    "invalid list target",
+                )?;
+                target[field] = json!(values);
+            }
+            BassAckwardsPrdEdit::AddMilestone { milestone } => {
+                ensure(
+                    milestone.key.is_none()
+                        && milestone.phases.iter().all(|p| {
+                            p.key.is_none() && p.line_items.iter().all(|l| l.key.is_none())
+                        }),
+                    "new entities cannot carry keys",
+                )?;
+                doc["milestones"]
+                    .as_array_mut()
+                    .ok_or_else(err)?
+                    .push(json!(milestone));
+            }
+            BassAckwardsPrdEdit::AddPhase {
+                milestone_key,
+                phase,
+            } => {
+                ensure(
+                    phase.key.is_none() && phase.line_items.iter().all(|l| l.key.is_none()),
+                    "new entities cannot carry keys",
+                )?;
+                find(&mut doc, milestone_key).ok_or_else(err)?["phases"]
+                    .as_array_mut()
+                    .ok_or_else(err)?
+                    .push(json!(phase));
+            }
+            BassAckwardsPrdEdit::AddLine { phase_key, line } => {
+                ensure(line.key.is_none(), "new entities cannot carry keys")?;
+                find(&mut doc, phase_key).ok_or_else(err)?["lineItems"]
+                    .as_array_mut()
+                    .ok_or_else(err)?
+                    .push(json!(line));
+            }
+            BassAckwardsPrdEdit::Remove { key } => {
+                ensure(remove(&mut doc, key), "unknown removal key")?;
+            }
+        }
+    }
+    let doc: BassAckwardsPrdDocument = validation::decode(&doc)?;
+    doc.validate()?;
+    Ok(doc)
+}
+
+/// Normalize sparse output for the existing D96 integrity checks and durable logs.
+pub fn expand_edits(
+    data: &serde_json::Value,
+    out: &serde_json::Value,
+) -> Result<serde_json::Value, validation::ValidationError> {
+    let edits: Vec<BassAckwardsPrdEdit> = validation::decode(&out["edits"])?;
+    let prior: BassAckwardsPrdDocument = validation::decode(&data["document"])?;
+    let mut expanded = out.clone();
+    expanded
+        .as_object_mut()
+        .ok_or_else(|| validation::ValidationError {
+            message: "invalid patch object".into(),
+        })?
+        .remove("edits");
+    expanded["document"] =
+        serde_json::to_value(apply_edits(&prior, &edits)?).expect("document serialization");
+    Ok(expanded)
+}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BassAckwardsPrdApplied {
@@ -352,9 +540,9 @@ pub fn output_schema(kind: &WorkKind) -> Option<serde_json::Value> {
         WorkKind::BassAckwardsPrdReview => schema::<BassAckwardsPrdReview>(),
         WorkKind::BassAckwardsPrdMustHave => schema::<BassAckwardsPrdMustHaves>(),
         WorkKind::BassAckwardsPrdRevise | WorkKind::BassAckwardsPrdFinalize => {
-            schema::<BassAckwardsPrdDecisions>()
+            schema::<BassAckwardsPrdPatchDecisions>()
         }
-        WorkKind::BassAckwardsPrdApply => schema::<BassAckwardsPrdApplication>(),
+        WorkKind::BassAckwardsPrdApply => schema::<BassAckwardsPrdPatchApplication>(),
         _ => return None,
     })
 }
@@ -436,8 +624,8 @@ pub fn validate_artifact(kind: &str, body: &serde_json::Value) -> ValidationResu
             )
         }
         "revise" | "finalize" => {
-            let v = decode::<BassAckwardsPrdDecisions>(body)?;
-            v.document.validate()?;
+            let v = decode::<BassAckwardsPrdPatchDecisions>(body)?;
+            ensure(v.edits.len() <= 120, "too many PRD edits")?;
             ensure(
                 valid_ids(
                     &v.decisions
@@ -453,9 +641,10 @@ pub fn validate_artifact(kind: &str, body: &serde_json::Value) -> ValidationResu
                 "invalid decisions",
             )
         }
-        "apply" => decode::<BassAckwardsPrdApplication>(body)?
-            .document
-            .validate(),
+        "apply" => {
+            let v = decode::<BassAckwardsPrdPatchApplication>(body)?;
+            ensure(v.edits.len() <= 120, "too many PRD edits")
+        }
         "checks" => {
             decode::<BassAckwardsPrdChecks>(body)?;
             Ok(())
@@ -540,6 +729,7 @@ impl BassAckwardsPrdDocument {
     }
     pub fn entities(&self) -> std::collections::BTreeMap<String, serde_json::Value> {
         let mut out = std::collections::BTreeMap::new();
+        out.insert("$document".into(), serde_json::json!({"title": self.title, "overview": self.overview, "overviewProvenance": self.overview_provenance, "openQuestions": self.open_questions}));
         for m in &self.milestones {
             let mut v = serde_json::to_value(m).expect("typed");
             v.as_object_mut().unwrap().remove("phases");
@@ -675,6 +865,18 @@ pub fn validate_output(
         message: "not PRD work".into(),
     })?;
     validate_artifact(name, out)?;
+    let expanded;
+    let out = if matches!(
+        kind,
+        WorkKind::BassAckwardsPrdRevise
+            | WorkKind::BassAckwardsPrdFinalize
+            | WorkKind::BassAckwardsPrdApply
+    ) {
+        expanded = expand_edits(data, out)?;
+        &expanded
+    } else {
+        out
+    };
     let done_ids = data["done"]["items"]
         .as_array()
         .map(|a| {
@@ -849,10 +1051,19 @@ pub fn validate_output(
                 for d in decisions {
                     if d.verdict == "accept" {
                         ensure(
-                            d.applied_to.iter().all(|id| new.contains_key(id)),
+                            d.applied_to.iter().all(|id| {
+                                new.contains_key(id)
+                                    || (old.contains_key(id) && d.removes.contains(id))
+                            }),
                             "decision target missing",
                         )?;
                         touched.extend(d.applied_to);
+                        ensure(
+                            d.removes
+                                .iter()
+                                .all(|id| old.contains_key(id) && !new.contains_key(id)),
+                            "invalid removed identity",
+                        )?;
                         removed.extend(d.removes);
                     }
                 }
