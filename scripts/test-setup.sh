@@ -84,6 +84,9 @@ chmod +x "$fixture/bin/mock"
 for tool in uname id sudo cargo pinned-cargo rustup cc make pkg-config git curl brew xcode-select apt-get; do
     ln -s mock "$fixture/bin/$tool"
 done
+# Mock Cargo writes only the fixture's target/release directory. A runner's
+# persistent build-cache override must not redirect the installer's lookup.
+unset CARGO_TARGET_DIR
 export CARGO_HOME="$fixture/cargo-home"
 export TEST_BIN="$fixture/bin" TEST_LOG="$fixture/commands.log"
 TEST_PIN=$(sed -nE 's/^channel = "([^"]+)"/\1/p' rust-toolchain.toml)
