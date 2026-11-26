@@ -91,7 +91,8 @@ impl Router {
                 let record=squad_store::work::record(db,id)?.ok_or(StoreError::Unavailable)?;
                 let mut item=squad_store::work::template(db,id)?.ok_or(StoreError::Unavailable)?.0;
                 item.attempt=record.attempt;
-                let phase=if let Some(seq)=seq { let e=squad_store::events::at(db,seq)?; if matches!(e.content,EnvelopePayload::DebateTurn(_)|EnvelopePayload::DebateRoundScore(_)|EnvelopePayload::Verdict(_)){AttemptPhase::Accepted(e.base.id)}else{AttemptPhase::Exhausted} }else{match record.status {WorkStatus::Queued=>AttemptPhase::Queued,WorkStatus::Running=>AttemptPhase::Running,WorkStatus::Cancelled=>AttemptPhase::Cancelled,_=>AttemptPhase::Exhausted}};
+                // Cancellation markers also have a completed_event_seq.
+                let phase=if record.status==WorkStatus::Cancelled {AttemptPhase::Cancelled}else if let Some(seq)=seq { let e=squad_store::events::at(db,seq)?; if matches!(e.content,EnvelopePayload::DebateTurn(_)|EnvelopePayload::DebateRoundScore(_)|EnvelopePayload::Verdict(_)){AttemptPhase::Accepted(e.base.id)}else{AttemptPhase::Exhausted} }else{match record.status {WorkStatus::Queued=>AttemptPhase::Queued,WorkStatus::Running=>AttemptPhase::Running,WorkStatus::Cancelled=>AttemptPhase::Cancelled,_=>AttemptPhase::Exhausted}};
                 work.push(AttemptState{work:item,deadline:record.deadline,phase,repair_used:false});
             }
             let committed=events.iter().filter_map(|e|if let EnvelopePayload::ContestReport(r)=&e.content {r.data.get("round").and_then(|v|v.as_u64()).map(|r|r as u32)}else{None}).filter(|r|*r>0).collect();
