@@ -248,7 +248,7 @@ fn tips_parse_rotate_hide_and_respect_narrow_and_no_colour() {
     let examples = typeahead::examples(&context());
     assert_eq!(
         examples.len(),
-        6,
+        6 + usize::from(squad_protocol::forge::ENABLED),
         "every authored example must parse with this roster"
     );
     assert!(

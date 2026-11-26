@@ -160,8 +160,8 @@ fn help_is_parser_owned_and_covers_every_new_verb_and_export() {
         assert!(help.contains(needle), "help is missing {needle}");
     }
     assert_eq!(
-        actions::help_lines().len(),
-        squad_protocol::parser::HELP_EXAMPLES.len()
+        actions::help_lines(),
+        squad_protocol::parser::help_examples()
     );
     assert!(matches!(actions::help(), Request::Help));
     assert!(matches!(actions::who(), Request::Who));
