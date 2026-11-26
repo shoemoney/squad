@@ -27,7 +27,25 @@ A normal six-member run makes 13 calls and reserves 27 attempts (`2m + 1` calls,
 
 ### Example run
 
-Live smoke evidence will be recorded here after the release build and isolated run. The credential-free six-member fixture exercises the actual owned router, executor, streaming transport, accounting and export with a target that accepts requests without authentication.
+On 2026-11-26, one real release `squad send` used the default six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh private data directory, `--env-file /dev/null`, and `--yes`. The target was a public unauthenticated upload/download service running as root, with client-selected absolute paths and permanent raw-content logs. The API key was fetched off-screen from the credential helper; scanning 18 local evidence/source files found zero credential matches.
+
+The run lasted **209.411 seconds** and recorded **$0.458827** known spend, including **$0.001468** startup resolution. Preflight estimated **$4.525920**, reserved **$20.539587**, and declared **13 calls / 27 attempts**. At shutdown **$12.458302** remained reserved locally and **three attempts were unresolved** (two challenge attempts and the judge's pre-dispatch start). The known spend is not a verified final provider total; unresolved costs were not invented or reported as zero.
+
+Five attack sets and four challenge ballots were accepted. Grok's attack refused without a visible answer, Gemini's challenge returned HTTP 403, and Grok's challenge failed after retries. The app committed 20 pooled vectors and tallies: 11 standing, one contested, and eight unchallenged challenge additions. The run reached `RULING` and was interrupted at the confirmed shared outer judge-dispatch blocker (exit 130). It produced **no completed ruling or ranked report**. Offline export succeeded without credentials or further provider calls.
+
+Short excerpt from that real partial export:
+
+```text
+# BLOW IT UP
+
+Partial evidence; the contest has no completed report.
+
+Status: Ruling
+```
+
+Accepted, still-unruled attack titles included “Unauthenticated root write to an arbitrary path” and “Insider harvests permanent logs of all uploads.” These are model findings pending adjudication, not verified exploits.
+
+Local raw evidence is under `/tmp/squad-blow-it-up-live-10z4wyli/` (`result.json`, `report.md`, stdout/stderr and the private SQLite ledger). This directory is temporary and is not committed. The complete credential-free Wiremock workflow separately verifies the final report, ranking, accounting and export with 13 calls; the live run is partial evidence only.
 
 ### Integration handoff
 
@@ -40,6 +58,20 @@ Only mode-owned paths were changed. Shared fixes still required:
 - `crates/squad-tui/src/composed.rs`: compose `widgets::blow_it_up::styled_lines` instead of joining plain strings, and connect the mode's `View::toggle_killed` to the details interaction. The widget supplies severity colors and a collapsed appendix; the shared renderer currently strips styles and has no toggle wiring for these modes.
 - `crates/squad-core/src/prompts/render.rs`: allow `blow_it_up` in the `mode_step` whitelist. The mode currently freezes its literal composition name into the repair suffix to keep D75 repair functional without changing this shared file.
 - `crates/squad-tui/src/typeahead.rs`: add a parser-valid `$blow_it_up` example to `examples()` so the TIP rotation includes this mode; its command list and help already derive enablement from the switch.
-- Shared parser/typeahead fixtures must track enabled modes. In particular `crates/squad-protocol/src/parser/new_modes_tests.rs` currently expects its `condition=disabled` fixture to fail even after this mode is enabled; snapshot expectations also change when the public mode list grows.
+- Shared disabled-mode tests must track built modes: `crates/squad-core/tests/router_validation.rs`, `crates/squad-protocol/src/parser/{new_modes_tests,parser_tests}.rs`, `crates/squad-protocol/tests/contests.rs`, and `crates/squad-tui/tests/{actions_shell,contest_actions}.rs` currently assert that this implemented mode stays disabled. Update their expectations or add a scoped force-disabled test override. Public typeahead snapshots may also need updates when the mode list grows.
+
+- `crates/squad-tui/tests/m4b_tournament_runtime_audit.rs`: re-page events after observing the terminal room state before restoring the TUI. The current test captures events first, then observes a newer terminal state and can omit the champion event. It failed twice at the champion assertion. The owned `enabled_mode_preserves_tournament_champion_with_a_fresh_terminal_snapshot` test uses the same fixture with a fresh terminal event page and passes, preserving the champion and export with this mode enabled.
 
 New ordinary replies are held by the owned engine before dispatch and released at terminal states. Stage contexts always receive frozen authorized projections. Prompt source and catalog capabilities are frozen per assignment, so restarts do not redraw lenses or re-read changed prompt overrides.
+
+### Verification handoff
+
+All commands used `CARGO_BUILD_JOBS=4` on dev2, with builds run sequentially.
+
+- Owned protocol/store/agents/core/TUI suites and blinding unit tests: **28 passed, zero failed, two ignored**. The two ignored full-report RoomHandle tests name the missing shared judge route. Direct owned-callback workflows still execute the actual scoped readers, provider streaming, retries, private repairs, accounting, barriers, report and export, including 13 calls / 27 reserved attempts, two-set quorum, insufficient attacks, skipped ballots, judge failure, own-vector exclusion, stop and persisted recovery.
+- `cargo build --release -p squad-cli`: passed; the real smoke used a private copy of the built release binary.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passed, including a final rerun after fixture and view-test corrections.
+- `cargo fmt --all -- --check`: passed, including the final source state.
+- `cargo test --workspace --no-fail-fast`: **not green**. Cargo summaries totaled 1,340 passed, 13 failed and six ignored, including the existing repeated WAL subprocess summary. Four failures were an owned store-fixture history metadata error, corrected and verified by all four passing store tests. Eight failures are shared disabled-mode/help/export/menu assertions that must be updated for enablement. The remaining failure is the shared tournament audit's stale event-page race described above; its fresh-snapshot guard passes. The shared tests were left untouched as required by ownership.
+
+M8.P6 has eleven tasks checked with evidence. L4.T2 remains open for shared severity-style/details wiring; L5.T1 remains open for the complete RoomHandle integration and full workspace gate; L5.T3 remains open for final integration sign-off and the TIP example. `ENABLED = true` on the worker branch permits parser/typeahead/help and smoke verification, and must not be read as a green integration gate. No main push, tag, PR, shared source edit, delegate, or extra live mode run was made.

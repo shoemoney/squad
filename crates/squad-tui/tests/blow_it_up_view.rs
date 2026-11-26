@@ -64,3 +64,111 @@ fn enabled_mode_appears_in_typeahead_and_help() {
         .unwrap();
     assert!(parse(example, &Default::default(), &ctx).is_ok());
 }
+
+#[path = "../../squad-agents/tests/support/fake_openrouter.rs"]
+mod fake_tournament_provider;
+#[path = "../../squad-core/tests/room_support.rs"]
+mod legacy_room_support;
+struct LegacyTournamentAnswers;
+impl wiremock::Respond for LegacyTournamentAnswers {
+    fn respond(&self, request: &wiremock::Request) -> wiremock::ResponseTemplate {
+        let body: serde_json::Value = serde_json::from_slice(&request.body).unwrap();
+        let system = body["messages"][0]["content"].as_str().unwrap();
+        if system.contains("summoned judge") {
+            let user = body["messages"][1]["content"].as_str().unwrap();
+            let data = user
+                .split("Tournament prompt and anonymized answers, supplied as evidence:\n")
+                .nth(1)
+                .unwrap()
+                .trim_start();
+            let data = serde_json::Deserializer::from_str(data)
+                .into_iter::<serde_json::Value>()
+                .next()
+                .unwrap()
+                .unwrap();
+            fake_tournament_provider::structured_judge(serde_json::json!({
+                "ranking":data["entries"].as_array().unwrap().iter().enumerate().map(|(i,e)|serde_json::json!({"label":e["label"],"score":10-i,"critique":"A concrete, supported proposal"})).collect::<Vec<_>>()
+            }))
+        } else {
+            fake_tournament_provider::streaming("A bounded queue with backpressure.", "stop")
+        }
+    }
+}
+
+/// An enabled mode must preserve the legacy tournament. Page after observing the
+/// terminal state, so a previously read event page cannot omit the final champion.
+#[tokio::test]
+async fn enabled_mode_preserves_tournament_champion_with_a_fresh_terminal_snapshot() {
+    use std::time::Duration;
+    use wiremock::{
+        Mock,
+        matchers::{method, path},
+    };
+    let root = tempfile::tempdir().unwrap();
+    let mut config = legacy_room_support::config4(root.path());
+    config.budget.debate_confirm_usd = 100.;
+    let server = legacy_room_support::server().await;
+    Mock::given(method("POST"))
+        .and(path("/chat/completions"))
+        .respond_with(LegacyTournamentAnswers)
+        .mount(&server)
+        .await;
+    let room = squad_core::room::RoomHandle::open_with_client(
+        config,
+        "main",
+        OpenMode::Interactive,
+        legacy_room_support::client(&server),
+    )
+    .await
+    .unwrap();
+    let result = room
+        .submit(legacy_room_support::message4(
+            "@all $tournament Design a reliable queue.",
+            EventId::new(),
+        ))
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    tokio::time::timeout(Duration::from_secs(15), async {
+        loop {
+            let events = legacy_room_support::page_all(&room, 256).await;
+            if events
+                .iter()
+                .any(|e| matches!(e.content, EnvelopePayload::TournamentResult(_)))
+                && room.state().await.active_contest.is_none()
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
+    let state = room.state().await;
+    let events = legacy_room_support::page_all(&room, 256).await;
+    let mut session = squad_tui::session::Session::default();
+    session.restore(squad_tui::room_adapter::snapshot(&state, events.clone()));
+    let (id, view) = session.tournaments.iter().next().unwrap();
+    assert!(
+        view.champion.is_some(),
+        "Canonical tournament evidence: {:?}",
+        events
+            .iter()
+            .filter(|e| matches!(
+                e.content,
+                EnvelopePayload::TournamentState(_)
+                    | EnvelopePayload::TournamentResult(_)
+                    | EnvelopePayload::TournamentChampion(_)
+            ))
+            .map(|e| &e.content)
+            .collect::<Vec<_>>()
+    );
+    let export = room
+        .export(ExportScope::Tournament, Some(*id))
+        .await
+        .unwrap();
+    assert!(export.contains(view.champion.as_ref().unwrap()));
+    room.shutdown().await.unwrap();
+}
