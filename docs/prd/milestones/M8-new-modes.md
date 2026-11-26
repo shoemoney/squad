@@ -148,6 +148,15 @@ the forecast executor uses its recognized JUDGE_INVALID_MODE_OUTPUT diagnostic
 for member repair pending integrator normalization. Exact changes and the
 unperformed live smoke are documented in `docs/modes/forecast.md`.
 
+Final owned-worker gates (2026-11-26, dev3, `CARGO_BUILD_JOBS=4`, code
+`00a83cae89a3384e68e6624bbed00091519026ca`): full workspace test gate passed with
+1,348 unique tests, zero failed and four existing ignored entries (1,349 raw
+passing summaries include one WAL subprocess duplicate). All-target workspace
+Clippy with `-D warnings`, formatting and the release build inside the release
+suite passed. There are 23 added forecast tests. Both rounds' unrounded
+aggregation inputs are retained in export; the TUI displays the latest pool.
+No live API calls or live cost/time/reservation measurements were made.
+
 ## Phase M8.P4 — Decide
 
 Owns only the `decide` module files listed in **New modes → Files each mode worker owns**, migration `0012_decide.sql` and `docs/modes/decide.md`.

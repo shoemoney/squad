@@ -36,7 +36,7 @@ The usual cost confirmation and daily budget apply before work starts.
 
 The report includes the frame, pool/spread or split view, first/final table,
 missing revisions, uncited moves, cruxes, signposts, shared assumptions, weak
- evidence and skipped members. Export with `/export forecast` or
+evidence and skipped members. Export with `/export forecast` or
 `/export forecast <contest-id>`. The Markdown audit adds timestamps, accepted
 forecasts, each delivered bundle, raw probabilities, sorted and trimmed log-odds,
 `k`, `L` and `s`. Partial failed/stopped runs also export. `/stop` fences late
@@ -84,3 +84,24 @@ typeahead/TIP/help, rerun default-launcher workflows and all gates, then run the
 approved single live `squad send` in a fresh temporary data directory with the
 default six-model roster and `SQUAD_DAILY_MAX_USD=150`. Record actual cost,
 wall time and reservations here.
+
+## Worker gates (2026-11-26)
+
+Final tested code head: `00a83cae89a3384e68e6624bbed00091519026ca` on `mode-forecast`, dev3,
+`CARGO_BUILD_JOBS=4`.
+
+- `cargo test --workspace --no-fail-fast`: 1,348 unique tests passed, zero
+  failures, four existing ignored entries. Cargo prints 1,349 passing summaries
+  because the SQLite WAL subprocess repeats one test.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passed.
+- `cargo fmt --all -- --check`: passed.
+- `cargo build --release --locked -p squad-cli`: passed inside the release
+  suite, which also exercises private binary snapshots and packaged sources.
+- 23 added tests span protocol, store, agents, core workflows/tallies/export
+  and TUI. The six-member workflow exports both rounds' unrounded aggregates;
+  the current TUI bar uses the latest pool.
+
+Twelve of fourteen M8.P3 tasks are checked. Default-launcher verification and
+public enable/discovery/live verification remain open for the shared dispatch
+fix. No real API calls were made: live spend is $0; real run cost, duration and
+reserved-versus-actual amounts remain unmeasured.
