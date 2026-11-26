@@ -1,0 +1,88 @@
+name: macOS performance gates
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mac-perf
+  cancel-in-progress: false
+env:
+  CARGO_BUILD_JOBS: '4'
+  RUST_TEST_THREADS: '1'
+  OPENROUTER_API_KEY: ''
+  SQUAD_FX: full
+  COLORTERM: truecolor
+jobs:
+  gates:
+    runs-on: [self-hosted, macOS, ARM64, squad-ci]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare toolchain and evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup show active-toolchain
+          mkdir -p mac-perf-results
+          {
+            git rev-parse HEAD
+            date -u
+            hostname
+            sw_vers
+            uname -a
+            sysctl machdep.cpu.brand_string hw.memsize hw.ncpu
+            rustc -Vv
+            cargo -V
+            uptime
+          } > mac-perf-results/environment.txt
+          cp Cargo.lock mac-perf-results/Cargo.lock
+      - name: Compile before timing
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo bench -p squad-tui --locked --bench twelve_streams --bench composed_streams --bench fx_frame --no-run
+          cargo test -p squad-tui --locked --release --test fx_invariants --test fx_governor --test event_loop_shell --test m4b_fx_integration_audit --test fx_crosscheck --test fx_survey --test fx_probe --no-run
+          cargo build -p squad-tui --locked --release --example demo
+          cp target/release/examples/demo mac-perf-results/squad-demo
+      - name: Effects invariants and sustained feed / idle checks
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p squad-tui --locked --release --test fx_invariants --test fx_governor --test event_loop_shell --test m4b_fx_integration_audit --test fx_crosscheck --test fx_survey --test fx_probe -- --nocapture 2>&1 | tee mac-perf-results/invariants.log
+      - name: Five-minute spike per viewport (effects off by design)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          uptime > mac-perf-results/spike-load.txt
+          SPIKE_SECS=300 /usr/bin/time -l cargo bench -p squad-tui --locked --bench twelve_streams 2>&1 | tee mac-perf-results/spike.log
+          uptime >> mac-perf-results/spike-load.txt
+      - name: Five-minute real transcript per viewport (full effects)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          uptime > mac-perf-results/composed-load.txt
+          # Collect every viewport even if an earlier one misses its limit.
+          # The explicit check below restores the benchmark's normal failure status.
+          COMPOSED_SECS=300 COMPOSED_ENFORCE=0 /usr/bin/time -l cargo bench -p squad-tui --locked --bench composed_streams 2>&1 | tee mac-perf-results/composed.log
+          uptime >> mac-perf-results/composed-load.txt
+          test "$(grep -c 'gate=PASS' mac-perf-results/composed.log)" -eq 3
+          ! grep -q 'gate=FAIL' mac-perf-results/composed.log
+      - name: Full catalogue frame gate (200x60)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          /usr/bin/time -l cargo bench -p squad-tui --locked --bench fx_frame -- --sample-size 10 --measurement-time 2 --warm-up-time 1 2>&1 | tee mac-perf-results/fx-frame.log
+      - name: Upload measurements and offline terminal demo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-perf-${{ github.sha }}
+          path: mac-perf-results/
+          if-no-files-found: error
+          retention-days: 30
