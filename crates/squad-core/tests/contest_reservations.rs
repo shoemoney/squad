@@ -282,20 +282,23 @@ const MODES: [Scenario; 7] = [
         "@gemini @grok @muse @openai $probe Requests stall after deploy; inspect logs and metrics.",
     ),
 ];
-/// (mode, expected reserved USD, tolerance). Probe splits roles at random, so its
-/// reservation varies with who explains (measured range over 80 role splits: 8.13 to 10.18).
-const EXPECTED: [(&str, f64, f64); 7] = [
+/// (mode, expected reserved USD, tolerance). Probe is checked separately for
+/// every possible role split rather than against a sampled random range.
+const EXPECTED: [(&str, f64, f64); 6] = [
     ("debate", 7.62, 0.01),
     ("tournament", 24.36, 0.01),
     ("grill", 4.19, 0.01),
     ("census", 19.56, 0.01),
     ("crosscheck", 13.12, 0.01),
     ("survey", 14.53, 0.01),
-    ("probe", 9.16, 0.115),
 ];
 #[tokio::test]
 async fn default_roster_contests_reserve_from_step_bounds_not_context_windows() {
-    for ((mode, seed, command), (name, expected, tolerance)) in MODES.into_iter().zip(EXPECTED) {
+    for ((mode, seed, command), (name, expected, tolerance)) in MODES
+        .into_iter()
+        .filter(|(mode, ..)| *mode != "probe")
+        .zip(EXPECTED)
+    {
         assert_eq!(mode, name);
         let f = Fixture::new(1000.).await;
         let q = f
@@ -312,6 +315,75 @@ async fn default_roster_contests_reserve_from_step_bounds_not_context_windows() 
             "{mode}: {q:?}"
         );
     }
+}
+#[tokio::test]
+async fn probe_reservations_cover_every_role_split() {
+    let (_, seed, command) = MODES.iter().find(|(mode, ..)| *mode == "probe").unwrap();
+    let f = Fixture::new(1000.).await;
+    let quote = f.quote(seed, command).await.unwrap();
+    let db = f.db();
+    let raw: String = db
+        .query_row(
+            "SELECT plan_json FROM contests WHERE kind='probe'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let mut plan: ProbePreflight = serde_json::from_str(&raw).unwrap();
+    let bindings: BTreeMap<String, ExecutorBinding> =
+        serde_json::from_value(plan.base.settings["bindings"].clone()).unwrap();
+    let pack = squad_core::prompts::PromptPack::from_override_dir(None).unwrap();
+    let limits = &f.config.prompts.limits;
+    let members = plan.setup.participants.clone();
+    assert_eq!(members.len(), 4);
+    assert_eq!(quote.calls, 7);
+    assert!(quote.estimated > 0. && quote.estimated < quote.reserved);
+    let admitted_explainers = plan.setup.explainers.clone();
+    let mut checked_admitted_split = false;
+    // All six partitions of the four differently priced participants. Each
+    // snapshot is role-specific, so random admission cannot change the limit.
+    for (names, expected) in [
+        (["gemini", "grok"], 8.561),
+        (["gemini", "muse"], 8.190),
+        (["gemini", "openai"], 10.249),
+        (["grok", "muse"], 8.561),
+        (["grok", "openai"], 10.106),
+        (["muse", "openai"], 10.249),
+    ] {
+        plan.setup.explainers = names.iter().map(|n| n.parse().unwrap()).collect();
+        plan.setup.checkers = members
+            .iter()
+            .filter(|n| !plan.setup.explainers.contains(n))
+            .cloned()
+            .collect();
+        plan.setup.validate().unwrap();
+        let steps = squad_core::router::probe::steps(
+            &pack,
+            &plan.setup,
+            (limits.room_words, limits.plan_words),
+        )
+        .unwrap();
+        let priced = squad_core::router::bounds::price(&db, &bindings, &steps).unwrap();
+        assert!(
+            (priced.reserved_usd() - expected).abs() <= expected * 0.01,
+            "explainers {names:?}: reserved {} vs {expected}",
+            priced.reserved_usd(),
+        );
+        assert_eq!(priced.calls, quote.calls);
+        assert!(priced.estimated_usd > 0. && priced.estimated_usd < priced.reserved_usd());
+        if names
+            .iter()
+            .all(|name| admitted_explainers.iter().any(|n| n.as_str() == *name))
+        {
+            assert!(
+                (quote.reserved - expected).abs() <= expected * 0.01,
+                "admitted explainers {names:?}: reserved {} vs {expected}",
+                quote.reserved,
+            );
+            checked_admitted_split = true;
+        }
+    }
+    assert!(checked_admitted_split);
 }
 #[tokio::test]
 async fn small_contests_fit_the_default_daily_cap() {
