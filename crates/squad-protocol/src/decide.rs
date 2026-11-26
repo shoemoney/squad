@@ -307,7 +307,11 @@ impl DecideShortlist {
             (2..=24).contains(&self.options.len())
                 && ids(self.options.iter().map(|x| x.option_id.clone()))
                 && self.options.iter().all(|x| {
-                    sources(&x.sources) && words(&x.name) <= 8 && words(&x.description) <= 40
+                    sources(&x.sources)
+                        && !x.name.trim().is_empty()
+                        && words(&x.name) <= 8
+                        && !x.description.trim().is_empty()
+                        && words(&x.description) <= 40
                 }),
             "invalid shortlist",
         )

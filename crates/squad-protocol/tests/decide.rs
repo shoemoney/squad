@@ -42,6 +42,21 @@ fn merges_preserve_every_source_once() {
     assert!(validate_output(&WorkKind::DecideFreeze, &input, &bad).is_err());
 }
 #[test]
+fn shortlist_requires_readable_names_and_descriptions() {
+    let good = json!({"options":[
+        {"optionId":"a","name":"Build","description":"Develop internally","sources":[{"memberLabel":"M1","localId":"a"}]},
+        {"optionId":"b","name":"Buy","description":"Purchase a managed service","sources":[{"memberLabel":"M2","localId":"b"}]}
+    ]});
+    validate_artifact("decide.shortlist", &good).unwrap();
+    for field in ["name", "description"] {
+        for empty in ["", " \n\t"] {
+            let mut bad = good.clone();
+            bad["options"][0][field] = json!(empty);
+            assert!(validate_artifact("decide.shortlist", &bad).is_err());
+        }
+    }
+}
+#[test]
 fn parser_switch_gates_decide_and_refuses_bad_option_counts() {
     let ctx = parser::ParseContext {
         roster: ["a", "b", "c"].map(|s| s.parse().unwrap()).to_vec(),
