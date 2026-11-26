@@ -15,10 +15,20 @@ pub struct CompletionState {
     pub items: Vec<String>,
     pub selected: usize,
     pub replace: Range<usize>,
+    pub descriptions: Vec<String>,
 }
 impl CompletionState {
     pub fn at(raw: &str, caret: usize, ctx: &ParseContext, meta: &SubmissionMeta) -> Self {
-        if !raw.is_char_boundary(caret) {
+        Self::with_starters(raw, caret, ctx, meta, false)
+    }
+    pub fn with_starters(
+        raw: &str,
+        caret: usize,
+        ctx: &ParseContext,
+        meta: &SubmissionMeta,
+        starters: bool,
+    ) -> Self {
+        if caret > raw.len() || !raw.is_char_boundary(caret) {
             return Self::default();
         }
         // An unfinished code span is still protected. The shared lexer reports its span.
@@ -29,7 +39,7 @@ impl CompletionState {
         let tokens = match tokenize(raw) {
             Ok(tokens) => tokens,
             Err(e) if e.span.start < caret && caret <= e.span.end => return Self::default(),
-            Err(_) => prefix_tokens,
+            Err(_) => prefix_tokens.clone(),
         };
         if tokens.iter().any(|t| {
             matches!(t.kind, TokenKind::Protected | TokenKind::Escape)
@@ -67,21 +77,40 @@ impl CompletionState {
             |t| t.span.end,
         );
         let prefix = &raw[start..caret];
+        let prior = tokenize(&raw[..start]).unwrap_or_default();
+        let slash_line = raw.trim_start().starts_with('/');
+        let has_mentions = prior
+            .iter()
+            .any(|t| matches!(&t.kind, TokenKind::Mention(_)));
+        let has_all = prior
+            .iter()
+            .any(|t| matches!(&t.kind, TokenKind::Mention(n) if n == "all"));
+        let mode = prior.iter().find_map(|t| match &t.kind {
+            TokenKind::Command(name) => Some(name.as_str()),
+            _ => None,
+        });
+        // Standalone judging needs a quote and cannot mix member recipients.
+        let judge_allowed = !slash_line
+            && !prior
+                .iter()
+                .any(|t| matches!(&t.kind, TokenKind::Mention(n) if n == "judge"))
+            && (mode == Some("debate")
+                || mode.is_none()
+                    && !meta.quote.is_empty()
+                    && !prior
+                        .iter()
+                        .any(|t| matches!(&t.kind, TokenKind::Mention(_))));
         let mut candidates = vec![];
         if prefix.starts_with('@') {
-            let mut nicks = ctx.roster.clone();
+            let mut nicks = if has_all { vec![] } else { ctx.roster.clone() };
             if let Some(pick) = &ctx.pending_pick {
                 nicks.sort_by_key(|n| !pick.eligible.contains(n));
             }
             candidates.extend(nicks.iter().map(|n| format!("@{n}")));
-            candidates.push("@all".into());
-            if !meta.quote.is_empty()
-                || ctx.active_contest.is_some()
-                || ctx
-                    .records
-                    .iter()
-                    .any(|r| r.kind.as_str() == "debate.verdict")
-            {
+            if !ctx.roster.is_empty() && !slash_line && !has_mentions {
+                candidates.push("@all".into());
+            }
+            if judge_allowed {
                 candidates.push("@judge".into());
             }
         } else if prefix.starts_with('-') {
@@ -109,45 +138,78 @@ impl CompletionState {
             }
         } else if prefix.starts_with('$') {
             candidates.extend(
-                [
-                    "$debate",
-                    "$tournament",
-                    "$grill",
-                    "$census",
-                    "$crosscheck",
-                    "$survey",
-                    "$probe",
-                    "$ROUNDS",
-                    "$ROUNDS=",
-                    "$GRILL_ROUNDS",
-                    "$GRILL_ROUNDS=",
-                    "$CENSUS_PASSES",
-                    "$CENSUS_PASSES=",
-                ]
-                .map(str::to_owned),
+                crate::typeahead::MODES
+                    .iter()
+                    .map(|(name, _)| name.to_string()),
             );
+            // Preserve variable completion for an explicit uppercase prefix.
+            if prefix
+                .chars()
+                .nth(1)
+                .is_some_and(|c| c.is_ascii_uppercase())
+            {
+                candidates.extend(
+                    [
+                        "$ROUNDS",
+                        "$ROUNDS=",
+                        "$GRILL_ROUNDS",
+                        "$GRILL_ROUNDS=",
+                        "$CENSUS_PASSES",
+                        "$CENSUS_PASSES=",
+                    ]
+                    .map(str::to_string),
+                );
+            }
         } else if prefix.starts_with('/') && start == 0 {
             candidates.extend(
-                [
-                    "/set",
-                    "/stop",
-                    "/judge",
-                    "/regen",
-                    "/clear",
-                    "/who",
-                    "/help",
-                    "/export",
-                    "/continue",
-                    "/accept",
-                ]
-                .map(str::to_owned),
+                squad_protocol::parser::SLASH_COMMANDS
+                    .iter()
+                    .map(|(name, _)| name.to_string()),
             );
         }
-        candidates.retain(|s| s.starts_with(prefix));
+        if starters && candidates.is_empty() && !prefix.starts_with(['@', '$', '/', '-']) {
+            let has_mode = prior
+                .iter()
+                .any(|t| matches!(&t.kind, TokenKind::Command(_)));
+            if !ctx.roster.is_empty() && !has_mentions && !slash_line {
+                candidates.push("@all".into());
+            }
+            candidates.extend(
+                ctx.roster
+                    .iter()
+                    .filter(|nick| {
+                        !has_all && !prior.iter().any(|t| {
+                            matches!(&t.kind, TokenKind::Mention(name) if name == nick.as_str())
+                        })
+                    })
+                    .map(|n| format!("@{n}")),
+            );
+            if judge_allowed {
+                candidates.push("@judge".into());
+            }
+            if !has_mode && !slash_line {
+                candidates.extend(
+                    crate::typeahead::MODES
+                        .iter()
+                        .map(|(name, _)| name.to_string()),
+                );
+            }
+            if start == 0 {
+                candidates.extend(
+                    squad_protocol::parser::SLASH_COMMANDS
+                        .iter()
+                        .map(|(name, _)| name.to_string()),
+                );
+            }
+        }
+        let query = prefix.to_lowercase();
+        candidates.retain(|s| crate::typeahead::rank(s, &query).is_some());
+        candidates.sort_by_key(|s| crate::typeahead::rank(s, &query));
         Self {
             items: candidates,
             selected: 0,
             replace: start..end,
+            descriptions: vec![],
         }
     }
     pub fn move_selection(&mut self, down: bool) {
@@ -185,5 +247,17 @@ pub fn render(view: &CompletionState, area: Rect, buf: &mut Buffer) {
             usize::from(area.width),
             style,
         );
+        let offset = item.chars().count() as u16 + 2;
+        if offset < area.width
+            && let Some(description) = view.descriptions.get(row)
+        {
+            buf.set_stringn(
+                area.x + offset,
+                area.y + (row - first) as u16,
+                description,
+                usize::from(area.width - offset),
+                style.add_modifier(Modifier::DIM),
+            );
+        }
     }
 }

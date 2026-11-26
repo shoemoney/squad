@@ -46,7 +46,6 @@ impl InputEvents {
             KeyCode::End => Some(EditorAction::End(shift)),
             KeyCode::Backspace => Some(EditorAction::Backspace),
             KeyCode::Delete => Some(EditorAction::Delete),
-            KeyCode::Tab if !control && !alt => Some(EditorAction::Insert("\t".into())),
             KeyCode::Char(c) if !control && !alt => Some(EditorAction::Insert(c.to_string())),
             _ => None,
         }

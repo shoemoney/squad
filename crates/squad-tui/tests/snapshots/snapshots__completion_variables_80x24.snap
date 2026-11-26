@@ -15,12 +15,12 @@ idle W0 L0                      / ___| / _ \| | | | / \  |  _ \
                                 \___ \| | | | | | |/ _ \ | | | |
                                  ___) | |_| | |_| / ___ \| |_| |
                                 |____/ \__\_\\___/_/   \_\____/
-  $debate
-  $tournament
-  $grill
-  $census
-  $crosscheck
-  $survey
+  $debate  Head-to-head arguments and a judge
+  $tournament  Elimination rounds to choose a winner
+  $grill  Question one model in rounds
+  $census  Collect and refine independent plans
+  $crosscheck  Audit a plan for gaps and risks
+  $survey  Compare independent answers
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
 > $
 

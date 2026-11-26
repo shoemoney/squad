@@ -60,8 +60,11 @@ fn effects_off_layout_is_static_and_the_post_hook_is_inert() {
 fn full_effects_run_through_the_post_render_hook_and_settle_to_the_static_layout() {
     let size = (100, 30);
     let mut off = app("off", size);
+    // This assertion isolates effect settlement from the independent idle-tip timer.
+    off.tips_enabled = false;
     let baseline = frame(&mut off, size, Duration::ZERO);
     let mut full = app("full", size);
+    full.tips_enabled = false;
     let first = frame(&mut full, size, Duration::ZERO);
     assert!(
         full.fx.active_count() > 0,

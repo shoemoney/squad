@@ -212,6 +212,7 @@ pub async fn run(
         caps.color = crate::fx::ColorTier::NoColor;
     }
     let mut app = crate::app::App::new(caps);
+    app.tips_enabled = config.tips;
     app.input_events = crate::input_events::InputEvents {
         kitty: guard.capabilities().keyboard_enhancement,
     };

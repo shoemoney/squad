@@ -293,15 +293,27 @@ A direct debate needs exactly two distinct explicit members, and no `@all`. Add 
 
 Question-first grills work the same way. Pick one member to be grilled.
 
+### Composer suggestions
+
+Composer suggestions open automatically after `@` (live roster), `$` (seven contest modes),
+or `/` at the start (supported slash commands). Tab always opens suggestions, including
+a starter menu in an empty draft or matches for an unmarked word (`gro` → `@grok`,
+`deb` → `$debate`). Press Tab again or Enter to insert the selection and a space.
+Up/Down and Shift+Tab choose entries; Esc dismisses. Enter accepts an open suggestion
+instead of sending. F6 still switches message/composer focus, Alt+Up/Down recalls history,
+and Ctrl+J / Alt+Enter (or Shift+Enter with enhanced keyboards) inserts a newline.
+`SQUAD_TIPS=off` disables the idle TIP line; tips hide while typing or completing.
+
 ### Keyboard (TUI)
 
 The bottom bar shows the most useful keys for your terminal width.
 
 | Key | What it does |
 |---|---|
-| `Enter` | Sends the message. |
+| `Enter` | Accepts an open suggestion; otherwise sends the message. |
 | `Ctrl+J`, `Alt+Enter` (or `Shift+Enter` in kitty-protocol terminals) | Inserts a new line. |
-| `Tab` | Opens completion, or accepts the selected item. |
+| `Tab` | Opens or pins completion; another Tab accepts the selected item. |
+| `Shift+Tab` | Opens completion or selects the previous suggestion. |
 | `Up` / `Down` | Moves through open completion. With focus on the room, moves between messages. |
 | `Space` | With focus on the room, selects or deselects the focused message for quoting. |
 | `Ctrl+R` | Inserts the last recipients. |
@@ -535,6 +547,7 @@ Every variable below is optional, except `OPENROUTER_API_KEY`. Run `squad doctor
 | `SQUAD_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error` or `off`. |
 | `NO_COLOR` | Unset | Any non-empty value turns colour off. |
 | `SQUAD_BANNERS` | `on` | `on`, `compact` or `off` for contest banners. |
+| `SQUAD_TIPS` | `on` | `on` or `off`; rotate parser-checked composer examples and keyboard tips every 8 seconds while the draft is empty. |
 | `SQUAD_FX` | `full` | Animation level: `full`, `lite` or `off`. `lite` is picked automatically only when this is unset. |
 | `SQUAD_FX_DEBUG` | Unset | Set to `1` to show the effects-grade tag. |
 

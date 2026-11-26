@@ -26,6 +26,7 @@
 | `SQUAD_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn`, `error`, or `off` |
 | `NO_COLOR` | Unset | A nonempty value disables color |
 | `SQUAD_BANNERS` | `on` | `on`, `compact`, or `off`; TUI banner rendering follows TUI |
+| `SQUAD_TIPS` | `on` | `on` or `off`; rotate parser-checked composer examples and keyboard tips every 8 seconds while the draft is empty. |
 | `SQUAD_FX` | `full` | `full`, `lite`, or `off`; effects behavior follows TUI effects and motion; automatic lite selection applies only when unset |
 | `SQUAD_GRILL_ROUNDS` | `2` | Integer from 1 through 10; seeds `GRILL_ROUNDS` only when no room value is stored |
 | `SQUAD_PLAN_WORDS` | `1200` | Positive integer prompt limit for rebuilt grill plans |

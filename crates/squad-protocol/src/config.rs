@@ -22,6 +22,7 @@ pub struct SquadConfig {
     pub no_color: bool,
     pub banners: BannerMode,
     pub fx: EffectsMode,
+    pub tips: bool,
     pub fx_explicit: bool,
     pub fx_debug: bool,
 }
@@ -223,6 +224,7 @@ pub enum ConfigError {
     DataDirectoryNotWritable(PathBuf),
     Banners,
     Effects,
+    Tips,
     GrillRounds,
     CensusPasses,
     AliasCacheTtl,
@@ -293,6 +295,7 @@ impl fmt::Display for ConfigError {
                 write!(f, "Data directory is not writable: {}.", p.display())
             }
             Self::Banners => f.write_str("SQUAD_BANNERS must be on, compact, or off."),
+            Self::Tips => f.write_str("SQUAD_TIPS must be on or off."),
             Self::Effects => f.write_str("SQUAD_FX must be full, lite, or off."),
             Self::CensusPasses => {
                 f.write_str("SQUAD_CENSUS_PASSES must be an integer from 1 to 5.")
@@ -748,6 +751,14 @@ impl EffectiveEnvironment {
                 _ => {
                     errors.push(ConfigError::Banners);
                     BannerMode::On
+                }
+            },
+            tips: match get("SQUAD_TIPS", "on").as_str() {
+                "on" => true,
+                "off" => false,
+                _ => {
+                    errors.push(ConfigError::Tips);
+                    true
                 }
             },
             fx: match get("SQUAD_FX", "full").as_str() {
