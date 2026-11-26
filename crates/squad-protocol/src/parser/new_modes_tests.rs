@@ -139,3 +139,22 @@ fn tune_excludes_named_executor_and_preserves_quoted_prompt_identity() {
         }
     );
 }
+
+#[test]
+fn prd_review_enforces_both_note_caps_and_allows_continue() {
+    let mut ctx = context(&serde_json::json!({"condition":"prd"}));
+    let accepted = format!("/answer {}", "word ".repeat(500));
+    assert!(super::parser::parse_snapshot(&accepted, &ctx).is_ok());
+    let too_long = format!("/answer {}", "word ".repeat(501));
+    assert!(super::parser::parse_snapshot(&too_long, &ctx).is_err());
+    ctx.pending_human.as_mut().unwrap().answers = (1..=10).map(|i| (i, "note".into())).collect();
+    assert!(super::parser::parse_snapshot("/answer another", &ctx).is_err());
+    assert!(super::parser::parse_snapshot("/continue", &ctx).is_ok());
+}
+#[test]
+fn enabled_export_usage_lists_new_scopes() {
+    let ctx = ParserSnapshot::default();
+    let error =
+        with_new_modes(|| super::parser::parse_snapshot("/export unknown", &ctx)).unwrap_err();
+    assert!(error.message.contains("tune|bass_ackwards_prd"));
+}

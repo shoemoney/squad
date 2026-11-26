@@ -38,7 +38,11 @@ fn fixture() -> (Store, Work, EventId) {
  let frozen=ContestStep{contest_id:contest,step_id:step,ordinal:1,script_version:Text::new("v1").unwrap(),move_name:ContestMove::Fanout,inputs:vec![event],assignments:vec![ContestAssignment{target:w.target.clone(),context_id:w.context_id.clone(),payload_refs:vec![event],work_id:Some(w.work_id)}]};
  contest_steps::insert(db,&frozen,source.commit.seq)?;
  db.execute("INSERT INTO history(pos,context_id,event_seq,origin_event_id,projection_key,role,content,meta) VALUES(1,?,1,?,'fixture','user','input','{}')",params![w.context_id.0,event.to_string()])?;
+ let plan=ContestPreflight{contest_id:contest,kind:ContestKind::Forge,plan_id:PlanId::new(),expires_at:chrono::Utc::now(),estimate:DebateEstimate{estimated_usd:1.0,reserved_usd:2.0,remaining_usd:10.0,model_calls:1},participants:vec!["a".parse().unwrap()],confirmation_required:false,warning:None,settings:serde_json::json!({"reservedAttempts":2,"attemptShares":{"forge.draft":1_000_000}})};
+ db.execute("UPDATE contests SET plan_json=? WHERE contest_id=?",params![serde_json::to_string(&plan)?,contest.to_string()])?;
  squad_store::work::insert(db,&w,&ExecutorBinding{model:Text::new("test/model").unwrap(),effort:ReasoningEffort::Low},None)?;
+ contest_steps::attach_work(db,step,&w)?;
+ assert_eq!(db.query_row("SELECT json_extract(scheduling_meta,'$.attemptReservationMicros') FROM work WHERE work_id=?",[w.work_id.to_string()],|r|r.get::<_,i64>(0))?,1_000_000);
  db.execute("INSERT INTO contest_artifacts VALUES(1,?,?,'forge','forge.draft',0,'system','members','[\"a\"]','{\"body\":\"private\"}')",params![contest.to_string(),step.to_string()])?;
  Ok(())}).unwrap();
     (store, work, event)

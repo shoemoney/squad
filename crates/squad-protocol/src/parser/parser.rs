@@ -684,11 +684,44 @@ fn render(raw: &str, tokens: &[Token], vars: &RoomVariables, keep_judge: bool) -
 const SET_USAGE: &str = "/set ROUNDS <1-20> | /set GRILL_ROUNDS <1-10> | /set CENSUS_PASSES <1-5>";
 const EXPORT_USAGE: &str =
     "/export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]";
+fn export_usage() -> String {
+    let mut scopes = vec![
+        "debate",
+        "grill",
+        "tournament",
+        "census",
+        "crosscheck",
+        "survey",
+        "probe",
+    ];
+    for (kind, scope) in [
+        (crate::ContestKind::Forge, "forge"),
+        (crate::ContestKind::Forecast, "forecast"),
+        (crate::ContestKind::Decide, "decide"),
+        (crate::ContestKind::Negotiate, "negotiate"),
+        (crate::ContestKind::BlowItUp, "blow_it_up"),
+        (crate::ContestKind::Readback, "readback"),
+        (crate::ContestKind::Debugging, "debug"),
+        (crate::ContestKind::Trace, "trace"),
+        (crate::ContestKind::Rank, "rank"),
+        (crate::ContestKind::Tune, "tune"),
+        (crate::ContestKind::BassAckwardsPrd, "bass_ackwards_prd"),
+    ] {
+        if super::mode_enabled(kind) {
+            scopes.push(scope);
+        }
+    }
+    if scopes.len() == 7 {
+        EXPORT_USAGE.to_owned()
+    } else {
+        format!("/export room | /export {} [id]", scopes.join("|"))
+    }
+}
 /// Slash command vocabulary shared by parsing, help and composer completion.
 pub const SLASH_COMMANDS: &[(&str, &str)] = &[
     (
         "/set",
-        "ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5> | NEGOTIATE_ROUNDS <1-6> | READBACK_ROUNDS <1-4> | DEBUG_ROUNDS <1-6> | TUNE_GENERATIONS <1-6>",
+        "ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5> | NEGOTIATE_ROUNDS <1-6> | READBACK_ROUNDS <1-4> | DEBUG_ROUNDS <1-6> | TUNE_GENERATIONS <1-6> | PRD_HUMAN_REVIEW <0|1>",
     ),
     ("/answer", "<literal text>"),
     ("/stop", "[@nick]"),
@@ -841,7 +874,7 @@ fn slash(raw: &str, ctx: &ParserSnapshot) -> Result<SlashAction, ParseError> {
         }
         "export" => {
             if args.is_empty() || args.len() > 2 {
-                return Err(usage(EXPORT_USAGE));
+                return Err(usage(&export_usage()));
             }
             let scope = match args[0] {
                 "room" => ExportScope::Room,
@@ -864,10 +897,10 @@ fn slash(raw: &str, ctx: &ParserSnapshot) -> Result<SlashAction, ParseError> {
                 "trace" => ExportScope::Trace,
                 "rank" => ExportScope::Rank,
 
-                _ => return Err(usage(EXPORT_USAGE)),
+                _ => return Err(usage(&export_usage())),
             };
             if scope == ExportScope::Room && args.len() == 2 {
-                return Err(usage(EXPORT_USAGE));
+                return Err(usage(&export_usage()));
             }
             let id = args
                 .get(1)

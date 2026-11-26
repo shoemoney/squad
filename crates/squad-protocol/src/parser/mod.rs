@@ -67,7 +67,7 @@ pub fn help_examples() -> Vec<&'static str> {
         examples.push("@all $forecast brief");
     }
     if crate::decide::ENABLED {
-        examples.push("@all $decide brief");
+        examples.push("@all $decide criterion\n--\nA\nB");
     }
     if crate::negotiate::ENABLED {
         examples.push("@all $negotiate brief");

@@ -139,3 +139,49 @@ fn scaffold_registers_twenty_migrations_and_all_eighteen_kinds() {
         );
     }
 }
+
+#[test]
+fn m9_preserves_populated_m8_work_and_defaults_human_review_to_off() {
+    let mut db = Connection::open_in_memory().unwrap();
+    db.pragma_update(None, "foreign_keys", false).unwrap();
+    for migration in MIGRATIONS {
+        db.execute_batch(migration).unwrap();
+    }
+    db.execute_batch(include_str!("../migrations/0009_new_modes.sql"))
+        .unwrap();
+    db.execute("INSERT INTO events(seq,id,room_id,epoch,version,kind,correlation_id,sender,recipients,payload,created_at,accepted_at,commit_start_seq,commit_index,commit_size) VALUES(1,'source','main',1,1,'forge.setup','request','system','[\"me\"]','{}','2026-11-25T00:00:00Z','2026-11-25T00:00:00Z',1,0,1)",[]).unwrap();
+    db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES('forge','forge',1,1,'{}',0)",[]).unwrap();
+    db.execute("INSERT INTO contest_steps(step_id,contest_id,ordinal,script_version,move,state_json,inputs_json,updated_seq) VALUES('step','forge',1,'v1','fanout','{}','[]',1)",[]).unwrap();
+    db.execute("INSERT INTO work(work_id,kind,target,context_id,trigger_event_seq,trigger_event_id,message_id,status,epoch,runnable,contest_id,step_id) VALUES('work','forge.draft','alpha','alpha',1,'source','message','queued',1,1,'forge','step')",[]).unwrap();
+    db.pragma_update(None, "user_version", 18).unwrap();
+    schema::migrate(&mut db).unwrap();
+    assert_eq!(
+        db.query_row("SELECT kind FROM work WHERE work_id='work'", [], |r| r
+            .get::<_, String>(
+            0
+        ))
+        .unwrap(),
+        "forge.draft"
+    );
+    assert_eq!(
+        db.query_row(
+            "SELECT value FROM vars WHERE name='PRD_HUMAN_REVIEW'",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        0
+    );
+    assert!(
+        db.execute("UPDATE vars SET value=2 WHERE name='PRD_HUMAN_REVIEW'", [])
+            .is_err()
+    );
+    assert_eq!(
+        db.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r
+            .get::<_, i64>(
+            0
+        ))
+        .unwrap(),
+        0
+    );
+}
