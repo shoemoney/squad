@@ -92,7 +92,7 @@ fn killed_or_absent_sources_cannot_be_reinstated_and_contested_requires_explanat
 #[test]
 fn parser_examples_enable_and_nick_source_use_whole_roster() {
     use squad_protocol::*;
-    let ctx = parser::ParseContext {
+    let mut ctx = parser::ParseContext {
         roster: vec![
             "alpha".parse().unwrap(),
             "beta".parse().unwrap(),
@@ -100,6 +100,24 @@ fn parser_examples_enable_and_nick_source_use_whole_roster() {
         ],
         ..Default::default()
     };
+    ctx.records.push(parser::RecordSummary {
+        event_id: EventId::new(),
+        message_id: Some(MessageId::new()),
+        seq: Cursor::new(1).unwrap(),
+        kind: "message.final".parse().unwrap(),
+        author: Actor::Member("alpha".parse().unwrap()),
+        recipients: vec![Recipient::Me],
+        content: "No authentication is required.".into(),
+        in_reply_to_message_id: Some(MessageId::new()),
+        contest_id: None,
+        case_id: None,
+        plan_event_id: None,
+        grid_event_id: None,
+        cell_ids: vec![],
+        state_version: None,
+        superseded: false,
+        eligible: true,
+    });
     let parsed = parse(
         "@alpha $blow_it_up",
         &parser::SubmissionMeta::default(),

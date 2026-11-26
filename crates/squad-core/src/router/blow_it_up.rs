@@ -395,8 +395,85 @@ pub fn resolve(
 fn tokens(p: &ContestPreflight) -> Vec<String> {
     serde_json::from_value(p.settings["tokens"].clone()).unwrap_or_default()
 }
-fn blind(v: Value, p: &ContestPreflight) -> Value {
-    crate::orchestrator::blind::value(v, &tokens(p))
+fn blind(mut v: Value, p: &ContestPreflight) -> Value {
+    fn visit(v: &mut Value, tokens: &[String], prose: bool) {
+        match v {
+            Value::String(s) if prose => *s = super::probe::redact(s, tokens),
+            Value::Array(a) => {
+                for v in a {
+                    visit(v, tokens, prose)
+                }
+            }
+            Value::Object(m) => {
+                for (k, v) in m {
+                    visit(
+                        v,
+                        tokens,
+                        matches!(
+                            k.as_str(),
+                            "target"
+                                | "scope"
+                                | "title"
+                                | "targetQuote"
+                                | "exploit"
+                                | "blastRadius"
+                                | "reason"
+                                | "defeatingQuote"
+                                | "mitigation"
+                                | "residual"
+                                | "challengeRejection"
+                                | "note"
+                        ),
+                    )
+                }
+            }
+            _ => {}
+        }
+    }
+    visit(&mut v, &tokens(p), false);
+    v
+}
+/// Map a quote from the anonymous target back to a verified span of the frozen original.
+fn original_quote(quote: &str, source: &str, tokens: &[String]) -> Option<String> {
+    if let Some(span) = crate::orchestrator::verbatim::verbatim(quote, source) {
+        return Some(source[span].into());
+    }
+    let mut projected = String::new();
+    let mut spans = Vec::new();
+    let mut offset = 0;
+    while offset < source.len() {
+        let rest = &source[offset..];
+        let previous = source[..offset].chars().next_back();
+        let boundary = |c: Option<char>| c.is_none_or(|c| !c.is_alphanumeric() && c != '_');
+        let found = tokens
+            .iter()
+            .filter(|t| !t.is_empty())
+            .filter_map(|token| {
+                let end = rest
+                    .char_indices()
+                    .nth(token.chars().count())
+                    .map(|(i, _)| i)
+                    .unwrap_or(rest.len());
+                (rest[..end].to_lowercase() == token.to_lowercase()
+                    && boundary(previous)
+                    && boundary(rest[end..].chars().next()))
+                .then_some(end)
+            })
+            .max();
+        let (piece, end) = if let Some(len) = found {
+            ("[redacted]".to_owned(), offset + len)
+        } else {
+            let c = rest.chars().next()?;
+            (c.to_string(), offset + c.len_utf8())
+        };
+        spans.extend(std::iter::repeat_n((offset, end), piece.len()));
+        projected.push_str(&piece);
+        offset = end;
+    }
+    let range = crate::orchestrator::verbatim::verbatim(quote, &projected)?;
+    let original = &source[spans.get(range.start)?.0..spans.get(range.end - 1)?.1];
+    crate::orchestrator::verbatim::verbatim(original, source)?;
+    Some(original.into())
 }
 pub fn stage_input(db: &Connection, s: &BlowItUpState, target: &Target) -> Result<Value> {
     let setup = squad_store::blow_it_up::setup(db, s.contest_id)?;
@@ -564,6 +641,19 @@ pub fn accepted_work(db: &Connection, w: &Work, a: &ContestArtifact, seq: Cursor
     }
     let body = a.body.as_ref().ok_or_else(invalid)?;
     validate_output(&w.kind, &stage_input(db, &s, &w.target)?, body).map_err(|_| invalid())?;
+    if w.kind == WorkKind::BlowItUpChallenge {
+        let setup = squad_store::blow_it_up::setup(db, s.contest_id)?;
+        let p = plan(db, s.contest_id)?;
+        let ballot: BlowItUpChallenge = serde_json::from_value(body.clone())?;
+        for q in ballot
+            .verdicts
+            .iter()
+            .filter_map(|v| v.defeating_quote.as_ref())
+            .chain(ballot.additions.iter().map(|v| &v.target_quote))
+        {
+            original_quote(q.as_str(), &setup.target, &tokens(&p)).ok_or_else(invalid)?;
+        }
+    }
     squad_store::contest_steps::artifact(db, a, seq)?;
     let stage = match w.kind {
         WorkKind::BlowItUpAttack => "attack",
@@ -797,7 +887,23 @@ fn complete_stage(
                         }
                     }
                 }
-                let report = script::report(r, &pool, &tally, &ballots, skipped);
+                let mut report_ballots = ballots.clone();
+                let setup = squad_store::blow_it_up::setup(tx, s.contest_id)?;
+                let p = plan(tx, s.contest_id)?;
+                for (_, b) in &mut report_ballots {
+                    for v in &mut b.verdicts {
+                        if let Some(q) = &v.defeating_quote {
+                            v.defeating_quote = Some(
+                                Text::new(
+                                    original_quote(q.as_str(), &setup.target, &tokens(&p))
+                                        .ok_or_else(invalid)?,
+                                )
+                                .map_err(|_| invalid())?,
+                            );
+                        }
+                    }
+                }
+                let report = script::report(r, &pool, &tally, &report_ballots, skipped);
                 system_artifact(
                     tx,
                     g,
@@ -1045,4 +1151,76 @@ fn allocate(
         super::contests::queued(tx, g, &w)?;
     }
     save(tx, g, id, s)
+}
+
+/// Readiness avoids writing an empty engine receipt on every streaming wakeup.
+pub fn needs_advance(db: &Connection, c: ContestId) -> Result<bool> {
+    let s = load_state(db, c)?;
+    if s.state.is_terminal() {
+        return Ok(false);
+    }
+    if s.state == BlowItUpStatus::Preflight {
+        return Ok(chrono::Utc::now() >= plan(db, c)?.expires_at);
+    }
+    let setup = squad_store::blow_it_up::setup(db, c)?;
+    let needs_hold:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE kind='reply' AND step_id IS NULL AND status='queued' AND held_by_contest_id IS NULL AND trigger_event_seq>(SELECT MIN(e.seq) FROM events e JOIN contest_events ce ON ce.event_seq=e.seq WHERE ce.contest_id=? AND e.kind='user.message') AND target IN (SELECT value FROM json_each(?)))",params![c.to_string(),serde_json::to_string(&setup.participants)?],|r|r.get(0))?;
+    if needs_hold {
+        return Ok(true);
+    }
+    if s.state == BlowItUpStatus::WaitingForParticipants {
+        let waiting:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE kind='reply' AND step_id IS NULL AND held_by_contest_id IS NULL AND status IN ('queued','running') AND json_type(scheduling_meta,'$.openModeDormant') IS NULL AND target IN (SELECT value FROM json_each(?)))",[serde_json::to_string(&setup.participants)?],|r|r.get(0))?;
+        return Ok(!waiting);
+    }
+    let Some(step) = s.step_id else {
+        return Ok(true);
+    };
+    Ok(!db.query_row(
+        "SELECT EXISTS(SELECT 1 FROM work WHERE step_id=? AND status IN ('queued','running'))",
+        [step.to_string()],
+        |r| r.get::<_, bool>(0),
+    )?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn anonymous_quote_maps_back_to_original_utf8_span() {
+        let source = "The αlpha operator verifies every write before commit.";
+        let tokens = vec!["αlpha".into()];
+        let projected = super::super::probe::redact(source, &tokens);
+        assert_eq!(
+            original_quote(&projected, source, &tokens).as_deref(),
+            Some(source)
+        );
+        assert!(original_quote("An invented bypass quotation", source, &tokens).is_none());
+    }
+    #[test]
+    fn projection_redacts_all_prose_without_changing_vector_ids() {
+        let p = ContestPreflight {
+            contest_id: ContestId::new(),
+            kind: ContestKind::BlowItUp,
+            plan_id: PlanId::new(),
+            expires_at: chrono::Utc::now(),
+            estimate: DebateEstimate {
+                estimated_usd: 0.0,
+                reserved_usd: 0.0,
+                remaining_usd: 0.0,
+                model_calls: 1,
+            },
+            participants: vec![],
+            confirmation_required: false,
+            warning: None,
+            settings: json!({"tokens":["alpha","fixture/model"]}),
+        };
+        let v = blind(
+            json!({"target":"alpha uses fixture/model","vectors":[{"vectorId":"alpha","title":"alpha fails","targetQuote":"alpha uses fixture/model","exploit":"Ask alpha for data","blastRadius":"alpha data"}]}),
+            &p,
+        );
+        assert_eq!(v["vectors"][0]["vectorId"], "alpha");
+        for field in ["title", "targetQuote", "exploit", "blastRadius"] {
+            assert!(!v["vectors"][0][field].as_str().unwrap().contains("alpha"));
+        }
+        assert!(!v["target"].as_str().unwrap().contains("fixture/model"));
+    }
 }

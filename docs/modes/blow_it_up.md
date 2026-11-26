@@ -2,7 +2,7 @@
 
 `$blow_it_up` red-teams a plan, specification, prompt, configuration or diff. It asks how the target breaks or can be exploited, then challenges the attacks before reporting what survived. Use census or crosscheck to look for omissions.
 
-```text
+````text
 @all $blow_it_up ```All requests are accepted without authentication.```
 @all $blow_it_up <paste a plan here>
 --
@@ -10,7 +10,7 @@ Focus on abuse, cost and operational failure.
 @claude $blow_it_up
 /export blow_it_up
 /export blow_it_up <contest-id>
-```
+````
 
 The single-member mention selects that member's latest reply as the target; the whole room attacks it. You can also attach one quoted message. A source is frozen at admission and never silently refreshed. Starts require at least three room members; at least two usable attack sets must survive validation.
 
@@ -33,11 +33,12 @@ Live smoke evidence will be recorded here after the release build and isolated r
 
 Only mode-owned paths were changed. Shared fixes still required:
 
-- `crates/squad-core/src/runtime/judge.rs`: the outer `Executor::execute` must route `grant.work.kind.new_mode_judge()` to `self.crosscheck.execute(...)` alongside probe/census/survey. The inner Runner already dispatches new modes; the outer fallback currently sends them to `JudgeExecutor`, which rejects them. Five RoomHandle workflow tests are explicitly ignored with this reason; direct owned-callback workflow tests remain executable.
+- `crates/squad-core/src/runtime/judge.rs`: the outer `Executor::execute` must route `grant.work.kind.new_mode_judge()` to `self.crosscheck.execute(...)` alongside probe/census/survey. The inner Runner already dispatches new modes; the outer fallback currently sends them to `JudgeExecutor`, which rejects them. Two complete-report RoomHandle workflow tests are explicitly ignored with this reason; direct owned-callback workflow tests remain executable.
 - `crates/squad-protocol/src/work.rs`: add `BlowItUpChallenge` to both 4,096-token ceiling matches (`Work::validate` and `WorkKind::new_mode_visible_tokens`). Until then the owned allocator leaves that optional Work ceiling unset and freezes the correct 4,096 limit in its authorized input; bounds and the actual request both use 4,096.
 - `crates/squad-core/src/router/executor.rs`: include `MODE_INVALID_OUTPUT` in invalid-output classification. Until then the mode adapter uses `JUDGE_INVALID_MODE_OUTPUT` for invalid member outputs as well, enabling the required private D75 repair through the existing mode-repair path.
 - `crates/squad-protocol/src/envelopes.rs`: replace the unconditional rejection of `CaseMaterial::BlowItUp` with typed case validation. The owned allocator currently stores the typed case against a human-only `blow_it_up.case` artifact instead of emitting the rejected `CaseOpened` envelope.
 - `crates/squad-tui/src/composed.rs`: compose `widgets::blow_it_up::styled_lines` instead of joining plain strings, and connect the mode's `View::toggle_killed` to the details interaction. The widget supplies severity colors and a collapsed appendix; the shared renderer currently strips styles and has no toggle wiring for these modes.
+- `crates/squad-core/src/prompts/render.rs`: allow `blow_it_up` in the `mode_step` whitelist. The mode currently freezes its literal composition name into the repair suffix to keep D75 repair functional without changing this shared file.
 - Shared parser/typeahead fixtures must track enabled modes. In particular `crates/squad-protocol/src/parser/new_modes_tests.rs` currently expects its `condition=disabled` fixture to fail even after this mode is enabled; snapshot expectations also change when the public mode list grows.
 
 New ordinary replies are held by the owned engine before dispatch and released at terminal states. Stage contexts always receive frozen authorized projections. Prompt source and catalog capabilities are frozen per assignment, so restarts do not redraw lenses or re-read changed prompt overrides.

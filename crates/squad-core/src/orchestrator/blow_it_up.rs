@@ -165,6 +165,12 @@ pub fn drive(
             continue;
         }
         for _ in 0..12 {
+            if !router
+                .store
+                .call(move |db| crate::router::blow_it_up::needs_advance(db, id))?
+            {
+                break;
+            }
             let request = EventId::new();
             let result = router.store.commit(
                 request,

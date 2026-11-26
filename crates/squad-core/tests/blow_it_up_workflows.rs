@@ -18,6 +18,7 @@ use wiremock::{
 enum Scenario {
     Happy,
     Repair,
+    InvalidAttacks,
     NoAttacks,
     SkipOne,
     JudgeFailure,
@@ -67,7 +68,10 @@ impl Respond for Answers {
         }
         let output = if matches!(self.scenario, Scenario::JudgeFailure) && stage == "rule" {
             json!({"findings":[{"invented":true}]})
-        } else if matches!(self.scenario, Scenario::Repair) && stage == "attack" && count == 1 {
+        } else if (matches!(self.scenario, Scenario::Repair) && count == 1
+            || matches!(self.scenario, Scenario::InvalidAttacks))
+            && stage == "attack"
+        {
             json!({"vectors":[vector("a",false)]})
         } else if stage == "attack" {
             json!({"vectors":[vector("a",false),vector("b",true)]})
@@ -318,7 +322,7 @@ async fn insufficient_attacks_fails_without_judge_calls() {
         assert_eq!(s.state, BlowItUpStatus::Failed);
         assert_eq!(
             s.terminal_reason.unwrap().as_str(),
-            if matches!(scenario, Scenario::NoAttacks) {
+            if matches!(scenario, Scenario::NoAttacks | Scenario::InvalidAttacks) {
                 "insufficient_attacks"
             } else {
                 "judge_failed"
@@ -581,6 +585,13 @@ async fn owned_engine_and_executor_complete_with_13_calls_export_and_settled_acc
     let (f, store, id) = owned_run(Scenario::Happy).await;
     assert_eq!(f.state().unwrap().state, BlowItUpStatus::Complete);
     assert_eq!(f.fake.captured_bodies().await.len(), 13);
+    let raw: String = f
+        .db()
+        .query_row("SELECT plan_json FROM contests", [], |r| r.get(0))
+        .unwrap();
+    let plan: ContestPreflight = serde_json::from_str(&raw).unwrap();
+    assert_eq!(plan.estimate.model_calls, 13);
+    assert_eq!(plan.settings["reservedAttempts"], 27);
     let exported =
         squad_core::export::export(&store, parser::ExportScope::BlowItUp, Some(id)).unwrap();
     for needle in [
@@ -638,6 +649,7 @@ async fn owned_engine_and_executor_complete_with_13_calls_export_and_settled_acc
 async fn owned_engine_repairs_skips_and_fails_without_inventing_votes() {
     for scenario in [
         Scenario::Repair,
+        Scenario::InvalidAttacks,
         Scenario::SkipOne,
         Scenario::NoAttacks,
         Scenario::JudgeFailure,
@@ -645,7 +657,10 @@ async fn owned_engine_repairs_skips_and_fails_without_inventing_votes() {
         let (f, _store, id) = owned_run(scenario).await;
         assert_eq!(
             f.state().unwrap().state,
-            if matches!(scenario, Scenario::NoAttacks | Scenario::JudgeFailure) {
+            if matches!(
+                scenario,
+                Scenario::NoAttacks | Scenario::InvalidAttacks | Scenario::JudgeFailure
+            ) {
                 BlowItUpStatus::Failed
             } else {
                 BlowItUpStatus::Complete
@@ -661,7 +676,7 @@ async fn owned_engine_repairs_skips_and_fails_without_inventing_votes() {
                 6
             );
         }
-        if matches!(scenario, Scenario::NoAttacks) {
+        if matches!(scenario, Scenario::NoAttacks | Scenario::InvalidAttacks) {
             assert_eq!(
                 f.state().unwrap().terminal_reason.unwrap().as_str(),
                 "insufficient_attacks"
