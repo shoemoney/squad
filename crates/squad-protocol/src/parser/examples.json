@@ -1056,7 +1056,7 @@
     "input": "/export",
     "condition": "None",
     "description": "`Usage: /export room\\|debate\\|grill\\|tournament\\|census\\|crosscheck\\|survey\\|probe [id]`",
-    "error": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
+    "error": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe|readback [id]",
     "code": "INVALID_COMMAND",
     "span": {
       "end": 7,
@@ -2649,7 +2649,7 @@
   {
     "input": "/export room 01900000-0000-7000-8000-000000000001",
     "description": "Review resolution: duplicate all / persistent room",
-    "error": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
+    "error": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe|readback [id]",
     "code": "INVALID_COMMAND",
     "span": {
       "start": 0,
