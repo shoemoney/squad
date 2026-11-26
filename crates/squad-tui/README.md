@@ -220,12 +220,52 @@ A one-second-per-viewport `script` pseudo-terminal smoke passed the optional
 Crossterm path, with alternate-screen enter/leave sequences both present. This
 is code-path validation, not a physical terminal performance measurement.
 
-### macOS arm64 measurement
+### macOS arm64 measurement and terminal checks (2026-11-26)
 
-Pending: the same five-minute release workload at both viewports, with hardware,
-OS/terminal/dependency versions, startup, RSS/peak memory, drawing, scheduled-key
-latency, and CPU measurements. Do not infer a macOS pass from Linux or a short
-run. M4.P1.L1.T3 and the overall cross-platform gate remain incomplete.
+**Incomplete; the cross-platform gates remain blocked.** The new manual workflow
+[mac-perf.yml](../../.github/workflows/mac-perf.yml) is pushed on `mac-gates`, but
+GitHub rejected dispatch with HTTP 404 and lists only CI/Release as registered
+workflows. The new file needs default-branch registration. No macOS five-minute
+run, startup/RSS measurement, <6 ms catalogue result, run URL or CI artifact is
+available. No main push or tag was made.
+
+The workflow runs the effects-off `twelve_streams` at 120×36/80×24 and the actual
+transcript/full-FX `composed_streams` at 140×42/80×24/200×60, 300 seconds per size.
+It preserves draw p95 ≤8 ms, p99 ≤16.7 ms, key p95 ≤50 ms and CPU ≤25% of one
+core. It also runs the unchanged 200×60 `fx_frame` <6 ms gate and release
+invariant/governor/feed/idle and grid/bars/tree tests. CPU uses cumulative
+user+system `ps` time divided by wall time; harness startup/RSS and macOS
+`time -l` maximum RSS are retained with host/toolchain/lockfile evidence.
+`fx_frame` still uses catalogue samples rather than the combined real grid,
+survey-bar and probe-tree transcript; a green result alone cannot close L20.T3.
+
+Terminal host: hueb (192.168.1.3), Apple M3 Ultra, 96 GiB, macOS 27.2.1 arm64
+(build 26B131). Homebrew Squad 0.1.2 was installed; tmux 3.8 already existed.
+Kitty 0.42.1, Ghostty 1.4.0 and iTerm 3.5.14 were inspected. The benchmark pins
+Rust/Cargo 1.99.1 and Cargo.lock (Ratatui 0.30.2, crossterm 0.29.0), but its macOS
+environment artifact has not been generated. Linux results above retain their
+original hardware, methods and qualifications.
+
+Kitty used a temporary remote-control socket and launch-only
+`allow_remote_control=yes`. The installed release used separate temporary data
+directories, `/dev/null` as env file and a loopback streamed provider fixture;
+no live-model calls or spend were required. Raw bounded capability probes and
+Kitty text-buffer inspection provided the following evidence, without a
+physical-display visual or terminal performance measurement:
+
+| Route | Synchronized output | Kitty keyboard | Mode 2027 | OSC 52 via Ctrl+Y | Viewports |
+|---|---|---|---|---|---|
+| Kitty direct | probe supported (`2026;2`); app capture emitted no sync begin | supported; app pushed flags 3 | unsupported (`2027;0`) | failed: copy notice, empty `pbpaste`, no OSC 52 in capture | 120×36, 80×24 startup/input/reply passed |
+| Kitty + isolated tmux | probe supported (`2026;2`) | no response; ordinary fallback | unsupported (`2027;0`) | fixture not delivered | 120×36 with status off; resize to 80×24 retained reply |
+| Ghostty / iTerm | unverified | unverified | unverified | unverified | Ghostty produced no probe output; iTerm AppleScript timed out |
+| wick → hueb SSH | unverified | unverified | unverified | unverified | agent-forwarded shell hop passed; GUI SSH route failed “No route to host” |
+
+System Events automation also hung and screen capture was unavailable. These
+limitations were not counted as passes. The fixture server, owned apps/windows,
+isolated tmux server and temporary Mac files were cleaned up; no Mac development
+checkout or permanent terminal config change was made. Full commands, raw probe
+replies, failed copy evidence, measurement limitations and the six open boxes are
+in [the macOS gate report](../../docs/reports/macos-gates-2026-11-26.md).
 
 ## Integrated effects catalogue (2026-11-24)
 
