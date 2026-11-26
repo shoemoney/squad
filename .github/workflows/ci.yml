@@ -2,6 +2,9 @@ name: CI
 
 on:
   push:
+    # Self-hosted runners take one job at a time: only branches that ship get a full run.
+    branches: [main, 'release-*', 'integration-*']
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
