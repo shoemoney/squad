@@ -30,7 +30,7 @@ The report contains options, the frozen rubric, scores, totals and margin, conte
 
 ## Example run
 
-On 2026-11-26, one activation-enabled release smoke used the default six-model roster, `SQUAD_DAILY_MAX_USD=150`, `--env-file /dev/null`, and a fresh private data directory. The branch switch remains off pending integration.
+On 2026-11-26, one activation-enabled release smoke used the default six-model roster, `SQUAD_DAILY_MAX_USD=150`, `--env-file /dev/null`, and a fresh private data directory. This earlier attempt preceded the shared dispatcher fix.
 
 The decision compared SQLite with daily file backups against managed PostgreSQL for a five-person internal issue tracker. All six criteria calls returned accepted output on their first attempt. The run then stalled at `FREEZING` because the outer shared judge dispatcher rejected the work before the owned judge executor ran. A 150-second watchdog ended the process (exit 137). No decision report or winner was produced.
 
@@ -46,21 +46,14 @@ Accepted criteria excerpt:
 >
 > Backup reliability and recoverability — weight 30: How reliably data can be backed up, verified, and restored to a recent consistent state after failure or corruption.
 
-## Integration requirements
+## Runtime and controls
 
-- `crates/squad-core/src/runtime/judge.rs`, `Executor::execute`: include `grant.work.kind.new_mode_judge()` in the condition routing structured work to `self.crosscheck.execute`. The inner `Runner` already dispatches new modes, but the outer executor sends these work kinds to the legacy adapter, which rejects them before the owned runtime runs. This blocks complete RoomHandle workflows and live smoke. The owned callback/executor fixture bypasses only that outer dispatcher and exercises the real router, store and provider transport.
-- `crates/squad-tui/src/app.rs`, `KeyCode::F(7)` handler: in the existing loop over `self.session.contests.values_mut()`, call `contest.decide.toggle()` for a Decide contest. The handler already invalidates composed artifacts through `toggle_verdict()` and marks the frame dirty. The owned view supports both projections; shared input wiring is integrator-owned.
-- `crates/squad-core/src/router/executor.rs`, `failed`: classify `MODE_INVALID_OUTPUT` alongside `JUDGE_INVALID_MODE_OUTPUT` as `FailureClass::InvalidOutput`. Otherwise a member's D75 repair is rejected as `PRODUCER_FORBIDDEN`, because a transport retry cannot carry diagnostics.
-- `crates/squad-protocol/src/work.rs`, both visible-token match sites: include `DecideScore` in the 4,096-token member set. Until then the owned score executor explicitly requests 4,096 and the stored optional override is absent; reservation bounds already price 4,096. This avoids the scaffold's incorrect 2,048 ceiling without changing a shared file.
+Decide is enabled. Typeahead and help list `$decide`, and the composer TIP rotation includes a parser-checked example. Press F7 to switch between the score matrix and leave-one-criterion-out table.
 
-Mode activation stays off until the complete RoomHandle and D75 regressions pass after integration. The documented syntax is the intended enabled behavior.
+The shared judge dispatcher now routes new-mode judge work through its structured runner. Invalid member output enters the diagnostic repair path, and DecideScore uses the canonical 4,096-token allowance in both protocol validation and durable work. Older frozen work without an optional allowance falls back to that canonical limit. The F7 input handler invokes the owned Decide view's toggle.
 
 ## Verification
 
-On dev2 with four Cargo build jobs, the workspace suite passed with 1,343 passing test executions (1,342 unique), zero failures and six ignored tests. Seventeen new Decide tests pass. Two further Decide integration regressions remain ignored for the shared judge-dispatch and member-repair blockers above. All-target workspace Clippy with warnings denied and the format check passed. Eleven of fourteen M8.P4 tasks are checked; complete runtime acceptance, toggle input wiring and activation remain open.
+The supplied-option and generated-option RoomHandle workflows exercise six members, exact 14/21 call counts and 30/45 attempt reservations, hidden weights, distinct option orders, persisted 4,096-token scoring allowances and restart without duplicate calls. The member repair regression uses RoomHandle and verifies one diagnostic repair per member, 20 total calls and reconciled accounting. Additional fixtures cover skips, quorum failures, judge exhaustion with exportable arithmetic, stop fencing, startup recovery, rubric provenance, medians, close calls and sensitivity arithmetic.
 
-### Recovery verification on `mode-decide-r2`
-
-The recovery worker on 2026-11-26 reproduced both integration failures against the recovered commits. With `ENABLED` temporarily set to true, `cargo test -p squad-core --test decide_workflows -- --ignored --nocapture` completed all six criteria calls and timed out after 15 seconds with `decide.freeze` still running. The member repair regression failed with `PRODUCER_FORBIDDEN`. The switch was restored to false after this probe; running the RoomHandle regression with the switch off stops at `COMMAND_NOT_IMPLEMENTED` before reaching dispatch.
-
-The owned shortlist validator now rejects empty or whitespace-only option names and descriptions, with a regression covering both fields. No additional live call was made while the reproduced shared dispatcher failure remained unresolved. The earlier live attempt above remains the only live evidence; there is still no complete live decision report. The brief's shared-file ownership restriction remains in force.
+Protocol fixtures reject blank shortlist names and descriptions. The TUI tests exercise F7 through the app input handler and verify completion, help, TIP discovery and a public parser example. The two integration regressions inherited from the original worker are now normal tests.
