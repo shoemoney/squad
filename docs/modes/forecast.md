@@ -57,7 +57,7 @@ wall time is claimed until it completes.
 
 ## Integration and verification
 
-With explicit scope approval on 2026-11-26, `mode-forecast-r2` changes four
+With explicit scope approval on 2026-11-26, `mode-forecast-r2` changes five
 shared files required for enablement:
 
 - `crates/squad-core/src/runtime/judge.rs`: route new-mode judge grants to the
@@ -68,6 +68,8 @@ shared files required for enablement:
   forecast expectation with an enabled parse fixture.
 - `crates/squad-protocol/tests/contests.rs`: check forecast availability against
   its enable switch instead of requiring it to remain disabled.
+- `crates/squad-tui/tests/typeahead.rs`: derive the starter menu count from the
+  enabled inventory instead of hard-coding seven modes.
 
 The owned forecast executor now reports `MODE_INVALID_OUTPUT` for members and
 `JUDGE_INVALID_MODE_OUTPUT` for judges. All workflow fixtures use the production

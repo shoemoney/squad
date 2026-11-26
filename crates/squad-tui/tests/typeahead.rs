@@ -137,7 +137,10 @@ fn empty_partial_and_next_token_tab_menus() {
         );
         assert!(!app.input.text().contains('\t'));
         if text.is_empty() {
-            assert_eq!(app.completion.items.len(), 4 + 7 + SLASH_COMMANDS.len());
+            assert_eq!(
+                app.completion.items.len(),
+                4 + typeahead::MODES.len() + SLASH_COMMANDS.len()
+            );
             insta::assert_snapshot!("starter_menu", screen(&mut app, 80));
         }
     }
