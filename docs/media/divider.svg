@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 10" width="1280" height="10" role="img" aria-label="Divider in the six seat colours">
+<defs>
+<linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#e0916f"/><stop offset=".2" stop-color="#8b9cf0"/><stop offset=".4" stop-color="#4fae82"/><stop offset=".6" stop-color="#5b8def"/><stop offset=".8" stop-color="#e9e9f3"/><stop offset="1" stop-color="#e57f84"/></linearGradient>
+<linearGradient id="s" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="c"><rect y="3" width="1280" height="4" rx="2"/></clipPath>
+</defs>
+<rect y="3" width="1280" height="4" rx="2" fill="url(#g)" opacity=".55"/>
+<g clip-path="url(#c)"><rect x="-240" y="0" width="240" height="10" fill="url(#s)"><animate attributeName="x" values="-240;1280" dur="4.5s" repeatCount="indefinite"/></rect></g>
+</svg>

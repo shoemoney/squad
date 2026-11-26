@@ -6,6 +6,20 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
+### Changed
+
+- README redesign: a three-beat TL;DR (pain, potential, proof) with the hero GIF at the top,
+  an animated banner, a tested install section, a GIF for every mode and room feature,
+  Mermaid diagrams, a measured-cost chart and a labelled "Coming soon" table. All reference
+  material is kept, with the long mechanics folded into collapsibles. Corrected two stale
+  claims: release binaries are published (not pending), and typeahead, tips, the startup
+  checklist and the MCP server shipped in 0.1.2.
+
+### Added
+
+- `docs/demo/install.tape` records the release-archive install; `docs/media/install.gif`,
+  `docs/media/doctor-pass.png`, `docs/media/banner.svg` and `docs/media/divider.svg`.
+
 ## [0.1.3] - 2026-11-26
 
 ### Added

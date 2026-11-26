@@ -14,6 +14,7 @@ This file is the timed script for the canonical Squad demonstration, the walkthr
 | Grill (live) | `docs/demo/grill.tape` | `grill.gif` | `~/squad-demo-raw/live-grill.mp4` (169 s) |
 | Census (live) | `docs/demo/census.tape` | `census.gif` | `~/squad-demo-raw/live-census.mp4` (161 s) |
 | Crosscheck (live) | `docs/demo/crosscheck.tape` | `crosscheck.gif` | `~/squad-demo-raw/live-crosscheck.mp4` (206 s) |
+| Install (release archive) | `docs/demo/install.tape` | `install.gif`, `doctor-pass.png` | none (short, real time) |
 | Survey (live v0.1.2) | `docs/demo/survey.tape` + `survey-report.tape` | [survey.gif](media/survey.gif) | `~/squad-demo-raw/audit-survey-v0.1.2.mp4` + report continuation |
 | Probe (live v0.1.2) | `docs/demo/probe.tape` + `probe-report.tape` | [probe.gif](media/probe.gif) | `~/squad-demo-raw/audit-probe-v0.1.2.mp4` + report continuation |
 
