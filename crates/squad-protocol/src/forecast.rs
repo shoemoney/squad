@@ -204,10 +204,10 @@ pub struct ForecastReport {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ForecastCaseMaterial {
-    pub frame: ForecastFrame,
+    pub frame: Box<ForecastFrame>,
     pub forecasts: serde_json::Value,
-    pub first_aggregate: ForecastAggregate,
-    pub final_aggregate: ForecastAggregate,
+    pub first_aggregate: Box<ForecastAggregate>,
+    pub final_aggregate: Box<ForecastAggregate>,
 }
 
 impl ForecastSetup {

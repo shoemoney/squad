@@ -42,10 +42,10 @@ fn save(
     expected: Option<u64>,
 ) -> Result<()> {
     s.validate().map_err(|_| invalid())?;
-    if let Some(v) = expected {
-        if load_state(tx, s.contest_id)?.state_version != v {
-            return Err(invalid());
-        }
+    if let Some(v) = expected
+        && load_state(tx, s.contest_id)?.state_version != v
+    {
+        return Err(invalid());
     }
     let seq = g.push(
         tx,
