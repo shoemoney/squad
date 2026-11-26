@@ -77,4 +77,5 @@ pub mod judge;
 pub mod openrouter;
 pub mod registry;
 pub mod resolver;
+pub mod wire_schema;
 pub mod worker;

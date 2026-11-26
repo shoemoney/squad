@@ -1471,6 +1471,11 @@ limitations must acknowledge shared model blind spots and any missing
 answers, votes, or revotes. Do not declare a winning member or answer.
 
 Keep generated prose within {{step_word_limit}} words.
+That limit covers every prose field of the whole object together, so
+budget it: divide it by the number of claims and write one or two short
+sentences per explanation. settlingQuestion is needed only for contested
+claims; use an empty string for it in every other band. A report over the
+limit is rejected, so stay well under it.
 Required schema:
 {{mode_schema_json}}
 
@@ -1608,12 +1613,17 @@ discardedChecks, inseparableGroups, and limitations.
 decisionTree contains a root node reference and nodes conforming to
 the supplied schema. Each check node identifies a supplied check,
 what to measure, outcome branches, and an unexpected-result branch.
+Copy each check's checkId and measurement text exactly as supplied, and
+use exactly the supplied outcome ids as its branch keys, no more and no
+fewer. Squad rejects a tree that rewords a measurement or drops an outcome.
 Each leaf identifies the explanations that remain and the next action.
 Use valid references and an acyclic tree with reachable branches.
 An unexpected result must lead to reassessment, not a forced winner.
 
 predictionMatrix preserves the accepted per-explanation predictions,
-including unknowns, without changing their meaning.
+including unknowns, without changing their meaning. Copy it exactly as
+supplied, with every explanation id and check id; an empty or edited
+matrix is rejected.
 discardedChecks identifies each omitted check and why it does not
 help distinguish explanations.
 inseparableGroups identifies explanations the available checks cannot

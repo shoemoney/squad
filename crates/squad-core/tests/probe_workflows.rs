@@ -273,6 +273,24 @@ impl Respond for Answers {
         }
     }
 }
+/// Live regression (2026-11-25): `squad send` opens the room one-shot, which only
+/// admits later steps of a contest from their queued announcements. Probe
+/// queued its prediction and report work silently, so `send` stalled in
+/// PREDICTING with every explainer idle.
+#[tokio::test]
+async fn one_shot_room_runs_every_probe_step_to_the_report() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::OneShot).await;
+    assert!(matches!(
+        room.submit(request(&f.config, BRIEF)).await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(f.count("probe.prediction"), 3);
+    assert_eq!(f.count("probe.report"), 1);
+    room.shutdown().await.unwrap();
+}
+
 #[tokio::test]
 async fn six_members_ten_calls_and_locked_visibility() {
     let f = Fixture::new().await;
@@ -478,6 +496,17 @@ async fn six_members_ten_calls_and_locked_visibility() {
     assert_eq!(calls, 10);
     f.assert_ledger();
     room.shutdown().await.unwrap();
+}
+
+/// Live regression: the report judge reworded a check's measurement, which the
+/// validator rejects ("tree changed measurement or outcomes"), because the
+/// prompt never said to copy it.
+#[test]
+fn report_prompt_demands_verbatim_measurements_outcomes_and_matrix() {
+    let prompt = include_str!("../prompts/probe.report.md");
+    assert!(prompt.contains("measurement text exactly as supplied"));
+    assert!(prompt.contains("exactly the supplied outcome ids"));
+    assert!(prompt.contains("Copy it exactly as\nsupplied"));
 }
 
 const BRIEF: &str = "@all $probe Intermittent noise, fan ruled out, inspect indicator only";

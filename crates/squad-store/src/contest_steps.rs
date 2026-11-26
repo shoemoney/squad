@@ -77,6 +77,25 @@ pub fn settle(
     if db.execute("UPDATE contest_assignments SET outcome=?1,error_json=?2 WHERE step_id=?3 AND target=?4 AND outcome='pending'",params![outcome,skipped.map(encode).transpose()?,step.to_string(),target.to_string()])?!=1 {return Err(invalid("Assignment already settled"));}
     Ok(())
 }
+/// Settle an assignment unless an earlier engine pass already did. Engine moves
+/// that return early (another member is still running) keep the settlements they
+/// made, so the next pass meets them again and must not treat that as corruption.
+pub fn settle_if_pending(
+    db: &Connection,
+    step: StepId,
+    target: &Target,
+    skipped: Option<&ErrorPayload>,
+) -> Result<()> {
+    let pending: bool = db.query_row(
+        "SELECT EXISTS(SELECT 1 FROM contest_assignments WHERE step_id=?1 AND target=?2 AND outcome='pending')",
+        params![step.to_string(), target.to_string()],
+        |r| r.get(0),
+    )?;
+    if pending {
+        settle(db, step, target, skipped)?;
+    }
+    Ok(())
+}
 pub fn barrier(db: &Connection, step: StepId, seq: Cursor) -> Result<()> {
     if db.execute("UPDATE contest_steps SET committed=1,updated_seq=?1 WHERE step_id=?2 AND committed=0 AND NOT EXISTS(SELECT 1 FROM contest_assignments WHERE step_id=?2 AND outcome='pending')",params![seq.get(),step.to_string()])?!=1 {return Err(invalid("Barrier is not ready or already committed"));}
     Ok(())

@@ -765,7 +765,7 @@ pub(crate) fn drive_move(
                 ErrorCode::MODE_INVALID_OUTPUT,
                 "Member skipped after exhausted attempts",
             );
-            squad_store::contest_steps::settle(tx, step, &work.target, Some(&failure))?;
+            squad_store::contest_steps::settle_if_pending(tx, step, &work.target, Some(&failure))?;
         }
     }
     let version = state.state_version;

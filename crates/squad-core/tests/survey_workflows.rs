@@ -244,10 +244,24 @@ async fn question_first_survey_runs_real_engine_and_private_fanouts() {
     for b in f.fake.captured_bodies().await {
         let text = b["messages"].to_string();
         if text.contains("extract atomic claims") {
+            // Providers reject bound-heavy schemas (Gemini: "too many states"),
+            // so the wire schema carries no maxItems. The prompt states the cap
+            // and the local validator enforces it.
             assert_eq!(
-                b["response_format"]["json_schema"]["schema"]["properties"]["claims"]["maxItems"],
-                25
+                b["response_format"]["json_schema"]["schema"]["properties"]["claims"]["type"],
+                "array"
             );
+            assert!(
+                b["response_format"]["json_schema"]["schema"]["properties"]["claims"]
+                    .get("maxItems")
+                    .is_none()
+            );
+            assert!(text.contains("up to\\n25 distinct claims"), "{text}");
+        }
+        if text.contains("write the human's claim map") {
+            // Live: a 25-claim report overran the word budget three times (1,425 > 1,200).
+            assert!(text.contains("budget it"), "{text}");
+            assert!(text.contains("settlingQuestion is needed only for contested"));
         }
         if b["model"] == "fixture/judge" {
             assert!(!text.contains("PERSONA_"));
@@ -258,14 +272,12 @@ async fn question_first_survey_runs_real_engine_and_private_fanouts() {
             assert!(!text.contains("sourceAnswerIds"));
             assert!(!text.contains("finalTally"));
             let schema = &b["response_format"]["json_schema"]["schema"];
-            assert_eq!(schema["properties"]["votes"]["maxItems"], 1);
+            // Bounds stay out of the wire schema; the ballot validator enforces them.
+            assert_eq!(schema["properties"]["votes"]["type"], "array");
+            assert!(schema["properties"]["votes"].get("maxItems").is_none());
             assert_eq!(
-                schema["$defs"]["SurveyBallotItem"]["properties"]["confidence"]["minimum"],
-                1
-            );
-            assert_eq!(
-                schema["$defs"]["SurveyBallotItem"]["properties"]["confidence"]["maximum"],
-                5
+                schema["$defs"]["SurveyBallotItem"]["properties"]["confidence"]["type"],
+                "integer"
             );
             assert_eq!(b["messages"].as_array().unwrap().len(), 2);
         }
