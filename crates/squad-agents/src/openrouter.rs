@@ -129,8 +129,12 @@ impl ChatRequest {
                     json!({"max_tokens": reservation})
                 };
         }
-        if let Some(format) = &self.response_format {
-            body["response_format"] = crate::wire_schema::sanitize_response_format(format);
+        if let Some(format) = self
+            .response_format
+            .as_ref()
+            .and_then(crate::wire_schema::sanitize_response_format)
+        {
+            body["response_format"] = format;
         }
         Ok(body)
     }

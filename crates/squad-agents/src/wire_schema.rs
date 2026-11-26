@@ -37,17 +37,22 @@ const DROPPED: &[&str] = &[
 ];
 
 /// Rewrite the schema inside a `response_format` value; other formats pass through.
-pub fn sanitize_response_format(format: &Value) -> Value {
+///
+/// Returns `None` when the schema holds a map-valued object (probe trees and
+/// matrices, round scores). OpenAI strict mode rejects those with HTTP 400, and
+/// Anthropic accepts them but then satisfies them with `{}`: live, Sonnet 5.5
+/// returned an empty decision tree under `response_format` and a full 6.5 KB
+/// one for the same prompt without it. The prompt already carries the schema and
+/// the reply is validated locally, so such calls go out as prompt-only JSON.
+pub fn sanitize_response_format(format: &Value) -> Option<Value> {
     let mut format = format.clone();
     if let Some(schema) = format.pointer_mut("/json_schema/schema") {
         *schema = wire_schema(schema);
-        // OpenAI strict mode cannot express map-valued objects (probe trees and
-        // matrices, round scores); it answers HTTP 400. Loose mode still guides.
         if has_map(schema) {
-            format["json_schema"]["strict"] = Value::Bool(false);
+            return None;
         }
     }
-    format
+    Some(format)
 }
 
 fn has_map(schema: &Value) -> bool {

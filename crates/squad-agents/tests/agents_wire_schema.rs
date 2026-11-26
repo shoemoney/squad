@@ -163,11 +163,14 @@ async fn the_unsanitized_schema_would_have_failed() {
 }
 
 #[test]
-fn map_schemas_leave_openai_strict_mode() {
-    let body = request("openai/gpt-5-nano", validation::schema::<ProbeReport>())
-        .body()
-        .unwrap();
-    assert_eq!(body["response_format"]["json_schema"]["strict"], false);
+fn map_schemas_go_out_without_response_format() {
+    let body = request(
+        "anthropic/claude-sonnet-5.5",
+        validation::schema::<ProbeReport>(),
+    )
+    .body()
+    .unwrap();
+    assert!(body.get("response_format").is_none());
     let body = request(
         "openai/gpt-5-nano",
         validation::schema::<CensusHuntOutput>(),
