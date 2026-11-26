@@ -198,3 +198,29 @@ DROP TABLE vars;
 ALTER TABLE vars_m9 RENAME TO vars;
 INSERT INTO vars(name,value,updated_seq) VALUES('PRD_HUMAN_REVIEW',0,NULL);
 PRAGMA legacy_alter_table=OFF;
+
+CREATE TABLE bass_ackwards_prd_records (
+ contest_id TEXT NOT NULL REFERENCES contests(contest_id) ON DELETE CASCADE,
+ record_key TEXT NOT NULL,
+ body TEXT NOT NULL CHECK(json_valid(body)),
+ PRIMARY KEY(contest_id,record_key)
+) STRICT;
+
+-- Keep newly queued ordinary replies behind this mode's frozen participant claim.
+-- Human review releases these holds; it retains only the active contest claim.
+CREATE TRIGGER bass_ackwards_prd_hold_reply AFTER INSERT ON work
+WHEN NEW.kind='reply' AND NEW.status='queued' AND NEW.contest_id IS NULL
+BEGIN
+ UPDATE work SET held_by_contest_id=(
+  SELECT c.contest_id FROM contests c JOIN bass_ackwards_prd_records r USING(contest_id)
+  WHERE c.active=1 AND c.kind='bass_ackwards_prd' AND r.record_key='setup'
+   AND json_extract(c.state_json,'$.state') NOT IN ('PREFLIGHT','AWAITING_HUMAN')
+   AND EXISTS(SELECT 1 FROM json_each(r.body,'$.participants') WHERE value=NEW.target)
+ ),runnable=0
+ WHERE work_id=NEW.work_id AND EXISTS(
+  SELECT 1 FROM contests c JOIN bass_ackwards_prd_records r USING(contest_id)
+  WHERE c.active=1 AND c.kind='bass_ackwards_prd' AND r.record_key='setup'
+   AND json_extract(c.state_json,'$.state') NOT IN ('PREFLIGHT','AWAITING_HUMAN')
+   AND EXISTS(SELECT 1 FROM json_each(r.body,'$.participants') WHERE value=NEW.target)
+ );
+END;
