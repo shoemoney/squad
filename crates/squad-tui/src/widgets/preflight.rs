@@ -101,7 +101,10 @@ impl PreflightView {
                     }
                     ContestKind::Grill => {
                         let grillers = n.saturating_sub(1);
-                        match p.settings["totalRounds"].as_u64() {
+                        match p.settings["totalRounds"]
+                            .as_u64()
+                            .or_else(|| p.settings["setup"]["totalRounds"].as_u64())
+                        {
                             Some(r) => format!(
                                 "{r} rounds × ({grillers} grillers × 2 + 1) calls · leader {}",
                                 p.participants
@@ -127,7 +130,11 @@ impl PreflightView {
                         .as_array()
                         .map(|a| a.len() as u64)
                         .or_else(|| p.settings["collect"].as_u64())
-                    {
+                        .or_else(|| {
+                            p.settings["collect"]
+                                .as_bool()
+                                .map(|collect| if collect { u64::from(n) } else { 0 })
+                        }) {
                         Some(0) | None => format!("{n} members · using existing answers"),
                         Some(k) => format!("{n} members · collecting {k} new answers"),
                     },
@@ -141,6 +148,15 @@ impl PreflightView {
         let PendingPreflight::Contest(p) = &self.plan else {
             return None;
         };
+        if p.kind == ContestKind::Grill
+            && let Some(plan) = p.settings["setup"]["initialPlan"].as_str()
+        {
+            return Some(format!(
+                "Plan from @{}:\n{}",
+                p.participants.first().map_or("?", Nick::as_str),
+                crate::markdown::sanitize(plan)
+            ));
+        }
         let list = p.settings.get("sourceEventIds")?.as_array()?;
         (!list.is_empty()).then(|| {
             format!(

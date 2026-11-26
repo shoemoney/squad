@@ -245,6 +245,9 @@ impl Composed {
             for (index, (id, source)) in session.debates.iter().enumerate() {
                 let mut view = source.clone();
                 view.number = index + 1;
+                view.rounds
+                    .iter_mut()
+                    .for_each(|round| round.reasons_expanded = expanded);
                 view.topic = session.snapshot.events.iter().rev().find_map(|event| {
                     if let EnvelopePayload::DebateOpening(opening) = &event.content {
                         (opening.debate_id == *id).then(|| opening.topic_text.to_string())
