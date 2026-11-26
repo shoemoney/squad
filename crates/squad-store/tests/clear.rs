@@ -64,7 +64,10 @@ fn populated_clear_is_foreign_key_safe_and_retains_only_accounting_and_counters(
                 rounds: 7,
                 grill_rounds: 4,
                 census_passes: 3,
- negotiate_rounds:3,readback_rounds:2,debug_rounds:3,
+                negotiate_rounds: 3,
+                readback_rounds: 2,
+                debug_rounds: 3,
+                tune_generations: 3,
             },
         )?;
         group.epoch += 1;

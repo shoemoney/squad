@@ -40,7 +40,7 @@ pub fn recover_on_open_mode(
         let modes=q.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?)))?.collect::<rusqlite::Result<Vec<_>>>()?;
         drop(q);
         for (id,kind) in modes {let kind:ContestKind=serde_json::from_value(serde_json::Value::String(kind))?;
-            if matches!(kind,ContestKind::Forge|ContestKind::Forecast|ContestKind::Decide|ContestKind::Negotiate|ContestKind::BlowItUp|ContestKind::Readback|ContestKind::Debugging|ContestKind::Trace|ContestKind::Rank) {super::new_mode_recover(kind,&tx,id.parse().map_err(|_|StoreError::Unavailable)?)?;}
+            if matches!(kind,ContestKind::Tune|ContestKind::BassAckwardsPrd|ContestKind::Forge|ContestKind::Forecast|ContestKind::Decide|ContestKind::Negotiate|ContestKind::BlowItUp|ContestKind::Readback|ContestKind::Debugging|ContestKind::Trace|ContestKind::Rank) {super::new_mode_recover(kind,&tx,id.parse().map_err(|_|StoreError::Unavailable)?)?;}
         }
         let epoch:i64=tx.query_row("SELECT epoch FROM room_meta",[],|r|r.get(0))?;
         let boundaries=squad_store::events::boundaries(&tx)?;

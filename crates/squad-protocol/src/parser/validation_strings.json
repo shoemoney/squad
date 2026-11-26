@@ -1,4 +1,8 @@
 [
+  "Add a prompt to optimise after $tune.",
+  "Add the task description after -- for $tune.",
+  "Add an end result after $bass_ackwards_prd.",
+  "TUNE_GENERATIONS must be an integer from 1 to 6.",
   "Command ${verb} is disabled until its implementation lands.",
   "${mode} needs at least three members.",
   "$negotiate needs at least four members.",

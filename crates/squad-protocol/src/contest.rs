@@ -6,6 +6,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase", rename_all_fields = "camelCase")]
 pub enum ContestKind {
+    #[serde(rename = "tune")]
+    Tune,
+    #[serde(rename = "bass_ackwards_prd")]
+    BassAckwardsPrd,
+
     #[serde(rename = "forge")]
     Forge,
     #[serde(rename = "forecast")]
@@ -127,6 +132,11 @@ pub struct GenericContestState {
     rename_all_fields = "camelCase"
 )]
 pub enum ContestState {
+    #[serde(rename = "tune")]
+    Tune(TuneState),
+    #[serde(rename = "bass_ackwards_prd")]
+    BassAckwardsPrd(BassAckwardsPrdState),
+
     #[serde(rename = "forge")]
     Forge(ForgeState),
     #[serde(rename = "forecast")]
@@ -234,7 +244,6 @@ pub struct ContestAssignment {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ContestArtifact {
-
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<ContestKind>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -282,6 +291,11 @@ pub struct ContestTransitionSubmission {
     rename_all_fields = "camelCase"
 )]
 pub enum ContestTransition {
+    #[serde(rename = "tune")]
+    Tune(TuneTransition),
+    #[serde(rename = "bass_ackwards_prd")]
+    BassAckwardsPrd(BassAckwardsPrdTransition),
+
     #[serde(rename = "forge")]
     Forge(ForgeTransition),
     #[serde(rename = "forecast")]
@@ -314,6 +328,8 @@ impl ContestKind {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Forge => "forge",
+            Self::Tune => "tune",
+            Self::BassAckwardsPrd => "bass_ackwards_prd",
             Self::Forecast => "forecast",
             Self::Decide => "decide",
             Self::Negotiate => "negotiate",
@@ -334,6 +350,8 @@ impl ContestKind {
     pub fn is_built(self) -> bool {
         match self {
             Self::Forge => return forge::ENABLED,
+            Self::Tune => return tune::ENABLED,
+            Self::BassAckwardsPrd => return bass_ackwards_prd::ENABLED,
             Self::Forecast => return forecast::ENABLED,
             Self::Decide => return decide::ENABLED,
             Self::Negotiate => return negotiate::ENABLED,
@@ -374,31 +392,82 @@ impl ContestTransitionSubmission {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(tag="kind", rename_all="lowercase", deny_unknown_fields)]
-pub enum ArtifactAudience { Human, Case, Members { recipients: Vec<MemberNick> } }
+#[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
+pub enum ArtifactAudience {
+    Human,
+    Case,
+    Members { recipients: Vec<MemberNick> },
+}
 impl ContestArtifact {
- pub fn validate_mode(&self) -> crate::validation::ValidationResult {
-  use crate::validation::{ensure,unique};
-  let kind=self.kind.ok_or_else(||crate::validation::ValidationError{message:"artifact requires kind".into()})?;
-  ensure(self.round.is_some() && self.actor.is_some() && self.body.as_ref().is_some_and(|b|b.is_object()), "mode artifact requires round, actor and object body")?;
-  match &self.audience { Some(ArtifactAudience::Members {recipients}) => ensure(!recipients.is_empty() && unique(recipients), "explicit distinct artifact recipients required")?, Some(_) => {}, None => return ensure(false,"artifact audience required") }
-  let body=self.body.as_ref().expect("checked");
-  match kind {
-ContestKind::Forge => forge::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::Forecast => forecast::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::Decide => decide::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::Negotiate => negotiate::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::BlowItUp => blow_it_up::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::Readback => readback::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::Debugging => debugging::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::Trace => trace::validate_artifact(self.artifact_kind.as_str(), body),
-ContestKind::Rank => rank::validate_artifact(self.artifact_kind.as_str(), body),
-_ => ensure(false,"not a new-mode artifact") }
- }
+    pub fn validate_header(&self) -> crate::validation::ValidationResult {
+        use crate::validation::{ensure, unique};
+        let kind = self
+            .kind
+            .ok_or_else(|| crate::validation::ValidationError {
+                message: "artifact requires kind".into(),
+            })?;
+        ensure(
+            self.round.is_some()
+                && self.actor.is_some()
+                && self.body.as_ref().is_some_and(|b| b.is_object()),
+            "mode artifact requires round, actor and object body",
+        )?;
+        match &self.audience {
+            Some(ArtifactAudience::Members { recipients }) => ensure(
+                !recipients.is_empty() && unique(recipients),
+                "explicit distinct artifact recipients required",
+            )?,
+            Some(_) => {}
+            None => return ensure(false, "artifact audience required"),
+        }
+        ensure(
+            self.artifact_kind
+                .as_str()
+                .starts_with(&format!("{}.", kind.as_str())),
+            "artifact kind prefix mismatch",
+        )?;
+        Ok(())
+    }
+    pub fn validate_mode(&self) -> crate::validation::ValidationResult {
+        self.validate_header()?;
+        use crate::validation::ensure;
+        let kind = self.kind.expect("checked");
+        let body = self.body.as_ref().expect("checked");
+        match kind {
+            ContestKind::Forge => forge::validate_artifact(self.artifact_kind.as_str(), body),
+            ContestKind::Tune => tune::validate_artifact(self.artifact_kind.as_str(), body),
+            ContestKind::BassAckwardsPrd => {
+                bass_ackwards_prd::validate_artifact(self.artifact_kind.as_str(), body)
+            }
+            ContestKind::Forecast => forecast::validate_artifact(self.artifact_kind.as_str(), body),
+            ContestKind::Decide => decide::validate_artifact(self.artifact_kind.as_str(), body),
+            ContestKind::Negotiate => {
+                negotiate::validate_artifact(self.artifact_kind.as_str(), body)
+            }
+            ContestKind::BlowItUp => {
+                blow_it_up::validate_artifact(self.artifact_kind.as_str(), body)
+            }
+            ContestKind::Readback => readback::validate_artifact(self.artifact_kind.as_str(), body),
+            ContestKind::Debugging => {
+                debugging::validate_artifact(self.artifact_kind.as_str(), body)
+            }
+            ContestKind::Trace => trace::validate_artifact(self.artifact_kind.as_str(), body),
+            ContestKind::Rank => rank::validate_artifact(self.artifact_kind.as_str(), body),
+            _ => ensure(false, "not a new-mode artifact"),
+        }
+    }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all="camelCase", deny_unknown_fields)]
-pub struct ContestHumanRequested { pub pending: parser::PendingHuman }
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ContestHumanRequested {
+    pub pending: parser::PendingHuman,
+}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all="camelCase", deny_unknown_fields)]
-pub struct ContestHumanAnswered { pub contest_id: ContestId, pub step_id: StepId, pub expected_state_version: u64, pub text: Option<String>, pub complete: bool }
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ContestHumanAnswered {
+    pub contest_id: ContestId,
+    pub step_id: StepId,
+    pub expected_state_version: u64,
+    pub text: Option<String>,
+    pub complete: bool,
+}

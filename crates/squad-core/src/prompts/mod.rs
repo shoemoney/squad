@@ -220,3 +220,7 @@ pub mod inputs_debugging;
 pub mod inputs_trace;
 
 pub mod inputs_rank;
+
+pub mod inputs_tune;
+
+pub mod inputs_bass_ackwards_prd;

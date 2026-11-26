@@ -9,7 +9,7 @@ pub use parser::{HELP_EXAMPLES, SLASH_COMMANDS, resolve_recipients};
 mod context;
 #[cfg(test)]
 use context::parse_fixture;
-pub use context::{restore_pending_human, ParseContext, RecordSummary, parse, validate_context};
+pub use context::{ParseContext, RecordSummary, parse, restore_pending_human, validate_context};
 pub(crate) use context::{
     complete_crosscheck, continuation_plan, validate_control, waiting_census,
 };
@@ -37,14 +37,61 @@ mod controls_tests;
 #[cfg(test)]
 thread_local! { static ENABLE_NEW_MODES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 fn mode_enabled(kind: crate::ContestKind) -> bool {
- #[cfg(test)]
- if ENABLE_NEW_MODES.with(|v| v.get()) { return true; }
- kind.is_built()
+    #[cfg(test)]
+    if ENABLE_NEW_MODES.with(|v| v.get()) {
+        return true;
+    }
+    kind.is_built()
 }
 #[cfg(test)]
 fn with_new_modes<T>(f: impl FnOnce() -> T) -> T {
- struct Reset(bool);
- impl Drop for Reset { fn drop(&mut self) { ENABLE_NEW_MODES.with(|v| v.set(self.0)); } }
- let _reset = Reset(ENABLE_NEW_MODES.with(|v| v.replace(true)));
- f()
+    struct Reset(bool);
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            ENABLE_NEW_MODES.with(|v| v.set(self.0));
+        }
+    }
+    let _reset = Reset(ENABLE_NEW_MODES.with(|v| v.replace(true)));
+    f()
+}
+
+#[cfg(test)]
+mod new_modes_tests;
+
+pub fn help_examples() -> Vec<&'static str> {
+    let mut examples = HELP_EXAMPLES.to_vec();
+    if crate::forge::ENABLED {
+        examples.push("@all $forge brief");
+    }
+    if crate::forecast::ENABLED {
+        examples.push("@all $forecast brief");
+    }
+    if crate::decide::ENABLED {
+        examples.push("@all $decide brief");
+    }
+    if crate::negotiate::ENABLED {
+        examples.push("@all $negotiate brief");
+    }
+    if crate::blow_it_up::ENABLED {
+        examples.push("@all $blow_it_up brief");
+    }
+    if crate::readback::ENABLED {
+        examples.push("@all $readback brief");
+    }
+    if crate::debugging::ENABLED {
+        examples.push("@all $debug brief");
+    }
+    if crate::trace::ENABLED {
+        examples.push("@all $trace question\n--\nsource");
+    }
+    if crate::rank::ENABLED {
+        examples.push("@all $rank criterion\n--\nA\nB\nC");
+    }
+    if crate::tune::ENABLED {
+        examples.push("@all $tune prompt\n--\ntask description");
+    }
+    if crate::bass_ackwards_prd::ENABLED {
+        examples.push("@all $bass_ackwards_prd end result");
+    }
+    examples
 }

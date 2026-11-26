@@ -2,7 +2,7 @@
 use rusqlite::{Connection, TransactionBehavior};
 pub const INITIAL: &str = include_str!("../migrations/0001_initial.sql");
 /// Newest schema version this build writes.
-const CURRENT_VERSION: i64 = 18;
+const CURRENT_VERSION: i64 = 20;
 /// How long a statement waits for another connection's write lock.
 const BUSY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 /// Apply the shared durability and integrity settings to one connection.
@@ -49,16 +49,42 @@ pub fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
         if version < 8 {
             tx.execute_batch(include_str!("../migrations/0008_alias_cache.sql"))?;
         }
-        if version < 9 { tx.execute_batch(include_str!("../migrations/0009_new_modes.sql"))?; }
-        if version < 10 { tx.execute_batch(include_str!("../migrations/0010_forge.sql"))?; }
-        if version < 11 { tx.execute_batch(include_str!("../migrations/0011_forecast.sql"))?; }
-        if version < 12 { tx.execute_batch(include_str!("../migrations/0012_decide.sql"))?; }
-        if version < 13 { tx.execute_batch(include_str!("../migrations/0013_negotiate.sql"))?; }
-        if version < 14 { tx.execute_batch(include_str!("../migrations/0014_blow_it_up.sql"))?; }
-        if version < 15 { tx.execute_batch(include_str!("../migrations/0015_readback.sql"))?; }
-        if version < 16 { tx.execute_batch(include_str!("../migrations/0016_debug.sql"))?; }
-        if version < 17 { tx.execute_batch(include_str!("../migrations/0017_trace.sql"))?; }
-        if version < 18 { tx.execute_batch(include_str!("../migrations/0018_rank.sql"))?; }
+        if version < 9 {
+            tx.execute_batch(include_str!("../migrations/0009_new_modes.sql"))?;
+        }
+        if version < 10 {
+            tx.execute_batch(include_str!("../migrations/0010_forge.sql"))?;
+        }
+        if version < 11 {
+            tx.execute_batch(include_str!("../migrations/0011_forecast.sql"))?;
+        }
+        if version < 12 {
+            tx.execute_batch(include_str!("../migrations/0012_decide.sql"))?;
+        }
+        if version < 13 {
+            tx.execute_batch(include_str!("../migrations/0013_negotiate.sql"))?;
+        }
+        if version < 14 {
+            tx.execute_batch(include_str!("../migrations/0014_blow_it_up.sql"))?;
+        }
+        if version < 15 {
+            tx.execute_batch(include_str!("../migrations/0015_readback.sql"))?;
+        }
+        if version < 16 {
+            tx.execute_batch(include_str!("../migrations/0016_debug.sql"))?;
+        }
+        if version < 17 {
+            tx.execute_batch(include_str!("../migrations/0017_trace.sql"))?;
+        }
+        if version < 18 {
+            tx.execute_batch(include_str!("../migrations/0018_rank.sql"))?;
+        }
+        if version < 19 {
+            tx.execute_batch(include_str!("../migrations/0019_tune.sql"))?;
+        }
+        if version < 20 {
+            tx.execute_batch(include_str!("../migrations/0020_bass_ackwards_prd.sql"))?;
+        }
         let invalid: bool = tx.query_row(
             "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
             [],

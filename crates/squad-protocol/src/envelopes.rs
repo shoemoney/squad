@@ -136,8 +136,23 @@ pub struct Completion {
 #[serde(tag = "kind", content = "payload")]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum EnvelopePayload {
- #[serde(rename="contest.human_requested")] ContestHumanRequested(ContestHumanRequested),
- #[serde(rename="contest.human_answered")] ContestHumanAnswered(ContestHumanAnswered),
+    #[serde(rename = "tune.setup")]
+    TuneSetup(ContestSetup),
+    #[serde(rename = "tune.state")]
+    TuneState(TuneState),
+    #[serde(rename = "tune.preflight")]
+    TunePreflight(ContestPreflight),
+    #[serde(rename = "bass_ackwards_prd.setup")]
+    BassAckwardsPrdSetup(ContestSetup),
+    #[serde(rename = "bass_ackwards_prd.state")]
+    BassAckwardsPrdState(BassAckwardsPrdState),
+    #[serde(rename = "bass_ackwards_prd.preflight")]
+    BassAckwardsPrdPreflight(ContestPreflight),
+
+    #[serde(rename = "contest.human_requested")]
+    ContestHumanRequested(ContestHumanRequested),
+    #[serde(rename = "contest.human_answered")]
+    ContestHumanAnswered(ContestHumanAnswered),
     #[serde(rename = "forge.setup")]
     ForgeSetup(ContestSetup),
     #[serde(rename = "forge.state")]
@@ -566,6 +581,11 @@ pub struct BudgetStateEvent {
 // Keep the shared by-value API specified by section 02.
 #[allow(clippy::large_enum_variant)]
 pub enum CaseMaterial {
+    #[serde(rename = "tune")]
+    Tune(TuneCaseMaterial),
+    #[serde(rename = "bass_ackwards_prd")]
+    BassAckwardsPrd(BassAckwardsPrdCaseMaterial),
+
     #[serde(rename = "forge")]
     Forge(ForgeCaseMaterial),
     #[serde(rename = "forecast")]
@@ -732,8 +752,39 @@ fn validate_envelope(
     )?;
     let human_only = base.recipients == [Recipient::Me];
     match payload {
-        EnvelopePayload::ContestHumanRequested(v) => ensure(human_only && base.sender == Actor::System && matches!(v.pending.kind, ContestKind::Readback | ContestKind::Debugging) && v.pending.state_version > 0, "invalid human request")?,
-        EnvelopePayload::ContestHumanAnswered(v) => ensure(human_only && base.sender == Actor::Me && v.expected_state_version > 0, "invalid human answer")?,
+        EnvelopePayload::TuneSetup(s) => ensure(
+            s.kind == ContestKind::Tune && s.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::BassAckwardsPrdSetup(s) => ensure(
+            s.kind == ContestKind::BassAckwardsPrd && s.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::TunePreflight(p) => {
+            ensure(p.kind == ContestKind::Tune, "mode preflight mismatch")?;
+            p.estimate.validate()?;
+        }
+        EnvelopePayload::BassAckwardsPrdPreflight(p) => {
+            ensure(
+                p.kind == ContestKind::BassAckwardsPrd,
+                "mode preflight mismatch",
+            )?;
+            p.estimate.validate()?;
+        }
+        EnvelopePayload::ContestHumanRequested(v) => ensure(
+            human_only
+                && base.sender == Actor::System
+                && matches!(
+                    v.pending.kind,
+                    ContestKind::Readback | ContestKind::Debugging
+                )
+                && v.pending.state_version > 0,
+            "invalid human request",
+        )?,
+        EnvelopePayload::ContestHumanAnswered(v) => ensure(
+            human_only && base.sender == Actor::Me && v.expected_state_version > 0,
+            "invalid human answer",
+        )?,
         EnvelopePayload::TournamentState(s) => {
             ensure(
                 base.sender == Actor::System && human_only,
@@ -825,8 +876,39 @@ fn validate_envelope(
     }
 
     match payload {
-        EnvelopePayload::ContestHumanRequested(v) => ensure(human_only && base.sender == Actor::System && matches!(v.pending.kind, ContestKind::Readback | ContestKind::Debugging) && v.pending.state_version > 0, "invalid human request")?,
-        EnvelopePayload::ContestHumanAnswered(v) => ensure(human_only && base.sender == Actor::Me && v.expected_state_version > 0, "invalid human answer")?,
+        EnvelopePayload::TuneSetup(s) => ensure(
+            s.kind == ContestKind::Tune && s.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::BassAckwardsPrdSetup(s) => ensure(
+            s.kind == ContestKind::BassAckwardsPrd && s.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::TunePreflight(p) => {
+            ensure(p.kind == ContestKind::Tune, "mode preflight mismatch")?;
+            p.estimate.validate()?;
+        }
+        EnvelopePayload::BassAckwardsPrdPreflight(p) => {
+            ensure(
+                p.kind == ContestKind::BassAckwardsPrd,
+                "mode preflight mismatch",
+            )?;
+            p.estimate.validate()?;
+        }
+        EnvelopePayload::ContestHumanRequested(v) => ensure(
+            human_only
+                && base.sender == Actor::System
+                && matches!(
+                    v.pending.kind,
+                    ContestKind::Readback | ContestKind::Debugging
+                )
+                && v.pending.state_version > 0,
+            "invalid human request",
+        )?,
+        EnvelopePayload::ContestHumanAnswered(v) => ensure(
+            human_only && base.sender == Actor::Me && v.expected_state_version > 0,
+            "invalid human answer",
+        )?,
         EnvelopePayload::UserMessage(message) => {
             ensure(base.sender == Actor::Me, "user.message requires me")?;
             ensure(
@@ -1037,15 +1119,17 @@ fn validate_envelope(
         EnvelopePayload::CaseOpened(case) => {
             same_contest(case.debate_id, case.contest_id)?;
             match &case.material {
-CaseMaterial::Forge(_) => ensure(false, "forge is disabled")?,
-CaseMaterial::Forecast(_) => ensure(false, "forecast is disabled")?,
-CaseMaterial::Decide(_) => ensure(false, "decide is disabled")?,
-CaseMaterial::Negotiate(_) => ensure(false, "negotiate is disabled")?,
-CaseMaterial::BlowItUp(_) => ensure(false, "blow_it_up is disabled")?,
-CaseMaterial::Readback(_) => ensure(false, "readback is disabled")?,
-CaseMaterial::Debugging(_) => ensure(false, "debug is disabled")?,
-CaseMaterial::Trace(_) => ensure(false, "trace is disabled")?,
-CaseMaterial::Rank(_) => ensure(false, "rank is disabled")?,
+                CaseMaterial::Forge(_) => ensure(false, "forge is disabled")?,
+                CaseMaterial::Tune(_) => ensure(false, "tune is disabled")?,
+                CaseMaterial::BassAckwardsPrd(_) => ensure(false, "bass_ackwards_prd is disabled")?,
+                CaseMaterial::Forecast(_) => ensure(false, "forecast is disabled")?,
+                CaseMaterial::Decide(_) => ensure(false, "decide is disabled")?,
+                CaseMaterial::Negotiate(_) => ensure(false, "negotiate is disabled")?,
+                CaseMaterial::BlowItUp(_) => ensure(false, "blow_it_up is disabled")?,
+                CaseMaterial::Readback(_) => ensure(false, "readback is disabled")?,
+                CaseMaterial::Debugging(_) => ensure(false, "debug is disabled")?,
+                CaseMaterial::Trace(_) => ensure(false, "trace is disabled")?,
+                CaseMaterial::Rank(_) => ensure(false, "rank is disabled")?,
                 CaseMaterial::Tournament { material } => {
                     ensure(
                         case.contest_id.is_some() && case.debate_id.is_none() && material.round > 0,
@@ -1232,34 +1316,119 @@ CaseMaterial::Rank(_) => ensure(false, "rank is disabled")?,
             }
         }
         EnvelopePayload::ForgeState(state) => state.validate()?,
-        EnvelopePayload::ForgeSetup(setup) => ensure(setup.kind == ContestKind::Forge && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::ForgePreflight(preflight) => { ensure(preflight.kind == ContestKind::Forge, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::TuneState(state) => state.validate()?,
+        EnvelopePayload::BassAckwardsPrdState(state) => state.validate()?,
+        EnvelopePayload::ForgeSetup(setup) => ensure(
+            setup.kind == ContestKind::Forge && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::ForgePreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Forge,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::ForecastState(state) => state.validate()?,
-        EnvelopePayload::ForecastSetup(setup) => ensure(setup.kind == ContestKind::Forecast && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::ForecastPreflight(preflight) => { ensure(preflight.kind == ContestKind::Forecast, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::ForecastSetup(setup) => ensure(
+            setup.kind == ContestKind::Forecast && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::ForecastPreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Forecast,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::DecideState(state) => state.validate()?,
-        EnvelopePayload::DecideSetup(setup) => ensure(setup.kind == ContestKind::Decide && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::DecidePreflight(preflight) => { ensure(preflight.kind == ContestKind::Decide, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::DecideSetup(setup) => ensure(
+            setup.kind == ContestKind::Decide && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::DecidePreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Decide,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::NegotiateState(state) => state.validate()?,
-        EnvelopePayload::NegotiateSetup(setup) => ensure(setup.kind == ContestKind::Negotiate && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::NegotiatePreflight(preflight) => { ensure(preflight.kind == ContestKind::Negotiate, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::NegotiateSetup(setup) => ensure(
+            setup.kind == ContestKind::Negotiate && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::NegotiatePreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Negotiate,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::BlowItUpState(state) => state.validate()?,
-        EnvelopePayload::BlowItUpSetup(setup) => ensure(setup.kind == ContestKind::BlowItUp && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::BlowItUpPreflight(preflight) => { ensure(preflight.kind == ContestKind::BlowItUp, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::BlowItUpSetup(setup) => ensure(
+            setup.kind == ContestKind::BlowItUp && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::BlowItUpPreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::BlowItUp,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::ReadbackState(state) => state.validate()?,
-        EnvelopePayload::ReadbackSetup(setup) => ensure(setup.kind == ContestKind::Readback && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::ReadbackPreflight(preflight) => { ensure(preflight.kind == ContestKind::Readback, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::ReadbackSetup(setup) => ensure(
+            setup.kind == ContestKind::Readback && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::ReadbackPreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Readback,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::DebuggingState(state) => state.validate()?,
-        EnvelopePayload::DebuggingSetup(setup) => ensure(setup.kind == ContestKind::Debugging && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::DebuggingPreflight(preflight) => { ensure(preflight.kind == ContestKind::Debugging, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::DebuggingSetup(setup) => ensure(
+            setup.kind == ContestKind::Debugging && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::DebuggingPreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Debugging,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::TraceState(state) => state.validate()?,
-        EnvelopePayload::TraceSetup(setup) => ensure(setup.kind == ContestKind::Trace && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::TracePreflight(preflight) => { ensure(preflight.kind == ContestKind::Trace, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::TraceSetup(setup) => ensure(
+            setup.kind == ContestKind::Trace && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::TracePreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Trace,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::RankState(state) => state.validate()?,
-        EnvelopePayload::RankSetup(setup) => ensure(setup.kind == ContestKind::Rank && setup.settings.is_object(), "mode setup mismatch")?,
-        EnvelopePayload::RankPreflight(preflight) => { ensure(preflight.kind == ContestKind::Rank, "mode preflight mismatch")?; preflight.estimate.validate()?; },
+        EnvelopePayload::RankSetup(setup) => ensure(
+            setup.kind == ContestKind::Rank && setup.settings.is_object(),
+            "mode setup mismatch",
+        )?,
+        EnvelopePayload::RankPreflight(preflight) => {
+            ensure(
+                preflight.kind == ContestKind::Rank,
+                "mode preflight mismatch",
+            )?;
+            preflight.estimate.validate()?;
+        }
         EnvelopePayload::ContestState(state) => match state {
             ContestState::Forge(state) => state.validate()?,
+            ContestState::Tune(state) => state.validate()?,
+            ContestState::BassAckwardsPrd(state) => state.validate()?,
             ContestState::Forecast(state) => state.validate()?,
             ContestState::Decide(state) => state.validate()?,
             ContestState::Negotiate(state) => state.validate()?,
@@ -1293,15 +1462,17 @@ CaseMaterial::Rank(_) => ensure(false, "rank is disabled")?,
         },
         EnvelopePayload::ContestTransition(submission) => {
             let kind = match &submission.transition {
-ContestTransition::Forge(_) => ContestKind::Forge,
-ContestTransition::Forecast(_) => ContestKind::Forecast,
-ContestTransition::Decide(_) => ContestKind::Decide,
-ContestTransition::Negotiate(_) => ContestKind::Negotiate,
-ContestTransition::BlowItUp(_) => ContestKind::BlowItUp,
-ContestTransition::Readback(_) => ContestKind::Readback,
-ContestTransition::Debugging(_) => ContestKind::Debugging,
-ContestTransition::Trace(_) => ContestKind::Trace,
-ContestTransition::Rank(_) => ContestKind::Rank,
+                ContestTransition::Forge(_) => ContestKind::Forge,
+                ContestTransition::Tune(_) => ContestKind::Tune,
+                ContestTransition::BassAckwardsPrd(_) => ContestKind::BassAckwardsPrd,
+                ContestTransition::Forecast(_) => ContestKind::Forecast,
+                ContestTransition::Decide(_) => ContestKind::Decide,
+                ContestTransition::Negotiate(_) => ContestKind::Negotiate,
+                ContestTransition::BlowItUp(_) => ContestKind::BlowItUp,
+                ContestTransition::Readback(_) => ContestKind::Readback,
+                ContestTransition::Debugging(_) => ContestKind::Debugging,
+                ContestTransition::Trace(_) => ContestKind::Trace,
+                ContestTransition::Rank(_) => ContestKind::Rank,
 
                 ContestTransition::Debate(_) => ContestKind::Debate,
                 ContestTransition::Probe(_) => ContestKind::Probe,
@@ -1384,10 +1555,32 @@ ContestTransition::Rank(_) => ContestKind::Rank,
                 "duplicate assignment target",
             )?;
         }
-        EnvelopePayload::ContestArtifact(artifact) => { if artifact.kind.is_some() { artifact.validate_mode()?; } ensure(
-            artifact.data.is_object() && unique(&artifact.source_refs),
-            "invalid artifact",
-        )?; },
+        EnvelopePayload::ContestArtifact(artifact) => {
+            if artifact.kind.is_some() {
+                artifact.validate_mode()?;
+                ensure(
+                    artifact.actor.as_ref() == Some(&base.sender),
+                    "artifact actor mismatch",
+                )?;
+                let allowed = match artifact.audience.as_ref().expect("validated") {
+                    ArtifactAudience::Human => human_only,
+                    ArtifactAudience::Case => base.recipients == vec![Recipient::Judge],
+                    ArtifactAudience::Members { recipients } => {
+                        base.recipients
+                            == recipients
+                                .iter()
+                                .cloned()
+                                .map(Recipient::Member)
+                                .collect::<Vec<_>>()
+                    }
+                };
+                ensure(allowed, "artifact audience mismatch")?;
+            }
+            ensure(
+                artifact.data.is_object() && unique(&artifact.source_refs),
+                "invalid artifact",
+            )?;
+        }
         EnvelopePayload::ContestReport(report) => ensure(
             report.data.is_object()
                 && unique(&report.artifact_event_ids)
@@ -1425,7 +1618,9 @@ fn distinct_members(nicks: &[MemberNick]) -> bool {
 }
 pub fn variable_value(name: &VariableName, value: u8) -> bool {
     match name {
-        VariableName::NegotiateRounds | VariableName::DebugRounds => (1..=6).contains(&value),
+        VariableName::NegotiateRounds
+        | VariableName::DebugRounds
+        | VariableName::TuneGenerations => (1..=6).contains(&value),
         VariableName::ReadbackRounds => (1..=4).contains(&value),
         VariableName::Rounds => (constants::MIN_ROUNDS..=constants::MAX_ROUNDS).contains(&value),
         VariableName::GrillRounds => (1..=10).contains(&value),

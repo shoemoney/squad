@@ -110,7 +110,12 @@ impl WorkExecutor for CrosscheckExecutor {
                         attempt: grant.work.attempt,
                         fence: grant.fence,
                         epoch: grant.epoch,
-                        output: EnvelopePayload::ContestArtifact(ContestArtifact {kind: None, round: None, actor: None, audience: None, body: None, 
+                        output: EnvelopePayload::ContestArtifact(ContestArtifact {
+                            kind: None,
+                            round: None,
+                            actor: None,
+                            audience: None,
+                            body: None,
                             contest_id: grant.work.contest_id.ok_or(ReaderError::Forbidden)?,
                             step_id: grant.work.step_id.ok_or(ReaderError::Forbidden)?,
                             artifact_kind: Text::new(self.material.composition())

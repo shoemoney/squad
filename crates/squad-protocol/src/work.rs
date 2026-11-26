@@ -201,12 +201,72 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
-            WorkKind::ForgeDraft | WorkKind::ForgeRank | WorkKind::ForgeFuse | WorkKind::ForgeJudge | WorkKind::ForecastFrame | WorkKind::ForecastEstimate | WorkKind::ForecastRevise | WorkKind::ForecastCruxes | WorkKind::DecideOptions | WorkKind::DecideShortlist | WorkKind::DecideCriteria | WorkKind::DecideFreeze | WorkKind::DecideScore | WorkKind::DecideExplain | WorkKind::NegotiateMap | WorkKind::NegotiateBrief | WorkKind::NegotiatePackage | WorkKind::NegotiateMove | WorkKind::NegotiateCounter | WorkKind::NegotiatePlaybook | WorkKind::BlowItUpAttack | WorkKind::BlowItUpChallenge | WorkKind::BlowItUpRule | WorkKind::ReadbackInterpret | WorkKind::ReadbackDiff | WorkKind::ReadbackRewrite | WorkKind::DebuggingHypothesize | WorkKind::DebuggingMerge | WorkKind::DebuggingTest | WorkKind::DebuggingSelect | WorkKind::DebuggingReport | WorkKind::TraceExtract | WorkKind::TraceMerge | WorkKind::TraceVerify | WorkKind::TraceAssemble | WorkKind::RankCompare | WorkKind::RankExplain => {
-                ensure(self.contest_id.is_some() && self.step_id.is_some() && self.debate_id.is_none() && self.in_reply_to_message_id.is_none(), "new mode requires isolated step")?;
-                ensure(self.kind.new_mode_judge() == (self.target == Target::Judge) && self.attempt <= u32::from(constants::attempt_limit(&self.kind)), "invalid mode owner or attempt")?;
-                ensure(self.prompt_ref.as_ref().is_some_and(|p| Some(p.template_id.as_str()) == self.kind.new_mode_composition()), "invalid mode composition")?;
+            WorkKind::ForgeDraft
+            | WorkKind::ForgeRank
+            | WorkKind::ForgeFuse
+            | WorkKind::ForgeJudge
+            | WorkKind::ForecastFrame
+            | WorkKind::ForecastEstimate
+            | WorkKind::ForecastRevise
+            | WorkKind::ForecastCruxes
+            | WorkKind::DecideOptions
+            | WorkKind::DecideShortlist
+            | WorkKind::DecideCriteria
+            | WorkKind::DecideFreeze
+            | WorkKind::DecideScore
+            | WorkKind::DecideExplain
+            | WorkKind::NegotiateMap
+            | WorkKind::NegotiateBrief
+            | WorkKind::NegotiatePackage
+            | WorkKind::NegotiateMove
+            | WorkKind::NegotiateCounter
+            | WorkKind::NegotiatePlaybook
+            | WorkKind::BlowItUpAttack
+            | WorkKind::BlowItUpChallenge
+            | WorkKind::BlowItUpRule
+            | WorkKind::ReadbackInterpret
+            | WorkKind::ReadbackDiff
+            | WorkKind::ReadbackRewrite
+            | WorkKind::DebuggingHypothesize
+            | WorkKind::DebuggingMerge
+            | WorkKind::DebuggingTest
+            | WorkKind::DebuggingSelect
+            | WorkKind::DebuggingReport
+            | WorkKind::TraceExtract
+            | WorkKind::TraceMerge
+            | WorkKind::TraceVerify
+            | WorkKind::TraceAssemble
+            | WorkKind::RankCompare
+            | WorkKind::RankExplain => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.in_reply_to_message_id.is_none(),
+                    "new mode requires isolated step",
+                )?;
+                ensure(
+                    self.kind.new_mode_judge() == (self.target == Target::Judge)
+                        && self.attempt <= u32::from(constants::attempt_limit(&self.kind)),
+                    "invalid mode owner or attempt",
+                )?;
+                ensure(
+                    self.prompt_ref.as_ref().is_some_and(|p| {
+                        Some(p.template_id.as_str()) == self.kind.new_mode_composition()
+                    }),
+                    "invalid mode composition",
+                )?;
                 if let Target::Member(nick) = &self.target {
-                    ensure(self.case_id.is_none() && self.context_id.0 == format!("contest:{}:{}:{nick}", self.contest_id.expect("checked"),self.step_id.expect("checked")), "new mode requires fresh member context")?;
+                    ensure(
+                        self.case_id.is_none()
+                            && self.context_id.0
+                                == format!(
+                                    "contest:{}:{}:{nick}",
+                                    self.contest_id.expect("checked"),
+                                    self.step_id.expect("checked")
+                                ),
+                        "new mode requires fresh member context",
+                    )?;
                 }
             }
 
@@ -486,7 +546,57 @@ impl Work {
             )?;
         }
         let ceiling = match self.kind {
-            WorkKind::ForgeDraft | WorkKind::ForgeRank | WorkKind::ForgeFuse | WorkKind::ForgeJudge | WorkKind::ForecastFrame | WorkKind::ForecastEstimate | WorkKind::ForecastRevise | WorkKind::ForecastCruxes | WorkKind::DecideOptions | WorkKind::DecideShortlist | WorkKind::DecideCriteria | WorkKind::DecideFreeze | WorkKind::DecideScore | WorkKind::DecideExplain | WorkKind::NegotiateMap | WorkKind::NegotiateBrief | WorkKind::NegotiatePackage | WorkKind::NegotiateMove | WorkKind::NegotiateCounter | WorkKind::NegotiatePlaybook | WorkKind::BlowItUpAttack | WorkKind::BlowItUpChallenge | WorkKind::BlowItUpRule | WorkKind::ReadbackInterpret | WorkKind::ReadbackDiff | WorkKind::ReadbackRewrite | WorkKind::DebuggingHypothesize | WorkKind::DebuggingMerge | WorkKind::DebuggingTest | WorkKind::DebuggingSelect | WorkKind::DebuggingReport | WorkKind::TraceExtract | WorkKind::TraceMerge | WorkKind::TraceVerify | WorkKind::TraceAssemble | WorkKind::RankCompare | WorkKind::RankExplain => if self.kind.new_mode_judge() || matches!(self.kind, WorkKind::ForgeDraft | WorkKind::ForgeFuse | WorkKind::TraceExtract | WorkKind::RankCompare) { constants::PLAN_VISIBLE_TOKENS } else { constants::REPLY_VISIBLE_TOKENS },
+            WorkKind::ForgeDraft
+            | WorkKind::ForgeRank
+            | WorkKind::ForgeFuse
+            | WorkKind::ForgeJudge
+            | WorkKind::ForecastFrame
+            | WorkKind::ForecastEstimate
+            | WorkKind::ForecastRevise
+            | WorkKind::ForecastCruxes
+            | WorkKind::DecideOptions
+            | WorkKind::DecideShortlist
+            | WorkKind::DecideCriteria
+            | WorkKind::DecideFreeze
+            | WorkKind::DecideScore
+            | WorkKind::DecideExplain
+            | WorkKind::NegotiateMap
+            | WorkKind::NegotiateBrief
+            | WorkKind::NegotiatePackage
+            | WorkKind::NegotiateMove
+            | WorkKind::NegotiateCounter
+            | WorkKind::NegotiatePlaybook
+            | WorkKind::BlowItUpAttack
+            | WorkKind::BlowItUpChallenge
+            | WorkKind::BlowItUpRule
+            | WorkKind::ReadbackInterpret
+            | WorkKind::ReadbackDiff
+            | WorkKind::ReadbackRewrite
+            | WorkKind::DebuggingHypothesize
+            | WorkKind::DebuggingMerge
+            | WorkKind::DebuggingTest
+            | WorkKind::DebuggingSelect
+            | WorkKind::DebuggingReport
+            | WorkKind::TraceExtract
+            | WorkKind::TraceMerge
+            | WorkKind::TraceVerify
+            | WorkKind::TraceAssemble
+            | WorkKind::RankCompare
+            | WorkKind::RankExplain => {
+                if self.kind.new_mode_judge()
+                    || matches!(
+                        self.kind,
+                        WorkKind::ForgeDraft
+                            | WorkKind::ForgeFuse
+                            | WorkKind::TraceExtract
+                            | WorkKind::RankCompare
+                    )
+                {
+                    constants::PLAN_VISIBLE_TOKENS
+                } else {
+                    constants::REPLY_VISIBLE_TOKENS
+                }
+            }
             WorkKind::Judge | WorkKind::JudgeTournament => constants::FINAL_JUDGE_VISIBLE_TOKENS,
             WorkKind::CensusMerge | WorkKind::CensusFinal => {
                 constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
@@ -603,55 +713,107 @@ impl WorkKind {
 }
 
 impl WorkKind {
- pub fn new_mode_kind(&self) -> Option<ContestKind> { match self {
-Self::ForgeDraft | Self::ForgeRank | Self::ForgeFuse | Self::ForgeJudge => Some(ContestKind::Forge),
-Self::ForecastFrame | Self::ForecastEstimate | Self::ForecastRevise | Self::ForecastCruxes => Some(ContestKind::Forecast),
-Self::DecideOptions | Self::DecideShortlist | Self::DecideCriteria | Self::DecideFreeze | Self::DecideScore | Self::DecideExplain => Some(ContestKind::Decide),
-Self::NegotiateMap | Self::NegotiateBrief | Self::NegotiatePackage | Self::NegotiateMove | Self::NegotiateCounter | Self::NegotiatePlaybook => Some(ContestKind::Negotiate),
-Self::BlowItUpAttack | Self::BlowItUpChallenge | Self::BlowItUpRule => Some(ContestKind::BlowItUp),
-Self::ReadbackInterpret | Self::ReadbackDiff | Self::ReadbackRewrite => Some(ContestKind::Readback),
-Self::DebuggingHypothesize | Self::DebuggingMerge | Self::DebuggingTest | Self::DebuggingSelect | Self::DebuggingReport => Some(ContestKind::Debugging),
-Self::TraceExtract | Self::TraceMerge | Self::TraceVerify | Self::TraceAssemble => Some(ContestKind::Trace),
-Self::RankCompare | Self::RankExplain => Some(ContestKind::Rank),
-_ => None } }
- pub fn new_mode_composition(&self) -> Option<&'static str> { match self {
-Self::ForgeDraft => Some("forge.draft"),
-Self::ForgeRank => Some("forge.rank"),
-Self::ForgeFuse => Some("forge.fuse"),
-Self::ForgeJudge => Some("forge.judge"),
-Self::ForecastFrame => Some("forecast.frame"),
-Self::ForecastEstimate => Some("forecast.estimate"),
-Self::ForecastRevise => Some("forecast.revise"),
-Self::ForecastCruxes => Some("forecast.cruxes"),
-Self::DecideOptions => Some("decide.options"),
-Self::DecideShortlist => Some("decide.shortlist"),
-Self::DecideCriteria => Some("decide.criteria"),
-Self::DecideFreeze => Some("decide.freeze"),
-Self::DecideScore => Some("decide.score"),
-Self::DecideExplain => Some("decide.explain"),
-Self::NegotiateMap => Some("negotiate.map"),
-Self::NegotiateBrief => Some("negotiate.brief"),
-Self::NegotiatePackage => Some("negotiate.package"),
-Self::NegotiateMove => Some("negotiate.move"),
-Self::NegotiateCounter => Some("negotiate.counter"),
-Self::NegotiatePlaybook => Some("negotiate.playbook"),
-Self::BlowItUpAttack => Some("blow_it_up.attack"),
-Self::BlowItUpChallenge => Some("blow_it_up.challenge"),
-Self::BlowItUpRule => Some("blow_it_up.rule"),
-Self::ReadbackInterpret => Some("readback.interpret"),
-Self::ReadbackDiff => Some("readback.diff"),
-Self::ReadbackRewrite => Some("readback.rewrite"),
-Self::DebuggingHypothesize => Some("debug.hypothesize"),
-Self::DebuggingMerge => Some("debug.merge"),
-Self::DebuggingTest => Some("debug.test"),
-Self::DebuggingSelect => Some("debug.select"),
-Self::DebuggingReport => Some("debug.report"),
-Self::TraceExtract => Some("trace.extract"),
-Self::TraceMerge => Some("trace.merge"),
-Self::TraceVerify => Some("trace.verify"),
-Self::TraceAssemble => Some("trace.assemble"),
-Self::RankCompare => Some("rank.compare"),
-Self::RankExplain => Some("rank.explain"),
-_ => None } }
- pub fn new_mode_judge(&self) -> bool { matches!(self, Self::ForgeJudge | Self::ForecastFrame | Self::ForecastCruxes | Self::DecideShortlist | Self::DecideFreeze | Self::DecideExplain | Self::NegotiateBrief | Self::NegotiatePlaybook | Self::BlowItUpRule | Self::ReadbackDiff | Self::ReadbackRewrite | Self::DebuggingMerge | Self::DebuggingSelect | Self::DebuggingReport | Self::TraceMerge | Self::TraceAssemble | Self::RankExplain) }
+    pub fn new_mode_kind(&self) -> Option<ContestKind> {
+        match self {
+            Self::ForgeDraft | Self::ForgeRank | Self::ForgeFuse | Self::ForgeJudge => {
+                Some(ContestKind::Forge)
+            }
+            Self::ForecastFrame
+            | Self::ForecastEstimate
+            | Self::ForecastRevise
+            | Self::ForecastCruxes => Some(ContestKind::Forecast),
+            Self::DecideOptions
+            | Self::DecideShortlist
+            | Self::DecideCriteria
+            | Self::DecideFreeze
+            | Self::DecideScore
+            | Self::DecideExplain => Some(ContestKind::Decide),
+            Self::NegotiateMap
+            | Self::NegotiateBrief
+            | Self::NegotiatePackage
+            | Self::NegotiateMove
+            | Self::NegotiateCounter
+            | Self::NegotiatePlaybook => Some(ContestKind::Negotiate),
+            Self::BlowItUpAttack | Self::BlowItUpChallenge | Self::BlowItUpRule => {
+                Some(ContestKind::BlowItUp)
+            }
+            Self::ReadbackInterpret | Self::ReadbackDiff | Self::ReadbackRewrite => {
+                Some(ContestKind::Readback)
+            }
+            Self::DebuggingHypothesize
+            | Self::DebuggingMerge
+            | Self::DebuggingTest
+            | Self::DebuggingSelect
+            | Self::DebuggingReport => Some(ContestKind::Debugging),
+            Self::TraceExtract | Self::TraceMerge | Self::TraceVerify | Self::TraceAssemble => {
+                Some(ContestKind::Trace)
+            }
+            Self::RankCompare | Self::RankExplain => Some(ContestKind::Rank),
+            _ => None,
+        }
+    }
+    pub fn new_mode_composition(&self) -> Option<&'static str> {
+        match self {
+            Self::ForgeDraft => Some("forge.draft"),
+            Self::ForgeRank => Some("forge.rank"),
+            Self::ForgeFuse => Some("forge.fuse"),
+            Self::ForgeJudge => Some("forge.judge"),
+            Self::ForecastFrame => Some("forecast.frame"),
+            Self::ForecastEstimate => Some("forecast.estimate"),
+            Self::ForecastRevise => Some("forecast.revise"),
+            Self::ForecastCruxes => Some("forecast.cruxes"),
+            Self::DecideOptions => Some("decide.options"),
+            Self::DecideShortlist => Some("decide.shortlist"),
+            Self::DecideCriteria => Some("decide.criteria"),
+            Self::DecideFreeze => Some("decide.freeze"),
+            Self::DecideScore => Some("decide.score"),
+            Self::DecideExplain => Some("decide.explain"),
+            Self::NegotiateMap => Some("negotiate.map"),
+            Self::NegotiateBrief => Some("negotiate.brief"),
+            Self::NegotiatePackage => Some("negotiate.package"),
+            Self::NegotiateMove => Some("negotiate.move"),
+            Self::NegotiateCounter => Some("negotiate.counter"),
+            Self::NegotiatePlaybook => Some("negotiate.playbook"),
+            Self::BlowItUpAttack => Some("blow_it_up.attack"),
+            Self::BlowItUpChallenge => Some("blow_it_up.challenge"),
+            Self::BlowItUpRule => Some("blow_it_up.rule"),
+            Self::ReadbackInterpret => Some("readback.interpret"),
+            Self::ReadbackDiff => Some("readback.diff"),
+            Self::ReadbackRewrite => Some("readback.rewrite"),
+            Self::DebuggingHypothesize => Some("debug.hypothesize"),
+            Self::DebuggingMerge => Some("debug.merge"),
+            Self::DebuggingTest => Some("debug.test"),
+            Self::DebuggingSelect => Some("debug.select"),
+            Self::DebuggingReport => Some("debug.report"),
+            Self::TraceExtract => Some("trace.extract"),
+            Self::TraceMerge => Some("trace.merge"),
+            Self::TraceVerify => Some("trace.verify"),
+            Self::TraceAssemble => Some("trace.assemble"),
+            Self::RankCompare => Some("rank.compare"),
+            Self::RankExplain => Some("rank.explain"),
+            _ => None,
+        }
+    }
+    pub fn new_mode_judge(&self) -> bool {
+        matches!(
+            self,
+            Self::ForgeJudge
+                | Self::ForecastFrame
+                | Self::ForecastCruxes
+                | Self::DecideShortlist
+                | Self::DecideFreeze
+                | Self::DecideExplain
+                | Self::NegotiateBrief
+                | Self::NegotiatePlaybook
+                | Self::BlowItUpRule
+                | Self::ReadbackDiff
+                | Self::ReadbackRewrite
+                | Self::DebuggingMerge
+                | Self::DebuggingSelect
+                | Self::DebuggingReport
+                | Self::TraceMerge
+                | Self::TraceAssemble
+                | Self::RankExplain
+        )
+    }
 }

@@ -133,16 +133,36 @@ pub fn render(
 ) -> Result<String, ExportError> {
     check_scope(&scope, id)?;
     match scope {
-ExportScope::Forge => return forge::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::Forecast => return forecast::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::Decide => return decide::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::Negotiate => return negotiate::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::BlowItUp => return blow_it_up::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::Readback => return readback::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::Debugging => return debugging::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::Trace => return trace::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-ExportScope::Rank => return rank::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-_ => {}
+        ExportScope::Tune=>return tune::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+        ExportScope::BassAckwardsPrd=>return bass_ackwards_prd::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+        ExportScope::Forge => {
+            return forge::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Forecast => {
+            return forecast::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Decide => {
+            return decide::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Negotiate => {
+            return negotiate::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::BlowItUp => {
+            return blow_it_up::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Readback => {
+            return readback::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Debugging => {
+            return debugging::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Trace => {
+            return trace::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Rank => {
+            return rank::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        _ => {}
     }
     let mut events: Vec<_> = snapshot.events.iter().collect();
     events.sort_by_key(|e| e.commit.seq);
@@ -201,15 +221,17 @@ _ => {}
             ExportScope::Crosscheck => ContestKind::Crosscheck,
             ExportScope::Survey => ContestKind::Survey,
             ExportScope::Probe => ContestKind::Probe,
-ExportScope::Forge => ContestKind::Forge,
-ExportScope::Forecast => ContestKind::Forecast,
-ExportScope::Decide => ContestKind::Decide,
-ExportScope::Negotiate => ContestKind::Negotiate,
-ExportScope::BlowItUp => ContestKind::BlowItUp,
-ExportScope::Readback => ContestKind::Readback,
-ExportScope::Debugging => ContestKind::Debugging,
-ExportScope::Trace => ContestKind::Trace,
-ExportScope::Rank => ContestKind::Rank,
+            ExportScope::Forge => ContestKind::Forge,
+            ExportScope::Tune => ContestKind::Tune,
+            ExportScope::BassAckwardsPrd => ContestKind::BassAckwardsPrd,
+            ExportScope::Forecast => ContestKind::Forecast,
+            ExportScope::Decide => ContestKind::Decide,
+            ExportScope::Negotiate => ContestKind::Negotiate,
+            ExportScope::BlowItUp => ContestKind::BlowItUp,
+            ExportScope::Readback => ContestKind::Readback,
+            ExportScope::Debugging => ContestKind::Debugging,
+            ExportScope::Trace => ContestKind::Trace,
+            ExportScope::Rank => ContestKind::Rank,
 
             _ => unreachable!(),
         };
@@ -739,6 +761,41 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         return Some(id);
     }
     match p {
+        EnvelopePayload::ForgeSetup(s) => Some(s.contest_id),
+        EnvelopePayload::TuneSetup(s) => Some(s.contest_id),
+        EnvelopePayload::BassAckwardsPrdSetup(s) => Some(s.contest_id),
+        EnvelopePayload::ForgeState(s) => Some(s.contest_id),
+        EnvelopePayload::TuneState(s) => Some(s.contest_id),
+        EnvelopePayload::BassAckwardsPrdState(s) => Some(s.contest_id),
+        EnvelopePayload::ForgePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::TunePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::BassAckwardsPrdPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::ForecastSetup(s) => Some(s.contest_id),
+        EnvelopePayload::ForecastState(s) => Some(s.contest_id),
+        EnvelopePayload::ForecastPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::DecideSetup(s) => Some(s.contest_id),
+        EnvelopePayload::DecideState(s) => Some(s.contest_id),
+        EnvelopePayload::DecidePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::NegotiateSetup(s) => Some(s.contest_id),
+        EnvelopePayload::NegotiateState(s) => Some(s.contest_id),
+        EnvelopePayload::NegotiatePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::BlowItUpSetup(s) => Some(s.contest_id),
+        EnvelopePayload::BlowItUpState(s) => Some(s.contest_id),
+        EnvelopePayload::BlowItUpPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::ReadbackSetup(s) => Some(s.contest_id),
+        EnvelopePayload::ReadbackState(s) => Some(s.contest_id),
+        EnvelopePayload::ReadbackPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::DebuggingSetup(s) => Some(s.contest_id),
+        EnvelopePayload::DebuggingState(s) => Some(s.contest_id),
+        EnvelopePayload::DebuggingPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::TraceSetup(s) => Some(s.contest_id),
+        EnvelopePayload::TraceState(s) => Some(s.contest_id),
+        EnvelopePayload::TracePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::RankSetup(s) => Some(s.contest_id),
+        EnvelopePayload::RankState(s) => Some(s.contest_id),
+        EnvelopePayload::RankPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::ContestHumanRequested(s) => Some(s.pending.contest_id),
+        EnvelopePayload::ContestHumanAnswered(s) => Some(s.contest_id),
         EnvelopePayload::TournamentPreflight(s) => Some(s.base.contest_id),
         EnvelopePayload::TournamentEntry(s) => Some(s.contest_id),
         EnvelopePayload::TournamentRanking(s) => Some(s.contest_id),
@@ -909,3 +966,7 @@ pub mod debugging;
 pub mod trace;
 
 pub mod rank;
+
+pub mod tune;
+
+pub mod bass_ackwards_prd;

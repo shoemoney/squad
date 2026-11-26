@@ -9,9 +9,21 @@ pub struct Output<'a> {
     pub stderr: &'a mut dyn Write,
 }
 impl Output<'_> {
-    pub fn human_pending(&mut self,pending: &parser::PendingHuman) -> io::Result<()> {
-      if self.json {self.record(json!({"type":"contest.awaiting_human","contestId":pending.contest_id,"pending":pending}))}
-      else {writeln!(self.stdout,"{} · AWAITING_HUMAN · {}",pending.kind.as_str(),pending.contest_id)?;for line in squad_tui::widgets::human_step::lines(pending) {writeln!(self.stdout,"{}",sanitize(&line))?;}Ok(())}
+    pub fn human_pending(&mut self, pending: &parser::PendingHuman) -> io::Result<()> {
+        if self.json {
+            self.record(json!({"type":"contest.awaiting_human","contestId":pending.contest_id,"pending":pending}))
+        } else {
+            writeln!(
+                self.stdout,
+                "{} · AWAITING_HUMAN · {}",
+                pending.kind.as_str(),
+                pending.contest_id
+            )?;
+            for line in squad_tui::widgets::human_step::lines(pending) {
+                writeln!(self.stdout, "{}", sanitize(&line))?;
+            }
+            Ok(())
+        }
     }
 
     pub fn record(&mut self, value: Value) -> io::Result<()> {
@@ -145,6 +157,16 @@ impl Output<'_> {
             let author = value["sender"].as_str().unwrap_or("system");
             let kind = value["kind"].as_str().unwrap_or("event");
             let payload = &value["payload"];
+            if let EnvelopePayload::ContestArtifact(artifact) = &event.content
+                && artifact.artifact_kind.as_str().ends_with(".report")
+                && matches!(artifact.audience, Some(ArtifactAudience::Human))
+            {
+                return writeln!(
+                    self.stdout,
+                    "{}",
+                    sanitize(&serde_json::to_string_pretty(&artifact.body)?)
+                );
+            }
             if let EnvelopePayload::CensusReport(report) = &event.content {
                 return writeln!(
                     self.stdout,

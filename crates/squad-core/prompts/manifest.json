@@ -3,6 +3,35 @@
   "source": "docs/prd/09-prompt-pack.md",
   "templates": [
     {
+      "id": "bass_ackwards_prd.placeholder",
+      "file": "bass_ackwards_prd.placeholder.md",
+      "placeholders": []
+    },
+    {
+      "id": "blow_it_up.attack",
+      "file": "blow_it_up.attack.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "blow_it_up.challenge",
+      "file": "blow_it_up.challenge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "blow_it_up.rule",
+      "file": "blow_it_up.rule.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
       "id": "census.final",
       "file": "census.final.md",
       "placeholders": [
@@ -180,6 +209,158 @@
       ]
     },
     {
+      "id": "debug.hypothesize",
+      "file": "debug.hypothesize.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.merge",
+      "file": "debug.merge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.report",
+      "file": "debug.report.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.select",
+      "file": "debug.select.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.test",
+      "file": "debug.test.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.criteria",
+      "file": "decide.criteria.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.explain",
+      "file": "decide.explain.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.freeze",
+      "file": "decide.freeze.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.options",
+      "file": "decide.options.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.score",
+      "file": "decide.score.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.shortlist",
+      "file": "decide.shortlist.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.cruxes",
+      "file": "forecast.cruxes.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.estimate",
+      "file": "forecast.estimate.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.frame",
+      "file": "forecast.frame.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.revise",
+      "file": "forecast.revise.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.draft",
+      "file": "forge.draft.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.fuse",
+      "file": "forge.fuse.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.judge",
+      "file": "forge.judge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.rank",
+      "file": "forge.rank.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
       "id": "grill.answer",
       "file": "grill.answer.md",
       "placeholders": [
@@ -270,11 +451,6 @@
       ]
     },
     {
-      "id": "judge.system.blind-prefix",
-      "file": "judge.system.blind-prefix.md",
-      "placeholders": []
-    },
-    {
       "id": "judge.system",
       "file": "judge.system.md",
       "placeholders": [
@@ -282,6 +458,11 @@
         "member_nicks_json",
         "user_name_json"
       ]
+    },
+    {
+      "id": "judge.system.blind-prefix",
+      "file": "judge.system.blind-prefix.md",
+      "placeholders": []
     },
     {
       "id": "judge.user",
@@ -300,6 +481,54 @@
         "invalid_output_json",
         "mode_step",
         "validation_errors_json"
+      ]
+    },
+    {
+      "id": "negotiate.brief",
+      "file": "negotiate.brief.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.counter",
+      "file": "negotiate.counter.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.map",
+      "file": "negotiate.map.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.move",
+      "file": "negotiate.move.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.package",
+      "file": "negotiate.package.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.playbook",
+      "file": "negotiate.playbook.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
       ]
     },
     {
@@ -340,6 +569,46 @@
         "mode_data_json",
         "mode_schema_json",
         "step_word_limit"
+      ]
+    },
+    {
+      "id": "rank.compare",
+      "file": "rank.compare.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "rank.explain",
+      "file": "rank.explain.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "readback.diff",
+      "file": "readback.diff.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "readback.interpret",
+      "file": "readback.interpret.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "readback.rewrite",
+      "file": "readback.rewrite.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
       ]
     },
     {
@@ -461,248 +730,8 @@
       ]
     },
     {
-      "id": "forge.draft",
-      "file": "forge.draft.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "forge.rank",
-      "file": "forge.rank.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "forge.fuse",
-      "file": "forge.fuse.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "forge.judge",
-      "file": "forge.judge.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "forecast.frame",
-      "file": "forecast.frame.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "forecast.estimate",
-      "file": "forecast.estimate.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "forecast.revise",
-      "file": "forecast.revise.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "forecast.cruxes",
-      "file": "forecast.cruxes.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "decide.options",
-      "file": "decide.options.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "decide.shortlist",
-      "file": "decide.shortlist.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "decide.criteria",
-      "file": "decide.criteria.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "decide.freeze",
-      "file": "decide.freeze.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "decide.score",
-      "file": "decide.score.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "decide.explain",
-      "file": "decide.explain.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "negotiate.map",
-      "file": "negotiate.map.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "negotiate.brief",
-      "file": "negotiate.brief.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "negotiate.package",
-      "file": "negotiate.package.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "negotiate.move",
-      "file": "negotiate.move.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "negotiate.counter",
-      "file": "negotiate.counter.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "negotiate.playbook",
-      "file": "negotiate.playbook.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "blow_it_up.attack",
-      "file": "blow_it_up.attack.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "blow_it_up.challenge",
-      "file": "blow_it_up.challenge.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "blow_it_up.rule",
-      "file": "blow_it_up.rule.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "readback.interpret",
-      "file": "readback.interpret.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "readback.diff",
-      "file": "readback.diff.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "readback.rewrite",
-      "file": "readback.rewrite.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "debug.hypothesize",
-      "file": "debug.hypothesize.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "debug.merge",
-      "file": "debug.merge.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "debug.test",
-      "file": "debug.test.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "debug.select",
-      "file": "debug.select.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "debug.report",
-      "file": "debug.report.md",
+      "id": "trace.assemble",
+      "file": "trace.assemble.md",
       "placeholders": [
         "mode_data_json",
         "mode_schema_json"
@@ -733,28 +762,9 @@
       ]
     },
     {
-      "id": "trace.assemble",
-      "file": "trace.assemble.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "rank.compare",
-      "file": "rank.compare.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
-    },
-    {
-      "id": "rank.explain",
-      "file": "rank.explain.md",
-      "placeholders": [
-        "mode_data_json",
-        "mode_schema_json"
-      ]
+      "id": "tune.placeholder",
+      "file": "tune.placeholder.md",
+      "placeholders": []
     }
   ],
   "compositions": [
@@ -2056,6 +2066,30 @@
       ],
       "provider_user_name": "squad",
       "step": "rank.explain",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "tune.placeholder",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "tune.placeholder"
+      ],
+      "provider_user_name": "squad",
+      "step": "tune.placeholder",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.placeholder",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.placeholder"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.placeholder",
       "repair_suffix": "mode.repair"
     }
   ],

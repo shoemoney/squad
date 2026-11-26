@@ -124,17 +124,18 @@ pub fn failure_policy(
             work_id,
             next_attempt: attempt + 1,
             repair: invalid
-                && (kind.new_mode_kind().is_some() || matches!(
-                    kind,
-                    WorkKind::Judge
-                        | WorkKind::JudgeRound
-                        | WorkKind::CrosscheckGoal
-                        | WorkKind::CrosscheckNormalize
-                        | WorkKind::CrosscheckRule
-                        | WorkKind::SurveyExtract
-                        | WorkKind::SurveyReport
-                        | WorkKind::ProbeReport
-                )),
+                && (kind.new_mode_kind().is_some()
+                    || matches!(
+                        kind,
+                        WorkKind::Judge
+                            | WorkKind::JudgeRound
+                            | WorkKind::CrosscheckGoal
+                            | WorkKind::CrosscheckNormalize
+                            | WorkKind::CrosscheckRule
+                            | WorkKind::SurveyExtract
+                            | WorkKind::SurveyReport
+                            | WorkKind::ProbeReport
+                    )),
         }
     } else {
         match kind {

@@ -5,10 +5,10 @@ pub struct Defaults {
     pub rounds: u8,
     pub grill_rounds: u8,
     pub census_passes: u8,
-pub negotiate_rounds: u8,
-pub readback_rounds: u8,
-pub debug_rounds: u8,
-
+    pub negotiate_rounds: u8,
+    pub readback_rounds: u8,
+    pub debug_rounds: u8,
+    pub tune_generations: u8,
 }
 impl Default for Defaults {
     fn default() -> Self {
@@ -16,10 +16,10 @@ impl Default for Defaults {
             rounds: 10,
             grill_rounds: 2,
             census_passes: 2,
-negotiate_rounds: 3,
-readback_rounds: 2,
-debug_rounds: 3,
-
+            negotiate_rounds: 3,
+            readback_rounds: 2,
+            debug_rounds: 3,
+            tune_generations: 3,
         }
     }
 }
@@ -29,10 +29,10 @@ impl From<&squad_protocol::config::RoomDefaults> for Defaults {
             rounds: defaults.rounds,
             grill_rounds: defaults.grill_rounds,
             census_passes: defaults.census_passes,
-negotiate_rounds: defaults.negotiate_rounds,
-readback_rounds: defaults.readback_rounds,
-debug_rounds: defaults.debug_rounds,
-
+            negotiate_rounds: defaults.negotiate_rounds,
+            readback_rounds: defaults.readback_rounds,
+            debug_rounds: defaults.debug_rounds,
+            tune_generations: defaults.tune_generations,
         }
     }
 }
@@ -43,10 +43,9 @@ pub fn content_with_defaults(db: &rusqlite::Transaction<'_>, defaults: Defaults)
     if !(1..=20).contains(&defaults.rounds)
         || !(1..=10).contains(&defaults.grill_rounds)
         || !(1..=5).contains(&defaults.census_passes)
-|| !(1..=6).contains(&defaults.negotiate_rounds)
-|| !(1..=4).contains(&defaults.readback_rounds)
-|| !(1..=6).contains(&defaults.debug_rounds)
-
+        || !(1..=6).contains(&defaults.negotiate_rounds)
+        || !(1..=4).contains(&defaults.readback_rounds)
+        || !(1..=6).contains(&defaults.debug_rounds)
     {
         return Err(crate::error::invalid("Invalid room variable defaults"));
     }
@@ -58,10 +57,10 @@ pub fn content_with_defaults(db: &rusqlite::Transaction<'_>, defaults: Defaults)
         ("ROUNDS", defaults.rounds),
         ("GRILL_ROUNDS", defaults.grill_rounds),
         ("CENSUS_PASSES", defaults.census_passes),
-("NEGOTIATE_ROUNDS", defaults.negotiate_rounds),
-("READBACK_ROUNDS", defaults.readback_rounds),
-("DEBUG_ROUNDS", defaults.debug_rounds),
-
+        ("NEGOTIATE_ROUNDS", defaults.negotiate_rounds),
+        ("READBACK_ROUNDS", defaults.readback_rounds),
+        ("DEBUG_ROUNDS", defaults.debug_rounds),
+        ("TUNE_GENERATIONS", defaults.tune_generations),
     ] {
         db.execute(
             "UPDATE vars SET value=? WHERE name=?",

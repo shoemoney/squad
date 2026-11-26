@@ -84,3 +84,56 @@ fn every_populated_mode_schema_upgrades_without_losing_events_work_or_indexes() 
         );
     }
 }
+
+#[test]
+fn scaffold_registers_twenty_migrations_and_all_eighteen_kinds() {
+    let mut db = Connection::open_in_memory().unwrap();
+    schema::migrate(&mut db).unwrap();
+    assert_eq!(
+        db.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        20
+    );
+    for kind in [
+        "debate",
+        "tournament",
+        "grill",
+        "census",
+        "crosscheck",
+        "survey",
+        "probe",
+        "forge",
+        "forecast",
+        "decide",
+        "negotiate",
+        "blow_it_up",
+        "readback",
+        "debug",
+        "trace",
+        "rank",
+        "tune",
+        "bass_ackwards_prd",
+    ] {
+        db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES(?,?,1,1,'{}',0)",params![kind,kind]).unwrap();
+    }
+    for (name, default, max) in [
+        ("NEGOTIATE_ROUNDS", 3, 6),
+        ("READBACK_ROUNDS", 2, 4),
+        ("DEBUG_ROUNDS", 3, 6),
+        ("TUNE_GENERATIONS", 3, 6),
+    ] {
+        assert_eq!(
+            db.query_row("SELECT value FROM vars WHERE name=?", [name], |r| r
+                .get::<_, i64>(0))
+                .unwrap(),
+            default
+        );
+        assert!(
+            db.execute(
+                "UPDATE vars SET value=? WHERE name=?",
+                params![max + 1, name]
+            )
+            .is_err()
+        );
+    }
+}

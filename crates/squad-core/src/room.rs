@@ -280,19 +280,20 @@ impl RoomHandle {
         let rounds = config.defaults.rounds;
         let grill = config.defaults.grill_rounds;
         let census = config.defaults.census_passes;
-let negotiate_rounds=config.defaults.negotiate_rounds;
-let readback_rounds=config.defaults.readback_rounds;
-let debug_rounds=config.defaults.debug_rounds;
+        let negotiate_rounds = config.defaults.negotiate_rounds;
+        let readback_rounds = config.defaults.readback_rounds;
+        let debug_rounds = config.defaults.debug_rounds;
+        let tune_generations = config.defaults.tune_generations;
 
         store.call(move |db| {
             for (name, value) in [
                 ("ROUNDS", rounds),
                 ("GRILL_ROUNDS", grill),
                 ("CENSUS_PASSES", census),
-("NEGOTIATE_ROUNDS",negotiate_rounds),
-("READBACK_ROUNDS",readback_rounds),
-("DEBUG_ROUNDS",debug_rounds),
-
+                ("NEGOTIATE_ROUNDS", negotiate_rounds),
+                ("READBACK_ROUNDS", readback_rounds),
+                ("DEBUG_ROUNDS", debug_rounds),
+                ("TUNE_GENERATIONS", tune_generations),
             ] {
                 if !existing_vars.iter().any(|stored| stored == name) {
                     db.execute(

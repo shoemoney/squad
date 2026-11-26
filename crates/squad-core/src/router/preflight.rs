@@ -117,6 +117,39 @@ pub fn resolve(
     plan_id: PlanId,
     cancel: bool,
 ) -> Result<RequestResult> {
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Tune)? {
+        return super::tune::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::BassAckwardsPrd)? {
+        return super::bass_ackwards_prd::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Forge)? {
+        return super::forge::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Forecast)? {
+        return super::forecast::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Decide)? {
+        return super::decide::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Negotiate)? {
+        return super::negotiate::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::BlowItUp)? {
+        return super::blow_it_up::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Readback)? {
+        return super::readback::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Debugging)? {
+        return super::debugging::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Trace)? {
+        return super::trace::resolve(tx, group, id, debate, plan_id, cancel);
+    }
+    if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Rank)? {
+        return super::rank::resolve(tx, group, id, debate, plan_id, cancel);
+    }
     if squad_store::schema::validate_contest_kind(tx, debate, ContestKind::Crosscheck)? {
         let max: i64 = tx.query_row("SELECT json_extract(pending_request_json,'$.dailyMax') FROM contests WHERE contest_id=?",[debate.to_string()],|r|r.get(0))?;
         return super::crosscheck::resolve(
@@ -337,6 +370,14 @@ fn reject(
     })
 }
 
-pub(crate) fn prepare_new_mode(kind: ContestKind, tx: &Transaction<'_>, group: &mut CommitGroup, id: EventId, input:&UserMessageInput, parsed:&ParsedInput) -> Result<RequestResult> {
- super::new_mode_prepare(kind,tx,group,id,input,parsed)
+pub(crate) fn prepare_new_mode(
+    kind: ContestKind,
+    tx: &Transaction<'_>,
+    group: &mut CommitGroup,
+    id: EventId,
+    input: &UserMessageInput,
+    parsed: &ParsedInput,
+    admission: &super::NewModeAdmission<'_>,
+) -> Result<RequestResult> {
+    super::new_mode_prepare(kind, tx, group, id, input, parsed, admission)
 }

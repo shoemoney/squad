@@ -112,7 +112,9 @@ pub const ROUND_JUDGE_ATTEMPTS: u8 = 2;
 /// policy and for the dispatch reservation, so the two cannot drift apart.
 pub fn attempt_limit(kind: &crate::WorkKind) -> u8 {
     use crate::WorkKind;
-    if kind.new_mode_judge() { return FINAL_JUDGE_ATTEMPTS; }
+    if kind.new_mode_judge() {
+        return FINAL_JUDGE_ATTEMPTS;
+    }
     match kind {
         WorkKind::JudgeRound => ROUND_JUDGE_ATTEMPTS,
         WorkKind::Judge
@@ -237,7 +239,9 @@ pub fn effective_effort(
     kind: &crate::work::WorkKind,
     bound: crate::config::ReasoningEffort,
 ) -> crate::config::ReasoningEffort {
-    if kind.new_mode_judge() { NEW_MODE_JUDGE_REASONING_EFFORT } else if *kind == crate::work::WorkKind::JudgeRound {
+    if kind.new_mode_judge() {
+        NEW_MODE_JUDGE_REASONING_EFFORT
+    } else if *kind == crate::work::WorkKind::JudgeRound {
         ROUND_JUDGE_REASONING_EFFORT
     } else {
         bound

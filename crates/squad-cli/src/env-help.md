@@ -37,3 +37,5 @@ Optional new-mode room seeds (frozen when admitted):
 - `SQUAD_NEGOTIATE_ROUNDS`: 3 by default; integer 1–6.
 - `SQUAD_READBACK_ROUNDS`: 2 by default; integer 1–4.
 - `SQUAD_DEBUG_ROUNDS`: 3 by default; integer 1–6.
+
+- `SQUAD_TUNE_GENERATIONS`: 3 by default; integer 1–6.

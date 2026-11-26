@@ -1,10 +1,11 @@
+PRAGMA legacy_alter_table=ON;
 -- Extend released CHECK constraints by rebuilding tables with identical columns.
 
 CREATE TABLE contests_m8 (
     contest_id TEXT PRIMARY KEY,
     kind TEXT NOT NULL CHECK (kind IN (
         'debate', 'tournament', 'grill',
-        'census', 'crosscheck', 'survey', 'probe', 'forge', 'forecast', 'decide', 'negotiate', 'blow_it_up', 'readback', 'debug', 'trace', 'rank'
+        'census', 'crosscheck', 'survey', 'probe', 'tune', 'bass_ackwards_prd', 'forge', 'forecast', 'decide', 'negotiate', 'blow_it_up', 'readback', 'debug', 'trace', 'rank'
     )),
     epoch INTEGER NOT NULL CHECK (epoch >= 1),
     state_version INTEGER NOT NULL CHECK (state_version >= 0),
@@ -27,13 +28,13 @@ DROP TABLE contests;
 ALTER TABLE contests_m8 RENAME TO contests;
 CREATE UNIQUE INDEX contests_one_active_idx
     ON contests(active) WHERE active = 1;
-CREATE TABLE "events" (
+CREATE TABLE events_m8 (
     seq INTEGER PRIMARY KEY CHECK (seq >= 1),
     id TEXT NOT NULL UNIQUE,
     room_id TEXT NOT NULL CHECK (room_id = 'main'),
     epoch INTEGER NOT NULL CHECK (epoch >= 1),
     version INTEGER NOT NULL CHECK (version = 1),
-    kind TEXT NOT NULL CHECK (kind IN ('user.message', 'message.final', 'system.notice', 'error', 'var.change', 'work.state', 'usage.record', 'budget.state', 'debate.preflight', 'debate.preflight.result', 'debate.opening', 'debate.setup', 'debate.state', 'debate.turn', 'verdict', 'case.opened', 'case.followup', 'case.ruling', 'message.superseded', 'scores.changed', 'room.cleared', 'debate.round_score', 'contest.setup', 'contest.state', 'contest.preflight', 'contest.preflight.result', 'contest.step', 'contest.artifact', 'contest.human_requested', 'contest.human_answered', 'forge.setup', 'forge.state', 'forge.preflight', 'forecast.setup', 'forecast.state', 'forecast.preflight', 'decide.setup', 'decide.state', 'decide.preflight', 'negotiate.setup', 'negotiate.state', 'negotiate.preflight', 'blow_it_up.setup', 'blow_it_up.state', 'blow_it_up.preflight', 'readback.setup', 'readback.state', 'readback.preflight', 'debug.setup', 'debug.state', 'debug.preflight', 'trace.setup', 'trace.state', 'trace.preflight', 'rank.setup', 'rank.state', 'rank.preflight', 'contest.report', 'contest.collecting', 'contest.pick_requested', 'contest.picked', 'probe.setup', 'probe.state', 'probe.preflight', 'probe.explanation', 'probe.check', 'probe.prediction', 'probe.report', 'grill.setup', 'grill.state', 'grill.question', 'grill.answer', 'grill.pass', 'grill.plan', 'grill.complete', 'survey.setup', 'survey.state', 'survey.claims', 'survey.vote', 'survey.selection', 'survey.revote', 'survey.report', 'crosscheck.setup', 'crosscheck.state', 'crosscheck.preflight', 'crosscheck.goal', 'crosscheck.inventory', 'crosscheck.grid', 'crosscheck.review', 'crosscheck.audit', 'crosscheck.acceptance', 'crosscheck.report', 'crosscheck.ruling', 'tournament.setup', 'tournament.state', 'tournament.preflight', 'tournament.entry', 'tournament.ranking', 'tournament.result', 'tournament.champion', 'census.setup', 'census.state', 'census.plan', 'census.hunt', 'census.ledger', 'census.rating', 'census.report', 'census.case_material')),
+    kind TEXT NOT NULL CHECK (kind IN ('user.message', 'message.final', 'system.notice', 'error', 'var.change', 'work.state', 'usage.record', 'budget.state', 'debate.preflight', 'debate.preflight.result', 'debate.opening', 'debate.setup', 'debate.state', 'debate.turn', 'verdict', 'case.opened', 'case.followup', 'case.ruling', 'message.superseded', 'scores.changed', 'room.cleared', 'debate.round_score', 'contest.setup', 'contest.state', 'contest.preflight', 'contest.preflight.result', 'contest.step', 'contest.artifact', 'contest.human_requested', 'contest.human_answered', 'tune.setup','tune.state','tune.preflight','bass_ackwards_prd.setup','bass_ackwards_prd.state','bass_ackwards_prd.preflight','forge.setup', 'forge.state', 'forge.preflight', 'forecast.setup', 'forecast.state', 'forecast.preflight', 'decide.setup', 'decide.state', 'decide.preflight', 'negotiate.setup', 'negotiate.state', 'negotiate.preflight', 'blow_it_up.setup', 'blow_it_up.state', 'blow_it_up.preflight', 'readback.setup', 'readback.state', 'readback.preflight', 'debug.setup', 'debug.state', 'debug.preflight', 'trace.setup', 'trace.state', 'trace.preflight', 'rank.setup', 'rank.state', 'rank.preflight', 'contest.report', 'contest.collecting', 'contest.pick_requested', 'contest.picked', 'probe.setup', 'probe.state', 'probe.preflight', 'probe.explanation', 'probe.check', 'probe.prediction', 'probe.report', 'grill.setup', 'grill.state', 'grill.question', 'grill.answer', 'grill.pass', 'grill.plan', 'grill.complete', 'survey.setup', 'survey.state', 'survey.claims', 'survey.vote', 'survey.selection', 'survey.revote', 'survey.report', 'crosscheck.setup', 'crosscheck.state', 'crosscheck.preflight', 'crosscheck.goal', 'crosscheck.inventory', 'crosscheck.grid', 'crosscheck.review', 'crosscheck.audit', 'crosscheck.acceptance', 'crosscheck.report', 'crosscheck.ruling', 'tournament.setup', 'tournament.state', 'tournament.preflight', 'tournament.entry', 'tournament.ranking', 'tournament.result', 'tournament.champion', 'census.setup', 'census.state', 'census.plan', 'census.hunt', 'census.ledger', 'census.rating', 'census.report', 'census.case_material')),
     correlation_id TEXT NOT NULL,
     causation_id TEXT,
     sender TEXT NOT NULL,
@@ -63,10 +64,9 @@ CREATE INDEX events_correlation_seq_idx
     ON events(correlation_id, seq);
 CREATE UNIQUE INDEX tournament_entry_slot
     ON events(json_extract(payload,'$.contestId'),json_extract(payload,'$.round'),json_extract(payload,'$.replay'),json_extract(payload,'$.entrant')) WHERE kind='tournament.entry';
-CREATE TABLE "work" (
+CREATE TABLE work_m8 (
     work_id TEXT PRIMARY KEY,
     kind TEXT NOT NULL CHECK (kind IN ('reply', 'debate.turn', 'judge', 'judge.round', 'probe.explain', 'forge.draft', 'forge.rank', 'forge.fuse', 'forecast.estimate', 'forecast.revise', 'decide.options', 'decide.criteria', 'decide.score', 'negotiate.map', 'negotiate.package', 'negotiate.move', 'negotiate.counter', 'blow_it_up.attack', 'blow_it_up.challenge', 'readback.interpret', 'debug.hypothesize', 'debug.test', 'trace.extract', 'trace.verify', 'rank.compare', 'probe.check', 'probe.predict', 'probe.report', 'forge.judge', 'forecast.frame', 'forecast.cruxes', 'decide.shortlist', 'decide.freeze', 'decide.explain', 'negotiate.brief', 'negotiate.playbook', 'blow_it_up.rule', 'readback.diff', 'readback.rewrite', 'debug.merge', 'debug.select', 'debug.report', 'trace.merge', 'trace.assemble', 'rank.explain', 'grill.question', 'grill.answer', 'grill.rebuild', 'survey.extract', 'survey.vote', 'survey.revote', 'survey.report', 'crosscheck.inventory', 'crosscheck.cell', 'crosscheck.audit', 'crosscheck.goal', 'crosscheck.normalize', 'crosscheck.rule', 'judge.tournament', 'census.hunt', 'census.rate', 'census.merge', 'census.final')),
-CHECK (kind NOT IN ('forge.draft', 'forge.rank', 'forge.fuse', 'forge.judge', 'forecast.frame', 'forecast.estimate', 'forecast.revise', 'forecast.cruxes', 'decide.options', 'decide.shortlist', 'decide.criteria', 'decide.freeze', 'decide.score', 'decide.explain', 'negotiate.map', 'negotiate.brief', 'negotiate.package', 'negotiate.move', 'negotiate.counter', 'negotiate.playbook', 'blow_it_up.attack', 'blow_it_up.challenge', 'blow_it_up.rule', 'readback.interpret', 'readback.diff', 'readback.rewrite', 'debug.hypothesize', 'debug.merge', 'debug.test', 'debug.select', 'debug.report', 'trace.extract', 'trace.merge', 'trace.verify', 'trace.assemble', 'rank.compare', 'rank.explain') OR (contest_id IS NOT NULL AND step_id IS NOT NULL AND debate_id IS NULL AND in_reply_to_message_id IS NULL)),
     target TEXT NOT NULL,
     context_id TEXT NOT NULL,
     trigger_event_seq INTEGER NOT NULL REFERENCES events(seq),
@@ -103,6 +103,7 @@ CHECK (kind NOT IN ('forge.draft', 'forge.rank', 'forge.fuse', 'forge.judge', 'f
     ),
     completed_event_seq INTEGER REFERENCES events(seq),
     step_id TEXT REFERENCES contest_steps(step_id),
+    CHECK (kind NOT IN ('forge.draft', 'forge.rank', 'forge.fuse', 'forge.judge', 'forecast.frame', 'forecast.estimate', 'forecast.revise', 'forecast.cruxes', 'decide.options', 'decide.shortlist', 'decide.criteria', 'decide.freeze', 'decide.score', 'decide.explain', 'negotiate.map', 'negotiate.brief', 'negotiate.package', 'negotiate.move', 'negotiate.counter', 'negotiate.playbook', 'blow_it_up.attack', 'blow_it_up.challenge', 'blow_it_up.rule', 'readback.interpret', 'readback.diff', 'readback.rewrite', 'debug.hypothesize', 'debug.merge', 'debug.test', 'debug.select', 'debug.report', 'trace.extract', 'trace.merge', 'trace.verify', 'trace.assemble', 'rank.compare', 'rank.explain') OR (contest_id IS NOT NULL AND step_id IS NOT NULL AND debate_id IS NULL AND in_reply_to_message_id IS NULL)),
     CHECK (kind NOT IN ('grill.question','grill.answer','grill.rebuild') OR (contest_id IS NOT NULL AND step_id IS NOT NULL AND debate_id IS NULL AND round BETWEEN 1 AND 10 AND attempt <= 2)),
     CHECK (kind NOT IN ('survey.vote','survey.revote') OR context_id = 'contest:' || contest_id || ':' || step_id || ':' || target),
     CHECK (kind NOT LIKE 'survey.%' OR (contest_id IS NOT NULL AND step_id IS NOT NULL AND debate_id IS NULL AND round IS NULL)),
@@ -180,14 +181,14 @@ CREATE UNIQUE INDEX tournament_work_slot
     ON work(contest_id,round,replay,target) WHERE kind='judge.tournament' OR (kind='reply' AND round IS NOT NULL AND debate_id IS NULL);
 CREATE TABLE vars_m8 (
     name TEXT PRIMARY KEY CHECK (name IN (
-        'ROUNDS', 'GRILL_ROUNDS', 'CENSUS_PASSES', 'NEGOTIATE_ROUNDS', 'READBACK_ROUNDS', 'DEBUG_ROUNDS'
+        'ROUNDS', 'GRILL_ROUNDS', 'CENSUS_PASSES', 'NEGOTIATE_ROUNDS', 'READBACK_ROUNDS', 'DEBUG_ROUNDS', 'TUNE_GENERATIONS'
     )),
     value INTEGER NOT NULL,
     updated_seq INTEGER REFERENCES events(seq),
     CHECK (
         (name = 'ROUNDS' AND value BETWEEN 1 AND 20)
         OR (name = 'GRILL_ROUNDS' AND value BETWEEN 1 AND 10)
-        OR (name = 'CENSUS_PASSES' AND value BETWEEN 1 AND 5) OR (name IN ('NEGOTIATE_ROUNDS','DEBUG_ROUNDS') AND value BETWEEN 1 AND 6) OR (name='READBACK_ROUNDS' AND value BETWEEN 1 AND 4)
+        OR (name = 'CENSUS_PASSES' AND value BETWEEN 1 AND 5) OR (name IN ('NEGOTIATE_ROUNDS','DEBUG_ROUNDS','TUNE_GENERATIONS') AND value BETWEEN 1 AND 6) OR (name='READBACK_ROUNDS' AND value BETWEEN 1 AND 4)
     )
 ) STRICT;
 INSERT INTO vars_m8 SELECT * FROM vars;
@@ -204,10 +205,12 @@ CREATE TABLE contest_human_steps (
  contest_id TEXT PRIMARY KEY REFERENCES contests(contest_id), step_id TEXT NOT NULL REFERENCES contest_steps(step_id), state_version INTEGER NOT NULL CHECK(state_version>0),
  pending_json TEXT NOT NULL CHECK(json_valid(pending_json)), closed INTEGER NOT NULL DEFAULT 0 CHECK(closed IN (0,1)), updated_seq INTEGER NOT NULL REFERENCES events(seq)
 ) STRICT;
-INSERT INTO vars(name,value,updated_seq) VALUES ('NEGOTIATE_ROUNDS',3,NULL),('READBACK_ROUNDS',2,NULL),('DEBUG_ROUNDS',3,NULL);
+INSERT INTO vars(name,value,updated_seq) VALUES ('NEGOTIATE_ROUNDS',3,NULL),('READBACK_ROUNDS',2,NULL),('DEBUG_ROUNDS',3,NULL),('TUNE_GENERATIONS',3,NULL);
 
 CREATE TABLE mode_repairs (
  work_id TEXT NOT NULL REFERENCES work(work_id), attempt INTEGER NOT NULL CHECK(attempt IN (2,3)),
  rejected_output TEXT NOT NULL, validation_errors_json TEXT NOT NULL CHECK(json_valid(validation_errors_json)),
  PRIMARY KEY(work_id,attempt)
 ) STRICT;
+
+PRAGMA legacy_alter_table=OFF;

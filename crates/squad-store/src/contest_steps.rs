@@ -145,12 +145,44 @@ pub fn validate_artifact(db: &Connection, artifact: &ContestArtifact) -> Result<
 }
 pub fn artifact(db: &Connection, artifact: &ContestArtifact, seq: Cursor) -> Result<()> {
     validate_artifact(db, artifact)?;
-    if let Some(kind)=artifact.kind {
-        artifact.validate_mode().map_err(|_|invalid("Invalid mode artifact"))?;
-        let (audience,recipients)=match artifact.audience.as_ref().ok_or_else(||invalid("Missing audience"))? {
-            ArtifactAudience::Human => ("human",vec![]), ArtifactAudience::Case => ("case",vec![]), ArtifactAudience::Members {recipients} => ("members",recipients.clone())
+    if let Some(kind) = artifact.kind {
+        artifact
+            .validate_mode()
+            .map_err(|_| invalid("Invalid mode artifact"))?;
+        let (audience, recipients) = match artifact
+            .audience
+            .as_ref()
+            .ok_or_else(|| invalid("Missing audience"))?
+        {
+            ArtifactAudience::Human => ("human", vec![]),
+            ArtifactAudience::Case => ("case", vec![]),
+            ArtifactAudience::Members { recipients } => ("members", recipients.clone()),
         };
-        db.execute("INSERT INTO contest_artifacts VALUES(?,?,?,?,?,?,?,?,?,?)",params![seq.get(),artifact.contest_id.to_string(),artifact.step_id.to_string(),kind.as_str(),artifact.artifact_kind.as_str(),artifact.round,encode(artifact.actor.as_ref().ok_or_else(||invalid("Missing actor"))?)?,audience,encode(&recipients)?,encode(artifact.body.as_ref().ok_or_else(||invalid("Missing body"))?)?])?;
+        db.execute(
+            "INSERT INTO contest_artifacts VALUES(?,?,?,?,?,?,?,?,?,?)",
+            params![
+                seq.get(),
+                artifact.contest_id.to_string(),
+                artifact.step_id.to_string(),
+                kind.as_str(),
+                artifact.artifact_kind.as_str(),
+                artifact.round,
+                encode(
+                    artifact
+                        .actor
+                        .as_ref()
+                        .ok_or_else(|| invalid("Missing actor"))?
+                )?,
+                audience,
+                encode(&recipients)?,
+                encode(
+                    artifact
+                        .body
+                        .as_ref()
+                        .ok_or_else(|| invalid("Missing body"))?
+                )?
+            ],
+        )?;
     }
     db.execute(
         "INSERT INTO mode_artifacts VALUES (?,?,?,?,?,?)",
@@ -197,26 +229,55 @@ pub fn pending_human(db: &Connection) -> Result<Option<parser::PendingHuman>> {
     raw.map(decode).transpose()
 }
 pub fn human_requested(db: &Connection, pending: &parser::PendingHuman, seq: Cursor) -> Result<()> {
-    validate_step(db,pending.contest_id,pending.step_id)?;
+    validate_step(db, pending.contest_id, pending.step_id)?;
     db.execute("INSERT INTO contest_human_steps VALUES(?,?,?,?,0,?) ON CONFLICT(contest_id) DO UPDATE SET step_id=excluded.step_id,state_version=excluded.state_version,pending_json=excluded.pending_json,closed=0,updated_seq=excluded.updated_seq",params![pending.contest_id.to_string(),pending.step_id.to_string(),pending.state_version as i64,encode(pending)?,seq.get()])?;
     Ok(())
 }
-pub fn human_answered(db: &Connection, pending: &parser::PendingHuman, complete: bool, seq: Cursor) -> Result<()> {
+pub fn human_answered(
+    db: &Connection,
+    pending: &parser::PendingHuman,
+    complete: bool,
+    seq: Cursor,
+) -> Result<()> {
     let changed=db.execute("UPDATE contest_human_steps SET state_version=?,pending_json=?,closed=?,updated_seq=? WHERE contest_id=? AND closed=0 AND state_version=?",params![pending.state_version as i64,encode(pending)?,complete,seq.get(),pending.contest_id.to_string(),(pending.state_version-1) as i64])?;
-    if changed!=1 {return Err(invalid("Human step version changed"));}
+    if changed != 1 {
+        return Err(invalid("Human step version changed"));
+    }
     Ok(())
 }
 
 /// Read a committed artifact only through the work's frozen assignment and audience.
-pub fn artifact_for_work(db: &Connection, work_id: WorkId, event_id: EventId) -> Result<serde_json::Value> {
-    let (work,_)=crate::work::template(db,work_id)?.ok_or_else(||invalid("Unknown artifact reader work"))?;
-    let step=work.step_id.ok_or_else(||invalid("Artifact reader requires step"))?;
-    let raw:String=db.query_row("SELECT assignment_json FROM contest_assignments WHERE work_id=? AND step_id=?",params![work_id.to_string(),step.to_string()],|r|r.get(0))?;
-    let assignment:ContestAssignment=decode(raw)?;
-    if !assignment.payload_refs.contains(&event_id) || assignment.context_id!=work.context_id || assignment.target!=work.target {return Err(invalid("Artifact is not assigned to work"));}
+pub fn artifact_for_work(
+    db: &Connection,
+    work_id: WorkId,
+    event_id: EventId,
+) -> Result<serde_json::Value> {
+    let (work, _) = crate::work::template(db, work_id)?
+        .ok_or_else(|| invalid("Unknown artifact reader work"))?;
+    let step = work
+        .step_id
+        .ok_or_else(|| invalid("Artifact reader requires step"))?;
+    let raw: String = db.query_row(
+        "SELECT assignment_json FROM contest_assignments WHERE work_id=? AND step_id=?",
+        params![work_id.to_string(), step.to_string()],
+        |r| r.get(0),
+    )?;
+    let assignment: ContestAssignment = decode(raw)?;
+    if !assignment.payload_refs.contains(&event_id)
+        || assignment.context_id != work.context_id
+        || assignment.target != work.target
+    {
+        return Err(invalid("Artifact is not assigned to work"));
+    }
     let (contest,audience,recipients,body):(String,String,String,String)=db.query_row("SELECT a.contest_id,a.audience,a.recipients,a.body FROM contest_artifacts a JOIN events e ON e.seq=a.event_seq WHERE e.id=?",[event_id.to_string()],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))?;
-    let recipients:Vec<MemberNick>=decode(recipients)?;
-    let allowed=work.contest_id.is_some_and(|id|id.to_string()==contest) && match &work.target {Target::Judge=>audience=="case",Target::Member(nick)=>audience=="members" && recipients.contains(nick)};
-    if !allowed {return Err(invalid("Artifact audience forbids this work"));}
+    let recipients: Vec<MemberNick> = decode(recipients)?;
+    let allowed = work.contest_id.is_some_and(|id| id.to_string() == contest)
+        && match &work.target {
+            Target::Judge => audience == "case",
+            Target::Member(nick) => audience == "members" && recipients.contains(nick),
+        };
+    if !allowed {
+        return Err(invalid("Artifact audience forbids this work"));
+    }
     decode(body)
 }

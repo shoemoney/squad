@@ -58,6 +58,58 @@ impl Router {
                         envelope_id,
                         submission,
                     } => {
+                        match submission.kind {
+                            ContestKind::Tune => {
+                                super::tune::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::BassAckwardsPrd => {
+                                super::bass_ackwards_prd::transition(
+                                    tx,
+                                    group,
+                                    envelope_id,
+                                    submission,
+                                )?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Forge => {
+                                super::forge::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Forecast => {
+                                super::forecast::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Decide => {
+                                super::decide::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Negotiate => {
+                                super::negotiate::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::BlowItUp => {
+                                super::blow_it_up::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Readback => {
+                                super::readback::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Debugging => {
+                                super::debugging::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Trace => {
+                                super::trace::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Rank => {
+                                super::rank::transition(tx, group, envelope_id, submission)?;
+                                return Ok(group.accepted(id));
+                            }
+                            _ => {}
+                        }
                         if let ContestTransition::Crosscheck(signal) = &submission.transition {
                             if submission.kind != ContestKind::Crosscheck {
                                 return Err(super::debates::invalid());
@@ -86,12 +138,139 @@ impl Router {
                         }
                     }
                     InternalRequest::Produce { envelope } => {
+                        let kind = match &envelope.content {
+                            EnvelopePayload::ForgeSetup(_)
+                            | EnvelopePayload::ForgeState(_)
+                            | EnvelopePayload::ForgePreflight(_) => Some(ContestKind::Forge),
+                            EnvelopePayload::TuneSetup(_)
+                            | EnvelopePayload::TuneState(_)
+                            | EnvelopePayload::TunePreflight(_) => Some(ContestKind::Tune),
+                            EnvelopePayload::BassAckwardsPrdSetup(_)
+                            | EnvelopePayload::BassAckwardsPrdState(_)
+                            | EnvelopePayload::BassAckwardsPrdPreflight(_) => {
+                                Some(ContestKind::BassAckwardsPrd)
+                            }
+                            EnvelopePayload::ForecastSetup(_)
+                            | EnvelopePayload::ForecastState(_)
+                            | EnvelopePayload::ForecastPreflight(_) => Some(ContestKind::Forecast),
+                            EnvelopePayload::DecideSetup(_)
+                            | EnvelopePayload::DecideState(_)
+                            | EnvelopePayload::DecidePreflight(_) => Some(ContestKind::Decide),
+                            EnvelopePayload::NegotiateSetup(_)
+                            | EnvelopePayload::NegotiateState(_)
+                            | EnvelopePayload::NegotiatePreflight(_) => {
+                                Some(ContestKind::Negotiate)
+                            }
+                            EnvelopePayload::BlowItUpSetup(_)
+                            | EnvelopePayload::BlowItUpState(_)
+                            | EnvelopePayload::BlowItUpPreflight(_) => Some(ContestKind::BlowItUp),
+                            EnvelopePayload::ReadbackSetup(_)
+                            | EnvelopePayload::ReadbackState(_)
+                            | EnvelopePayload::ReadbackPreflight(_) => Some(ContestKind::Readback),
+                            EnvelopePayload::DebuggingSetup(_)
+                            | EnvelopePayload::DebuggingState(_)
+                            | EnvelopePayload::DebuggingPreflight(_) => {
+                                Some(ContestKind::Debugging)
+                            }
+                            EnvelopePayload::TraceSetup(_)
+                            | EnvelopePayload::TraceState(_)
+                            | EnvelopePayload::TracePreflight(_) => Some(ContestKind::Trace),
+                            EnvelopePayload::RankSetup(_)
+                            | EnvelopePayload::RankState(_)
+                            | EnvelopePayload::RankPreflight(_) => Some(ContestKind::Rank),
+                            _ => None,
+                        };
+                        if let Some(kind) = kind {
+                            match kind {
+                                ContestKind::Forge => super::forge::produce(tx, group, envelope)?,
+                                ContestKind::Tune => super::tune::produce(tx, group, envelope)?,
+                                ContestKind::BassAckwardsPrd => {
+                                    super::bass_ackwards_prd::produce(tx, group, envelope)?
+                                }
+                                ContestKind::Forecast => {
+                                    super::forecast::produce(tx, group, envelope)?
+                                }
+                                ContestKind::Decide => super::decide::produce(tx, group, envelope)?,
+                                ContestKind::Negotiate => {
+                                    super::negotiate::produce(tx, group, envelope)?
+                                }
+                                ContestKind::BlowItUp => {
+                                    super::blow_it_up::produce(tx, group, envelope)?
+                                }
+                                ContestKind::Readback => {
+                                    super::readback::produce(tx, group, envelope)?
+                                }
+                                ContestKind::Debugging => {
+                                    super::debugging::produce(tx, group, envelope)?
+                                }
+                                ContestKind::Trace => super::trace::produce(tx, group, envelope)?,
+                                ContestKind::Rank => super::rank::produce(tx, group, envelope)?,
+                                _ => unreachable!(),
+                            }
+                            return Ok(group.accepted(id));
+                        }
+
                         if let EnvelopePayload::DebatePreflight(plan) = envelope.content {
                             return super::preflight::propose(tx, group, id, plan, max, threshold);
                         }
                         produce(tx, group, envelope)?;
                     }
                     InternalRequest::Barrier { commit, .. } => {
+                        let kind: String = tx.query_row(
+                            "SELECT kind FROM contests WHERE contest_id=?",
+                            [commit.contest_id.to_string()],
+                            |r| r.get(0),
+                        )?;
+                        let kind: ContestKind =
+                            serde_json::from_value(serde_json::Value::String(kind))?;
+                        match kind {
+                            ContestKind::Tune => {
+                                super::tune::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::BassAckwardsPrd => {
+                                super::bass_ackwards_prd::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Forge => {
+                                super::forge::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Forecast => {
+                                super::forecast::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Decide => {
+                                super::decide::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Negotiate => {
+                                super::negotiate::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::BlowItUp => {
+                                super::blow_it_up::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Readback => {
+                                super::readback::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Debugging => {
+                                super::debugging::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Trace => {
+                                super::trace::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            ContestKind::Rank => {
+                                super::rank::barrier(tx, group, commit)?;
+                                return Ok(group.accepted(id));
+                            }
+                            _ => {}
+                        }
+
                         barrier(tx, group, commit, &bindings)?
                     }
                     _ => return Err(super::authorization::forbidden()),

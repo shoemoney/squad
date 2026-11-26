@@ -14,7 +14,12 @@ pub enum OpenMode {
 // Keep the shared by-value API specified by section 02.
 #[allow(clippy::large_enum_variant)]
 pub enum Request {
-    HumanAnswer { request_id: EventId, contest_id: ContestId, expected_state_version: u64, text: Option<String> },
+    HumanAnswer {
+        request_id: EventId,
+        contest_id: ContestId,
+        expected_state_version: u64,
+        text: Option<String>,
+    },
     UserMessage {
         input: UserMessageInput,
         preconfirmed: bool,
@@ -242,11 +247,25 @@ impl Request {
         };
         if let Some(pending) = &ctx.pending_human {
             let text = match &parsed {
-                ParsedInput::Slash { action: SlashAction::Answer {text}, .. } | ParsedInput::HumanChoices {text,..} => Some(Some(text.clone())),
-                ParsedInput::Slash { action: SlashAction::Continue {plan:None}, .. } => Some(None),
+                ParsedInput::Slash {
+                    action: SlashAction::Answer { text },
+                    ..
+                }
+                | ParsedInput::HumanChoices { text, .. } => Some(Some(text.clone())),
+                ParsedInput::Slash {
+                    action: SlashAction::Continue { plan: None },
+                    ..
+                } => Some(None),
                 _ => None,
             };
-            if let Some(text)=text { return Ok(Self::HumanAnswer {request_id,contest_id:pending.contest_id,expected_state_version:pending.state_version,text}); }
+            if let Some(text) = text {
+                return Ok(Self::HumanAnswer {
+                    request_id,
+                    contest_id: pending.contest_id,
+                    expected_state_version: pending.state_version,
+                    text,
+                });
+            }
         }
         match &parsed {
             ParsedInput::Slash {
@@ -315,7 +334,9 @@ impl Request {
             },
             ParsedInput::Slash { action, .. } => {
                 match action {
-                    SlashAction::Answer { .. } | SlashAction::Continue { .. } | SlashAction::Accept { .. } => {
+                    SlashAction::Answer { .. }
+                    | SlashAction::Continue { .. }
+                    | SlashAction::Accept { .. } => {
                         return Err(crate::validation::ValidationError {
                         message: "continuation and acceptance require Request::from_parsed_with_context".into(),
                     });

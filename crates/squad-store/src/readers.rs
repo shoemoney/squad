@@ -8,8 +8,16 @@ pub struct ScopedReaders {
     epoch: u64,
 }
 impl ScopedReaders {
-    pub fn artifact_for_work(&self,id:WorkId,event:EventId) -> Result<serde_json::Value,ReaderError> {
-        self.read(move |db,owner| {owned(db,owner,id)?;crate::contest_steps::artifact_for_work(db,id,event).map_err(|_|ReaderError::Forbidden)})
+    pub fn artifact_for_work(
+        &self,
+        id: WorkId,
+        event: EventId,
+    ) -> Result<serde_json::Value, ReaderError> {
+        self.read(move |db, owner| {
+            owned(db, owner, id)?;
+            crate::contest_steps::artifact_for_work(db, id, event)
+                .map_err(|_| ReaderError::Forbidden)
+        })
     }
 
     pub fn new(store: Store, owner: ExecutorKey, epoch: u64) -> Self {
@@ -264,9 +272,13 @@ impl WorkReader for ScopedReaders {
         Box::pin(async move {
             self.read(move |db, owner| {
                 let record = owned(db, owner, id)?;
-                if let Some((work,_))=crate::work::template(db,id).map_err(map_error)? && work.kind.new_mode_kind().is_some() {
-                    if attempt==0 || attempt>record.attempt {return Err(ReaderError::Forbidden);}
-                    return crate::judge_repairs::get_mode(db,id,attempt).map_err(map_error);
+                if let Some((work, _)) = crate::work::template(db, id).map_err(map_error)?
+                    && work.kind.new_mode_kind().is_some()
+                {
+                    if attempt == 0 || attempt > record.attempt {
+                        return Err(ReaderError::Forbidden);
+                    }
+                    return crate::judge_repairs::get_mode(db, id, attempt).map_err(map_error);
                 }
                 let ExecutorKey::Case(case) = owner else {
                     return Err(ReaderError::Forbidden);

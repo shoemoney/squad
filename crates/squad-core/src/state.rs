@@ -27,10 +27,13 @@ pub struct RoomVars {
     pub grill_rounds: u8,
     #[serde(rename = "CENSUS_PASSES")]
     pub census_passes: u8,
-#[serde(rename="NEGOTIATE_ROUNDS")] pub negotiate_rounds: u8,
-#[serde(rename="READBACK_ROUNDS")] pub readback_rounds: u8,
-#[serde(rename="DEBUG_ROUNDS")] pub debug_rounds: u8,
-
+    #[serde(rename = "NEGOTIATE_ROUNDS")]
+    pub negotiate_rounds: u8,
+    #[serde(rename = "READBACK_ROUNDS")]
+    pub readback_rounds: u8,
+    #[serde(rename = "DEBUG_ROUNDS")]
+    pub debug_rounds: u8,
+    pub tune_generations: u8,
 }
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -249,6 +252,10 @@ pub fn snapshot(
                 serde_json::from_str(&json)
                     .map(ContestState::Grill)
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
+            } else if kind == "tune" {
+                serde_json::from_str(&json).map(ContestState::Tune)
+            } else if kind == "bass_ackwards_prd" {
+                serde_json::from_str(&json).map(ContestState::BassAckwardsPrd)
             } else if kind == "forge" {
                 serde_json::from_str(&json).map(ContestState::Forge)
             } else if kind == "forecast" {
@@ -319,10 +326,10 @@ pub fn snapshot(
             rounds: variable("ROUNDS")?,
             grill_rounds: variable("GRILL_ROUNDS")?,
             census_passes: variable("CENSUS_PASSES")?,
-negotiate_rounds: variable("NEGOTIATE_ROUNDS")?,
-readback_rounds: variable("READBACK_ROUNDS")?,
-debug_rounds: variable("DEBUG_ROUNDS")?,
-
+            negotiate_rounds: variable("NEGOTIATE_ROUNDS")?,
+            readback_rounds: variable("READBACK_ROUNDS")?,
+            debug_rounds: variable("DEBUG_ROUNDS")?,
+            tune_generations: variable("TUNE_GENERATIONS")?,
         },
         participants,
         debates,

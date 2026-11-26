@@ -10,12 +10,14 @@ pub struct Span {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum VariableName {
-#[serde(rename = "NEGOTIATE_ROUNDS")]
-NegotiateRounds,
-#[serde(rename = "READBACK_ROUNDS")]
-ReadbackRounds,
-#[serde(rename = "DEBUG_ROUNDS")]
-DebugRounds,
+    #[serde(rename = "TUNE_GENERATIONS")]
+    TuneGenerations,
+    #[serde(rename = "NEGOTIATE_ROUNDS")]
+    NegotiateRounds,
+    #[serde(rename = "READBACK_ROUNDS")]
+    ReadbackRounds,
+    #[serde(rename = "DEBUG_ROUNDS")]
+    DebugRounds,
 
     #[serde(rename = "ROUNDS")]
     Rounds,
@@ -44,24 +46,29 @@ pub struct ConversationalInput {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ExportScope {
-#[serde(rename = "forge")]
-Forge,
-#[serde(rename = "forecast")]
-Forecast,
-#[serde(rename = "decide")]
-Decide,
-#[serde(rename = "negotiate")]
-Negotiate,
-#[serde(rename = "blow_it_up")]
-BlowItUp,
-#[serde(rename = "readback")]
-Readback,
-#[serde(rename = "debug")]
-Debugging,
-#[serde(rename = "trace")]
-Trace,
-#[serde(rename = "rank")]
-Rank,
+    #[serde(rename = "tune")]
+    Tune,
+    #[serde(rename = "bass_ackwards_prd")]
+    BassAckwardsPrd,
+
+    #[serde(rename = "forge")]
+    Forge,
+    #[serde(rename = "forecast")]
+    Forecast,
+    #[serde(rename = "decide")]
+    Decide,
+    #[serde(rename = "negotiate")]
+    Negotiate,
+    #[serde(rename = "blow_it_up")]
+    BlowItUp,
+    #[serde(rename = "readback")]
+    Readback,
+    #[serde(rename = "debug")]
+    Debugging,
+    #[serde(rename = "trace")]
+    Trace,
+    #[serde(rename = "rank")]
+    Rank,
 
     Room,
     Debate,
@@ -123,7 +130,9 @@ pub struct PendingPick {
     rename_all_fields = "camelCase"
 )]
 pub enum SlashAction {
-    Answer { text: String },
+    Answer {
+        text: String,
+    },
     Set {
         variable: VariableName,
         value: u8,
@@ -165,25 +174,102 @@ pub enum SlashAction {
     rename_all_fields = "camelCase"
 )]
 pub enum ParsedInput {
-#[serde(rename = "forge")]
-Forge { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, brief: String, constraints: Option<String> },
-#[serde(rename = "forecast")]
-Forecast { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, question: String, background: Option<String> },
-#[serde(rename = "decide")]
-Decide { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, decision: String, options: Vec<String> },
-#[serde(rename = "negotiate")]
-Negotiate { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, our_side: String, counterpart: Option<String>, rounds: u8 },
-#[serde(rename = "blow_it_up")]
-BlowItUp { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, source: PlanSource, scope: Option<String> },
-#[serde(rename = "readback")]
-Readback { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, source: PlanSource, rounds: u8 },
-#[serde(rename = "debug")]
-Debugging { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, brief: String, limits: Option<String>, rounds: u8 },
-#[serde(rename = "trace")]
-Trace { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, question: String, sources: Vec<TraceSource> },
-#[serde(rename = "rank")]
-Rank { #[serde(flatten)] input: ConversationalInput, participants: Vec<Nick>, criterion: String, items: Vec<String> },
-HumanChoices { raw: String, contest_id: ContestId, text: String },
+    #[serde(rename = "tune")]
+    Tune {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        prompt: String,
+        task_description: String,
+        generations: u8,
+    },
+    #[serde(rename = "bass_ackwards_prd")]
+    BassAckwardsPrd {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        end_result: String,
+    },
+
+    #[serde(rename = "forge")]
+    Forge {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        brief: String,
+        constraints: Option<String>,
+    },
+    #[serde(rename = "forecast")]
+    Forecast {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        question: String,
+        background: Option<String>,
+    },
+    #[serde(rename = "decide")]
+    Decide {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        decision: String,
+        options: Vec<String>,
+    },
+    #[serde(rename = "negotiate")]
+    Negotiate {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        our_side: String,
+        counterpart: Option<String>,
+        rounds: u8,
+    },
+    #[serde(rename = "blow_it_up")]
+    BlowItUp {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        source: PlanSource,
+        scope: Option<String>,
+    },
+    #[serde(rename = "readback")]
+    Readback {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        source: PlanSource,
+        rounds: u8,
+    },
+    #[serde(rename = "debug")]
+    Debugging {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        brief: String,
+        limits: Option<String>,
+        rounds: u8,
+    },
+    #[serde(rename = "trace")]
+    Trace {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        question: String,
+        sources: Vec<TraceSource>,
+    },
+    #[serde(rename = "rank")]
+    Rank {
+        #[serde(flatten)]
+        input: ConversationalInput,
+        participants: Vec<Nick>,
+        criterion: String,
+        items: Vec<String>,
+    },
+    HumanChoices {
+        raw: String,
+        contest_id: ContestId,
+        text: String,
+    },
 
     Message {
         #[serde(flatten)]
@@ -286,9 +372,10 @@ pub type ParseResult = Result<ParsedInput, ParseError>;
 /// Effective stored values (or environment seeds when a value is not stored).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoomVariables {
-pub negotiate_rounds: u8,
-pub readback_rounds: u8,
-pub debug_rounds: u8,
+    pub negotiate_rounds: u8,
+    pub readback_rounds: u8,
+    pub debug_rounds: u8,
+    pub tune_generations: u8,
 
     pub rounds: u8,
     pub grill_rounds: u8,
@@ -300,6 +387,7 @@ impl Default for RoomVariables {
             negotiate_rounds: 3,
             readback_rounds: 2,
             debug_rounds: 3,
+            tune_generations: 3,
             rounds: 10,
             grill_rounds: 2,
             census_passes: 2,
@@ -310,9 +398,10 @@ impl VariableName {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Rounds => "ROUNDS",
-Self::NegotiateRounds => "NEGOTIATE_ROUNDS",
-Self::ReadbackRounds => "READBACK_ROUNDS",
-Self::DebugRounds => "DEBUG_ROUNDS",
+            Self::NegotiateRounds => "NEGOTIATE_ROUNDS",
+            Self::ReadbackRounds => "READBACK_ROUNDS",
+            Self::DebugRounds => "DEBUG_ROUNDS",
+            Self::TuneGenerations => "TUNE_GENERATIONS",
 
             Self::GrillRounds => "GRILL_ROUNDS",
             Self::CensusPasses => "CENSUS_PASSES",
@@ -321,9 +410,10 @@ Self::DebugRounds => "DEBUG_ROUNDS",
     pub fn from_name(name: &str) -> Option<Self> {
         match name {
             "ROUNDS" => Some(Self::Rounds),
-"NEGOTIATE_ROUNDS" => Some(Self::NegotiateRounds),
-"READBACK_ROUNDS" => Some(Self::ReadbackRounds),
-"DEBUG_ROUNDS" => Some(Self::DebugRounds),
+            "NEGOTIATE_ROUNDS" => Some(Self::NegotiateRounds),
+            "READBACK_ROUNDS" => Some(Self::ReadbackRounds),
+            "DEBUG_ROUNDS" => Some(Self::DebugRounds),
+            "TUNE_GENERATIONS" => Some(Self::TuneGenerations),
 
             "GRILL_ROUNDS" => Some(Self::GrillRounds),
             "CENSUS_PASSES" => Some(Self::CensusPasses),
@@ -333,9 +423,10 @@ Self::DebugRounds => "DEBUG_ROUNDS",
     pub fn value(&self, vars: &RoomVariables) -> u8 {
         match self {
             Self::Rounds => vars.rounds,
-Self::NegotiateRounds => vars.negotiate_rounds,
-Self::ReadbackRounds => vars.readback_rounds,
-Self::DebugRounds => vars.debug_rounds,
+            Self::NegotiateRounds => vars.negotiate_rounds,
+            Self::ReadbackRounds => vars.readback_rounds,
+            Self::DebugRounds => vars.debug_rounds,
+            Self::TuneGenerations => vars.tune_generations,
 
             Self::GrillRounds => vars.grill_rounds,
             Self::CensusPasses => vars.census_passes,
@@ -344,9 +435,10 @@ Self::DebugRounds => vars.debug_rounds,
     pub fn set(&self, vars: &mut RoomVariables, value: u8) {
         match self {
             Self::Rounds => vars.rounds = value,
-Self::NegotiateRounds => vars.negotiate_rounds = value,
-Self::ReadbackRounds => vars.readback_rounds = value,
-Self::DebugRounds => vars.debug_rounds = value,
+            Self::NegotiateRounds => vars.negotiate_rounds = value,
+            Self::ReadbackRounds => vars.readback_rounds = value,
+            Self::DebugRounds => vars.debug_rounds = value,
+            Self::TuneGenerations => vars.tune_generations = value,
 
             Self::GrillRounds => vars.grill_rounds = value,
             Self::CensusPasses => vars.census_passes = value,
@@ -365,22 +457,25 @@ impl ParsedInput {
         match self {
             Self::Assignment { raw, .. }
             | Self::Slash { raw, .. }
-            | Self::ContestPick { raw, .. } | Self::HumanChoices { raw, .. } => raw,
+            | Self::ContestPick { raw, .. }
+            | Self::HumanChoices { raw, .. } => raw,
             _ => &self.conversational().unwrap().raw,
         }
     }
     pub fn conversational(&self) -> Option<&ConversationalInput> {
         match self {
-            Self::Forge { input, .. } |
-            Self::Forecast { input, .. } |
-            Self::Decide { input, .. } |
-            Self::Negotiate { input, .. } |
-            Self::BlowItUp { input, .. } |
-            Self::Readback { input, .. } |
-            Self::Debugging { input, .. } |
-            Self::Trace { input, .. } |
-            Self::Rank { input, .. } |
-            Self::Message { input, .. }
+            Self::Tune { input, .. }
+            | Self::BassAckwardsPrd { input, .. }
+            | Self::Forge { input, .. }
+            | Self::Forecast { input, .. }
+            | Self::Decide { input, .. }
+            | Self::Negotiate { input, .. }
+            | Self::BlowItUp { input, .. }
+            | Self::Readback { input, .. }
+            | Self::Debugging { input, .. }
+            | Self::Trace { input, .. }
+            | Self::Rank { input, .. }
+            | Self::Message { input, .. }
             | Self::Debate { input, .. }
             | Self::Judge { input, .. }
             | Self::Tournament { input, .. }
@@ -396,16 +491,18 @@ impl ParsedInput {
     pub fn is_contest(&self) -> bool {
         matches!(
             self,
-            Self::Forge { .. } |
-            Self::Forecast { .. } |
-            Self::Decide { .. } |
-            Self::Negotiate { .. } |
-            Self::BlowItUp { .. } |
-            Self::Readback { .. } |
-            Self::Debugging { .. } |
-            Self::Trace { .. } |
-            Self::Rank { .. } |
-            Self::Debate { .. }
+            Self::Tune { .. }
+                | Self::BassAckwardsPrd { .. }
+                | Self::Forge { .. }
+                | Self::Forecast { .. }
+                | Self::Decide { .. }
+                | Self::Negotiate { .. }
+                | Self::BlowItUp { .. }
+                | Self::Readback { .. }
+                | Self::Debugging { .. }
+                | Self::Trace { .. }
+                | Self::Rank { .. }
+                | Self::Debate { .. }
                 | Self::Tournament { .. }
                 | Self::Grill { .. }
                 | Self::QuestionFirst { .. }
@@ -431,6 +528,8 @@ macro_rules! verbs {
 }
 verbs! {
     Forge => "forge",
+    Tune => "tune",
+    BassAckwardsPrd => "bass_ackwards_prd",
     Forecast => "forecast",
     Decide => "decide",
     Negotiate => "negotiate",
@@ -456,31 +555,43 @@ impl Verb {
 pub type SubmissionMetadata = SubmissionMeta;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
-pub enum TraceSource { Pasted { text: String }, Quoted { event_id: EventId } }
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum TraceSource {
+    Pasted { text: String },
+    Quoted { event_id: EventId },
+}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct PendingHuman {
- pub contest_id: ContestId,
- pub kind: crate::ContestKind,
- pub state_version: u64,
- pub step_id: crate::StepId,
- pub prompt: String,
- pub items: Vec<String>,
- pub choices: Vec<Vec<String>>,
- pub outcome_labels: Vec<String>,
- pub answers: std::collections::BTreeMap<u32,String>,
+    pub contest_id: ContestId,
+    pub kind: crate::ContestKind,
+    pub state_version: u64,
+    pub step_id: crate::StepId,
+    pub prompt: String,
+    pub items: Vec<String>,
+    pub choices: Vec<Vec<String>>,
+    pub outcome_labels: Vec<String>,
+    pub answers: std::collections::BTreeMap<u32, String>,
 }
 impl Verb {
- pub fn new_mode_kind(self) -> Option<crate::ContestKind> { match self {
-Self::Forge => Some(crate::ContestKind::Forge),
-Self::Forecast => Some(crate::ContestKind::Forecast),
-Self::Decide => Some(crate::ContestKind::Decide),
-Self::Negotiate => Some(crate::ContestKind::Negotiate),
-Self::BlowItUp => Some(crate::ContestKind::BlowItUp),
-Self::Readback => Some(crate::ContestKind::Readback),
-Self::Debugging => Some(crate::ContestKind::Debugging),
-Self::Trace => Some(crate::ContestKind::Trace),
-Self::Rank => Some(crate::ContestKind::Rank),
-_ => None } }
+    pub fn new_mode_kind(self) -> Option<crate::ContestKind> {
+        match self {
+            Self::Forge => Some(crate::ContestKind::Forge),
+            Self::Tune => Some(crate::ContestKind::Tune),
+            Self::BassAckwardsPrd => Some(crate::ContestKind::BassAckwardsPrd),
+            Self::Forecast => Some(crate::ContestKind::Forecast),
+            Self::Decide => Some(crate::ContestKind::Decide),
+            Self::Negotiate => Some(crate::ContestKind::Negotiate),
+            Self::BlowItUp => Some(crate::ContestKind::BlowItUp),
+            Self::Readback => Some(crate::ContestKind::Readback),
+            Self::Debugging => Some(crate::ContestKind::Debugging),
+            Self::Trace => Some(crate::ContestKind::Trace),
+            Self::Rank => Some(crate::ContestKind::Rank),
+            _ => None,
+        }
+    }
 }

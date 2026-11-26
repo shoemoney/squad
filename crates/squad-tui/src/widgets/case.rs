@@ -110,15 +110,16 @@ pub fn render(view: &CaseView, area: Rect, buf: &mut Buffer, palette: &Palette) 
             };
             c.line(&format!("Survey · {}", setup.question), body);
         }
-CaseMaterial::Forge(_) => {},
-CaseMaterial::Forecast(_) => {},
-CaseMaterial::Decide(_) => {},
-CaseMaterial::Negotiate(_) => {},
-CaseMaterial::BlowItUp(_) => {},
-CaseMaterial::Readback(_) => {},
-CaseMaterial::Debugging(_) => {},
-CaseMaterial::Trace(_) => {},
-CaseMaterial::Rank(_) => {},
+        CaseMaterial::Tune(_) | CaseMaterial::BassAckwardsPrd(_) => {}
+        CaseMaterial::Forge(_) => {}
+        CaseMaterial::Forecast(_) => {}
+        CaseMaterial::Decide(_) => {}
+        CaseMaterial::Negotiate(_) => {}
+        CaseMaterial::BlowItUp(_) => {}
+        CaseMaterial::Readback(_) => {}
+        CaseMaterial::Debugging(_) => {}
+        CaseMaterial::Trace(_) => {}
+        CaseMaterial::Rank(_) => {}
         CaseMaterial::Probe(material) => {
             c.line(&format!("Probe · {}", material.brief.observation), body);
         }

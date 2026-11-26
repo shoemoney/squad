@@ -13,6 +13,7 @@ pub fn apply(
             VariableName::NegotiateRounds => 6,
             VariableName::ReadbackRounds => 4,
             VariableName::DebugRounds => 6,
+            VariableName::TuneGenerations => 6,
 
             VariableName::GrillRounds => 10,
             VariableName::CensusPasses => 5,

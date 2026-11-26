@@ -116,6 +116,40 @@ impl Router {
         outcomes.extend(self.drive_census()?);
         outcomes.extend(self.drive_surveys()?);
         outcomes.extend(self.drive_probe_contests()?);
+        if squad_protocol::tune::ENABLED {
+            outcomes.extend(super::tune::drive(self)?);
+        }
+        if squad_protocol::bass_ackwards_prd::ENABLED {
+            outcomes.extend(super::bass_ackwards_prd::drive(self)?);
+        }
+        if squad_protocol::forge::ENABLED {
+            outcomes.extend(super::forge::drive(self)?);
+        }
+        if squad_protocol::forecast::ENABLED {
+            outcomes.extend(super::forecast::drive(self)?);
+        }
+        if squad_protocol::decide::ENABLED {
+            outcomes.extend(super::decide::drive(self)?);
+        }
+        if squad_protocol::negotiate::ENABLED {
+            outcomes.extend(super::negotiate::drive(self)?);
+        }
+        if squad_protocol::blow_it_up::ENABLED {
+            outcomes.extend(super::blow_it_up::drive(self)?);
+        }
+        if squad_protocol::readback::ENABLED {
+            outcomes.extend(super::readback::drive(self)?);
+        }
+        if squad_protocol::debugging::ENABLED {
+            outcomes.extend(super::debugging::drive(self)?);
+        }
+        if squad_protocol::trace::ENABLED {
+            outcomes.extend(super::trace::drive(self)?);
+        }
+        if squad_protocol::rank::ENABLED {
+            outcomes.extend(super::rank::drive(self)?);
+        }
+
         for id in ids {
             let id = id.parse().map_err(|_| StoreError::Unavailable)?;
             if self

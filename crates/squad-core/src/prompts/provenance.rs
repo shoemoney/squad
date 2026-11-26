@@ -7,7 +7,9 @@ use std::collections::BTreeMap;
 
 /// Compositions owned by the four structured modes (census, crosscheck,
 /// survey, probe). Each must carry frozen provenance before work is issued.
-pub const NEW_MODE_COMPOSITIONS: [&str; 55] = [
+pub const NEW_MODE_COMPOSITIONS: [&str; 57] = [
+    "tune.placeholder",
+    "bass_ackwards_prd.placeholder",
     "forge.draft",
     "forge.rank",
     "forge.fuse",

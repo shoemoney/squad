@@ -19,9 +19,10 @@ fn variable(name: &str, span: Span) -> Result<VariableName, ParseError> {
 fn value(name: &VariableName, value: &str, span: Span) -> Result<u8, ParseError> {
     let (max, rule) = match name {
         VariableName::Rounds => (20, Rule::Rounds),
-VariableName::NegotiateRounds => (6, Rule::NegotiateRounds),
-VariableName::ReadbackRounds => (4, Rule::ReadbackRounds),
-VariableName::DebugRounds => (6, Rule::DebugRounds),
+        VariableName::NegotiateRounds => (6, Rule::NegotiateRounds),
+        VariableName::ReadbackRounds => (4, Rule::ReadbackRounds),
+        VariableName::DebugRounds => (6, Rule::DebugRounds),
+        VariableName::TuneGenerations => (6, Rule::TuneGenerations),
 
         VariableName::GrillRounds => (10, Rule::GrillRounds),
         VariableName::CensusPasses => (5, Rule::CensusPasses),
@@ -59,9 +60,15 @@ pub(crate) fn parse_snapshot(raw: &str, ctx: &ParserSnapshot) -> ParseResult {
         });
     }
     if let Some(pending) = &ctx.pending_human
-        && pending.kind == crate::ContestKind::Readback && choice_tokens(raw) {
+        && pending.kind == crate::ContestKind::Readback
+        && choice_tokens(raw)
+    {
         validate_human_answer(raw, pending, whole(raw))?;
-        return Ok(ParsedInput::HumanChoices { raw: raw.to_owned(), contest_id: pending.contest_id, text: raw.trim().to_owned() });
+        return Ok(ParsedInput::HumanChoices {
+            raw: raw.to_owned(),
+            contest_id: pending.contest_id,
+            text: raw.trim().to_owned(),
+        });
     }
     let tokens = tokenize(raw)?;
     let mut command = None;
@@ -75,8 +82,10 @@ pub(crate) fn parse_snapshot(raw: &str, ctx: &ParserSnapshot) -> ParseResult {
             if verb.reserved() {
                 return Err(Rule::Reserved.error(token.span.clone(), &[("verb", name)]));
             }
-            if let Some(kind) = verb.new_mode_kind() && !super::mode_enabled(kind) {
-                return Err(Rule::ModeDisabled.error(token.span.clone(), &[("verb",name)]));
+            if let Some(kind) = verb.new_mode_kind()
+                && !super::mode_enabled(kind)
+            {
+                return Err(Rule::ModeDisabled.error(token.span.clone(), &[("verb", name)]));
             }
             command = Some(verb);
         }
@@ -218,7 +227,9 @@ pub(crate) fn parse_snapshot(raw: &str, ctx: &ParserSnapshot) -> ParseResult {
     };
     let fail = |rule: Rule| rule.error(whole(raw), &[]);
     if let Some(kind) = command.and_then(Verb::new_mode_kind) {
-        if has_judge { return Err(Rule::ModeJudge.error(whole(raw), &[("mode",kind.as_str())])); }
+        if has_judge {
+            return Err(Rule::ModeJudge.error(whole(raw), &[("mode", kind.as_str())]));
+        }
         return new_mode(raw, kind, input, recipients, has_all, &tokens, &vars, ctx);
     }
     let parsed = match command {
@@ -703,9 +714,17 @@ fn slash(raw: &str, ctx: &ParserSnapshot) -> Result<SlashAction, ParseError> {
     };
     Ok(match name {
         "answer" => {
-            let pending = ctx.pending_human.as_ref().ok_or_else(|| Rule::NoHuman.error(whole(raw), &[]))?;
-            let text = raw.trim_start().strip_prefix("/answer").expect("command").trim().to_owned();
-            validate_human_answer(&text,pending,whole(raw))?;
+            let pending = ctx
+                .pending_human
+                .as_ref()
+                .ok_or_else(|| Rule::NoHuman.error(whole(raw), &[]))?;
+            let text = raw
+                .trim_start()
+                .strip_prefix("/answer")
+                .expect("command")
+                .trim()
+                .to_owned();
+            validate_human_answer(&text, pending, whole(raw))?;
             SlashAction::Answer { text }
         }
         "set" => {
@@ -814,15 +833,17 @@ fn slash(raw: &str, ctx: &ParserSnapshot) -> Result<SlashAction, ParseError> {
                 "crosscheck" => ExportScope::Crosscheck,
                 "survey" => ExportScope::Survey,
                 "probe" => ExportScope::Probe,
-"forge" => ExportScope::Forge,
-"forecast" => ExportScope::Forecast,
-"decide" => ExportScope::Decide,
-"negotiate" => ExportScope::Negotiate,
-"blow_it_up" => ExportScope::BlowItUp,
-"readback" => ExportScope::Readback,
-"debug" => ExportScope::Debugging,
-"trace" => ExportScope::Trace,
-"rank" => ExportScope::Rank,
+                "forge" => ExportScope::Forge,
+                "tune" => ExportScope::Tune,
+                "bass_ackwards_prd" => ExportScope::BassAckwardsPrd,
+                "forecast" => ExportScope::Forecast,
+                "decide" => ExportScope::Decide,
+                "negotiate" => ExportScope::Negotiate,
+                "blow_it_up" => ExportScope::BlowItUp,
+                "readback" => ExportScope::Readback,
+                "debug" => ExportScope::Debugging,
+                "trace" => ExportScope::Trace,
+                "rank" => ExportScope::Rank,
 
                 _ => return Err(usage(EXPORT_USAGE)),
             };
@@ -883,82 +904,271 @@ pub const HELP_EXAMPLES: &[&str] = &[
 ];
 
 fn choice_tokens(text: &str) -> bool {
- !text.trim().is_empty() && text.split_whitespace().all(|token| {
- let digits = token.bytes().take_while(u8::is_ascii_digit).count();
- digits > 0 && token.len() == digits + 1 && token.as_bytes()[digits].is_ascii_lowercase()
- })
+    !text.trim().is_empty()
+        && text.split_whitespace().all(|token| {
+            let digits = token.bytes().take_while(u8::is_ascii_digit).count();
+            digits > 0 && token.len() == digits + 1 && token.as_bytes()[digits].is_ascii_lowercase()
+        })
 }
-pub(super) fn validate_human_answer(text: &str, pending: &PendingHuman, span: Span) -> Result<(), ParseError> {
- if pending.kind == crate::ContestKind::Readback {
-   if choice_tokens(text) {
-    for token in text.split_whitespace() {
-     let (number,reading) = token.split_at(token.len()-1);
-     let n = number.parse::<usize>().unwrap_or(0);
-     let x = reading.as_bytes()[0] - b'a';
-     if n == 0 || !pending.choices.get(n-1).is_some_and(|c| usize::from(x) < c.len()) {
-      return Err(Rule::ReadbackChoice.error(span, &[("n",number),("x",reading)]));
-     }
+pub(super) fn validate_human_answer(
+    text: &str,
+    pending: &PendingHuman,
+    span: Span,
+) -> Result<(), ParseError> {
+    if pending.kind == crate::ContestKind::Readback {
+        if choice_tokens(text) {
+            for token in text.split_whitespace() {
+                let (number, reading) = token.split_at(token.len() - 1);
+                let n = number.parse::<usize>().unwrap_or(0);
+                let x = reading.as_bytes()[0] - b'a';
+                if n == 0
+                    || !pending
+                        .choices
+                        .get(n - 1)
+                        .is_some_and(|c| usize::from(x) < c.len())
+                {
+                    return Err(Rule::ReadbackChoice.error(span, &[("n", number), ("x", reading)]));
+                }
+            }
+            return Ok(());
+        }
+        if let Some((number, reading)) = text.split_once(':')
+            && number
+                .trim()
+                .parse::<usize>()
+                .ok()
+                .is_some_and(|n| n > 0 && n <= pending.items.len())
+            && !reading.trim().is_empty()
+        {
+            return Ok(());
+        }
+        return Err(Rule::ReadbackAnswer.error(span, &[]));
     }
-    return Ok(());
-   }
-   if let Some((number,reading)) = text.split_once(':') && number.trim().parse::<usize>().ok().is_some_and(|n| n > 0 && n <= pending.items.len()) && !reading.trim().is_empty() { return Ok(()); }
-   return Err(Rule::ReadbackAnswer.error(span,&[]));
- }
- if pending.kind == crate::ContestKind::Debugging {
-  let mut words = text.splitn(2,char::is_whitespace);
-  let label = words.next().unwrap_or(""); let result=words.next().unwrap_or("").trim();
-  if label == "unknown" && result.is_empty() || (label == "other" || pending.outcome_labels.iter().any(|l| l == label)) && !result.is_empty() { return Ok(()); }
-  return Err(Rule::DebugAnswer.error(span,&[]));
- }
- Err(Rule::NoHuman.error(span,&[]))
+    if pending.kind == crate::ContestKind::Debugging {
+        let mut words = text.splitn(2, char::is_whitespace);
+        let label = words.next().unwrap_or("");
+        let result = words.next().unwrap_or("").trim();
+        if label == "unknown" && result.is_empty()
+            || (label == "other" || pending.outcome_labels.iter().any(|l| l == label))
+                && !result.is_empty()
+        {
+            return Ok(());
+        }
+        return Err(Rule::DebugAnswer.error(span, &[]));
+    }
+    Err(Rule::NoHuman.error(span, &[]))
 }
-fn new_mode(raw: &str, kind: crate::ContestKind, input: ConversationalInput, recipients: Vec<Nick>, has_all: bool, tokens: &[Token], vars: &RoomVariables, ctx: &ParserSnapshot) -> ParseResult {
- let span = whole(raw);
- let shortcut = !has_all && recipients.len()==1 && matches!(kind,crate::ContestKind::BlowItUp | crate::ContestKind::Readback);
- let participants = if shortcut {ctx.roster.clone()} else {recipients.clone()};
- if participants.len() < if kind == crate::ContestKind::Negotiate {4} else {3} {
-  return Err(if kind == crate::ContestKind::Negotiate {Rule::NegotiateCount} else {Rule::ModeCount}.error(span,&[("mode",kind.as_str())]));
- }
- let mut segments = Vec::new(); let mut chunk=Vec::new();
- for t in tokens { if matches!(t.kind,TokenKind::Separator) { segments.push(render(raw,&chunk,vars,false)); chunk.clear(); } else {chunk.push(t.clone());} }
- segments.push(render(raw,&chunk,vars,false));
- let first=segments.remove(0); let tail=(!segments.is_empty()).then(||segments.join("\n--\n"));
- let lines = || tail.as_deref().unwrap_or("").lines().map(str::trim).filter(|s|!s.is_empty()).map(str::to_owned).collect::<Vec<_>>();
- let missing = match kind {
-crate::ContestKind::Forge => Rule::ForgeMissing,
-crate::ContestKind::Forecast => Rule::ForecastMissing,
-crate::ContestKind::Decide => Rule::DecideMissing,
-crate::ContestKind::Negotiate => Rule::NegotiateMissing,
-crate::ContestKind::BlowItUp => Rule::BlowItUpMissing,
-crate::ContestKind::Readback => Rule::ReadbackMissing,
-crate::ContestKind::Debugging => Rule::DebugMissing,
-crate::ContestKind::Trace => Rule::TraceMissing,
-crate::ContestKind::Rank => Rule::RankMissing,
-_ => unreachable!() };
- let source = || -> Result<PlanSource,ParseError> {
- if input.quote.len()==1 { Ok(PlanSource::Quoted {event_id:input.quote[0]}) }
- else if input.quote.len()>1 { Err(missing.error(span.clone(),&[])) }
- else if shortcut {Ok(PlanSource::LatestReply {nick:recipients[0].clone()})}
- else if !first.is_empty() {Ok(PlanSource::Pasted {text:first.clone()})}
- else {Err(missing.error(span.clone(),&[]))}
- };
- if first.is_empty() && !matches!(kind,crate::ContestKind::BlowItUp|crate::ContestKind::Readback) {return Err(missing.error(span,&[]));}
- let parsed = match kind {
- crate::ContestKind::Forge => ParsedInput::Forge {input,participants,brief:first,constraints:tail},
- crate::ContestKind::Forecast => ParsedInput::Forecast {input,participants,question:first,background:tail},
- crate::ContestKind::Decide => { let options=lines(); if tail.is_some() && !(2..=4).contains(&options.len()) {return Err(Rule::DecideOptions.error(span,&[]));} ParsedInput::Decide {input,participants,decision:first,options} },
- crate::ContestKind::Negotiate => ParsedInput::Negotiate {input,participants,our_side:first,counterpart:tail,rounds:vars.negotiate_rounds},
- crate::ContestKind::BlowItUp => {let source=source()?; ParsedInput::BlowItUp {input,participants,source,scope:tail}},
- crate::ContestKind::Readback => {let source=source()?; ParsedInput::Readback {input,participants,source,rounds:vars.readback_rounds}},
- crate::ContestKind::Debugging => ParsedInput::Debugging {input,participants,brief:first,limits:tail,rounds:vars.debug_rounds},
- crate::ContestKind::Trace => {
-  let mut sources=segments.into_iter().filter(|s|!s.is_empty()).map(|text|TraceSource::Pasted{text}).collect::<Vec<_>>();
-  sources.extend(input.quote.iter().map(|id|TraceSource::Quoted {event_id:*id}));
-  if sources.is_empty() {return Err(Rule::TraceSources.error(span,&[]));}
-  if sources.len()>12 {return Err(Rule::TraceSourceCount.error(span,&[]));}
-  ParsedInput::Trace {input,participants,question:first,sources}
- },
- crate::ContestKind::Rank => { let items=lines(); if !(3..=40).contains(&items.len()) {return Err(Rule::RankItems.error(span,&[]));} ParsedInput::Rank {input,participants,criterion:first,items} },
- _ => unreachable!() };
- validate_snapshot(&parsed,ctx)
+fn new_mode(
+    raw: &str,
+    kind: crate::ContestKind,
+    input: ConversationalInput,
+    recipients: Vec<Nick>,
+    has_all: bool,
+    tokens: &[Token],
+    vars: &RoomVariables,
+    ctx: &ParserSnapshot,
+) -> ParseResult {
+    let span = whole(raw);
+    let shortcut = !has_all
+        && recipients.len() == 1
+        && matches!(
+            kind,
+            crate::ContestKind::BlowItUp | crate::ContestKind::Readback
+        );
+    let participants = if shortcut {
+        ctx.roster.clone()
+    } else {
+        recipients.clone()
+    };
+    if participants.len()
+        < if kind == crate::ContestKind::Negotiate {
+            4
+        } else {
+            3
+        }
+    {
+        return Err(if kind == crate::ContestKind::Negotiate {
+            Rule::NegotiateCount
+        } else {
+            Rule::ModeCount
+        }
+        .error(span, &[("mode", kind.as_str())]));
+    }
+    let mut segments = Vec::new();
+    let mut chunk = Vec::new();
+    for t in tokens {
+        if matches!(t.kind, TokenKind::Separator) {
+            segments.push(render(raw, &chunk, vars, false));
+            chunk.clear();
+        } else {
+            chunk.push(t.clone());
+        }
+    }
+    segments.push(render(raw, &chunk, vars, false));
+    let first = segments.remove(0);
+    let tail = (!segments.is_empty()).then(|| segments.join("\n--\n"));
+    let lines = || {
+        tail.as_deref()
+            .unwrap_or("")
+            .lines()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .collect::<Vec<_>>()
+    };
+    let missing = match kind {
+        crate::ContestKind::Tune => Rule::TuneMissing,
+        crate::ContestKind::BassAckwardsPrd => Rule::BassAckwardsPrdMissing,
+        crate::ContestKind::Forge => Rule::ForgeMissing,
+        crate::ContestKind::Forecast => Rule::ForecastMissing,
+        crate::ContestKind::Decide => Rule::DecideMissing,
+        crate::ContestKind::Negotiate => Rule::NegotiateMissing,
+        crate::ContestKind::BlowItUp => Rule::BlowItUpMissing,
+        crate::ContestKind::Readback => Rule::ReadbackMissing,
+        crate::ContestKind::Debugging => Rule::DebugMissing,
+        crate::ContestKind::Trace => Rule::TraceMissing,
+        crate::ContestKind::Rank => Rule::RankMissing,
+        _ => unreachable!(),
+    };
+    let source = || -> Result<PlanSource, ParseError> {
+        if input.quote.len() == 1 {
+            Ok(PlanSource::Quoted {
+                event_id: input.quote[0],
+            })
+        } else if input.quote.len() > 1 {
+            Err(missing.error(span.clone(), &[]))
+        } else if shortcut {
+            Ok(PlanSource::LatestReply {
+                nick: recipients[0].clone(),
+            })
+        } else if !first.is_empty() {
+            Ok(PlanSource::Pasted {
+                text: first.clone(),
+            })
+        } else {
+            Err(missing.error(span.clone(), &[]))
+        }
+    };
+    if first.is_empty()
+        && !matches!(
+            kind,
+            crate::ContestKind::BlowItUp | crate::ContestKind::Readback
+        )
+    {
+        return Err(missing.error(span, &[]));
+    }
+    let parsed = match kind {
+        crate::ContestKind::Tune => {
+            let task_description = tail
+                .filter(|s| !s.trim().is_empty())
+                .ok_or_else(|| Rule::TuneTask.error(span, &[]))?;
+            ParsedInput::Tune {
+                input,
+                participants,
+                prompt: first,
+                task_description,
+                generations: vars.tune_generations,
+            }
+        }
+        crate::ContestKind::BassAckwardsPrd => ParsedInput::BassAckwardsPrd {
+            input,
+            participants,
+            end_result: first,
+        },
+        crate::ContestKind::Forge => ParsedInput::Forge {
+            input,
+            participants,
+            brief: first,
+            constraints: tail,
+        },
+        crate::ContestKind::Forecast => ParsedInput::Forecast {
+            input,
+            participants,
+            question: first,
+            background: tail,
+        },
+        crate::ContestKind::Decide => {
+            let options = lines();
+            if tail.is_some() && !(2..=4).contains(&options.len()) {
+                return Err(Rule::DecideOptions.error(span, &[]));
+            }
+            ParsedInput::Decide {
+                input,
+                participants,
+                decision: first,
+                options,
+            }
+        }
+        crate::ContestKind::Negotiate => ParsedInput::Negotiate {
+            input,
+            participants,
+            our_side: first,
+            counterpart: tail,
+            rounds: vars.negotiate_rounds,
+        },
+        crate::ContestKind::BlowItUp => {
+            let source = source()?;
+            ParsedInput::BlowItUp {
+                input,
+                participants,
+                source,
+                scope: tail,
+            }
+        }
+        crate::ContestKind::Readback => {
+            let source = source()?;
+            ParsedInput::Readback {
+                input,
+                participants,
+                source,
+                rounds: vars.readback_rounds,
+            }
+        }
+        crate::ContestKind::Debugging => ParsedInput::Debugging {
+            input,
+            participants,
+            brief: first,
+            limits: tail,
+            rounds: vars.debug_rounds,
+        },
+        crate::ContestKind::Trace => {
+            let mut sources = segments
+                .into_iter()
+                .filter(|s| !s.is_empty())
+                .map(|text| TraceSource::Pasted { text })
+                .collect::<Vec<_>>();
+            sources.extend(
+                input
+                    .quote
+                    .iter()
+                    .map(|id| TraceSource::Quoted { event_id: *id }),
+            );
+            if sources.is_empty() {
+                return Err(Rule::TraceSources.error(span, &[]));
+            }
+            if sources.len() > 12 {
+                return Err(Rule::TraceSourceCount.error(span, &[]));
+            }
+            ParsedInput::Trace {
+                input,
+                participants,
+                question: first,
+                sources,
+            }
+        }
+        crate::ContestKind::Rank => {
+            let items = lines();
+            if !(3..=40).contains(&items.len()) {
+                return Err(Rule::RankItems.error(span, &[]));
+            }
+            ParsedInput::Rank {
+                input,
+                participants,
+                criterion: first,
+                items,
+            }
+        }
+        _ => unreachable!(),
+    };
+    validate_snapshot(&parsed, ctx)
 }
