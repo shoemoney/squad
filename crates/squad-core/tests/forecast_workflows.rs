@@ -421,6 +421,93 @@ use squad_core::{
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 struct ForecastLauncher(Arc<std::sync::Mutex<Option<squad_store::Store>>>);
+// Capture only the store handle; all execution and recovery use production code.
+struct DefaultForecastLauncher(Arc<std::sync::Mutex<Option<squad_store::Store>>>);
+impl RuntimeLauncher for DefaultForecastLauncher {
+    fn recover_on_open_mode(
+        &self,
+        store: &squad_store::Store,
+        mode: OpenMode,
+        now: DateTime,
+    ) -> Result<(), RoomError> {
+        squad_core::room::default_launcher().recover_on_open_mode(store, mode, now)
+    }
+    fn start_with_mode(
+        &self,
+        config: &SquadConfig,
+        store: squad_store::Store,
+        bus: InProcessBus,
+        client: OpenRouterClient,
+        resolution: squad_agents::resolver::ResolutionSnapshot,
+        mode: OpenMode,
+    ) -> Result<Box<dyn RoomRuntime>, RoomError> {
+        *self.0.lock().unwrap() = Some(store.clone());
+        squad_core::room::default_launcher()
+            .start_with_mode(config, store, bus, client, resolution, mode)
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires integrator-owned runtime/judge.rs structured dispatch fix"]
+async fn default_launcher_completes_forecast_and_repairs_invalid_member_output() {
+    let f = Fixture::new().await;
+    let room = RoomHandle::open_with_launcher(
+        f.config.clone(),
+        "main",
+        OpenMode::Interactive,
+        OpenRouterClient::new(&f.fake.base_url(), "fake-key").unwrap(),
+        &DefaultForecastLauncher(f.store.clone()),
+    )
+    .await
+    .unwrap();
+    let text = "@all $forecast INVALID_FIRST Will the launch happen by 2027-12-31?";
+    let result = if forecast::ENABLED {
+        room.submit(request(&f.config, text)).await
+    } else {
+        f.start(text).await
+    };
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    // The shared driver intentionally skips disabled modes. Advance admission
+    // into its first work item so this regression can expose judge dispatch
+    // before enablement; enabled runs use only the normal room engine.
+    if !forecast::ENABLED {
+        for _ in 0..3 {
+            let store = f.store.lock().unwrap().clone().unwrap();
+            let current = state(&f);
+            let id = EventId::new();
+            store
+                .commit(
+                    id,
+                    "forecast-default-fixture".into(),
+                    id.to_string(),
+                    move |tx, g| squad_core::router::forecast::drive_move(tx, g, id, current),
+                )
+                .unwrap();
+        }
+    }
+    f.wait(|| state(&f).state.is_terminal()).await;
+    assert_eq!(state(&f).state, ForecastStatus::Complete);
+    let calls = f.fake.captured_bodies().await;
+    assert_eq!(
+        calls
+            .iter()
+            .filter(|b| b["response_format"]["json_schema"]["name"] == "forecast_response")
+            .count(),
+        15,
+        "14 normal calls plus one member schema repair"
+    );
+    let export = room
+        .export(ExportScope::Forecast, Some(state(&f).contest_id))
+        .await
+        .unwrap();
+    assert!(export.contains("Pooled probability:"));
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+
 struct OwnedExecutor {
     client: OpenRouterClient,
     config: SquadConfig,

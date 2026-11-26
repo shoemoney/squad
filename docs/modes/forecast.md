@@ -79,6 +79,26 @@ public switch off, including captured revision privacy, repair, quorum, missing
 revisions, crux failure with retained tally, stop fencing and restart. It does
 not establish that the production judge wrapper works.
 
+The resume branch `mode-forecast-r2` adds
+`default_launcher_completes_forecast_and_repairs_invalid_member_output` in
+`crates/squad-core/tests/forecast_workflows.rs`. This regression captures the store
+handle but delegates execution and recovery to the production launcher. While
+disabled it advances only initial admission through the owned driver, because
+the shared driver deliberately skips disabled modes. Once enabled it submits
+through the public parser and room engine. It requires completion, fourteen
+normal provider calls plus one schema repair, an export and consistent billing.
+It is explicitly ignored pending the shared dispatch fix; run it with:
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p squad-core --test forecast_workflows default_launcher_completes -- --ignored --nocapture
+```
+
+Enablement also requires updating row 176 in the integrator-owned
+`crates/squad-protocol/src/parser/examples.json`: that fixture currently requires
+the disabled error for `@all $forecast will we ship?`. Change it to an enabled
+forecast parse fixture when flipping the switch. Typeahead, help and rotating
+TIP examples already derive availability from the switch and live parser.
+
 After the shared dispatch fix: set `forecast::ENABLED = true`, verify the parser,
 typeahead/TIP/help, rerun default-launcher workflows and all gates, then run the
 approved single live `squad send` in a fresh temporary data directory with the
