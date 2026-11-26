@@ -479,3 +479,94 @@ async fn cached_alias_target_must_still_be_in_the_fresh_catalog() {
     assert_eq!(fake.captured_bodies().await.len(), 1);
     assert_eq!(store.0.unwrap().model.id, MODEL);
 }
+
+#[tokio::test]
+async fn startup_probes_overlap_and_preserve_roster_and_judge_order() {
+    use std::time::{Duration, Instant};
+    use wiremock::matchers::body_partial_json;
+    let fake = FakeOpenRouter::start().await;
+    let mut cfg = config("~fixture/slow");
+    let mut second = cfg.agents[0].clone();
+    second.nick = "b".parse().unwrap();
+    second.model = "~fixture/fast".into();
+    cfg.agents.push(second);
+    cfg.judge.model = "~fixture/judge".into();
+    let mut data = catalog();
+    for slug in ["fixture/slow", "fixture/fast", "fixture/judge"] {
+        let mut model = data["data"][0].clone();
+        model["id"] = json!(slug);
+        data["data"].as_array_mut().unwrap().push(model);
+    }
+    fake.catalog(data).await;
+    for (alias, slug, millis) in [
+        ("~fixture/slow", "fixture/slow", 450),
+        ("~fixture/fast", "fixture/fast", 300),
+        ("~fixture/judge", "fixture/judge", 350),
+    ] {
+        Mock::given(method("POST"))
+            .and(path("/api/v1/chat/completions"))
+            .and(body_partial_json(json!({"model":alias})))
+            .respond_with(alias_probe(slug).set_delay(Duration::from_millis(millis)))
+            .expect(1)
+            .mount(&fake.server)
+            .await;
+    }
+    let order = std::sync::Mutex::new(Vec::new());
+    let started = Instant::now();
+    let result =
+        resolve_persisted_with_progress(&client(&fake), &cfg, 10, &mut AliasStore(None), &|seat| {
+            order.lock().unwrap().push(seat.nick.clone())
+        })
+        .await
+        .unwrap();
+    assert!(
+        started.elapsed() < Duration::from_millis(850),
+        "probes must overlap: {:?}",
+        started.elapsed()
+    );
+    assert!(started.elapsed() >= Duration::from_millis(450));
+    assert_eq!(*order.lock().unwrap(), ["b", "judge", "a"]);
+    assert_eq!(
+        result
+            .members
+            .iter()
+            .map(|p| (p.nick.as_str(), p.model.as_ref().unwrap().id.as_str()))
+            .collect::<Vec<_>>(),
+        [("a", "fixture/slow"), ("b", "fixture/fast")]
+    );
+    assert_eq!(result.judge.model.unwrap().id, "fixture/judge");
+}
+
+#[tokio::test]
+async fn invalid_concrete_judge_prevents_all_paid_member_probes() {
+    let fake = FakeOpenRouter::start().await;
+    fake.catalog(catalog()).await;
+    let mut cfg = config("~fixture/latest");
+    cfg.judge.model = "missing/judge".into();
+    let error = resolve(&client(&fake), &cfg, None, 1).await.unwrap_err();
+    assert!(error.to_string().contains("SQUAD_JUDGE_MODEL"));
+    assert!(fake.captured_bodies().await.is_empty());
+}
+
+#[tokio::test]
+async fn identity_probe_uses_first_token_deadline_including_response_body() {
+    use std::time::Duration;
+    let fake = FakeOpenRouter::start().await;
+    fake.completions(vec![alias_probe(MODEL).set_delay(Duration::from_secs(120))])
+        .await;
+    let c = client(&fake);
+    let request = tokio::spawn(async move { c.probe_alias("~fixture/latest", 16).await });
+    tokio::time::timeout(Duration::from_secs(2), async {
+        while fake.captured_bodies().await.is_empty() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    tokio::time::pause();
+    tokio::time::advance(Duration::from_millis(
+        squad_protocol::constants::FIRST_TOKEN_TIMEOUT_MS,
+    ))
+    .await;
+    assert_eq!(request.await.unwrap(), Err(TransportError::Deadline));
+}

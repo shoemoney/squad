@@ -9,6 +9,9 @@ use std::future::Future;
 
 pub trait Runtime {
     type Room: RoomApi;
+    fn interactive(&self, config: SquadConfig) -> impl Future<Output = Result<u8, RoomError>> {
+        interactive_default(self, config)
+    }
     fn open(
         &self,
         config: SquadConfig,
@@ -31,6 +34,13 @@ pub async fn send(
 }
 
 pub async fn interactive(runtime: &impl Runtime, config: SquadConfig) -> Result<u8, RoomError> {
+    runtime.interactive(config).await
+}
+
+async fn interactive_default(
+    runtime: &(impl Runtime + ?Sized),
+    config: SquadConfig,
+) -> Result<u8, RoomError> {
     let room = runtime.open(config, OpenPolicy::interactive()).await?;
     let result = tokio::select! {
         result = runtime.tui(&room) => result.map(|()| 0),

@@ -227,7 +227,7 @@ async fn provider(responses: Vec<wiremock::ResponseTemplate>) -> FakeOpenRouter 
 }
 
 fn ready_screen(screen: &str) -> bool {
-    screen.contains("main") || screen.contains("Ctrl+C")
+    screen.contains("six minds, one room")
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -467,4 +467,73 @@ async fn no_color_renders_without_colour_and_colour_is_the_default() {
         "colour is used when NO_COLOR is unset"
     );
     coloured.send(b"\x03");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn startup_draws_before_catalog_and_ctrl_c_cancels_and_restores() {
+    use wiremock::{
+        Mock, ResponseTemplate,
+        matchers::{method, path},
+    };
+    let provider = FakeOpenRouter::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/v1/models"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(fake_openrouter::catalog())
+                .set_delay(Duration::from_secs(5)),
+        )
+        .mount(&provider.server)
+        .await;
+    let root = tempfile::tempdir().unwrap();
+    let started = Instant::now();
+    let mut pty = Pty::spawn(root.path(), Some(&provider), &[]);
+    pty.wait_for("startup checklist", |s| {
+        s.contains("Resolving 3 models") && s.contains("Ctrl+C to quit") && s.contains("judge")
+    });
+    // Leave scheduling slack in CI; the measured local first frame is reported
+    // separately. A five-second catalog must never gate terminal output.
+    assert!(started.elapsed() < Duration::from_secs(2));
+    let cancel = Instant::now();
+    pty.send(b"\x03");
+    assert_eq!(pty.wait_exit().exit_code(), 130);
+    assert!(cancel.elapsed() < Duration::from_secs(2));
+    assert_restored(&pty);
+    assert!(provider.captured_bodies().await.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn startup_reports_each_seat_before_the_last_probe_finishes() {
+    use wiremock::{
+        Mock,
+        matchers::{body_partial_json, method, path},
+    };
+    let provider = FakeOpenRouter::start().await;
+    provider.catalog(fake_openrouter::catalog()).await;
+    for (alias, delay) in [("~fixture/fast", 20), ("~fixture/slow", 1200)] {
+        Mock::given(method("POST"))
+            .and(path("/api/v1/chat/completions"))
+            .and(body_partial_json(serde_json::json!({"model": alias})))
+            .respond_with(
+                fake_openrouter::alias_probe(MODEL).set_delay(Duration::from_millis(delay)),
+            )
+            .mount(&provider.server)
+            .await;
+    }
+    let root = tempfile::tempdir().unwrap();
+    let mut pty = Pty::spawn(
+        root.path(),
+        Some(&provider),
+        &[
+            ("SQUAD_MODEL_A", "~fixture/fast"),
+            ("SQUAD_MODEL_B", "~fixture/slow"),
+        ],
+    );
+    pty.wait_for("partial seat progress", |s| {
+        s.contains(&format!("✓ a → {MODEL}")) && s.contains("⏳ b") && s.contains("✓ judge")
+    });
+    pty.wait_for("ready room", |s| s.contains("six minds, one room"));
+    pty.send(b"\x03");
+    assert!(pty.wait_exit().success());
+    assert_restored(&pty);
 }

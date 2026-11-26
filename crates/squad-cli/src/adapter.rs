@@ -362,8 +362,86 @@ impl<R: RoomApi> RoomApi for Arc<R> {
 pub struct Runtime {
     pub config: SquadConfig,
 }
+impl Runtime {
+    pub async fn interactive_started(
+        &self,
+        config: SquadConfig,
+        startup: squad_tui::startup::StartupSession,
+    ) -> Result<u8, RoomError> {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        let progress = |seat: &squad_agents::resolver::PinnedModel| {
+            let _ = tx.send(squad_tui::startup::SeatProgress {
+                nick: seat.nick.clone(),
+                result: seat
+                    .model
+                    .as_ref()
+                    .map(|model| model.id.clone())
+                    .ok_or_else(|| {
+                        seat.probes
+                            .iter()
+                            .rev()
+                            .find_map(|probe| probe.error.clone())
+                            .or_else(|| seat.error.clone())
+                            .unwrap_or_else(|| "No validated concrete target".into())
+                    }),
+            });
+        };
+        let opening = RoomHandle::open_with_progress(
+            config.clone(),
+            "main",
+            OpenPolicy::interactive().mode,
+            &progress,
+        );
+        let Some((room, guard, terminal)) = squad_tui::startup::wait(startup, opening, rx)
+            .await
+            .map_err(|_| RoomError {
+                code: ErrorCode::INTERNAL_ERROR,
+                message: "Terminal application failed.".into(),
+                retryable: false,
+            })?
+        else {
+            return Ok(130);
+        };
+        let room = match room {
+            Ok(room) => Arc::new(room),
+            Err(e) => {
+                drop(terminal);
+                drop(guard);
+                return Err(error(e));
+            }
+        };
+        let result = tokio::select! {
+            result = squad_tui::room_adapter::run_started(config, room.clone(), guard, terminal) =>
+                result.map(|()| 0).map_err(|_| RoomError { code: ErrorCode::INTERNAL_ERROR,
+                    message: "Terminal application failed.".into(), retryable: false }),
+            signal = tokio::signal::ctrl_c() => signal.map(|()| 130).map_err(|_| RoomError {
+                code: ErrorCode::NOT_READY, message: "Could not install interrupt handler.".into(), retryable: false,
+            }),
+        };
+        let shutdown = room.shutdown().await;
+        match result {
+            Ok(code) => {
+                shutdown?;
+                Ok(code)
+            }
+            Err(e) => {
+                let _ = shutdown;
+                Err(e)
+            }
+        }
+    }
+}
 impl crate::lifecycle::Runtime for Runtime {
     type Room = Arc<RoomHandle>;
+    async fn interactive(&self, config: SquadConfig) -> Result<u8, RoomError> {
+        let startup =
+            squad_tui::startup::StartupSession::begin(&config).map_err(|_| RoomError {
+                code: ErrorCode::INTERNAL_ERROR,
+                message: "Terminal application failed.".into(),
+                retryable: false,
+            })?;
+        self.interactive_started(config, startup).await
+    }
     async fn open(&self, config: SquadConfig, policy: OpenPolicy) -> Result<Self::Room, RoomError> {
         RoomHandle::open(config, "main", policy.mode)
             .await

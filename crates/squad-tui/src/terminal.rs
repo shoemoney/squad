@@ -122,22 +122,30 @@ fn cleanup(owner: Option<u64>) -> io::Result<()> {
 pub struct TerminalGuard {
     session: u64,
     capabilities: TerminalCapabilities,
+    keyboard_probed: bool,
 }
 
 impl TerminalGuard {
     /// Conservative startup when no raw-response transport is available.
     pub fn enter() -> io::Result<Self> {
-        Self::enter_inner(None::<fn(Duration) -> io::Result<Option<Vec<u8>>>>)
+        Self::enter_inner(None::<fn(Duration) -> io::Result<Option<Vec<u8>>>>, true)
     }
 
     pub fn enter_with_probe(
         receive: impl FnMut(Duration) -> io::Result<Option<Vec<u8>>>,
     ) -> io::Result<Self> {
-        Self::enter_inner(Some(receive))
+        Self::enter_inner(Some(receive), true)
+    }
+
+    /// Immediate conservative setup: no blocking capability queries. The
+    /// startup screen must be visible before any potentially slow work.
+    pub fn enter_startup() -> io::Result<Self> {
+        Self::enter_inner(None::<fn(Duration) -> io::Result<Option<Vec<u8>>>>, false)
     }
 
     fn enter_inner(
         receive: Option<impl FnMut(Duration) -> io::Result<Option<Vec<u8>>>>,
+        probe_keyboard: bool,
     ) -> io::Result<Self> {
         if !io::stdin().is_terminal() || !io::stdout().is_terminal() {
             return Err(io::Error::new(
@@ -169,6 +177,7 @@ impl TerminalGuard {
         let mut guard = Self {
             session,
             capabilities: TerminalCapabilities::default(),
+            keyboard_probed: false,
         };
         terminal::enable_raw_mode()?;
         STATE.fetch_or(RAW | MODES, Ordering::SeqCst);
@@ -182,19 +191,31 @@ impl TerminalGuard {
         )?;
         guard.capabilities.synchronized_output =
             receive.is_some_and(|receive| query_synchronized_output(&mut output, receive));
-        guard.capabilities.keyboard_enhancement =
+        if probe_keyboard {
+            guard.negotiate_keyboard()?;
+        }
+        Ok(guard)
+    }
+
+    /// Deferred until a frame is visible; run before the event reader starts.
+    pub fn negotiate_keyboard(&mut self) -> io::Result<()> {
+        if self.keyboard_probed {
+            return Ok(());
+        }
+        self.keyboard_probed = true;
+        self.capabilities.keyboard_enhancement =
             terminal::supports_keyboard_enhancement().unwrap_or(false);
-        if guard.capabilities.keyboard_enhancement {
+        if self.capabilities.keyboard_enhancement {
             STATE.fetch_or(KEYBOARD, Ordering::SeqCst);
             execute!(
-                output,
+                io::stdout(),
                 PushKeyboardEnhancementFlags(
                     KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
                         | KeyboardEnhancementFlags::REPORT_EVENT_TYPES
                 )
             )?;
         }
-        Ok(guard)
+        Ok(())
     }
 
     pub fn capabilities(&self) -> TerminalCapabilities {

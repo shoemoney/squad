@@ -237,6 +237,27 @@ impl RoomHandle {
         client: OpenRouterClient,
         launcher: &dyn RuntimeLauncher,
     ) -> Result<Self, RoomError> {
+        Self::open_with_launcher_progress(config, room, mode, client, launcher, &|_| {}).await
+    }
+    /// Open with transient seat progress, before the durable snapshot is ready.
+    pub async fn open_with_progress(
+        config: SquadConfig,
+        room: &str,
+        mode: OpenMode,
+        progress: &(dyn Fn(&resolver::PinnedModel) + Send + Sync),
+    ) -> Result<Self, RoomError> {
+        let client = configured_client(&config)?;
+        Self::open_with_launcher_progress(config, room, mode, client, &default_launcher(), progress)
+            .await
+    }
+    async fn open_with_launcher_progress(
+        config: SquadConfig,
+        room: &str,
+        mode: OpenMode,
+        client: OpenRouterClient,
+        launcher: &dyn RuntimeLauncher,
+        progress: &(dyn Fn(&resolver::PinnedModel) + Send + Sync),
+    ) -> Result<Self, RoomError> {
         if room != "main" || config.room != "main" {
             return Err(RoomError::new(
                 ErrorCode::ROOM_NOT_FOUND,
@@ -283,11 +304,12 @@ impl RoomHandle {
                 max: daily_max,
                 refreshed: tokio::sync::Mutex::new(std::collections::BTreeSet::new()),
             }));
-        let resolution = resolver::resolve_persisted(
+        let resolution = resolver::resolve_persisted_with_progress(
             &client,
             &config,
             chrono::Utc::now().timestamp() as u64,
             &mut persistence,
+            progress,
         )
         .await
         .map_err(|e| {

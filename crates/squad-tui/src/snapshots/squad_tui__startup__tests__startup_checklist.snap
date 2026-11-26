@@ -1,0 +1,22 @@
+---
+source: crates/squad-tui/src/startup.rs
+expression: terminal.backend()
+---
+"                                ___  ___  _   _  _   ___                                  "
+"                               / __|/ _ \| | | |/_\ |   \                                 "
+"                               \__ \ (_) | |_| / _ \| |) |                                "
+"                               |___/\__\_\\___/_/ \_\___/                                 "
+"                                                                                          "
+" Resolving 3 models…  1.2s                                                                "
+"                                                                                          "
+" ⏳ claude → ~anthropic/latest                                                            " Hidden by multi-width symbols: [(2, " ")]
+" ✓ openai → openai/resolved                                                               "
+" ✗ judge → Probe dispatch refused                                                         "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+"                                                                                          "
+" Ctrl+C to quit                                                                           "

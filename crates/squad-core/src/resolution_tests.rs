@@ -218,3 +218,36 @@ fn ttl_uses_normal_configuration_loader_and_rejects_invalid_values() {
         }
     }
 }
+
+#[tokio::test]
+async fn concurrent_member_and_judge_share_a_successful_alias_probe() {
+    let fake = FakeOpenRouter::start().await;
+    fake.catalog(catalog()).await;
+    fake.completions(vec![alias_probe(MODEL)]).await;
+    let dir = tempfile::tempdir().unwrap();
+    let mut cfg = config(dir.path(), &fake.base_url());
+    cfg.judge.model = cfg.agents[0].model.clone();
+    let mut persistence =
+        ResolutionPersistence::new(Store::open(dir.path().join("cache.db")).unwrap(), 1_000_000)
+            .unwrap();
+    let client = OpenRouterClient::new(&fake.base_url(), "fake-key").unwrap();
+    let result = resolve_persisted(&client, &cfg, 100, &mut persistence)
+        .await
+        .unwrap();
+    assert_eq!(fake.captured_bodies().await.len(), 1);
+    assert_eq!(result.members[0].model, result.judge.model);
+    assert_eq!(result.members[0].probes.len(), 1);
+    assert!(result.judge.probes.is_empty());
+    let (attempts, cost) = persistence
+        .store
+        .call(|db| {
+            Ok((
+                db.query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get::<_, i64>(0))?,
+                db.query_row("SELECT SUM(spent_micros) FROM spend_daily", [], |r| {
+                    r.get::<_, i64>(0)
+                })?,
+            ))
+        })
+        .unwrap();
+    assert_eq!((attempts, cost), (1, 45));
+}

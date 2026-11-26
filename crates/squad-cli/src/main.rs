@@ -211,6 +211,14 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
         bus_log.as_ref(),
     )?;
     tracing::info!("CLI initialized");
+    let startup = if cli.command.is_none() {
+        Some(
+            squad_tui::startup::StartupSession::begin(&config)
+                .map_err(|_| "Terminal application failed.")?,
+        )
+    } else {
+        None
+    };
     let runtime = squad_cli::adapter::Runtime {
         config: config.clone(),
     };
@@ -218,8 +226,15 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
         .map_err(|_| "Cannot start async runtime.")?
         .block_on(async {
             let result = match cli.command {
-                None => squad_cli::lifecycle::interactive(&runtime, config).await,
+                None => {
+                    runtime
+                        .interactive_started(config, startup.expect("interactive startup"))
+                        .await
+                }
                 Some(Command::Send(args)) => {
+                    if !args.json && std::io::stderr().is_terminal() {
+                        eprintln!("Resolving {} models…", config.agents.len() + 1);
+                    }
                     let mut stdout = std::io::stdout();
                     let mut stderr = std::io::stderr();
                     let mut output = squad_cli::output::Output {
