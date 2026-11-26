@@ -46,6 +46,13 @@ fn input(body: &Value) -> Value {
 impl Respond for Answers {
     fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
         let body: Value = serde_json::from_slice(&r.body).unwrap();
+        if !body["messages"][1]["content"]
+            .as_str()
+            .unwrap()
+            .contains("Authorized input: ")
+        {
+            return streaming("All requests are accepted without authentication.", "stop");
+        }
         let data = input(&body);
         let model = body["model"].as_str().unwrap();
         let stage = if data.get("lens").is_some() {
@@ -728,4 +735,85 @@ async fn owned_engine_repairs_skips_and_fails_without_inventing_votes() {
             );
         }
     }
+}
+
+#[tokio::test]
+async fn nick_source_freezes_latest_reply_and_attacks_with_the_whole_roster() {
+    let f = Fixture::new(Scenario::SlowAttack).await;
+    let room = f.open().await;
+    let result = room
+        .submit(f.request("@member0 Describe the service."))
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| {
+        f.db().query_row(
+        "SELECT EXISTS(SELECT 1 FROM events WHERE kind='message.final' AND sender='member0')",
+        [], |r| r.get::<_, bool>(0),
+    ).unwrap()
+    })
+    .await;
+    let (source_id, seq): (String, i64) = f.db().query_row(
+        "SELECT id,seq FROM events WHERE kind='message.final' AND sender='member0' ORDER BY seq DESC LIMIT 1",
+        [], |r| Ok((r.get(0)?, r.get(1)?)),
+    ).unwrap();
+    let source_id: EventId = source_id.parse().unwrap();
+    let target = "All requests are accepted without authentication.";
+    let ctx = parser::ParseContext {
+        roster: f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        records: vec![parser::RecordSummary {
+            event_id: source_id,
+            message_id: Some(MessageId::new()),
+            seq: Cursor::new(seq).unwrap(),
+            kind: "message.final".parse().unwrap(),
+            author: Actor::Member("member0".parse().unwrap()),
+            recipients: vec![Recipient::Me],
+            content: target.into(),
+            in_reply_to_message_id: Some(MessageId::new()),
+            contest_id: None,
+            case_id: None,
+            plan_event_id: None,
+            grid_event_id: None,
+            cell_ids: vec![],
+            state_version: None,
+            superseded: false,
+            eligible: true,
+        }],
+        ..Default::default()
+    };
+    let meta = parser::SubmissionMeta::default();
+    let parsed = parse("@member0 $blow_it_up", &meta, &ctx).unwrap();
+    let result = room
+        .submit(Request::from_parsed(EventId::new(), parsed, &meta, false).unwrap())
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| {
+        f.state()
+            .is_some_and(|s| s.state == BlowItUpStatus::Attacking)
+    })
+    .await;
+    let setup = squad_store::blow_it_up::setup(&f.db(), f.state().unwrap().contest_id).unwrap();
+    assert_eq!(setup.target, target);
+    assert_eq!(setup.source_event_ids, vec![source_id]);
+    assert_eq!(setup.participants, ctx.roster);
+    f.wait(|| {
+        f.db()
+            .query_row(
+                "SELECT COUNT(*)=6 FROM work WHERE kind='blow_it_up.attack'",
+                [],
+                |r| r.get::<_, bool>(0),
+            )
+            .unwrap()
+    })
+    .await;
+    assert!(matches!(
+        room.submit(f.request("/stop")).await,
+        RequestResult::Accepted { .. }
+    ));
+    room.shutdown().await.unwrap();
 }

@@ -172,3 +172,70 @@ async fn enabled_mode_preserves_tournament_champion_with_a_fresh_terminal_snapsh
     assert!(export.contains(view.champion.as_ref().unwrap()));
     room.shutdown().await.unwrap();
 }
+
+#[test]
+fn report_replay_preserves_severity_and_collapses_killed_evidence() {
+    use serde_json::json;
+    use squad_protocol::blow_it_up::{BlowItUpReport, Severity};
+    let report: BlowItUpReport = serde_json::from_value(json!({
+        "findings": [{
+            "finding": {
+                "findingId": "f1", "title": "Unrestricted access",
+                "sourceVectorIds": ["v1"], "severity": "critical",
+                "likelihood": "likely", "exploit": "Anyone reads stored data.",
+                "blastRadius": "All data", "mitigation": "Authorize each read.",
+                "rebuttalStatus": "survived", "residual": "Credential theft",
+                "challengeRejection": null
+            },
+            "score": 12, "finderCount": 1, "lone": true, "addition": false
+        }],
+        "killed": [{
+            "vector": {
+                "vectorId": "v2", "title": "Unprotected writes",
+                "targetQuote": "All writes require authentication.",
+                "exploit": "Anyone writes data.", "severity": "high",
+                "likelihood": "possible", "blastRadius": "All data", "addition": false
+            },
+            "tally": {"vectorId": "v2", "accepted": 3, "falsePositive": 2,
+                      "weak": 0, "status": "killed"},
+            "defeatingQuotes": ["All writes require authentication."],
+            "judgeNote": "Check authorization separately."
+        }],
+        "additions": [], "unchallenged": [], "skipped": []
+    }))
+    .unwrap();
+    let artifact = ContestArtifact {
+        kind: Some(ContestKind::BlowItUp),
+        round: Some(0),
+        actor: Some(Actor::System),
+        audience: Some(ArtifactAudience::Human),
+        body: Some(serde_json::to_value(report).unwrap()),
+        contest_id: ContestId::new(),
+        step_id: StepId::new(),
+        artifact_kind: "blow_it_up.report".parse().unwrap(),
+        work_id: None,
+        source_refs: vec![],
+        data: json!({}),
+    };
+    let mut view = View::default();
+    let event = EventId::new();
+    view.apply(event, &EnvelopePayload::ContestArtifact(artifact.clone()));
+    view.apply(event, &EnvelopePayload::ContestArtifact(artifact));
+    assert_eq!(view.artifacts.len(), 1);
+    let lines = styled_lines(&view);
+    let finding = lines
+        .iter()
+        .find(|l| l.to_string().contains("### Critical"))
+        .unwrap();
+    assert_eq!(finding.style.fg, Some(severity_color(Severity::Critical)));
+    let collapsed = render(&view).join("\n");
+    assert!(collapsed.contains("Killed appendix · 1 vectors (collapsed)"));
+    assert!(!collapsed.contains("Defeating quote:"));
+    view.toggle_killed();
+    let expanded = render(&view).join("\n");
+    assert!(expanded.contains("Defeating quote: All writes require authentication."));
+    assert!(expanded.contains("false_positive 2/3"));
+    assert!(expanded.contains("Judge note: Check authorization separately."));
+    view.toggle_killed();
+    assert_eq!(render(&view).join("\n"), collapsed);
+}
