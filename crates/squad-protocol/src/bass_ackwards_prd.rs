@@ -532,7 +532,7 @@ pub fn judge(kind: &WorkKind) -> bool {
 }
 pub fn output_schema(kind: &WorkKind) -> Option<serde_json::Value> {
     use crate::validation::schema;
-    Some(match kind {
+    let mut output = match kind {
         WorkKind::BassAckwardsPrdDone => schema::<BassAckwardsPrdDoneList>(),
         WorkKind::BassAckwardsPrdFreeze => schema::<BassAckwardsPrdGrouping>(),
         WorkKind::BassAckwardsPrdTree => schema::<BassAckwardsPrdTree>(),
@@ -544,7 +544,17 @@ pub fn output_schema(kind: &WorkKind) -> Option<serde_json::Value> {
         }
         WorkKind::BassAckwardsPrdApply => schema::<BassAckwardsPrdPatchApplication>(),
         _ => return None,
-    })
+    };
+    // The op constants make these branches disjoint. anyOf has the same
+    // semantics here and is supported by the judge's structured-output API.
+    if let Some(edit) = output
+        .pointer_mut("/$defs/BassAckwardsPrdEdit")
+        .and_then(serde_json::Value::as_object_mut)
+        && let Some(branches) = edit.remove("oneOf")
+    {
+        edit.insert("anyOf".into(), branches);
+    }
+    Some(output)
 }
 fn words(s: &str, n: usize) -> bool {
     !s.trim().is_empty() && s.split_whitespace().count() <= n

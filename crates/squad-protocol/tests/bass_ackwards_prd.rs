@@ -101,3 +101,34 @@ fn tree_node_cap_and_uninvented_keys_are_enforced() {
     d["milestones"][0]["key"] = json!("invented-permanent-key");
     assert!(validate_output(&WorkKind::BassAckwardsPrdMerge, &data(), &d).is_err());
 }
+
+#[test]
+fn sparse_edit_schema_uses_provider_supported_disjoint_unions() {
+    for kind in [
+        WorkKind::BassAckwardsPrdRevise,
+        WorkKind::BassAckwardsPrdFinalize,
+        WorkKind::BassAckwardsPrdApply,
+    ] {
+        let schema = output_schema(&kind).unwrap();
+        let edit = &schema["$defs"]["BassAckwardsPrdEdit"];
+        assert!(edit.get("oneOf").is_none());
+        assert_eq!(edit["anyOf"].as_array().unwrap().len(), 6);
+        let valid = |wire: &Value| {
+            if kind == WorkKind::BassAckwardsPrdApply {
+                validation::decode::<BassAckwardsPrdPatchApplication>(wire).is_ok()
+            } else {
+                validation::decode::<BassAckwardsPrdPatchDecisions>(wire).is_ok()
+            }
+        };
+        let mut wire =
+            json!({"edits":[{"op":"setText","key":"K1","field":"risk","value":"Test delivery"}]});
+        if kind == WorkKind::BassAckwardsPrdApply {
+            wire["applied"] = json!([]);
+        } else {
+            wire["decisions"] = json!([]);
+        }
+        assert!(valid(&wire));
+        wire["edits"][0]["op"] = json!("unknown");
+        assert!(!valid(&wire));
+    }
+}
