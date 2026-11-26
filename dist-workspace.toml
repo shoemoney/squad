@@ -29,3 +29,8 @@ pr-run-mode = "skip"
 [[dist.extra-artifacts]]
 build = ["python3", "dist/homebrew/render.py"]
 artifacts = ["target/homebrew/squad.rb"]
+
+# Build the macOS archive on the project's own Apple Silicon runner (hueb);
+# hosted macos-15 capacity stalled the v0.1.1 release for 90+ minutes.
+[dist.github-custom-runners]
+aarch64-apple-darwin = "squad-mac-release"
