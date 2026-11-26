@@ -122,40 +122,40 @@ Owns only the `forecast` module files listed in **New modes → Files each mode 
   - [x] M8.P3.L4.T2 — Render the `FORECAST` banner, the four dividers and the pooled bar with spread band and member ticks, in crate `squad-tui`, files `crates/squad-tui/src/widgets/forecast.rs` and `crates/squad-tui/src/fx/forecast.rs`, with view tests in `crates/squad-tui/tests/forecast_view.rs`.
 
 - **M8.P3.L5 — Verification and enable**
-  - [ ] M8.P3.L5.T1 — Verify the forecast acceptance tests in **New modes**, including withheld numbers in captured revise requests, plus stop fencing and export, in crate `squad-core`, files `crates/squad-core/tests/forecast_workflows.rs` and `crates/squad-core/tests/forecast_export.rs`, and executor tests in crate `squad-agents`, file `crates/squad-agents/tests/agents_forecast.rs`.
+  - [x] M8.P3.L5.T1 — Verify the forecast acceptance tests in **New modes**, including withheld numbers in captured revise requests, plus stop fencing and export, in crate `squad-core`, files `crates/squad-core/tests/forecast_workflows.rs` and `crates/squad-core/tests/forecast_export.rs`, and executor tests in crate `squad-agents`, file `crates/squad-agents/tests/agents_forecast.rs`.
   - [x] M8.P3.L5.T2 — Verify the pure functions against hand-computed fixtures: n of 3, 5 and 10 to 1e-9, a bimodal set and a unimodal set, in crate `squad-core`, file `crates/squad-core/tests/forecast_tallies.rs`.
-  - [ ] M8.P3.L5.T3 — Write the user-facing mode section in `docs/modes/forecast.md` in the README mode-section format, then set `ENABLED = true` in crate `squad-protocol`, file `crates/squad-protocol/src/forecast.rs`.
+  - [x] M8.P3.L5.T3 — Write the user-facing mode section in `docs/modes/forecast.md` in the README mode-section format, then set `ENABLED = true` in crate `squad-protocol`, file `crates/squad-protocol/src/forecast.rs`.
 
-Forecast worker evidence (2026-11-26): typed strict contracts and schema tests are in
-`squad-protocol/tests/forecast.rs`; migration 0011 and `squad-store/tests/forecast.rs`
-cover durable records and assignment/audience/lease visibility. The owned driver
-and router implement all states and bounds. Pure fixtures in
-`squad-core/tests/forecast_tallies.rs` check n=3/5/10, split and herding. The
-wiremock suite directly admits through the owned entry point and injects the
-owned executor through RuntimeLauncher; it verifies 14 calls/30 reserved attempts,
-captured revise privacy, repair, carried-forward missing revision, quorum,
-not_forecastable, judge failure with retained tally, stop fencing and restart.
-Export and view suites cover committed audit material and the probability bar.
-All four prompts and the frozen mode.repair suffix are implemented. User docs:
-`docs/modes/forecast.md`.
+Forecast worker evidence (2026-11-26, resume branch `mode-forecast-r2`): all
+fourteen tasks are complete. Typed contracts, strict schema/calendar validation,
+durable records and leased step visibility are covered by protocol/store tests.
+Hand-computed tally fixtures verify n=3/5/10, split and herding. All seven wiremock
+workflows now use the production launcher and public parser/room ingress; no
+injected executor or duplicate driver remains. They verify 14 normal calls/30
+reserved attempts, captured revision privacy, one member repair, missing revision
+carry-forward, quorum, framing refusal, failed-crux export, stop fencing and
+restart with frozen frame, labels and bundles. Both rounds' unrounded aggregates
+export; TUI/discovery tests cover the latest pool, completion, help and TIP.
 
-L5.T1 remains open for default-launcher verification: the shared
-`runtime/judge.rs::Executor::execute` omits `new_mode_judge()` from its structured
-judge dispatch and the legacy executor refuses forecast work. L5.T3 remains open
-for enable/discovery/live verification; `ENABLED` stays false until that fix lands.
-The shared failure classifier also omits MODE_INVALID_OUTPUT from InvalidOutput;
-the forecast executor uses its recognized JUDGE_INVALID_MODE_OUTPUT diagnostic
-for member repair pending integrator normalization. Exact changes and the
-unperformed live smoke are documented in `docs/modes/forecast.md`.
+The owner explicitly authorized required shared edits: new-mode judge dispatch,
+member invalid-output classification, and parser/router/TUI enablement fixtures.
+`forecast::ENABLED` is true. The exact shared paths and live result are recorded
+in `docs/modes/forecast.md`.
 
-Final owned-worker gates (2026-11-26, dev3, `CARGO_BUILD_JOBS=4`, code
-`00a83cae89a3384e68e6624bbed00091519026ca`): full workspace test gate passed with
-1,348 unique tests, zero failed and four existing ignored entries (1,349 raw
-passing summaries include one WAL subprocess duplicate). All-target workspace
-Clippy with `-D warnings`, formatting and the release build inside the release
-suite passed. There are 23 added forecast tests. Both rounds' unrounded
-aggregation inputs are retained in export; the TUI displays the latest pool.
-No live API calls or live cost/time/reservation measurements were made.
+Gates on dev3 (`CARGO_BUILD_JOBS=4`, code `a2dadf9`):
+`cargo test --workspace --no-fail-fast -- --test-threads=2` passed 1,350 unique
+tests, zero failures and four existing ignored entries (1,351 passing executions
+include one WAL subprocess duplicate). All-target workspace Clippy with
+`-D warnings`, formatting and the release build inside the release suite passed.
+The single real default-six release smoke completed in 261.103 seconds, with
+all six revisions accepted and a 45.5% pool. All 19 provider generations
+(including four startup probes and one transport retry) total $0.507324; peak
+reservation was $20.205552. The ledger retains one $0.510112 timeout hold: its
+$0.014302 charge was confirmed externally after immediate reconciliation did
+not resolve it. Export succeeded; full evidence and excerpt are in the mode docs.
+There are 25 forecast tests. The first default-parallel run exposed stale disabled
+fixtures and a regeneration-focus PTY timeout; fixtures were corrected, and the
+PTY audit passed alone and in the complete final rerun.
 
 ## Phase M8.P4 — Decide
 
