@@ -223,6 +223,22 @@ async fn census_report_search_reveals_copy_and_quote_without_delivering() {
     let anchor = app.composed.anchor;
     draw(&mut app, 80, 24);
     assert_eq!(app.composed.anchor, anchor);
+    let mut older = app
+        .session
+        .snapshot
+        .context
+        .record(report_id)
+        .unwrap()
+        .clone();
+    older.event_id = EventId::new();
+    app.session.snapshot.context.records.insert(0, older);
+    app.search.query = "unique-needle".into();
+    app.refresh_search();
+    assert_eq!(
+        app.search.matches.len(),
+        1,
+        "retained report versions share one exported source"
+    );
 }
 
 #[test]

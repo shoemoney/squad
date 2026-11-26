@@ -379,22 +379,24 @@ impl App {
                 collapsed: false,
             })
             .collect();
+        // Each exported report source already includes the retained earlier versions.
+        // Search it once per contest rather than duplicating every earlier match.
+        let mut reports = std::collections::BTreeMap::new();
+        for record in &self.session.snapshot.context.records {
+            if record.kind.as_str().ends_with(".report")
+                && let Some(id) = record.contest_id
+            {
+                reports.insert(id, record);
+            }
+        }
         documents.extend(
-            self.session
-                .snapshot
-                .context
-                .records
-                .iter()
-                .filter_map(|record| {
-                    let id = record.contest_id?;
-                    record.kind.as_str().ends_with(".report").then(|| {
-                        crate::search::SearchDocument {
-                            id: id.to_string().parse().expect("protocol UUID"),
-                            source: record.content.clone(),
-                            durable: true,
-                            collapsed: true,
-                        }
-                    })
+            reports
+                .into_iter()
+                .map(|(id, record)| crate::search::SearchDocument {
+                    id: id.to_string().parse().expect("protocol UUID"),
+                    source: record.content.clone(),
+                    durable: true,
+                    collapsed: true,
                 }),
         );
         let before = self.session.snapshot.cursor;
