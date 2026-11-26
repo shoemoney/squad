@@ -17,7 +17,10 @@ struct Fixture {
 }
 impl Fixture {
     async fn new() -> Self {
-        let _=tracing_subscriber::fmt().with_max_level(tracing::Level::DEBUG).with_test_writer().try_init();
+        let _ = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::WARN)
+            .with_test_writer()
+            .try_init();
         let dir = tempfile::tempdir().unwrap();
         let options = config::LoadOptions {
             env_file: None,
@@ -159,6 +162,7 @@ impl Respond for Answers {
         let text = body["messages"][1]["content"].as_str().unwrap();
         let data = extract(text);
         let spec = data["spec"].as_str().unwrap();
+        if text.contains("Read this spec independently") && (spec.contains("SKIP_ONE") && body["model"]=="fixture/member5" || spec.contains("QUORUM") && body["model"]!="fixture/member0") {return ResponseTemplate::new(503);}
         let output = if text.contains("Read this spec independently") {
             if spec.contains("FAIL_MEMBERS") {
                 serde_json::json!({"wrong":"shape"})
@@ -169,6 +173,7 @@ impl Respond for Answers {
             }
         } else if text.contains("Compare the labelled") {
             let mut value = ledger(spec);
+            if spec.contains("FAIL_JUDGE") {return streaming("{}","stop");}
             if spec.contains("REPAIR_DIFF") && !text.contains("failed validation") {
                 value["entries"][0]["passage"] =
                     serde_json::json!("Invented passage with no source");
@@ -408,4 +413,317 @@ async fn member_and_judge_repairs_and_stop_fence() {
     assert!(matches!(r, RequestResult::Rejected { .. }));
     assert_eq!(f.fake.captured_bodies().await.len(), before);
     room.shutdown().await.unwrap();
+}
+
+// Exercise the mode-owned runtime independently of the shared judge wrapper so
+// its script and storage contracts remain testable while scaffold fixes integrate.
+struct Direct {
+    router: std::sync::Arc<std::sync::Mutex<squad_core::router::Router>>,
+    store: squad_store::Store,
+}
+struct DirectSubmit {
+    router: std::sync::Arc<std::sync::Mutex<squad_core::router::Router>>,
+    owner: ExecutorKey,
+}
+impl ExecutorSubmit for DirectSubmit {
+    fn submit(&self, request: ExecutorRequest) -> SubmitFuture<'_> {
+        Box::pin(async move {
+            self.router
+                .lock()
+                .unwrap()
+                .process(
+                    Request::Internal(InternalRequest::Executor(request)),
+                    Some(self.owner.clone()),
+                )
+                .unwrap()
+                .result
+        })
+    }
+}
+struct UnusedRenderer;
+impl PromptRenderer for UnusedRenderer {
+    fn render(&self, _: &PromptRef, _: &BTreeMap<String, String>) -> Result<String, ReaderError> {
+        Err(ReaderError::Forbidden)
+    }
+}
+impl Direct {
+    fn new(f: &Fixture) -> Self {
+        std::fs::create_dir_all(&f.config.data_dir).unwrap();
+        let store = squad_store::Store::open(f.config.data_dir.join("direct.db")).unwrap();
+        let models = f
+            .config
+            .agents
+            .iter()
+            .map(|a| a.model.clone())
+            .chain(std::iter::once(f.config.judge.model.clone()))
+            .collect::<Vec<_>>();
+        store.call(move|db|{for model in models{db.execute("INSERT INTO catalog VALUES (?,1000000,65536,'{\"prompt\":\"0.000001\",\"completion\":\"0.000002\"}','[\"reasoning\"]','2026-11-26T00:00:00Z')",[model])?;}Ok(())}).unwrap();
+        let bindings = f
+            .config
+            .agents
+            .iter()
+            .map(|a| {
+                (
+                    a.nick.to_string(),
+                    ExecutorBinding {
+                        model: a.model.parse().unwrap(),
+                        effort: ReasoningEffort::Low,
+                    },
+                )
+            })
+            .chain(std::iter::once((
+                "judge".into(),
+                ExecutorBinding {
+                    model: f.config.judge.model.parse().unwrap(),
+                    effort: ReasoningEffort::High,
+                },
+            )))
+            .collect();
+        let mut router = squad_core::router::Router::new(
+            store.clone(),
+            f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+            bindings,
+            200_000_000,
+        )
+        .unwrap();
+        router.engine_config = Some(f.config.clone());
+        Self {
+            router: std::sync::Arc::new(std::sync::Mutex::new(router)),
+            store,
+        }
+    }
+    fn send(&self, f: &Fixture, text: &str) {
+        let mut router = self.router.lock().unwrap();
+        let ctx = router.parse_context().unwrap();
+        let meta = Default::default();
+        let request = Request::from_parsed_with_context(
+            EventId::new(),
+            parse(text, &meta, &ctx).unwrap(),
+            &meta,
+            &ctx,
+            true,
+        )
+        .unwrap();
+        let result = router.process(request, None).unwrap().result;
+        assert!(
+            matches!(result, RequestResult::Accepted { .. }),
+            "{result:?}"
+        );
+        let _ = f;
+    }
+    fn state(&self) -> ReadbackState {
+        self.store
+            .call(|db| {
+                let raw: String = db.query_row(
+                    "SELECT state_json FROM contests WHERE kind='readback'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                Ok(serde_json::from_str(&raw)?)
+            })
+            .unwrap()
+    }
+    async fn pump(&self, f: &Fixture) {
+        for _ in 0..30 {
+            self.router.lock().unwrap().drive_contests().unwrap();
+            let records = self
+                .store
+                .call(|db| squad_store::leases::eligible(db))
+                .unwrap();
+            let records = records
+                .into_iter()
+                .filter(|w| w.status == WorkStatus::Queued)
+                .collect::<Vec<_>>();
+            if records.is_empty() {
+                return;
+            }
+            for record in records {
+                let id = record.work_id;
+                let work = self
+                    .store
+                    .call(move |db| Ok(squad_store::work::template(db, id)?.unwrap().0))
+                    .unwrap();
+                let owner = if let Some(case) = work.case_id {
+                    ExecutorKey::Case(case)
+                } else {
+                    let Target::Member(n) = &work.target else {
+                        panic!()
+                    };
+                    ExecutorKey::Member(n.clone())
+                };
+                let key = owner.clone();
+                let id = work.work_id;
+                let grant = self
+                    .store
+                    .call(move |db| {
+                        squad_store::leases::claim(db, id, &key, chrono::Utc::now(), None)
+                    })
+                    .unwrap()
+                    .unwrap();
+                let reader = std::sync::Arc::new(squad_store::readers::ScopedReaders::new(
+                    self.store.clone(),
+                    owner.clone(),
+                    grant.epoch,
+                ));
+                let (_, mailbox) = tokio::sync::mpsc::channel(1);
+                let context = AgentContext {
+                    executor: owner.clone(),
+                    mailbox,
+                    history: reader.clone(),
+                    work: reader,
+                    submit: std::sync::Arc::new(DirectSubmit {
+                        router: self.router.clone(),
+                        owner,
+                    }),
+                    render: std::sync::Arc::new(UnusedRenderer),
+                    cancel: Default::default(),
+                };
+                let grant = squad_agents::worker::start_attempt_sized(
+                    &context,
+                    &grant,
+                    grant.work.attempt,
+                    None,
+                )
+                .await
+                .unwrap();
+                squad_core::runtime::readback::execute(
+                    &context,
+                    &grant,
+                    &OpenRouterClient::new(&f.fake.base_url(), "fake-key").unwrap(),
+                    &squad_core::prompts::PromptPack::embedded().unwrap(),
+                    &f.config,
+                    Default::default(),
+                )
+                .await
+                .unwrap();
+            }
+        }
+        panic!("mode script did not settle");
+    }
+}
+#[tokio::test]
+async fn direct_runtime_partial_rewrite_and_convergence() {
+    let f = Fixture::new().await;
+    let direct = Direct::new(&f);
+    direct.send(&f, &format!("@all $readback {SPEC}"));
+    direct.pump(&f).await;
+    assert_eq!(direct.state().state, ReadbackStatus::AwaitingHuman);
+    direct.send(&f, "1b");
+    direct.send(&f, "/answer 1: Retain for thirty days");
+    direct.send(&f, "/continue");
+    direct.pump(&f).await;
+    let s = direct.state();
+    assert_eq!(s.state, ReadbackStatus::Complete);
+    assert_eq!(s.terminal_reason.unwrap().as_str(), "converged");
+    let run = direct
+        .store
+        .call(move |db| squad_store::readback::run(db, s.contest_id))
+        .unwrap();
+    assert_eq!(run.rounds.len(), 2);
+    assert_eq!(run.rounds[0].choices.as_ref().unwrap().answers.len(), 1);
+    assert!(
+        run.spec
+            .contains("The operator deletes backups. The client retries requests.")
+    );
+    let exported =
+        squad_core::export::export(&direct.store, ExportScope::Readback, Some(s.contest_id))
+            .unwrap();
+    assert!(exported.contains("OPEN"));
+    assert!(exported.contains("Retain for thirty days"));
+    assert!(exported.contains("Spec version 2"));
+}
+#[tokio::test]
+async fn direct_runtime_converged_and_no_readings_chosen_release_reservations() {
+    for (marker, reason) in [("CONVERGE", "converged"), ("", "no_readings_chosen")] {
+        let f = Fixture::new().await;
+        let d = Direct::new(&f);
+        d.send(&f, &format!("@all $readback {SPEC} {marker}"));
+        d.pump(&f).await;
+        if d.state().state == ReadbackStatus::AwaitingHuman {
+            d.send(&f, "/continue");
+            d.pump(&f).await;
+        }
+        assert_eq!(d.state().terminal_reason.unwrap().as_str(), reason);
+        assert_eq!(
+            d.store
+                .call(|db| Ok(db.query_row(
+                    "SELECT COALESCE(SUM(reserved_micros),0) FROM spend_daily",
+                    [],
+                    |r| r.get::<_, i64>(0)
+                )?))
+                .unwrap(),
+            0
+        );
+    }
+}
+#[tokio::test]
+async fn direct_runtime_judge_repair_round_limit_restart_and_stop() {
+    let f = Fixture::new().await;
+    let d = Direct::new(&f);
+    d.send(
+        &f,
+        &format!("@all $readback $READBACK_ROUNDS=1 {SPEC} REPAIR_DIFF"),
+    );
+    d.pump(&f).await;
+    assert_eq!(d.state().state, ReadbackStatus::AwaitingHuman);
+    assert_eq!(
+        d.store
+            .call(
+                |db| Ok(db.query_row("SELECT COUNT(*) FROM mode_repairs", [], |r| r
+                    .get::<_, i64>(0))?)
+            )
+            .unwrap(),
+        1
+    );
+    d.send(&f, "1a");
+    let prior = d.state();
+    squad_core::router::recovery::recover_on_open_mode(
+        &d.store,
+        OpenMode::Interactive,
+        chrono::Utc::now() + chrono::Duration::days(365),
+    )
+    .unwrap();
+    let pending = d
+        .router
+        .lock()
+        .unwrap()
+        .parse_context()
+        .unwrap()
+        .pending_human
+        .unwrap();
+    assert_eq!(pending.answers[&1], "a");
+    assert_eq!(d.state(), prior);
+    d.send(&f, "/continue");
+    d.pump(&f).await;
+    assert_eq!(
+        d.state().terminal_reason.unwrap().as_str(),
+        "rounds_complete"
+    );
+    let id = d.state().contest_id;
+    let out = squad_core::export::export(&d.store, ExportScope::Readback, Some(id)).unwrap();
+    assert!(out.contains("last rewrite was not read back"));
+    let f = Fixture::new().await;
+    let d = Direct::new(&f);
+    d.send(&f, &format!("@all $readback {SPEC}"));
+    d.pump(&f).await;
+    d.send(&f, "1b");
+    d.send(&f, "/stop");
+    assert_eq!(d.state().state, ReadbackStatus::Stopped);
+    let id = d.state().contest_id;
+    let out = squad_core::export::export(&d.store, ExportScope::Readback, Some(id)).unwrap();
+    assert!(out.contains("Retain forever"));
+    assert!(out.contains("Chosen meaning: OPEN"));
+}
+#[tokio::test]
+async fn direct_literal_single_letter_is_not_a_lettered_choice(){
+ let f=Fixture::new().await;let d=Direct::new(&f);d.send(&f,&format!("@all $readback {SPEC}"));d.pump(&f).await;d.send(&f,"1a");d.send(&f,"/answer 1: b");d.send(&f,"/stop");
+ let id=d.state().contest_id;let run=d.store.call(move|db|squad_store::readback::run(db,id)).unwrap();assert_eq!(run.rounds[0].choices.as_ref().unwrap().answers["retention"],"b");
+}
+#[tokio::test]
+async fn direct_skipped_members_quorum_and_judge_exhaustion(){
+ for (marker,reason) in [("SKIP_ONE CONVERGE","converged"),("QUORUM","insufficient_readings"),("FAIL_JUDGE","judge_attempts_exhausted")] {
+ let f=Fixture::new().await;let d=Direct::new(&f);d.send(&f,&format!("@all $readback {SPEC} {marker}"));d.pump(&f).await;
+ let s=d.state();assert!(s.state.is_terminal(),"{s:?}");assert_eq!(s.terminal_reason.unwrap().as_str(),reason);
+ let run=d.store.call(move|db|squad_store::readback::run(db,s.contest_id)).unwrap();if marker.contains("SKIP_ONE"){assert_eq!(run.rounds[0].skipped.len(),1);assert_eq!(run.rounds[0].interpretations.len(),5);}
+ }
 }

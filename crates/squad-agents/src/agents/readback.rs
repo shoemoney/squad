@@ -151,42 +151,40 @@ impl WorkExecutor for ReadbackExecutor {
                 },
             };
             if let Some(data) = result {
-                return acknowledged(
-                    context
-                        .submit
-                        .submit(ExecutorRequest::Result {
-                            work_id: grant.work.work_id,
-                            attempt: grant.work.attempt,
-                            fence: grant.fence,
-                            epoch: grant.epoch,
-                            output: EnvelopePayload::ContestArtifact(ContestArtifact {
-                                kind: Some(ContestKind::Readback),
-                                round: Some(
-                                    bundle["round"].as_u64().ok_or(ReaderError::NotRunnable)?
-                                        as u32,
-                                ),
-                                actor: Some(match &grant.work.target {
-                                    Target::Judge => Actor::Judge,
-                                    Target::Member(n) => Actor::Member(n.clone()),
-                                }),
-                                audience: Some(ArtifactAudience::Human),
-                                body: Some(data.clone()),
-                                contest_id: grant
-                                    .work
-                                    .contest_id
-                                    .ok_or(ReaderError::NotRunnable)?,
-                                step_id: grant.work.step_id.ok_or(ReaderError::NotRunnable)?,
-                                artifact_kind: Text::new(
-                                    squad_protocol::readback::composition(kind).expect("checked"),
-                                )
-                                .map_err(|_| ReaderError::NotRunnable)?,
-                                work_id: Some(grant.work.work_id),
-                                source_refs: vec![],
-                                data,
+                let response = context
+                    .submit
+                    .submit(ExecutorRequest::Result {
+                        work_id: grant.work.work_id,
+                        attempt: grant.work.attempt,
+                        fence: grant.fence,
+                        epoch: grant.epoch,
+                        output: EnvelopePayload::ContestArtifact(ContestArtifact {
+                            kind: Some(ContestKind::Readback),
+                            round: Some(
+                                bundle["round"].as_u64().ok_or(ReaderError::NotRunnable)? as u32
+                            ),
+                            actor: Some(match &grant.work.target {
+                                Target::Judge => Actor::Judge,
+                                Target::Member(n) => Actor::Member(n.clone()),
                             }),
-                        })
-                        .await,
-                );
+                            audience: Some(ArtifactAudience::Human),
+                            body: Some(data.clone()),
+                            contest_id: grant.work.contest_id.ok_or(ReaderError::NotRunnable)?,
+                            step_id: grant.work.step_id.ok_or(ReaderError::NotRunnable)?,
+                            artifact_kind: Text::new(
+                                squad_protocol::readback::composition(kind).expect("checked"),
+                            )
+                            .map_err(|_| ReaderError::NotRunnable)?,
+                            work_id: Some(grant.work.work_id),
+                            source_refs: vec![],
+                            data,
+                        }),
+                    })
+                    .await;
+                if let RequestResult::Rejected { error, .. } = &response {
+                    tracing::error!(?error, "readback result rejected");
+                }
+                return acknowledged(response);
             }
             let code = if kind != &WorkKind::ReadbackInterpret {
                 ErrorCode::JUDGE_INVALID_MODE_OUTPUT

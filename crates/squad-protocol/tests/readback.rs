@@ -34,7 +34,8 @@ fn strict_member_rewrite_and_provenance_schemas() {
     assert!(validate_artifact("readback.interpret", &wrong).is_err());
     let mut rw = json!({"spec":"New spec","changes":[{"entryId":"one","before":"Old passage here","after":"New passage here"}]});
     validate_artifact("readback.rewrite", &rw).unwrap();
-    rw["changes"][1] = rw["changes"][0].clone();
+    let duplicate = rw["changes"][0].clone();
+    rw["changes"].as_array_mut().unwrap().push(duplicate);
     assert!(validate_artifact("readback.rewrite", &rw).is_err());
     for kind in [
         WorkKind::ReadbackInterpret,
@@ -49,7 +50,7 @@ fn strict_member_rewrite_and_provenance_schemas() {
 fn enabled_parser_and_choice_grammar() {
     assert!(ENABLED);
     let mut ctx = parser::ParseContext {
-        roster: ["a", "b"].map(|s| s.parse().unwrap()).to_vec(),
+        roster: ["a", "b", "c"].map(|s| s.parse().unwrap()).to_vec(),
         ..Default::default()
     };
     assert!(matches!(
@@ -72,7 +73,7 @@ fn enabled_parser_and_choice_grammar() {
         outcome_labels: vec![],
         answers: Default::default(),
     });
-    for good in ["1b 2a", "/answer 1: My own meaning", "ordinary message"] {
+    for good in ["1b 2a", "/answer 1: My own meaning", "@a ordinary message"] {
         assert!(parse(good, &Default::default(), &ctx).is_ok(), "{good}");
     }
     for bad in ["1c", "3a", "/answer 4: absent"] {

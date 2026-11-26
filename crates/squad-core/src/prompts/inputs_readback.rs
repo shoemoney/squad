@@ -11,6 +11,7 @@ pub fn inputs(
     pack.selected(
         name,
         super::Inputs::from([
+            ("mode_step".into(), serde_json::json!(name)),
             ("mode_data_json".into(), data.clone()),
             (
                 "mode_schema_json".into(),

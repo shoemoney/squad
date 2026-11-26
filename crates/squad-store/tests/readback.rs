@@ -37,7 +37,7 @@ fn fixture() -> (Store, Work, EventId) {
  db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES(?,'readback',1,1,'{}',0)",[contest.to_string()])?;
  let frozen=ContestStep{contest_id:contest,step_id:step,ordinal:1,script_version:Text::new("v1").unwrap(),move_name:ContestMove::Fanout,inputs:vec![event],assignments:vec![ContestAssignment{target:w.target.clone(),context_id:w.context_id.clone(),payload_refs:vec![event],work_id:Some(w.work_id)}]};
  contest_steps::insert(db,&frozen,source.commit.seq)?;
- db.execute("INSERT INTO history(pos,context_id,event_seq,origin_event_id,projection_key,role,content,meta) VALUES(1,?,1,?,'fixture','user','input','{}')",params![w.context_id.0,event.to_string()])?;
+ db.execute("INSERT INTO history(pos,context_id,event_seq,origin_event_id,projection_key,role,content,meta) VALUES(1,?,1,?,'fixture','user','input','{\"anonymous\":true}')",params![w.context_id.0,event.to_string()])?;
  let plan=ContestPreflight{contest_id:contest,kind:ContestKind::Readback,plan_id:PlanId::new(),expires_at:chrono::Utc::now(),estimate:DebateEstimate{estimated_usd:1.0,reserved_usd:2.0,remaining_usd:10.0,model_calls:1},participants:vec!["a".parse().unwrap()],confirmation_required:false,warning:None,settings:serde_json::json!({"reservedAttempts":2,"attemptShares":{"readback.interpret":1_000_000}})};
  db.execute("UPDATE contests SET plan_json=? WHERE contest_id=?",params![serde_json::to_string(&plan)?,contest.to_string()])?;
  squad_store::work::insert(db,&w,&ExecutorBinding{model:Text::new("test/model").unwrap(),effort:ReasoningEffort::Low},None)?;
@@ -140,4 +140,15 @@ fn ready<T>(mut future: ReaderFuture<'_, T>) -> Result<T, ReaderError> {
         std::task::Poll::Ready(value) => value,
         std::task::Poll::Pending => panic!("store reader must be ready"),
     }
+}
+#[test]
+fn mode_snapshot_cascades_with_room_content(){
+ let store=Store::open(":memory:").unwrap();let id=ContestId::new();
+ store.call(move|db|{
+ db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES(?,'readback',1,1,'{}',0)",[id.to_string()])?;
+ let setup=squad_protocol::readback::ReadbackSetup{spec:"The service retains records.".into(),participants:vec![],rounds:2,room_words:500,plan_words:1200,models:Default::default(),prompt_refs:Default::default()};
+ squad_store::readback::insert(db,id,&setup)?;assert_eq!(squad_store::readback::run(db,id)?.spec,setup.spec);
+ db.execute("DELETE FROM contests WHERE contest_id=?",[id.to_string()])?;
+ assert_eq!(db.query_row("SELECT COUNT(*) FROM readback_runs",[],|r|r.get::<_,i64>(0))?,0);Ok(())
+ }).unwrap();
 }

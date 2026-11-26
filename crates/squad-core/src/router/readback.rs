@@ -125,7 +125,9 @@ pub fn steps(
         calls: rounds,
         attempts,
     };
-    // Later versions may be twice the original size. All rounds use that worst case.
+    // Later versions may be twice the original byte size; each byte may need
+    // six JSON escape bytes. All rounds reserve that worst case.
+    let version_json = 12 * spec.len() as u64 + 2;
     let mut out = participants
         .iter()
         .map(|n| {
@@ -133,7 +135,7 @@ pub fn steps(
                 WorkKind::ReadbackInterpret,
                 n.to_string(),
                 templates[0],
-                4 * json_text(spec) + 512,
+                2 * version_json + 512,
                 2048,
                 2,
             )
@@ -143,7 +145,7 @@ pub fn steps(
         WorkKind::ReadbackDiff,
         "judge".into(),
         templates[1],
-        4 * blinded(spec) + participants.len() as u64 * project(limited(2048, words)) + 512,
+        4 * version_json + participants.len() as u64 * project(limited(2048, words)) + 512,
         4096,
         3,
     ));
@@ -151,7 +153,7 @@ pub fn steps(
         WorkKind::ReadbackRewrite,
         "judge".into(),
         templates[2],
-        4 * json_text(spec) + artifact(4096) + 10 * limited(2048, 100) + 1024,
+        2 * version_json + artifact(4096) + 10 * limited(2048, 100) + 1024,
         4096,
         3,
     ));
@@ -226,6 +228,7 @@ pub fn prepare(
         models,
         prompt_refs: refs,
     };
+    setup.validate().map_err(|_|invalid())?;
     let templates = names
         .into_iter()
         .map(|n| super::bounds::template(&pack, n))
@@ -433,10 +436,9 @@ pub fn accepted_work(
     if readback::prose_words(output) > data["wordLimit"].as_u64().ok_or_else(invalid)? as usize {
         return Err(invalid());
     }
-    squad_store::contest_steps::artifact(db, artifact, seq)?;
-    squad_store::contest_steps::settle(db, artifact.step_id, &work.target, None)?;
-    squad_store::work::finish(db, work.work_id, WorkStatus::Completed, seq)
+    squad_store::contest_steps::artifact(db, artifact, seq)
 }
+
 pub fn human_answer(db: &Connection, pending: &parser::PendingHuman, complete: bool) -> Result<()> {
     if !complete {
         return Ok(());
@@ -444,13 +446,20 @@ pub fn human_answer(db: &Connection, pending: &parser::PendingHuman, complete: b
     let mut run = squad_store::readback::run(db, pending.contest_id)?;
     let round = run.rounds.last_mut().ok_or_else(invalid)?;
     let ledger = round.ledger.as_ref().ok_or_else(invalid)?;
+    // Shared pending answers retain the text but not whether a single letter
+    // came from a token or a literal /answer. Recover that distinction from
+    // the committed answer stream, scoped to this human step.
+    let mut literal=BTreeMap::new();
+    let mut query=db.prepare("SELECT payload FROM events WHERE kind='contest.human_answered' AND json_extract(payload,'$.contestId')=? AND json_extract(payload,'$.stepId')=? ORDER BY seq")?;
+    let raws=query.query_map(params![pending.contest_id.to_string(),pending.step_id.to_string()],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?;
+    for raw in raws {let event:ContestHumanAnswered=serde_json::from_str(&raw)?;if let Some(text)=event.text{if let Some((n,_))=text.split_once(':'){if let Ok(n)=n.trim().parse::<u32>(){literal.insert(n,true);}}else{for token in text.split_whitespace(){if let Some(n)=token.get(..token.len().saturating_sub(1)).and_then(|n|n.parse::<u32>().ok()){literal.insert(n,false);}}}}}
     let mut answers = BTreeMap::new();
     for (number, answer) in &pending.answers {
         let entry = ledger
             .entries
             .get(*number as usize - 1)
             .ok_or_else(invalid)?;
-        let reading = if answer.len() == 1 && answer.as_bytes()[0].is_ascii_lowercase() {
+        let reading = if literal.get(number)!=Some(&true) && answer.len() == 1 && answer.as_bytes()[0].is_ascii_lowercase() {
             entry
                 .readings
                 .get((answer.as_bytes()[0] - b'a') as usize)
@@ -488,6 +497,12 @@ pub fn finish(
     reason: &str,
     failed: bool,
 ) -> Result<()> {
+    if s.state == ReadbackStatus::AwaitingHuman
+        && let Some(pending) =
+            squad_store::contest_steps::pending_human(tx)?.filter(|p| p.contest_id == s.contest_id)
+    {
+        human_answer(tx, &pending, true)?;
+    }
     let run = squad_store::readback::run(tx, s.contest_id)?;
     let step = if let Some(step) = s.step_id {
         step
@@ -722,6 +737,13 @@ pub(crate) fn drive_move(
                     .clone()
                     .ok_or_else(invalid)?,
             )?;
+            let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='readback.prompts'",[s.contest_id.to_string()],|r|r.get(0))?;
+            let frozen: serde_json::Value = serde_json::from_str(&frozen)?;
+            let tokens: Vec<String> = serde_json::from_value(frozen["tokens"].clone())?;
+            for entry in &mut ledger.entries {
+                entry.passage = script::original_passage(&entry.passage, &run.spec, &tokens)
+                    .ok_or_else(invalid)?;
+            }
             let r = run.rounds.last_mut().ok_or_else(invalid)?;
             r.cut = ledger.entries.len().saturating_sub(10) as u32;
             ledger.entries.truncate(10);
@@ -734,7 +756,7 @@ pub(crate) fn drive_move(
             let v = s.state_version;
             s.state_version += 1;
             save(tx, g, id, &s, Some(v))?;
-            let pending=parser::PendingHuman{contest_id:s.contest_id,kind:ContestKind::Readback,state_version:s.state_version+1,step_id:step,prompt:"READ IT BACK — 1b 2a ... or /answer 3: your reading; /continue leaves unanswered entries open".into(),items:ledger.entries.iter().enumerate().map(|(i,e)|format!("{}. {}\n{}",i+1,e.passage,e.question)).collect(),choices:ledger.entries.iter().map(|e|e.readings.iter().map(|r|format!("{} ({} members)",r.text,r.source_labels.len())).collect()).collect(),outcome_labels:vec![],answers:BTreeMap::new()};
+            let pending=parser::PendingHuman{contest_id:s.contest_id,kind:ContestKind::Readback,state_version:s.state_version+1,step_id:step,prompt:"READ IT BACK — 1b 2a ... or /answer 3: your reading; /continue leaves unanswered entries open".into(),items:ledger.entries.iter().map(|e|format!("{}\n{}\n{}",e.passage,e.question,e.readings.iter().enumerate().map(|(i,r)|format!("{}. {} ({} members)",(b'a'+i as u8) as char,r.text,r.source_labels.len())).collect::<Vec<_>>().join("\n"))).collect(),choices:ledger.entries.iter().map(|e|e.readings.iter().map(|r|format!("{} ({} members)",r.text,r.source_labels.len())).collect()).collect(),outcome_labels:vec![],answers:BTreeMap::new()};
             super::human::request(tx, g, id, &pending)?;
             return Ok(g.accepted(id));
         }
@@ -800,18 +822,19 @@ fn allocate(
     } else {
         setup.room_words
     };
+    let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='readback.prompts'",[s.contest_id.to_string()],|r|r.get(0))?;
+    let frozen: serde_json::Value = serde_json::from_str(&frozen)?;
+    let tokens: Vec<String> = serde_json::from_value(frozen["tokens"].clone())?;
     let data = match kind {
         WorkKind::ReadbackInterpret => serde_json::json!({"spec":run.spec}),
         WorkKind::ReadbackDiff => {
-            serde_json::json!({"spec":run.spec,"interpretations":r.interpretations.iter().map(|(label,reading)|serde_json::json!({"label":label,"reading":reading})).collect::<Vec<_>>()})
+            serde_json::json!({"spec":script::blind(&run.spec,&tokens).0,"interpretations":r.interpretations.iter().map(|(label,reading)|{let mut value=serde_json::to_value(reading).expect("reading");script::blind_value(&mut value,&tokens);serde_json::json!({"label":label,"reading":value})}).collect::<Vec<_>>()})
         }
         WorkKind::ReadbackRewrite => {
             serde_json::json!({"spec":run.spec,"ledger":r.ledger,"choices":r.choices.as_ref().ok_or_else(invalid)?.answers,"firstBytes":setup.spec.len(),"wordLimit":words})
         }
         _ => return Err(invalid()),
     };
-    let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='readback.prompts'",[s.contest_id.to_string()],|r|r.get(0))?;
-    let frozen: serde_json::Value = serde_json::from_str(&frozen)?;
     let step_id = StepId::new();
     let targets = if judge {
         vec![Target::Judge]

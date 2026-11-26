@@ -40,6 +40,76 @@ pub fn convergence(rounds: &[squad_store::readback::Round]) -> Vec<ReadbackConve
         })
         .collect()
 }
+/// Remove configured identities from blind prose, retaining byte provenance for quotes.
+pub fn blind(text: &str, tokens: &[String]) -> (String, Vec<std::ops::Range<usize>>) {
+    let mut tokens = tokens
+        .iter()
+        .filter(|s| !s.trim().is_empty())
+        .cloned()
+        .collect::<Vec<_>>();
+    for slug in tokens.clone() {
+        if slug.contains('/') {
+            tokens.extend(
+                slug.split(['/', '-', '_', '.', '~'])
+                    .filter(|p| p.chars().any(char::is_alphabetic))
+                    .map(str::to_owned),
+            );
+        }
+    }
+    tokens.sort_by_key(|s| std::cmp::Reverse(s.len()));
+    tokens.dedup();
+    if tokens.is_empty() {
+        return (text.into(), (0..text.len()).map(|i| i..i + 1).collect());
+    }
+    let pattern = format!(
+        r"(?i)\b(?:{})\b",
+        tokens
+            .iter()
+            .map(|s| regex::escape(s.trim_start_matches('~')))
+            .collect::<Vec<_>>()
+            .join("|")
+    );
+    let regex = regex::Regex::new(&pattern).expect("escaped tokens");
+    let mut out = String::new();
+    let mut spans = vec![];
+    let mut end = 0;
+    for m in regex.find_iter(text) {
+        out.push_str(&text[end..m.start()]);
+        spans.extend((end..m.start()).map(|i| i..i + 1));
+        out.push_str("[redacted]");
+        spans.extend((0..10).map(|_| m.start()..m.end()));
+        end = m.end();
+    }
+    out.push_str(&text[end..]);
+    spans.extend((end..text.len()).map(|i| i..i + 1));
+    (out, spans)
+}
+pub fn blind_value(value: &mut serde_json::Value, tokens: &[String]) {
+    match value {
+        serde_json::Value::String(s) => *s = blind(s, tokens).0,
+        serde_json::Value::Array(a) => {
+            for v in a {
+                blind_value(v, tokens)
+            }
+        }
+        serde_json::Value::Object(o) => {
+            for (key, v) in o {
+                if key != "localId" {
+                    blind_value(v, tokens)
+                }
+            }
+        }
+        _ => {}
+    }
+}
+/// A quote accepted against the blind source is restored to its exact original passage.
+pub fn original_passage(quote: &str, spec: &str, tokens: &[String]) -> Option<String> {
+    let (blinded, spans) = blind(spec, tokens);
+    let span = super::verbatim::verbatim(quote, &blinded)?;
+    let start = spans.get(span.start)?.start;
+    let end = spans.get(span.end - 1)?.end;
+    Some(spec[start..end].to_owned())
+}
 pub fn verify_ledger(
     ledger: &ReadbackLedger,
     spec: &str,
@@ -112,6 +182,7 @@ pub fn verify_rewrite(
         replacements.push((span, change.after.as_str()));
     }
     replacements.sort_by_key(|r| r.0.start);
+    replacements.dedup();
     ensure(
         replacements.windows(2).all(|w| w[0].0.end <= w[1].0.start),
         "overlapping changes",
