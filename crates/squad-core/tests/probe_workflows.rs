@@ -273,6 +273,24 @@ impl Respond for Answers {
         }
     }
 }
+/// Live regression (2026-11-25): `squad send` opens the room one-shot, which only
+/// admits later steps of a contest from their queued announcements. Probe
+/// queued its prediction and report work silently, so `send` stalled in
+/// PREDICTING with every explainer idle.
+#[tokio::test]
+async fn one_shot_room_runs_every_probe_step_to_the_report() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::OneShot).await;
+    assert!(matches!(
+        room.submit(request(&f.config, BRIEF)).await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(f.count("probe.prediction"), 3);
+    assert_eq!(f.count("probe.report"), 1);
+    room.shutdown().await.unwrap();
+}
+
 #[tokio::test]
 async fn six_members_ten_calls_and_locked_visibility() {
     let f = Fixture::new().await;

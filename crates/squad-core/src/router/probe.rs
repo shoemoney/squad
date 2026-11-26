@@ -523,6 +523,26 @@ pub fn allocate(
         }
         squad_store::work::insert(tx, &w, &binding, None)?;
         squad_store::contest_steps::attach_work(tx, step.step_id, &w)?;
+        // The one-shot dispatcher admits later steps of an admitted contest from
+        // their queued announcement; without it `send` never ran the predictions.
+        group.push(
+            tx,
+            carrier(
+                id,
+                EnvelopePayload::WorkState(WorkStateEvent {
+                    work_id: w.work_id,
+                    trigger_event_id: w.trigger_event_id,
+                    target: w.target.clone(),
+                    context_id: w.context_id.clone(),
+                    attempt: 0,
+                    status: WorkStatus::Queued,
+                    error: None,
+                    debate_id: None,
+                    case_id: w.case_id,
+                    contest_id: w.contest_id,
+                }),
+            ),
+        )?;
     }
     state.step_id = Some(step.step_id);
     if state.state == ProbeStatus::WaitingForParticipants {
