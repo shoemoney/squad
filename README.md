@@ -1274,18 +1274,20 @@ Squad counts **only its own calls**. Usage on your OpenRouter key from other too
 
 ### 💸 What a run costs
 
-Measured on 2026-11-25 and 2026-11-26 with the default roster and settings, one fresh data directory per run. Full method, per-run numbers and failures are in [docs/costs.md](docs/costs.md).
+Measured on 2026-11-25 and 2026-11-26 with the default roster and settings, one fresh data directory per run. Full method, estimates, per-run numbers and failures are in [docs/costs.md](docs/costs.md). Grill includes its seed-plan call; census includes both default passes. Times reflect parallel load and sum active sends.
 
-| Run | Mean real cost (min to max) | Mean time | Reserved up front | Reserved ÷ actual | Fits the $150 default cap? |
+| Run | Mean real cost (min–max) | Mean time (min–max) | Peak reserved | Reserved ÷ actual | Fits the $150 default cap? |
 |---|---|---|---|---|---|
-| Ordinary `@all` question (3 runs) | $0.09 ($0.04 to $0.17) | 17 s | $43.72 | 490× | yes |
-| `$debate`, 10 rounds, judged (2 runs) | $2.81 ($2.78 to $2.85) | 6 min | $27.87 | 9.9× | yes |
-| `$survey` (2 runs) | $1.61 ($1.50 to $1.72) | 4.1 min | $27.05 | 16.8× | yes |
-| `$tournament` (2 runs) | $1.75 ($1.71 to $1.78) | 4.8 min | $89.69 | 51× | yes |
-| `$probe` (1 run, older build) | $0.96 | 165 s | $26.18 | 27× | yes |
-| `$grill` | pending fix | n/a | n/a | n/a | n/a |
-| `$census` | pending fix | n/a | n/a | n/a | n/a |
-| `$crosscheck` | pending fix | n/a | n/a | n/a | n/a |
+| Ordinary `@all` (3 runs) | $0.09 ($0.04–$0.17) | 17 s (12–23) | $43.72 | 490.0× | yes |
+| Debate (10 rounds, judged) (2 runs) | $2.81 ($2.78–$2.85) | 365 s (215–515) | $27.87 | 9.9× | yes |
+| Survey (2 runs) | $1.61 ($1.50–$1.72) | 249 s (223–275) | $27.05 | 16.8× | yes |
+| Tournament (2 runs) | $1.75 ($1.71–$1.78) | 286 s (279–292) | $89.69 | 51.4× | yes |
+| Probe (2 runs) | $0.91 ($0.85–$0.96) | 166 s (165–167) | $10.61 | 11.7× | yes |
+| Grill (2 runs) | $0.93 ($0.90–$0.97) | 279 s (259–300) | $31.69–$31.72 | 34.0× | yes |
+| Census (2 passes) (2 runs) | $2.33 ($2.24–$2.42) | 332 s (320–344) | $30.85 | 13.2× | yes |
+| Crosscheck (2 runs) | $2.53 ($2.52–$2.54) | 260 s (246–274) | $19.67 | 7.8× | yes |
+
+All seven new grill/census/crosscheck/probe runs completed. Both crosschecks and the new probe each needed one paid judge repair; those calls are included. Probe averages one older successful run and one on the merged release build; current reservations use the latest measured build per mode.
 
 Reservations are held back while a run is in flight and are released as calls finish, so the reserved amount is far above what you are charged.
 
