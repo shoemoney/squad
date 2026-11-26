@@ -14,6 +14,12 @@ The merged TUI suite passed 363 tests, zero failures, one ignored subprocess ent
 
 6. `audit-1-m0-m2-m6-m7`: `1b58ac1`, no conflicts. Fetched final head `42b474f` after 913 seconds without commits; closing report includes soak, GIF and licence evidence. Merged last.
 
+7. `fix-empty-content`: `3ec7045`. Conflict only at the end of `squad-agents/tests/agents_integration.rs`; retained the audit tracing module and both new empty-answer accounting/retry tests.
+8. `demo-gif`: `704fa25`, no conflicts. Adds the README hero GIF, raw recording, tape and documentation.
+9. `origin/main` at `75013a1`: manual macOS performance workflow, no conflicts.
+
+These additional merges also built with four Cargo workers before each push. The earlier release CI run was cancelled so final CI covers the combined release.
+
 ## Independent checklist review
 
 - M4.P2.L8.T2 remains open. `m4b_session_audit.rs` proves crosscheck audit/acceptance restore and probe roles, but does not test census pass/plan-reference restore.
@@ -45,10 +51,16 @@ Checked means implemented or verified against cited evidence; it does not close 
 | M7 | 35 | 35 | 1 | 0 |
 | Total | 1231 | 1216 | 191 | 15 |
 
-Final version 0.1.3 local gates on dev3:
+Initial six-audit version 0.1.3 local gates on dev3 (before the additional transport, hero and main merges):
 
 - `CARGO_BUILD_JOBS=4 RUST_TEST_THREADS=1 cargo test --workspace --no-fail-fast`: 1,286 unique tests passed, zero failures, four ignored entries. Raw Cargo summaries show 1,287 passes because the WAL regression prints its child-process result a second time. The ignored entries are the manual latency, thirty-minute streaming and transcript-memory gates, plus the PTY subprocess entry point exercised by its parent.
 - `CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets --locked -- -D warnings`: passed.
 - `cargo fmt --all -- --check`: passed.
 
 The sixth audit's prior soak and transcript measurements are retained in `docs/reports/audit-foundations-2026-11-26/`; they were not rerun during integration.
+
+Combined release gates after `fix-empty-content`, `demo-gif` and main `75013a1`:
+
+- Full workspace tests: 1,292 unique tests passed, zero failures, four ignored entries (1,293 raw passes including the duplicated WAL subprocess). The newly merged empty-answer accounting, retry, captured reasoning-only truncation and typed content-part tests all pass alongside the audit tracing tests.
+- All-target locked workspace Clippy with `-D warnings`: passed.
+- `cargo fmt --all -- --check` and diff whitespace check: passed.

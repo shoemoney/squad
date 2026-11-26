@@ -15,12 +15,18 @@ All notable changes to Squad will be documented in this file, following
   checklist tasks, 1,216 are checked as implemented/verified (191 newly checked)
   and 15 remain open. The checked grill prompt row separately records the PRD's
   unresolved 150-versus-200-word inconsistency.
+- A new README hero GIF showing typeahead, six-way streaming and a judged
+  debate, with its recording tape and editing recipe.
 - Default-roster survey and probe walkthrough GIFs, embedded FIGlet licence
   access and licence tests, canonical terminal-flow coverage, and qualified
   streaming/transcript memory evidence with retained failed attempts.
 
 ### Fixed
 
+- Empty OpenRouter answers now fail with distinct reasons, including reasoning
+  exhausting the output budget, while retaining billed failed attempts and
+  ordinary retry limits. Typed visible content is preserved without exposing
+  private reasoning.
 - Flaky macOS release tests now run private binary snapshots copied under a
   lock, protecting them from concurrent Cargo executable publication.
 - Preserve admitted debate word limits on restart, freeze complete prompt
@@ -35,6 +41,11 @@ All notable changes to Squad will be documented in this file, following
   preflight, keep confirmation controls visible, and expand round-score reasons.
 - Preserve medium reasoning and the 4,096-token visible ceiling for structured
   judges, and connect body-free contest/step/pass attempt diagnostics.
+
+### Changed
+
+- Add a manually dispatched macOS performance-gate workflow on the dedicated
+  hueb runner.
 
 ## [0.1.2] - 2026-11-26
 
