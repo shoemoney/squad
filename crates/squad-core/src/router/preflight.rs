@@ -1,5 +1,5 @@
 //! Durable preflight outcomes; pending commands are not conversational events.
-use rusqlite::{Transaction, params};
+use rusqlite::{OptionalExtension, Transaction, params};
 use squad_protocol::*;
 use squad_store::{Result, StoreError, commit::CommitGroup};
 
@@ -67,6 +67,17 @@ pub fn propose(
     )?;
     state.judge_model = plan.judge_model.clone().unwrap_or_default();
     let mut frozen = serde_json::to_value(&plan)?;
+    let engine: Option<String> = tx.query_row(
+        "SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='engine.plan'",
+        [plan.debate_id.to_string()], |r| r.get(0),
+    ).optional()?;
+    if let Some(engine) = engine {
+        let engine: serde_json::Value = serde_json::from_str(&engine)?;
+        frozen["promptSettings"] = engine["prompts"].clone();
+        frozen["promptOverrideHashes"] = engine["overrideHashes"].clone();
+        frozen["resolvedModels"] =
+            serde_json::json!({"members":engine["members"],"judge":engine["judge"]});
+    }
     frozen["admissionMaxMicros"] = serde_json::json!(daily_max);
     frozen["confirmationThreshold"] = serde_json::json!(threshold);
     frozen["stateVersion"] = serde_json::json!(state.state_version + 1);

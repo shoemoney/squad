@@ -155,6 +155,7 @@ pub fn insert(
         }
     }
     db.execute("INSERT INTO work(work_id,kind,target,context_id,trigger_event_seq,trigger_event_id,message_id,in_reply_to_message_id,status,history_through,epoch,runnable,held_by_contest_id,scheduling_meta,contest_id,debate_id,round,replay,case_id,prompt_ref,max_output_tokens,step_id) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'queued',?21,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20)",params![work.work_id.to_string(),kind.as_str(),work.target.to_string(),work.context_id.0,seq,work.trigger_event_id.to_string(),work.message_id.to_string(),work.in_reply_to_message_id.map(|id|id.to_string()),epoch,held.is_none(),held.map(|id|id.to_string()),encode(&meta)?,work.contest_id.map(|id|id.to_string()),work.debate_id.map(|id|id.to_string()),work.round,work.replay,work.case_id.map(|id|id.to_string()),work.prompt_ref.as_ref().map(encode).transpose()?,work.max_output_tokens,work.step_id.map(|id|id.to_string()),if work.kind!=WorkKind::Reply || work.step_id.is_some() {Some(work.history_through.get())}else{None}])?;
+    crate::prompt_provenance::record(db, work, binding)?;
     Ok(())
 }
 pub fn owner(work: &Work) -> Result<ExecutorKey> {

@@ -234,6 +234,14 @@ pub fn prepare_turn(plan: &DebatePlan, mut work: Work) -> Result<Work, ErrorCode
         1 => "debate.round1.md",
         _ => "debate.rebuttal.md",
     };
+    let composition = crate::prompts::inputs::debate_composition(round, plan.preflight.rounds)
+        .map_err(|_| ErrorCode::INVALID_REFERENCE)?;
+    // Older persisted plans used individual template IDs.
+    let template = if plan.prompts.composition_hashes.contains_key(composition) {
+        composition
+    } else {
+        template
+    };
     work.prompt_ref = Some(super::provenance::prompt_ref(&plan.prompts, template)?);
     work.max_output_tokens = Some(constants::DEBATE_TURN_VISIBLE_TOKENS);
     work.validate()
@@ -256,7 +264,23 @@ pub fn prepare_judge(plan: &DebatePlan, mut work: Work) -> Result<Work, ErrorCod
         WorkKind::Judge => ("judge.user.md", constants::FINAL_JUDGE_VISIBLE_TOKENS),
         _ => return Err(ErrorCode::INVALID_STATE_TRANSITION),
     };
-    work.prompt_ref = Some(super::provenance::prompt_ref(&plan.prompts, template)?);
+    let composition = if work.kind == WorkKind::JudgeRound {
+        "judge.round"
+    } else {
+        "judge.debate"
+    };
+    let template = if plan.prompts.composition_hashes.contains_key(composition) {
+        composition
+    } else {
+        template
+    };
+    let mut reference = super::provenance::prompt_ref(&plan.prompts, template)?;
+    if work.kind == WorkKind::JudgeRound {
+        // The protocol fixes this wire ID even when its hash covers the composition.
+        reference.template_id =
+            Text::new("judge.round.md").map_err(|_| ErrorCode::CONFIG_INVALID)?;
+    }
+    work.prompt_ref = Some(reference);
     work.max_output_tokens = Some(visible);
     work.validate_round_bound(plan.preflight.rounds)
         .map_err(|_| ErrorCode::INVALID_STATE_TRANSITION)?;
