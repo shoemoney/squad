@@ -115,18 +115,19 @@ impl ChatRequest {
         if self.supports_reasoning {
             // OpenRouter rejects effort together with a token budget. Keep the
             // explicit budget so provider limits match admission reservations.
-            body["reasoning"] = if self.model.starts_with("openai/") || self.model.starts_with("x-ai/") {
-                // OpenAI and xAI reasoning ignores a token budget (live: 1,984
-                // reasoning tokens against a 1,024 budget, truncating the JSON).
-                // They honour effort, which keeps the reply inside max_tokens.
-                json!({"effort": match self.reasoning_effort {
-                    ReasoningEffort::Low => "low",
-                    ReasoningEffort::Medium => "medium",
-                    ReasoningEffort::High => "high",
-                }})
-            } else {
-                json!({"max_tokens": reservation})
-            };
+            body["reasoning"] =
+                if self.model.starts_with("openai/") || self.model.starts_with("x-ai/") {
+                    // OpenAI and xAI reasoning ignores a token budget (live: 1,984
+                    // reasoning tokens against a 1,024 budget, truncating the JSON).
+                    // They honour effort, which keeps the reply inside max_tokens.
+                    json!({"effort": match self.reasoning_effort {
+                        ReasoningEffort::Low => "low",
+                        ReasoningEffort::Medium => "medium",
+                        ReasoningEffort::High => "high",
+                    }})
+                } else {
+                    json!({"max_tokens": reservation})
+                };
         }
         if let Some(format) = &self.response_format {
             body["response_format"] = crate::wire_schema::sanitize_response_format(format);

@@ -36,14 +36,21 @@ impl WorkExecutor for CrosscheckExecutor {
                 }
             };
             let data = serde_json::from_str::<serde_json::Value>(&output.content).ok();
+            let mut reason = String::from("Response does not match the assigned crosscheck task");
             let valid = match &data {
                 None => {
+                    reason = format!(
+                        "The reply was not one complete JSON object ({} bytes, finish reason {:?}); it was probably cut off. Shorten every reason and return the whole object.",
+                        output.content.len(),
+                        output.finish_reason
+                    );
                     tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, bytes = output.content.len(), "crosscheck response is not JSON");
                     false
                 }
                 Some(data) => match validate_response(&self.material, data.clone()) {
                     Ok(()) => true,
                     Err(e) => {
+                        reason = e.message.clone();
                         tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, reason = %e.message, "crosscheck response failed validation");
                         false
                     }
@@ -68,9 +75,7 @@ impl WorkExecutor for CrosscheckExecutor {
                     .then(|| JudgeRepairData {
                         attempt: grant.work.attempt + 1,
                         rejected_output: output.content,
-                        validation_errors: vec![
-                            "Response does not match the assigned crosscheck task".into(),
-                        ],
+                        validation_errors: vec![reason.clone()],
                     });
                 if grant.work.kind.is_crosscheck_member() {
                     error.code = ErrorCode::MODE_INVALID_OUTPUT;

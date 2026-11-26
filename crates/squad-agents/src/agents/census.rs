@@ -89,17 +89,30 @@ impl WorkExecutor for CensusExecutor {
                 }
             };
             let word_limit = values["step_word_limit"].parse::<usize>().unwrap_or(0);
+            let mut reason = String::from(
+                "Response schema, references, citations or dispositions failed validation",
+            );
             let result = match serde_json::from_str::<Value>(&output.content) {
                 Err(e) => {
+                    reason = format!(
+                        "The reply was not one complete JSON object ({} bytes, finish reason {:?}); it was probably cut off. Shorten every field and return the whole object.",
+                        output.content.len(),
+                        output.finish_reason
+                    );
                     tracing::warn!(work_id = %grant.work.work_id, kind = ?kind, bytes = output.content.len(), error = %e, "census response is not a JSON object");
                     None
                 }
                 Ok(v) => match validate(kind, &data, &v) {
                     Err(e) => {
+                        reason = e.message.clone();
                         tracing::warn!(work_id = %grant.work.work_id, kind = ?kind, reason = %e.message, "census response failed validation");
                         None
                     }
                     Ok(()) if census_prose_words(&v) > word_limit => {
+                        reason = format!(
+                            "prose word budget exceeded: {} > {word_limit}",
+                            census_prose_words(&v)
+                        );
                         tracing::warn!(work_id = %grant.work.work_id, kind = ?kind, words = census_prose_words(&v), word_limit, "census response exceeds the prose budget");
                         None
                     }
@@ -142,10 +155,7 @@ impl WorkExecutor for CensusExecutor {
                 JudgeRepairData {
                     attempt: grant.work.attempt + 1,
                     rejected_output: output.content,
-                    validation_errors: vec![
-                        "Response schema, references, citations or dispositions failed validation"
-                            .into(),
-                    ],
+                    validation_errors: vec![reason.clone()],
                 }
             });
             acknowledged(

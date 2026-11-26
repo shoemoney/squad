@@ -28,14 +28,23 @@ pub async fn execute(
         }
     };
     let parsed = serde_json::from_str::<serde_json::Value>(&output.content);
+    let mut reason = String::from(
+        "Invalid schema, references, locked predictions or unexpected-result branches",
+    );
     let valid = match &parsed {
         Err(e) => {
+            reason = format!(
+                "The reply was not one complete JSON object ({} bytes, finish reason {:?}); it was probably cut off. Shorten every field and return the whole object.",
+                output.content.len(),
+                output.finish_reason
+            );
             tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, bytes = output.content.len(), error = %e, "probe response is not JSON");
             false
         }
         Ok(v) => match input.validate_output(&grant.work.kind, v) {
             Ok(()) => true,
             Err(e) => {
+                reason = e.message.clone();
                 tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, reason = %e.message, "probe response failed validation");
                 false
             }
@@ -68,7 +77,23 @@ pub async fn execute(
                 provider_message: None,
             };
             error.retryable = false;
-            return acknowledged(context.submit.submit(ExecutorRequest::Failed{work_id:grant.work.work_id,attempt:grant.work.attempt,fence:grant.fence,epoch:grant.epoch,error,repair:Some(JudgeRepairData{attempt:grant.work.attempt+1,rejected_output:output.content,validation_errors:vec!["Invalid schema, references, locked predictions or unexpected-result branches".into()]})}).await);
+            return acknowledged(
+                context
+                    .submit
+                    .submit(ExecutorRequest::Failed {
+                        work_id: grant.work.work_id,
+                        attempt: grant.work.attempt,
+                        fence: grant.fence,
+                        epoch: grant.epoch,
+                        error,
+                        repair: Some(JudgeRepairData {
+                            attempt: grant.work.attempt + 1,
+                            rejected_output: output.content,
+                            validation_errors: vec![reason.clone()],
+                        }),
+                    })
+                    .await,
+            );
         }
         return failed(
             context,
