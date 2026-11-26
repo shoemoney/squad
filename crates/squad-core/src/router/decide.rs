@@ -183,7 +183,7 @@ pub fn prepare(
         WorkKind::DecideScore,
         WorkKind::DecideExplain,
     ];
-    let mut prompts = json!({});
+    let mut prompts = json!({"repair":pack.template("mode.repair").map_err(|_|invalid())?});
     let mut templates = vec![];
     for k in &kinds {
         let name = k.new_mode_composition().expect("mode");
@@ -684,7 +684,7 @@ fn allocate(
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )?;
         let supported: Value = serde_json::from_str(&params_json)?;
-        let frozen = json!({"data":data,"system":system,"user":user,"contextLength":length,"maxOutput":max_output.unwrap_or(8192),"reasoning":supported.as_array().is_some_and(|a|a.iter().any(|x|x=="reasoning")),"wordLimit":word_limit(&k)});
+        let frozen = json!({"data":data,"system":system,"user":user,"contextLength":length,"maxOutput":max_output.unwrap_or(8192),"reasoning":supported.as_array().is_some_and(|a|a.iter().any(|x|x=="reasoning")),"wordLimit":word_limit(&k),"repairTemplate":setup.prompts["repair"]});
         let w = Work {
             work_id: WorkId::new(),
             message_id: MessageId::new(),

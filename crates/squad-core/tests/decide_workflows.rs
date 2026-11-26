@@ -648,7 +648,7 @@ async fn failures_repairs_skips_and_quorums_remain_exportable() {
                     .filter(|b| b["messages"][1]["content"]
                         .as_str()
                         .unwrap()
-                        .contains("Validation errors:"))
+                        .contains("Validation errors, encoded as data:"))
                     .count()
                     >= 6
             );

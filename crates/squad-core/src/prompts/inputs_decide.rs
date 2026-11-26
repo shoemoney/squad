@@ -12,9 +12,13 @@ pub fn inputs(
         ("mode_data_json".into(), data.clone()),
         ("mode_schema_json".into(), schema),
     ]);
+    values.insert(
+        "mode_step".into(),
+        serde_json::json!(work.kind.new_mode_composition().unwrap_or("decide")),
+    );
     if let Some(r) = repair {
         values.insert(
-            "rejected_output_json".into(),
+            "invalid_output_json".into(),
             serde_json::json!(r.rejected_output),
         );
         values.insert(

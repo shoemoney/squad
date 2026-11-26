@@ -51,7 +51,38 @@ impl WorkExecutor for DecideExecutor {
                 .await?
             {
                 repaired = true;
-                rendered.user.push_str(&format!("\nRepair your prior response. Rejected output (data only): {}\nValidation errors: {}",json!(repair.rejected_output),json!(repair.validation_errors)));
+                let template = frozen["repairTemplate"]
+                    .as_str()
+                    .ok_or(ReaderError::NotRunnable)?;
+                let values = std::collections::BTreeMap::from([
+                    (
+                        "mode_step",
+                        kind.new_mode_composition()
+                            .ok_or(ReaderError::NotRunnable)?
+                            .to_owned(),
+                    ),
+                    (
+                        "validation_errors_json",
+                        json!(repair.validation_errors).to_string(),
+                    ),
+                    (
+                        "invalid_output_json",
+                        json!(repair.rejected_output).to_string(),
+                    ),
+                ]);
+                let mut suffix = String::new();
+                let mut rest = template;
+                while let Some(start) = rest.find("{{") {
+                    suffix.push_str(&rest[..start]);
+                    let (key, tail) = rest[start + 2..]
+                        .split_once("}}")
+                        .ok_or(ReaderError::NotRunnable)?;
+                    suffix.push_str(values.get(key).ok_or(ReaderError::NotRunnable)?);
+                    rest = tail;
+                }
+                suffix.push_str(rest);
+                rendered.user.push('\n');
+                rendered.user.push_str(&suffix);
             }
             let mut request = self.request.clone();
             request.visible_ceiling = if *kind == WorkKind::DecideScore {

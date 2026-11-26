@@ -30,7 +30,21 @@ The report contains options, the frozen rubric, scores, totals and margin, conte
 
 ## Example run
 
-Live smoke pending the integrator-owned judge dispatch correction below. No live spend or outcome is claimed.
+On 2026-11-26, one activation-enabled release smoke used the default six-model roster, `SQUAD_DAILY_MAX_USD=150`, `--env-file /dev/null`, and a fresh private data directory. The branch switch remains off pending integration.
+
+The decision compared SQLite with daily file backups against managed PostgreSQL for a five-person internal issue tracker. All six criteria calls returned accepted output on their first attempt. The run then stalled at `FREEZING` because the outer shared judge dispatcher rejected the work before the owned judge executor ran. A 150-second watchdog ended the process (exit 137). No decision report or winner was produced.
+
+- Wall time: **150.01 seconds**, including startup.
+- Preflight: **14 calls**, **30 reserved attempts**, estimated **$3.328140**, reserved **$16.358688**.
+- Recorded actual spend: **$0.084077**, including startup alias probes. The ledger retains one unresolved judge attempt with no provider request ID, so this is recorded known spend rather than a claim that every accounting entry settled.
+- Remaining reservation at shutdown: **$14.003520**. The private smoke database is retained for reconciliation; no later run or manual ledger edit was performed.
+- Local evidence: `/tmp/squad-decide-live-Yz1Yfl/` on dev2 (`events.jsonl`, timing and SQLite ledger). No credentials are in those artifacts.
+
+Excerpt of accepted criteria, rather than a nonexistent final report:
+
+> Low maintenance burden — weight 30: Effort required for setup, upgrades, monitoring, patching, and routine administration on a single server.
+>
+> Backup reliability and recoverability — weight 30: How reliably data can be backed up, verified, and restored to a recent consistent state after failure or corruption.
 
 ## Integration requirements
 
