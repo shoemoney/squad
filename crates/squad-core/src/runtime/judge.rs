@@ -27,6 +27,7 @@ impl squad_agents::worker::WorkExecutor for Executor {
     ) -> squad_agents::worker::ExecutionFuture<'a> {
         if grant.work.kind == WorkKind::ProbeReport
             || grant.work.kind.census_judge()
+            || grant.work.kind.new_mode_judge()
             || matches!(
                 grant.work.kind,
                 WorkKind::SurveyExtract | WorkKind::SurveyReport

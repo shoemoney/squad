@@ -86,7 +86,11 @@ pub async fn execute(
                         epoch: grant.epoch,
                         repair,
                         error: ErrorPayload {
-                            code: ErrorCode::JUDGE_INVALID_MODE_OUTPUT,
+                            code: if grant.work.kind.new_mode_judge() {
+                                ErrorCode::JUDGE_INVALID_MODE_OUTPUT
+                            } else {
+                                ErrorCode::MODE_INVALID_OUTPUT
+                            },
                             text: Text::new("Invalid Blow It Up output").unwrap(),
                             retryable: false,
                             related_event_id: Some(grant.work.trigger_event_id),

@@ -223,7 +223,6 @@ impl Fixture {
     }
 }
 #[tokio::test]
-#[ignore = "Integrator: runtime/judge.rs outer Executor must route new_mode_judge() to Runner"]
 async fn six_members_make_13_calls_and_reserve_27_attempts_with_blind_owned_projections() {
     let f = Fixture::new(Scenario::Happy).await;
     let room = f.open().await;
@@ -353,7 +352,6 @@ async fn insufficient_attacks_fails_without_judge_calls() {
     }
 }
 #[tokio::test]
-#[ignore = "Integrator: runtime/judge.rs outer Executor must route new_mode_judge() to Runner"]
 async fn skipped_members_are_disclosed_without_missing_votes() {
     let f = Fixture::new(Scenario::SkipOne).await;
     let room = f.open().await;

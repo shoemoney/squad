@@ -510,6 +510,32 @@ impl Composed {
                     models.push(model);
                     continue;
                 }
+                if matches!(&contest.state, Some(ContestState::BlowItUp(_))) {
+                    let mut view = contest.blow_it_up.clone();
+                    view.killed_expanded = expanded;
+                    let mut model = TranscriptMessage::new(identity(id), "BLOW IT UP", "");
+                    let lines = widgets::blow_it_up::styled_lines(&view);
+                    let height = lines
+                        .iter()
+                        .map(|l| l.width().div_ceil(usize::from(body_width.max(1))) * 2 + 1)
+                        .sum::<usize>()
+                        .min(usize::from(u16::MAX)) as u16;
+                    let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, height));
+                    ratatui::widgets::Widget::render(
+                        ratatui::widgets::Paragraph::new(lines)
+                            .wrap(ratatui::widgets::Wrap { trim: false }),
+                        scratch.area,
+                        &mut scratch,
+                    );
+                    let height = (0..scratch.area.height)
+                        .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                        .map_or(0, |y| usize::from(y) + 1);
+                    model.widget_rows = rows(&scratch, height);
+                    model.presentation.expanded = expanded;
+                    model.presentation.report_revision = revision;
+                    models.push(model);
+                    continue;
+                }
                 let mode_lines = match &contest.state {
                     Some(ContestState::Forge(_)) => widgets::forge::render(&contest.forge),
                     Some(ContestState::Tune(_)) => widgets::tune::render(&contest.tune),

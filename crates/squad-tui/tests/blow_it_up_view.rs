@@ -217,6 +217,7 @@ fn report_replay_preserves_severity_and_collapses_killed_evidence() {
         source_refs: vec![],
         data: json!({}),
     };
+    let contest_id = artifact.contest_id;
     let mut view = View::default();
     let event = EventId::new();
     view.apply(event, &EnvelopePayload::ContestArtifact(artifact.clone()));
@@ -238,4 +239,51 @@ fn report_replay_preserves_severity_and_collapses_killed_evidence() {
     assert!(expanded.contains("Judge note: Check authorization separately."));
     view.toggle_killed();
     assert_eq!(render(&view).join("\n"), collapsed);
+
+    // Exercise the shared transcript path and its F7 details control too.
+    let state = BlowItUpState {
+        contest_id,
+        state_version: 9,
+        state: BlowItUpStatus::Complete,
+        step_id: None,
+        round: 0,
+        artifact_event_ids: vec![event],
+        terminal_reason: Some("complete".parse().unwrap()),
+    };
+    view.state = Some(state.clone());
+    let mut session = squad_tui::session::Session::default();
+    session.contests.insert(
+        contest_id,
+        squad_tui::session::ContestView {
+            state: Some(ContestState::BlowItUp(state)),
+            blow_it_up: view,
+            ..Default::default()
+        },
+    );
+    let mut composed = squad_tui::composed::Composed::default();
+    let palette = squad_tui::fx::Palette::new(squad_tui::fx::ColorTier::TrueColor);
+    composed.prepare(&session, 40, &palette);
+    let message_id: MessageId = contest_id.to_string().parse().unwrap();
+    let card = composed.transcript.message(message_id).unwrap();
+    assert!(
+        card.widget_rows
+            .iter()
+            .flat_map(|l| &l.spans)
+            .any(|s| s.style.fg == Some(severity_color(Severity::Critical)))
+    );
+    assert!(card.widget_rows.iter().all(|l| l.width() <= 40));
+    assert!(
+        !card
+            .widget_rows
+            .iter()
+            .any(|l| l.to_string().contains("Defeating quote:"))
+    );
+    composed.toggle_verdict();
+    composed.prepare(&session, 40, &palette);
+    let card = composed.transcript.message(message_id).unwrap();
+    assert!(
+        card.widget_rows
+            .iter()
+            .any(|l| l.to_string().contains("Defeating quote:"))
+    );
 }

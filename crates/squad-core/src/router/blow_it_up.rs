@@ -180,8 +180,6 @@ pub fn prepare(
         // Remove the shared judge preamble's hard-coded room nick from blind cases.
         let system = system.replace("@fable", "an unrelated room member");
         let repair_system = repair_system.replace("@fable", "an unrelated room member");
-        // Freeze the step literal: the shared mode_step placeholder whitelist is still M5-only.
-        let repair_user = repair_user.replace("{{mode_step}}", name);
         prompts.insert(name.into(),json!({"system":system,"user":user,"repairSystem":repair_system,"repairUser":repair_user,"hash":squad_store::commit::digest(&(system,user,repair_system,repair_user))?}));
     }
     let mut tokens = a
@@ -1059,11 +1057,7 @@ fn allocate(
                 )
                 .unwrap(),
             }),
-            max_output_tokens: if ordinal == 2 {
-                None
-            } else {
-                Some(if ordinal == 1 { 2048 } else { 4096 })
-            },
+            max_output_tokens: Some(if ordinal == 1 { 2048 } else { 4096 }),
             contest_id: Some(s.contest_id),
             step_id: Some(step),
         };
@@ -1106,29 +1100,23 @@ fn allocate(
                 serde_json::from_value(d)?
             };
             material.validate().map_err(|_| invalid())?;
-            // The scaffold's shared CaseOpened validator still rejects all M8 modes.
-            // Store the typed case against its explicit human-only case artifact.
-            let case_seq = system_artifact(
+            let case = CaseOpened {
+                case_id: w.case_id.ok_or_else(invalid)?,
+                judge_invocation_id: EventId::new(),
+                work_id: Some(w.work_id),
+                judge_model: binding.model.clone(),
+                material: CaseMaterial::BlowItUp(material),
+                debate_id: None,
+                contest_id: Some(s.contest_id),
+            };
+            let case_seq = push(
                 tx,
                 g,
                 id,
-                s,
-                "blow_it_up.case",
-                serde_json::to_value(&material)?,
+                s.contest_id,
+                EnvelopePayload::CaseOpened(case.clone()),
             )?;
-            squad_store::cases::open(
-                tx,
-                &CaseOpened {
-                    case_id: w.case_id.ok_or_else(invalid)?,
-                    judge_invocation_id: EventId::new(),
-                    work_id: Some(w.work_id),
-                    judge_model: binding.model.clone(),
-                    material: CaseMaterial::BlowItUp(material),
-                    debate_id: None,
-                    contest_id: Some(s.contest_id),
-                },
-                case_seq,
-            )?;
+            squad_store::cases::open(tx, &case, case_seq)?;
         }
         let (length, output, params_json): (u32, Option<u32>, String) = tx.query_row(
             "SELECT context_length,max_output,supported_params_json FROM catalog WHERE slug=?",

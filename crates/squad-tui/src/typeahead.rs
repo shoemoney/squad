@@ -108,6 +108,7 @@ pub fn examples(ctx: &ParseContext) -> Vec<String> {
     examples.extend([
         "@all $forge write the launch post for our CLI".into(),
         "@all $forecast will we ship v1 by June 30?".into(),
+        "@all $blow_it_up ```All requests are accepted without authentication.```".into(),
         "@all $rank impact for effort\n--\nfeature A\nfeature B\nfeature C".into(),
     ]);
     examples.extend([

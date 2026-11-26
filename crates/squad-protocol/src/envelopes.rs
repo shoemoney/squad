@@ -1125,7 +1125,15 @@ fn validate_envelope(
                 CaseMaterial::Forecast(_) => ensure(false, "forecast is disabled")?,
                 CaseMaterial::Decide(_) => ensure(false, "decide is disabled")?,
                 CaseMaterial::Negotiate(_) => ensure(false, "negotiate is disabled")?,
-                CaseMaterial::BlowItUp(_) => ensure(false, "blow_it_up is disabled")?,
+                CaseMaterial::BlowItUp(material) => {
+                    ensure(
+                        crate::blow_it_up::ENABLED
+                            && case.contest_id.is_some()
+                            && case.debate_id.is_none(),
+                        "invalid blow_it_up case",
+                    )?;
+                    material.validate()?;
+                }
                 CaseMaterial::Readback(_) => ensure(false, "readback is disabled")?,
                 CaseMaterial::Debugging(_) => ensure(false, "debug is disabled")?,
                 CaseMaterial::Trace(_) => ensure(false, "trace is disabled")?,

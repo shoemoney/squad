@@ -670,7 +670,8 @@ impl Work {
                 if self.kind.new_mode_judge()
                     || matches!(
                         self.kind,
-                        WorkKind::ForgeDraft
+                        WorkKind::BlowItUpChallenge
+                            | WorkKind::ForgeDraft
                             | WorkKind::ForgeFuse
                             | WorkKind::TraceExtract
                             | WorkKind::RankCompare
@@ -957,7 +958,8 @@ impl WorkKind {
         } else if self.new_mode_judge()
             || matches!(
                 self,
-                Self::ForgeDraft
+                Self::BlowItUpChallenge
+                    | Self::ForgeDraft
                     | Self::ForgeFuse
                     | Self::TraceExtract
                     | Self::RankCompare
