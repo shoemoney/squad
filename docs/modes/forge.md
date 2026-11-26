@@ -1,5 +1,7 @@
 # Forge
 
+This branch keeps Forge disabled pending the shared integration fixes listed below.
+
 `$forge` turns independent drafts into one finished deliverable: an email, launch post, design document or function. The authors of the two strongest drafts each write a fusion. A blind judge ranks those fusions alongside the best original. The original stands unless a fusion beats it.
 
 ```text
@@ -40,9 +42,12 @@ Not run: the shared outer judge dispatch currently rejects `ForgeJudge`. Live pr
 
 The mode-owned contracts, storage, policy, prompts, executor, report and view are implemented. The shared room runtime still blocks the judge phase. The Forge workflow suite therefore distinguishes direct execution of the owned runtime with real scoped readers and acknowledged router ingress from the pending full-room restart/stop test.
 
-Required integrator change, outside the Forge worker's file ownership:
+Required integrator changes, outside the Forge worker's file ownership:
 
 - `crates/squad-core/src/runtime/judge.rs`, `impl WorkExecutor for Executor`: extend the first structured-mode routing condition with `grant.work.kind.new_mode_judge()`. The inner `Runner` already dispatches new modes to `execute_new_mode`; the outer gate currently sends them to `squad_agents::judge::JudgeExecutor`, whose legacy allowlist rejects `ForgeJudge`. A six-seat full-room fixture completes all fourteen member calls, then leaves the judge work running without a judge HTTP request.
+
+- `crates/squad-core/prompts/manifest.json`, composition `forge.judge`: use `system: ["judge.system"]` and the same `system_transform` as `judge.tournament` (`replace_exact_prefix` of the identity-bearing `judge.system` header with `judge.system.blind-prefix`). The current composition merely prepends a blind prefix and leaves the normal header, including literal `@fable`, intact. Anonymous input values do not remove that literal. Verify captured requests with the default roster after the transform.
+- `crates/squad-store/tests/new_mode_visibility.rs`, fixture history insertion: replace `meta='{}'` with `meta='{"anonymous":true}'` (escaped as needed in the Rust SQL string). Supplying Forge's real schema activates prompt provenance, which reads and validates that history row. All three shared tests currently fail in fixture setup. Equivalent mode-owned tests pass with valid metadata.
 
 Two shared repair restrictions have mode-owned workarounds:
 
@@ -50,3 +55,11 @@ Two shared repair restrictions have mode-owned workarounds:
 - `crates/squad-core/src/prompts/render.rs`: permit the new mode prefixes in the `mode_step` encoder. Forge currently freezes the admitted step name as a literal into the repair suffix, so it does not pass a rejected `forge.*` value through that legacy encoder.
 
 No shared source files were changed by this worker. Enablement and the live smoke require the outer judge dispatch fix, followed by the full-room acceptance test.
+
+## Validation evidence (2026-11-26)
+
+- Focused Forge checks: 24 passing; one full-room stop/restart test explicitly ignored pending the integration fixes.
+- `CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings`: passed.
+- `cargo fmt --all -- --check`: passed.
+- `CARGO_BUILD_JOBS=4 cargo test --workspace --no-fail-fast`: completed with four failures: the three malformed shared visibility fixtures above, plus `squad-tui/tests/m4b_tournament_runtime_audit.rs:90` (missing champion). The tournament audit also failed on an isolated rerun. Its wait predicate accepts any `TournamentResult` and then separately checks inactive state; the integrator should wait for the committed `TournamentChampion` before snapshotting, or handle terminal failure explicitly. This failure is outside Forge's owned files.
+- The workspace run built and exercised the release executable through the CLI release tests. No live provider smoke was run, and the mode stays disabled.
