@@ -118,7 +118,7 @@ impl ChatRequest {
             body["reasoning"] = json!({"max_tokens": reservation});
         }
         if let Some(format) = &self.response_format {
-            body["response_format"] = format.clone();
+            body["response_format"] = crate::wire_schema::sanitize_response_format(format);
         }
         Ok(body)
     }
