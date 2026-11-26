@@ -92,7 +92,9 @@ impl WorkExecutor for CensusExecutor {
             let mut reason = String::from(
                 "Response schema, references, citations or dispositions failed validation",
             );
-            let result = match serde_json::from_str::<Value>(&output.content) {
+            let result = match serde_json::from_str::<Value>(
+                squad_protocol::validation::strip_code_fence(&output.content),
+            ) {
                 Err(e) => {
                     reason = format!(
                         "The reply was not one complete JSON object ({} bytes, finish reason {:?}); it was probably cut off. Shorten every field and return the whole object.",

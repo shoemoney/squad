@@ -20,7 +20,10 @@ Each addition contains a local id, omission, consequence, and lens.
 Use an empty additions array when there are none.
 Do not repeat an existing gap as an addition.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 

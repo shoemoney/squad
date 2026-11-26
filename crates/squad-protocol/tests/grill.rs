@@ -211,3 +211,88 @@ fn provider_answers_require_complete_indices_changes_and_limits() {
         );
     }
 }
+
+/// Live capture (Opus 5.5 as grill leader, three griller questions, 2026-11-25): valid
+/// JSON, finish `stop`, but 506 words across `answer` and `planChanges` against the 400-word
+/// `turnWords` budget. The validator is right; the old prompt let the model read the limit as
+/// per-question prose. This pins the PRD limit so a loosened validator cannot hide the cause.
+#[test]
+fn live_leader_answer_over_the_shared_turn_budget_is_rejected_at_400_and_fits_at_600() {
+    let setup = setup();
+    let raw = include_str!("fixtures/live_grill_answer_opus_over_budget.json");
+    let words: usize = serde_json::from_str::<serde_json::Value>(raw).unwrap()["answers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|a| {
+            ["answer", "planChanges"]
+                .iter()
+                .map(|k| a[k].as_str().unwrap().split_whitespace().count())
+                .sum::<usize>()
+        })
+        .sum();
+    assert_eq!(words, 506);
+    let q = GrillQuestion {
+        contest_id: setup.contest_id,
+        round: 1,
+        turn: 0,
+        griller: setup.grillers[0].clone(),
+        leader: setup.leader.clone(),
+        plan_version: 1,
+        angle: "cost".into(),
+        questions: vec!["Q0?".into(), "Q1?".into(), "Q2?".into()],
+    };
+    let state = GrillState {
+        contest_id: setup.contest_id,
+        state: GrillStatus::Answering,
+        state_version: 3,
+        round: 1,
+        total_rounds: 1,
+        leader: setup.leader,
+        griller_order: setup.grillers,
+        turn: 0,
+        plan_version: 1,
+        questions_asked: 1,
+        passed: 0,
+        terminal_reason: None,
+    };
+    let input = |answer_words| GrillWorkInput {
+        state: state.clone(),
+        question: Some((EventId::new(), q.clone())),
+        earlier_questions: vec![],
+        answer_words,
+        plan_words: 1200,
+    };
+    assert!(
+        input(400)
+            .parse_output(&WorkKind::GrillAnswer, raw)
+            .is_err()
+    );
+    assert!(input(600).parse_output(&WorkKind::GrillAnswer, raw).is_ok());
+    let fenced = format!("```json\n{raw}\n```");
+    assert!(
+        input(600)
+            .parse_output(&WorkKind::GrillAnswer, &fenced)
+            .is_ok()
+    );
+}
+
+/// Live (Opus 5.5 grill leader, no response_format, 2026-11-25): the same JSON came back wrapped
+/// in a single ```json fence and the strict parse rejected it. The PRD allows removing one
+/// surrounding fence, and nothing looser.
+#[test]
+fn one_surrounding_code_fence_is_removed_and_nothing_looser() {
+    use squad_protocol::validation::strip_code_fence;
+    let json = r#"{"answers":[]}"#;
+    assert_eq!(strip_code_fence(&format!("```json\n{json}\n```")), json);
+    assert_eq!(strip_code_fence(&format!("  ```\n{json}\n```\n")), json);
+    for unchanged in [
+        json.to_string(),
+        format!("Here you go:\n```json\n{json}\n```"),
+        format!("```json\n{json}\n```\nThat is all."),
+        format!("```json\n{json}\n```\n```json\n{json}\n```"),
+        format!("```json {json}```"),
+    ] {
+        assert_eq!(strip_code_fence(&unchanged), unchanged);
+    }
+}

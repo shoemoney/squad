@@ -20,7 +20,10 @@ Do not infer another explanation or prediction, compare yourself with
 another actor, or claim an observation has already occurred.
 These predictions are committed before the report judge compares them.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 

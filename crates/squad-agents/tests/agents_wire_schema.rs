@@ -133,7 +133,7 @@ async fn every_mode_schema_is_accepted_by_vendor_schema_rules() {
     for (name, schema) in schemas {
         let events = client
             .stream(
-                request("anthropic/claude-haiku-5.5", schema),
+                request("google/gemini-4-neon", schema),
                 CancellationToken::new(),
             )
             .collect::<Vec<_>>()
@@ -193,11 +193,117 @@ fn openai_and_xai_reasoning_uses_effort_not_a_token_budget() {
         assert_eq!(body["reasoning"], json!({"effort": effort}), "{model}");
         assert_eq!(body["max_tokens"], 2048 + 4096);
     }
-    let mut req = request("anthropic/claude-haiku-5.5", json!({"type": "object"}));
+    let mut req = request("meta/muse-wonder", json!({"type": "object"}));
     req.supports_reasoning = true;
     req.reasoning_effort = ReasoningEffort::Medium;
     assert_eq!(
         req.body().unwrap()["reasoning"],
         json!({"max_tokens": 4096})
     );
+}
+
+/// Live (Fable 5.2 probe report, 8,192-token ceiling): `reasoning.max_tokens: 4096` was ignored
+/// (5,121 and 8,191 reasoning tokens, finish `length`, truncated JSON); effort medium finished.
+#[test]
+fn anthropic_reasoning_uses_effort_because_it_ignores_a_token_budget() {
+    for model in ["anthropic/claude-fable-5.2", "anthropic/claude-opus-5.5"] {
+        let mut req = request(model, json!({"type": "object"}));
+        req.supports_reasoning = true;
+        req.reasoning_effort = ReasoningEffort::Medium;
+        let body = req.body().unwrap();
+        assert_eq!(body["reasoning"], json!({"effort": "medium"}), "{model}");
+        assert_eq!(body["max_tokens"], 2048 + 4096);
+    }
+}
+
+/// Live (Opus 5.5, `Claude Platform on AWS`, census hunt, streaming, reasoning on): with
+/// `response_format` six of eight replies were the schema-shaped placeholder below, with zero
+/// reasoning tokens; without it, none of eight were. Anthropic therefore goes out prompt-only.
+#[test]
+fn anthropic_models_go_out_prompt_only_while_other_vendors_keep_the_schema() {
+    for model in [
+        "anthropic/claude-opus-5.5",
+        "anthropic/claude-fable-5.2",
+        "anthropic/claude-haiku-5.5",
+    ] {
+        let body = request(model, validation::schema::<CensusHuntOutput>())
+            .body()
+            .unwrap();
+        assert!(body.get("response_format").is_none(), "{model}");
+    }
+    for model in [
+        "openai/gpt-6.2-sol",
+        "google/gemini-4-neon",
+        "x-ai/grok-4.7",
+    ] {
+        let body = request(model, validation::schema::<CensusHuntOutput>())
+            .body()
+            .unwrap();
+        assert_eq!(
+            body["response_format"]["json_schema"]["strict"], true,
+            "{model}"
+        );
+    }
+}
+
+/// Provider that behaves like the live captures: a schema-constrained Opus request is answered
+/// with the empty placeholder; an unconstrained one with a real finding.
+fn opus_like(request: &Request) -> ResponseTemplate {
+    let body: Value = serde_json::from_slice(&request.body).unwrap();
+    let text = if body.get("response_format").is_some() {
+        r#"{"gaps":[{"consequence":"","localId":"x","omission":""}]}"#
+    } else {
+        r#"{"gaps":[{"localId":"F1","omission":"No rollback plan","consequence":"Writes on the new server are lost"}]}"#
+    };
+    let chunk = json!({"id":"gen-1","model":"anthropic/claude-opus-5.5","choices":[{"delta":{"content":text},"finish_reason":null}]});
+    let done = json!({"id":"gen-1","model":"anthropic/claude-opus-5.5","choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2,"cost":0.0001}});
+    ResponseTemplate::new(200)
+        .insert_header("content-type", "text/event-stream")
+        .set_body_string(format!("data: {chunk}\n\ndata: {done}\n\ndata: [DONE]\n\n"))
+}
+
+#[tokio::test]
+async fn opus_census_hunt_gets_a_real_answer_not_the_constrained_placeholder() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(opus_like)
+        .mount(&server)
+        .await;
+    let client = OpenRouterClient::new(&server.uri(), "sentinel-key-never-log").unwrap();
+    let events = client
+        .stream(
+            request(
+                "anthropic/claude-opus-5.5",
+                validation::schema::<CensusHuntOutput>(),
+            ),
+            CancellationToken::new(),
+        )
+        .collect::<Vec<_>>()
+        .await;
+    let text = events
+        .iter()
+        .filter_map(|e| match e {
+            StreamEvent::Delta { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect::<String>();
+    assert!(text.contains("No rollback plan"), "{events:?}");
+}
+
+/// Live (Gemini 4 neon, crosscheck cell, 2,048 visible + 4,096 reasoning): `reasoning.max_tokens`
+/// was ignored and all 6,144 tokens went to thinking, finish `length`, empty content (four of
+/// four). Effort medium also overran (eight of eight); effort low finished seven of eight.
+#[test]
+fn gemini_reasoning_is_capped_at_low_effort_because_it_ignores_a_token_budget() {
+    for effort in [
+        ReasoningEffort::Low,
+        ReasoningEffort::Medium,
+        ReasoningEffort::High,
+    ] {
+        let mut req = request("google/gemini-4-neon", json!({"type": "object"}));
+        req.supports_reasoning = true;
+        req.reasoning_effort = effort;
+        let body = req.body().unwrap();
+        assert_eq!(body["reasoning"], json!({"effort": "low"}));
+    }
 }

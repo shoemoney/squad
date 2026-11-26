@@ -12,7 +12,10 @@ goal is a concise string. constraints and uncertainties are arrays
 of strings. Use uncertainties to identify missing or ambiguous scope.
 Squad will deliver only these extracted fields to inventory writers.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -43,7 +46,10 @@ when the grid exceeds 200 cells, Squad applies the script's cap using
 your priority order. Do not trim cells yourself or omit inconvenient
 pairs. Do not treat a same-lens pair as a required cross-lens pair.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 

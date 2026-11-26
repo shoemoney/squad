@@ -27,7 +27,9 @@ pub async fn execute(
             .await;
         }
     };
-    let parsed = serde_json::from_str::<serde_json::Value>(&output.content);
+    let parsed = serde_json::from_str::<serde_json::Value>(
+        squad_protocol::validation::strip_code_fence(&output.content),
+    );
     let mut reason = String::from(
         "Invalid schema, references, locked predictions or unexpected-result branches",
     );

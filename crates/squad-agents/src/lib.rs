@@ -28,7 +28,9 @@
 //!
 //! Ceilings count visible tokens only. A model that lists reasoning support is
 //! sent `max_tokens = visible + reasoning` and an explicit `reasoning.max_tokens`
-//! (low 1,024, medium 4,096, high 8,192); other models get the visible ceiling
+//! (low 1,024, medium 4,096, high 8,192), except that OpenAI, xAI and Anthropic
+//! models get `reasoning.effort` (they ignore a budget) and Google models always get
+//! effort `low`; other models get the visible ceiling
 //! alone, and only an explicitly configured effort for an unsupported member
 //! is an error. `judge.round` is always low with a 512 ceiling. The census,
 //! crosscheck, survey and probe judge calls are always medium with a 4,096

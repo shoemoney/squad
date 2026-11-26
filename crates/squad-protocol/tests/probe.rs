@@ -195,3 +195,129 @@ fn tree_requires_unchanged_matrix_reachable_nodes_and_reassessment() {
     });
     assert!(bad.validate_against(&material).is_err());
 }
+
+/// Live (Fable 5.2 probe report, 2026-11-25): the judge returned a well-formed tree whose
+/// `leaf_step_change` listed only the explanation that predicted the outcome and dropped the one
+/// whose prediction for that check was unpredictable. The old message ("leaf eliminated
+/// compatible, missing or uncertain predictions") named neither leaf nor explanation, so the
+/// repair attempts could not act on it.
+#[test]
+fn leaf_that_drops_an_unpredictable_explanation_is_rejected_by_name() {
+    use std::collections::BTreeMap;
+    let c = check();
+    let (e, e2, e3) = (CellId::new(), CellId::new(), CellId::new());
+    let row = |outcome: Option<&str>| {
+        Some(ProbePrediction {
+            predictions: vec![ProbePredictionItem {
+                check_id: c.id,
+                predictable: outcome.is_some(),
+                expected_outcome_ids: outcome.map(text).into_iter().collect(),
+                expected_observation: outcome.map(text),
+                reason: text("Reason"),
+            }],
+        })
+    };
+    let explanation = |id| ProbeItem {
+        id,
+        data: ProbeExplanation {
+            explanation: text("Loose cable"),
+            key_assumption: text("Movement"),
+            limitations: vec![],
+        },
+    };
+    let material = ProbeCaseMaterial {
+        brief: ProbeBrief {
+            observation: text("Noise"),
+            ruled_out: "Fan".into(),
+            inspectable: text("Exterior"),
+        },
+        explanations: vec![explanation(e), explanation(e2), explanation(e3)],
+        checks: vec![c.clone()],
+        prediction_matrix: BTreeMap::from([
+            (e, row(Some("red"))),
+            (e2, row(None)),
+            (e3, row(Some("green"))),
+        ]),
+        missing_rows: vec![],
+        skipped_members: vec![],
+    };
+    let leaf = |remaining: Vec<CellId>, reassess| ProbeNode::Leaf {
+        remaining,
+        next_action: text("Inspect"),
+        reassess,
+    };
+    let report = |red: Vec<CellId>| ProbeReport {
+        prediction_matrix: material.prediction_matrix.clone(),
+        decision_tree: ProbeTree {
+            root: text("root"),
+            nodes: BTreeMap::from([
+                (
+                    "root".into(),
+                    ProbeNode::Check {
+                        check_id: c.id,
+                        measurement: c.data.measurement.clone(),
+                        branches: BTreeMap::from([
+                            ("red".into(), text("red")),
+                            ("green".into(), text("green")),
+                        ]),
+                        unexpected: text("unexpected"),
+                    },
+                ),
+                ("red".into(), leaf(red, false)),
+                ("green".into(), leaf(vec![e3, e2], false)),
+                ("unexpected".into(), leaf(vec![e, e2, e3], true)),
+            ]),
+        },
+        discarded_checks: vec![],
+        inseparable_groups: vec![
+            ProbeInseparableGroup {
+                explanations: vec![e, e2],
+                reason: text("No check separates them"),
+            },
+            ProbeInseparableGroup {
+                explanations: vec![e2, e3],
+                reason: text("No check separates them"),
+            },
+        ],
+        limitations: vec![],
+    };
+    let ok = report(vec![e, e2]).validate_against(&material);
+    assert!(ok.is_ok(), "{ok:?}");
+    let err = report(vec![e]).validate_against(&material).unwrap_err();
+    assert!(err.message.contains("leaf red"), "{}", err.message);
+    assert!(err.message.contains(&e2.to_string()), "{}", err.message);
+    assert!(!err.message.contains(&e3.to_string()), "{}", err.message);
+
+    // Live (fourth report): two branches pointed at one shared leaf, reported only as
+    // "cyclic or shared decision node".
+    let mut shared = report(vec![e, e2]);
+    shared
+        .decision_tree
+        .nodes
+        .insert("green".into(), leaf(vec![e3, e2], false));
+    if let ProbeNode::Check { branches, .. } = shared.decision_tree.nodes.get_mut("root").unwrap() {
+        branches.insert("green".into(), text("red"));
+    }
+    let err = shared.validate_against(&material).unwrap_err();
+    assert!(
+        err.message.contains("more than one branch"),
+        "{}",
+        err.message
+    );
+
+    // Live (third report): an outcome no explanation predicts came back as `remaining: []`.
+    let err = report(vec![]).validate_against(&material).unwrap_err();
+    assert!(err.message.contains("leaf red"), "{}", err.message);
+    assert!(err.message.contains("empty remaining"), "{}", err.message);
+    assert!(err.message.contains(&e.to_string()), "{}", err.message);
+
+    // Live (second Fable 5.2 probe report): a check that separates nothing was rejected with a
+    // message that named no check, so the repair attempt failed identically.
+    let mut flat = material.clone();
+    flat.prediction_matrix = BTreeMap::from([(e, row(None)), (e2, row(None)), (e3, row(None))]);
+    let mut flat_report = report(vec![e, e2]);
+    flat_report.prediction_matrix = flat.prediction_matrix.clone();
+    let err = flat_report.validate_against(&flat).unwrap_err();
+    assert!(err.message.contains(&c.id.to_string()), "{}", err.message);
+    assert!(err.message.contains("discardedChecks"), "{}", err.message);
+}

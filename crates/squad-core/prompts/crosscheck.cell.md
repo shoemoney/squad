@@ -20,7 +20,10 @@ All declared nullable fields remain present.
 counts as a gap. Never mark a risk accepted on the human's behalf.
 Do not remove, replace, or invent an assigned cell.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 

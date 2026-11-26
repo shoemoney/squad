@@ -14,7 +14,10 @@ Use supplied IDs and the required schema. Do not infer a member's model
 or identity from wording. Do not remove a gap merely because only one
 member found it. Do not decide the later rating result or estimate.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 

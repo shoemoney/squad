@@ -192,8 +192,8 @@ pub fn validate(
     completed: CompletedGeneration,
     word_limit: usize,
 ) -> Result<EnvelopePayload, InvalidSurveyOutput> {
-    let value: Value =
-        serde_json::from_str(raw).map_err(|_| InvalidSurveyOutput("invalid JSON object".into()))?;
+    let value: Value = serde_json::from_str(squad_protocol::validation::strip_code_fence(raw))
+        .map_err(|_| InvalidSurveyOutput("invalid JSON object".into()))?;
     fn words(v: &Value) -> usize {
         match v {
             Value::Array(a) => a.iter().map(words).sum(),

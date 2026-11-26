@@ -186,6 +186,10 @@ impl Respond for Answers {
         } else {
             return streaming("ordinary response", "stop");
         };
+        if text.contains("FENCED_REPLIES") {
+            // Live: Opus 5.5 without response_format wrapped its JSON in a ```json fence.
+            return streaming(&format!("```json\n{output}\n```"), "stop");
+        }
         streaming(&output.to_string(), "stop")
     }
 }
@@ -1151,4 +1155,23 @@ fn assert_provider_failure(db: &rusqlite::Connection, status: i64, message: Opti
             assert!(raw.contains(message), "{raw}");
         }
     }
+}
+
+#[tokio::test]
+async fn replies_wrapped_in_one_markdown_fence_complete_a_census() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::Interactive).await;
+    let result = room
+        .submit(request(
+            &f.config,
+            "@all $census Build a database service. FENCED_REPLIES",
+        ))
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    f.wait(|| f.count("census.report") == 1).await;
+    assert_eq!(f.fake.captured_bodies().await.len(), 14);
+    room.shutdown().await.unwrap();
 }

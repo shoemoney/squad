@@ -328,6 +328,10 @@ impl GrillWorkInput {
             message: "Invalid grill output".into(),
         };
         let s = &self.state;
+        let raw = match kind {
+            WorkKind::GrillQuestion | WorkKind::GrillAnswer => validation::strip_code_fence(raw),
+            _ => raw,
+        };
         match kind {
             WorkKind::GrillQuestion if s.state == GrillStatus::Questioning => {
                 let griller = s.griller_order[s.turn as usize].clone();

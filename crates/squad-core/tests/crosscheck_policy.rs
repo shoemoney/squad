@@ -224,7 +224,12 @@ fn rulings_retain_every_cell_and_audit_additions_cannot_disappear_at_the_cap() {
                 auditor: s.participants[index].clone(),
                 sample: vec![],
                 response: CrosscheckAuditResponse {
-                    audits: vec![],
+                    audits: vec![CrosscheckAuditFinding {
+                        cell_id: grid.cells.last().unwrap().cell_id,
+                        verdict: CrosscheckAuditVerdict::Challenged,
+                        reason: text("False closure"),
+                        citation: None,
+                    }],
                     missed_case: CrosscheckMissedCase {
                         case: text("A missed interaction"),
                         reason: text("A material omission"),
@@ -375,4 +380,83 @@ fn redaction_includes_unselected_roster_members_and_configured_judge_alias() {
         redact(&format!("{} ~vendor/judge-family-latest", excluded), &set),
         "[redacted] [redacted]"
     );
+}
+
+/// Live (Fable 5.2, 153-cell grid, 2026-11-25): a disposition for every retained cell is about
+/// 15,000 tokens against a 4,096-token judge ceiling, and both attempts ended `length`. The
+/// ruling now names only the challenged cells; the report keeps every cell's reviewed disposition.
+#[test]
+fn a_ruling_names_only_challenged_cells_and_the_report_keeps_the_rest() {
+    let (s, i, n, r) = fixture(6);
+    let grid = build_grid(&s, n, &i, &r).unwrap();
+    assert_eq!(grid.cells.len(), 153);
+    let challenged = grid.cells[7].cell_id;
+    let audits = (0..2)
+        .map(|index| CrosscheckAudit {
+            contest_id: s.contest_id,
+            work_id: WorkId::new(),
+            auditor: s.participants[index].clone(),
+            sample: vec![],
+            response: CrosscheckAuditResponse {
+                audits: if index == 0 {
+                    vec![CrosscheckAuditFinding {
+                        cell_id: challenged,
+                        verdict: CrosscheckAuditVerdict::Challenged,
+                        reason: text("False closure"),
+                        citation: None,
+                    }]
+                } else {
+                    vec![]
+                },
+                missed_case: CrosscheckMissedCase {
+                    case: text("A missed interaction"),
+                    reason: text("A material omission"),
+                    proposed_fix: text("Add an explicit control"),
+                },
+            },
+        })
+        .collect::<Vec<_>>();
+    let disposition = |cell_id| CrosscheckCellReview {
+        cell_id,
+        status: CrosscheckDisposition::Gap,
+        citation: None,
+        reason: text("Closure unsupported"),
+        proposed_fix: Some(text("Add handling")),
+    };
+    let additions = audits
+        .iter()
+        .map(|a| CrosscheckAddition {
+            audit_work_id: a.work_id,
+            decision: CrosscheckAdditionDecision::Rejected,
+            reason: text("Duplicate"),
+        })
+        .collect::<Vec<_>>();
+    let ruling = |cells| CrosscheckRuling {
+        cells,
+        additions: additions.clone(),
+        residual_risks: vec![],
+    };
+    let plan = s.plan.as_str();
+    let ok = ruling(vec![disposition(challenged)]);
+    assert!(ok.validate(&grid, &audits, plan).is_ok());
+    assert!(ruling(vec![]).validate(&grid, &audits, plan).is_err());
+    assert!(
+        ruling(vec![disposition(challenged), disposition(challenged)])
+            .validate(&grid, &audits, plan)
+            .is_err()
+    );
+    assert!(
+        ruling(vec![disposition(challenged), disposition(CellId::new())])
+            .validate(&grid, &audits, plan)
+            .is_err()
+    );
+    let selections = audits
+        .iter()
+        .map(|a| AuditSelection {
+            auditor: a.auditor.clone(),
+            sample: vec![],
+        })
+        .collect::<Vec<_>>();
+    let report = report(&s, &grid, &[], &audits, &ok, &selections);
+    assert_eq!(report.ledger.len(), 153);
 }

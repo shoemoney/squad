@@ -2,7 +2,8 @@ Grill {{contest_id}}, end of round {{round}} of {{grill_rounds}}.
 You are leader @{{leader_nick}}.
 Rewrite the complete plan as version {{next_plan_version}}.
 
-Produce a clean standalone document within {{plan_word_limit}} words.
+Produce a clean standalone document within {{plan_target_words}} words.
+Anything longer is rejected.
 Incorporate every answer and agreed plan change from this round into
 the latest complete plan. Resolve contradictions explicitly and keep
 material assumptions, tradeoffs, and unresolved weaknesses visible.

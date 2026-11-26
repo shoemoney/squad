@@ -178,7 +178,8 @@ pub fn validate_output(
         )));
     }
     let debaters = debaters.ok_or(ReaderError::NotRunnable)?;
-    let value = serde_json::from_str::<Value>(raw).map_err(|_| "invalid JSON".to_owned());
+    let value = serde_json::from_str::<Value>(squad_protocol::validation::strip_code_fence(raw))
+        .map_err(|_| "invalid JSON".to_owned());
     let validated = value.and_then(|value| {
         if work.kind == WorkKind::JudgeRound {
             verdict::validate_round_response(&value, debaters).map(JudgeOutput::Round)

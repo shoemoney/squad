@@ -63,6 +63,6 @@ The crosscheck suites run without ignored cases and use the existing wiremock pr
 
 ## Open questions and integration notes
 
-- The PRD fixes judge output at 4,096 visible tokens while requiring a full ruling record for every retained cell. A large grid may exhaust that ceiling. This implementation retains the cells and uses the authorized repair/failure policy; compacting the ruling contract or changing the ceiling requires a PRD decision. Fake-provider tests verify request ceilings and workflow behavior, not real-model output length feasibility.
+- The PRD fixes judge output at 4,096 visible tokens, and a full ruling for a 153-cell grid cannot fit (live, 2026-11-25: Fable 5.2 ended `length` twice at 6,168 and 14,376 bytes). Following the PRD note that a judge-backed report returns references and narrative while the application assembles the stored artifact, the ruling now names only the challenged cells and any cell it changes; the application keeps every other cell's reviewed disposition and the report still lists every retained cell.
 - Migration `0002` follows a base containing only `0001`. Assign subsequent migration versions when combining independently implemented mode branches.
 - The wiki is hosted on dev1; its index, rules and relevant Squad pages were consulted over SSH. Crosscheck integration notes are recorded in `wiki/projects/squad-crosscheck.md`.
