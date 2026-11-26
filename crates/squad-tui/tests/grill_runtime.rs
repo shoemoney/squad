@@ -118,6 +118,21 @@ async fn real_runtime_preflight_actions_committed_snapshots_and_export() {
     let RequestResult::PendingConfirmation { preflight, .. } = pending else {
         panic!("{pending:?}")
     };
+    let presentation = squad_tui::widgets::preflight::PreflightView {
+        plan: preflight.clone(),
+        pending: false,
+    }
+    .text();
+    assert!(
+        presentation.contains("3 calls")
+            && presentation.contains("1 rounds × (1 grillers × 2 + 1) calls"),
+        "{presentation}"
+    );
+    assert!(
+        presentation.contains("Plan from @alpha:\nInitial plan: one writer."),
+        "{presentation}"
+    );
+    let scoreboard = room.state().await.scoreboard;
     let mut session = Session::default();
     session.restore(snapshot(&room.state().await, events(&room).await));
     assert!(session.active_contest());
@@ -150,6 +165,11 @@ async fn real_runtime_preflight_actions_committed_snapshots_and_export() {
     assert_eq!(count, cues.len());
     assert!(!live.active_contest());
     assert!(live.snapshot.preflights.is_empty());
+    assert_eq!(room.state().await.scoreboard, scoreboard);
+    assert!(!all.iter().any(|e| matches!(
+        e.content,
+        EnvelopePayload::ScoresChanged(_) | EnvelopePayload::CaseOpened(_)
+    )));
     let (id, view) = live.grills.iter().next().unwrap();
     assert_eq!(view.state, "COMPLETE");
     assert_eq!(view.plans.len(), 2);

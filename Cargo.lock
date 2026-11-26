@@ -3840,6 +3840,7 @@ dependencies = [
  "squad-agents",
  "squad-core",
  "squad-protocol",
+ "squad-store",
  "syntect",
  "tachyonfx",
  "tempfile",
