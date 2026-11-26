@@ -199,6 +199,18 @@ pub async fn run(
     room: impl RoomPort + 'static,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let guard = crate::terminal::TerminalGuard::enter()?;
+    let terminal = ratatui::Terminal::new(ratatui::backend::CrosstermBackend::new(io::stdout()))?;
+    run_started(config, room, guard, terminal).await
+}
+
+/// Continue in the terminal already owned by the startup screen.
+pub async fn run_started(
+    config: SquadConfig,
+    room: impl RoomPort + 'static,
+    mut guard: crate::terminal::TerminalGuard,
+    mut terminal: crate::startup::StartupTerminal,
+) -> Result<(), Box<dyn std::error::Error>> {
+    guard.negotiate_keyboard()?;
     let mut caps = crate::fx::TerminalCaps::detect(guard.capabilities().synchronized_output)?;
     if config.fx_explicit {
         caps.level = match config.fx {
@@ -215,8 +227,6 @@ pub async fn run(
     app.input_events = crate::input_events::InputEvents {
         kitty: guard.capabilities().keyboard_enhancement,
     };
-    let mut terminal =
-        ratatui::Terminal::new(ratatui::backend::CrosstermBackend::new(io::stdout()))?;
     let (tx, mut input) = tokio::sync::mpsc::channel(128);
     struct InputOwner(Arc<AtomicBool>);
     impl Drop for InputOwner {

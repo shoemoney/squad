@@ -125,7 +125,9 @@ async fn bound_commands_only_report_real_provider_output() {
         "Terminal application failed."
     );
     assert!(server.captured_bodies().await.is_empty());
-    assert!(user_messages(&data).is_empty());
+    // Terminal setup now precedes room startup, so a piped interactive
+    // invocation fails before opening SQLite or touching the provider.
+    assert!(!data.join("squad.db").exists());
     let output = invoke_provider(
         temp.path(),
         &["send", "@a hello", "--data-dir", data.to_str().unwrap()],

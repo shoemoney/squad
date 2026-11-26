@@ -398,8 +398,14 @@ impl OpenRouterClient {
         if let Some(effort) = effort {
             body["reasoning"] = json!({"effort": effort});
         }
-        self.json_call(self.http.post(self.endpoint.clone()).json(&body))
-            .await
+        // A tiny non-streaming identity probe gets the protocol's first-token
+        // budget, rather than the five-minute ordinary completion budget.
+        tokio::time::timeout(
+            Duration::from_millis(limits::FIRST_TOKEN_TIMEOUT_MS),
+            self.json_call(self.http.post(self.endpoint.clone()).json(&body)),
+        )
+        .await
+        .unwrap_or(Err(TransportError::Deadline))
     }
 
     /// Reconcile a known provider generation without exposing credentials.

@@ -13,6 +13,7 @@ pub mod screens;
 pub mod search;
 pub mod selection;
 pub mod session;
+pub mod startup;
 pub mod terminal;
 pub mod text;
 pub mod theme;

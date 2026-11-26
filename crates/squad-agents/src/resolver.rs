@@ -3,7 +3,7 @@ use crate::openrouter::{OpenRouterClient, StreamEvent, TransportError};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use squad_protocol::config::{ConfigError, SquadConfig};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Mutex};
 
 /// Durable entries are scoped to the provider endpoint and exact alias.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -152,6 +152,72 @@ pub trait ResolutionStore {
     }
     fn cached_catalog(&self) -> Result<Option<CatalogSnapshot>, Self::Error>;
     fn save_resolution(&mut self, snapshot: &ResolutionSnapshot) -> Result<(), Self::Error>;
+}
+// Only synchronous persistence hooks hold this lock; network futures never do.
+// Each seat retains its own nick/attempt accounting while requests overlap.
+struct SharedStore<'a, S>(&'a Mutex<&'a mut S>);
+impl<S: ResolutionStore> ResolutionStore for SharedStore<'_, S> {
+    type Error = S::Error;
+    fn before_probe(
+        &mut self,
+        nick: &str,
+        alias: &str,
+        attempt: u32,
+        tokens: u32,
+    ) -> Result<(), Self::Error> {
+        self.0
+            .lock()
+            .expect("resolution store")
+            .before_probe(nick, alias, attempt, tokens)
+    }
+    fn after_probe(
+        &mut self,
+        nick: &str,
+        alias: &str,
+        attempt: u32,
+        probe: &ProbeAttempt,
+    ) -> Result<(), Self::Error> {
+        self.0
+            .lock()
+            .expect("resolution store")
+            .after_probe(nick, alias, attempt, probe)
+    }
+    fn cached_alias(
+        &self,
+        provider: &str,
+        alias: &str,
+    ) -> Result<Option<AliasCacheEntry>, Self::Error> {
+        self.0
+            .lock()
+            .expect("resolution store")
+            .cached_alias(provider, alias)
+    }
+    fn save_alias(
+        &mut self,
+        provider: &str,
+        alias: &str,
+        entry: &AliasCacheEntry,
+    ) -> Result<(), Self::Error> {
+        self.0
+            .lock()
+            .expect("resolution store")
+            .save_alias(provider, alias, entry)
+    }
+    fn remove_alias(&mut self, provider: &str, alias: &str) -> Result<(), Self::Error> {
+        self.0
+            .lock()
+            .expect("resolution store")
+            .remove_alias(provider, alias)
+    }
+    fn cached_catalog(&self) -> Result<Option<CatalogSnapshot>, Self::Error> {
+        self.0.lock().expect("resolution store").cached_catalog()
+    }
+    fn save_resolution(&mut self, snapshot: &ResolutionSnapshot) -> Result<(), Self::Error> {
+        self.0
+            .lock()
+            .expect("resolution store")
+            .save_resolution(snapshot)
+    }
 }
 #[derive(Debug)]
 pub enum ResolutionError {
@@ -450,7 +516,7 @@ pub async fn resolve(
     cache: Option<&CatalogSnapshot>,
     now: u64,
 ) -> Result<ResolutionSnapshot, ResolutionError> {
-    resolve_inner(client, config, cache, now, &mut VolatileStore).await
+    resolve_inner(client, config, cache, now, &mut VolatileStore, &|_| {}).await
 }
 pub async fn resolve_persisted<S: ResolutionStore>(
     client: &OpenRouterClient,
@@ -458,10 +524,20 @@ pub async fn resolve_persisted<S: ResolutionStore>(
     now: u64,
     store: &mut S,
 ) -> Result<ResolutionSnapshot, ResolutionError> {
+    resolve_persisted_with_progress(client, config, now, store, &|_| {}).await
+}
+/// Reports each completed seat immediately; snapshot order remains roster order.
+pub async fn resolve_persisted_with_progress<S: ResolutionStore>(
+    client: &OpenRouterClient,
+    config: &SquadConfig,
+    now: u64,
+    store: &mut S,
+    progress: &(dyn Fn(&PinnedModel) + Send + Sync),
+) -> Result<ResolutionSnapshot, ResolutionError> {
     let cache = store
         .cached_catalog()
         .map_err(|_| ResolutionError::Persistence)?;
-    let snapshot = resolve_inner(client, config, cache.as_ref(), now, store).await?;
+    let snapshot = resolve_inner(client, config, cache.as_ref(), now, store, progress).await?;
     store
         .save_resolution(&snapshot)
         .map_err(|_| ResolutionError::Persistence)?;
@@ -473,6 +549,7 @@ async fn resolve_inner<S: ResolutionStore>(
     cache: Option<&CatalogSnapshot>,
     now: u64,
     store: &mut S,
+    progress: &(dyn Fn(&PinnedModel) + Send + Sync),
 ) -> Result<ResolutionSnapshot, ResolutionError> {
     let (catalog, cached) = acquire_catalog(client, cache, now).await?;
     // Validate all concrete selections before spending on any alias probe.
@@ -497,39 +574,64 @@ async fn resolve_inner<S: ResolutionStore>(
             }));
         }
     }
-    let mut members = Vec::new();
-    for member in &config.agents {
-        members.push(
-            pin_cached(
+    let selections: Vec<_> = config
+        .agents
+        .iter()
+        .map(|member| {
+            (
+                member.nick.as_str(),
+                member.model.as_str(),
+                format!("SQUAD_MODEL_{}", member.nick.as_str().to_uppercase()),
+            )
+        })
+        .chain(std::iter::once((
+            "judge",
+            config.judge.model.as_str(),
+            "SQUAD_JUDGE_MODEL".into(),
+        )))
+        .collect();
+    let shared = Mutex::new(store);
+    // Duplicate aliases (often a member and the judge) share the newly saved
+    // cache entry, as they did in the serial path. TTL zero explicitly probes.
+    let alias_locks: BTreeMap<_, _> = selections
+        .iter()
+        .filter(|(_, model, _)| model.starts_with('~'))
+        .map(|(_, model, _)| (*model, tokio::sync::Mutex::new(())))
+        .collect();
+    // join_all drains all dispatched probes even if a persistence hook fails,
+    // so every admitted response can still be accounted for.
+    let results = futures::future::join_all(selections.iter().map(|(nick, model, variable)| {
+        let shared = &shared;
+        let catalog = &catalog.models;
+        let alias_lock = (config.alias_cache_ttl_seconds > 0)
+            .then(|| alias_locks.get(model))
+            .flatten();
+        async move {
+            let _alias_guard = match alias_lock {
+                Some(lock) => Some(lock.lock().await),
+                None => None,
+            };
+            let result = pin_cached(
                 client,
-                &catalog.models,
-                (
-                    member.nick.as_str(),
-                    &member.model,
-                    &format!("SQUAD_MODEL_{}", member.nick.as_str().to_uppercase()),
-                ),
+                catalog,
+                (nick, model, variable),
                 (
                     &config.openrouter_base_url,
                     now,
                     config.alias_cache_ttl_seconds,
                 ),
-                store,
+                &mut SharedStore(shared),
             )
-            .await?,
-        );
-    }
-    let judge = pin_cached(
-        client,
-        &catalog.models,
-        ("judge", &config.judge.model, "SQUAD_JUDGE_MODEL"),
-        (
-            &config.openrouter_base_url,
-            now,
-            config.alias_cache_ttl_seconds,
-        ),
-        store,
-    )
-    .await?;
+            .await;
+            if let Ok(pinned) = &result {
+                progress(pinned);
+            }
+            result
+        }
+    }))
+    .await;
+    let mut members = results.into_iter().collect::<Result<Vec<_>, _>>()?;
+    let judge = members.pop().expect("judge selection");
     let mut diagnostics = Vec::new();
     if cached {
         diagnostics.push(
