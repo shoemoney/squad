@@ -472,6 +472,8 @@ Squad is public. The repository is `github.com/shoemoney/squad`, and it has been
 
 Publishing release artifacts is a separate step. Binaries and packages go out only when the owner explicitly authorizes it, which is the M7 launch decision. Until then, build from source as shown in [Quick start](#quick-start).
 
+Development follows D63: independent coding units use separate worktrees, most go to the fast coding worker, overflow goes to the other workers, and each milestone receives one review pass before integration. D71 fixes the shared-engine script build order: debate, grill, census, crosscheck, tournament, survey, then probe. The [Contests contract](docs/prd/08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md) owns the moves and scripts; [M5](docs/prd/milestones/M5-contests-seven-modes.md) tracks their phases.
+
 ## 🧪 Development checks
 
 CI runs these on macOS and Ubuntu. Trusted pushes can use the project's own Linux and ARM Mac workers; pull requests use GitHub-hosted machines. See [automatic CI and runner operations](docs/ci.md) for setup, isolation and hosted fallback. Run the commands below from the repository root with the pinned toolchain from `rust-toolchain.toml`.

@@ -238,7 +238,7 @@ async fn at_all_hello_streams_replies_and_ctrl_c_restores_the_terminal() {
     ])
     .await;
     let root = tempfile::tempdir().unwrap();
-    let mut pty = Pty::spawn(root.path(), Some(&server), &[]);
+    let mut pty = Pty::spawn(root.path(), Some(&server), &[("SQUAD_LOG_LEVEL", "debug")]);
     pty.wait_for("the room to render", ready_screen);
     pty.send(b"@all hello");
     pty.wait_for("the draft in the input", |s| s.contains("@all hello"));
@@ -252,6 +252,15 @@ async fn at_all_hello_streams_replies_and_ctrl_c_restores_the_terminal() {
     // A normal TUI quit is exit 0 (PRD 05); 130 is reserved for SIGINT, tested below.
     assert_eq!(status.exit_code(), 0, "Ctrl+C key quits the TUI cleanly");
     assert_restored(&pty);
+    let log = std::fs::read_to_string(root.path().join("data/logs/squad.jsonl")).unwrap();
+    assert!(log.contains("Router commit accepted"));
+    let terminal = String::from_utf8_lossy(&pty.raw()).into_owned();
+    assert!(!terminal.contains("Router commit accepted"));
+    for line in log.lines() {
+        serde_json::from_str::<serde_json::Value>(line).unwrap();
+    }
+    assert!(!log.contains("fixture-key") && !log.contains("PRIVATE REASONING"));
+
     assert!(
         server.captured_bodies().await.len() >= 2,
         "both members called the provider"
