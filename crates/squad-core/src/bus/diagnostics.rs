@@ -4,6 +4,9 @@ pub fn request(id: EventId, owner: Option<&ExecutorKey>) {
     tracing::debug!(request_id=%id,executor=?owner,"bus.request");
 }
 pub fn commit(event: &CommittedEnvelope) {
+    if !tracing::enabled!(tracing::Level::DEBUG) {
+        return;
+    }
     // Read only public identity fields; never log the owning payload or private maps.
     let wire = serde_json::to_value(&event.content).unwrap_or_default();
     let payload = &wire["payload"];

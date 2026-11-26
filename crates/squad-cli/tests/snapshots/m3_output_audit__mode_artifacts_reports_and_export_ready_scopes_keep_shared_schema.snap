@@ -1,0 +1,314 @@
+---
+source: crates/squad-cli/tests/m3_output_audit.rs
+expression: records
+---
+[
+  {
+    "cursor": "2",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000002",
+      "kind": "contest.artifact",
+      "payload": {
+        "artifactKind": "census",
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "partial": true,
+          "skippedMembers": [
+            "beta"
+          ]
+        },
+        "sourceRefs": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001",
+        "workId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "2",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "cursor": "3",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000003",
+      "kind": "contest.report",
+      "payload": {
+        "artifactEventIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "mode": "census",
+          "partial": true
+        },
+        "skippedWorkIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "3",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "filename": "squad-census-01900000-0000-7000-8000-000000000001.md",
+    "id": "01900000-0000-7000-8000-000000000001",
+    "path": "<export path>",
+    "requestId": "<request>",
+    "scope": "census",
+    "type": "export.ready"
+  },
+  {
+    "cursor": "2",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000002",
+      "kind": "contest.artifact",
+      "payload": {
+        "artifactKind": "crosscheck",
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "partial": true,
+          "skippedMembers": [
+            "beta"
+          ]
+        },
+        "sourceRefs": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001",
+        "workId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "2",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "cursor": "3",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000003",
+      "kind": "contest.report",
+      "payload": {
+        "artifactEventIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "mode": "crosscheck",
+          "partial": true
+        },
+        "skippedWorkIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "3",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "filename": "squad-crosscheck-01900000-0000-7000-8000-000000000001.md",
+    "id": "01900000-0000-7000-8000-000000000001",
+    "path": "<export path>",
+    "requestId": "<request>",
+    "scope": "crosscheck",
+    "type": "export.ready"
+  },
+  {
+    "cursor": "2",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000002",
+      "kind": "contest.artifact",
+      "payload": {
+        "artifactKind": "survey",
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "partial": true,
+          "skippedMembers": [
+            "beta"
+          ]
+        },
+        "sourceRefs": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001",
+        "workId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "2",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "cursor": "3",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000003",
+      "kind": "contest.report",
+      "payload": {
+        "artifactEventIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "mode": "survey",
+          "partial": true
+        },
+        "skippedWorkIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "3",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "filename": "squad-survey-01900000-0000-7000-8000-000000000001.md",
+    "id": "01900000-0000-7000-8000-000000000001",
+    "path": "<export path>",
+    "requestId": "<request>",
+    "scope": "survey",
+    "type": "export.ready"
+  },
+  {
+    "cursor": "2",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000002",
+      "kind": "contest.artifact",
+      "payload": {
+        "artifactKind": "probe",
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "partial": true,
+          "skippedMembers": [
+            "beta"
+          ]
+        },
+        "sourceRefs": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001",
+        "workId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "2",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "cursor": "3",
+    "event": {
+      "acceptedAt": "2026-11-24T00:00:00Z",
+      "commitIndex": 0,
+      "commitSize": 1,
+      "correlationId": "01900000-0000-7000-8000-000000000001",
+      "createdAt": "2026-11-24T00:00:00Z",
+      "id": "01900000-0000-7000-8000-000000000003",
+      "kind": "contest.report",
+      "payload": {
+        "artifactEventIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "contestId": "01900000-0000-7000-8000-000000000001",
+        "data": {
+          "mode": "probe",
+          "partial": true
+        },
+        "skippedWorkIds": [
+          "01900000-0000-7000-8000-000000000001"
+        ],
+        "stepId": "01900000-0000-7000-8000-000000000001"
+      },
+      "recipients": [
+        "me"
+      ],
+      "roomId": "main",
+      "sender": "system",
+      "seq": "3",
+      "version": 1
+    },
+    "type": "event"
+  },
+  {
+    "filename": "squad-probe-01900000-0000-7000-8000-000000000001.md",
+    "id": "01900000-0000-7000-8000-000000000001",
+    "path": "<export path>",
+    "requestId": "<request>",
+    "scope": "probe",
+    "type": "export.ready"
+  }
+]
