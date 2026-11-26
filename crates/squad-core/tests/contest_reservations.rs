@@ -349,7 +349,8 @@ impl Respond for CensusAnswers {
     fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
         let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
         let text = body["messages"][1]["content"].as_str().unwrap();
-        if body["response_format"]["json_schema"]["name"] != "census_response" {
+        // Anthropic models go out prompt-only, so identify census calls by their prompt.
+        if kind_of(text) == "other" {
             return streaming("ordinary response", "stop");
         }
         let material = mode_data(text);
@@ -479,10 +480,10 @@ async fn no_started_request_exceeds_its_frozen_bound_or_attempt_share() {
         .collect();
     let mut seen = BTreeMap::<&str, u32>::new();
     for body in f.fake.captured_bodies().await {
-        if body["response_format"]["json_schema"]["name"] != "census_response" {
+        let kind = kind_of(body["messages"][1]["content"].as_str().unwrap());
+        if kind == "other" {
             continue;
         }
-        let kind = kind_of(body["messages"][1]["content"].as_str().unwrap());
         let input = estimate_bytes(&body);
         let (prompt, completion) = prices[body["model"].as_str().unwrap()];
         let worst =
@@ -580,10 +581,10 @@ async fn growing_the_plan_between_passes_requires_a_revised_preflight() {
     // Every request of the revised pass fits the revised frozen bounds.
     let bounds = &after["settings"]["stepInputBounds"];
     for body in f.fake.captured_bodies().await {
-        if body["response_format"]["json_schema"]["name"] != "census_response" {
+        let kind = kind_of(body["messages"][1]["content"].as_str().unwrap());
+        if kind == "other" {
             continue;
         }
-        let kind = kind_of(body["messages"][1]["content"].as_str().unwrap());
         assert!(
             estimate_bytes(&body) <= bounds[kind].as_u64().unwrap(),
             "{kind}"

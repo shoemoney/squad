@@ -12,6 +12,25 @@ impl std::fmt::Display for ValidationError {
     }
 }
 impl std::error::Error for ValidationError {}
+/// Remove one Markdown code fence that wraps the whole reply (` ```json ... ``` `), the only
+/// reshaping the PRD allows before local validation. Anything else, including text around the
+/// fence or more than one fence, comes back unchanged and fails validation as before.
+pub fn strip_code_fence(raw: &str) -> &str {
+    let trimmed = raw.trim();
+    let Some(rest) = trimmed.strip_prefix("```") else {
+        return raw;
+    };
+    let Some(body) = rest.strip_suffix("```") else {
+        return raw;
+    };
+    let Some((tag, body)) = body.split_once('\n') else {
+        return raw;
+    };
+    if body.contains("```") || tag.trim().contains(char::is_whitespace) {
+        return raw;
+    }
+    body.trim()
+}
 pub fn ensure(condition: bool, message: impl Into<String>) -> Result<(), ValidationError> {
     if condition {
         Ok(())

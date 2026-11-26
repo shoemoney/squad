@@ -15,7 +15,10 @@ You are not given other explanations, proposed checks, or predictions.
 Do not invent them, declare your explanation true, or claim a check
 has been performed. A later task will ask for committed predictions.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 

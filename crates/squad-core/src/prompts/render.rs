@@ -120,6 +120,9 @@ fn encode(id: &str, name: &str, value: &Value) -> Result<String, PromptError> {
             | "plan_version"
             | "next_plan_version"
             | "entrants_remaining"
+            | "plan_target_words"
+            | "grill_answer_part_words"
+            | "grill_changes_part_words"
     ) || name.ends_with("word_limit")
     {
         let number = value.as_u64().ok_or_else(invalid)?;

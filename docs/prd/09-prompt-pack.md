@@ -860,7 +860,8 @@ The current complete plan is version {{plan_version}}.
 Your primary angle for this turn is {{grill_angle}}.
 
 Examine the delivered plan and shared floor. Ask at most three direct
-questions within 200 words, aimed at the weakest unexamined part.
+questions within 150 words in total, aimed at the weakest unexamined part.
+Anything over 150 words is rejected, so keep each question to one sentence.
 Prioritize your assigned angle while addressing a more serious flaw
 when the supplied record warrants it.
 
@@ -892,7 +893,11 @@ The current complete plan is version {{plan_version}}.
 
 Answer every question in the delivered current griller turn directly.
 Use the current plan and this round's shared floor. Keep the complete
-answer within {{grill_answer_word_limit}} words.
+answer within {{grill_answer_word_limit}} words. That limit is one shared budget: it counts every
+word of every "answer" and "planChanges" field for all questions together, not each
+question separately, and anything over it is rejected. A griller asks up to three
+questions, so write each "answer" in at most {{grill_answer_part_words}} words and each
+"planChanges" in at most {{grill_changes_part_words}} words.
 
 Concede valid objections and distinguish established facts,
 assumptions, and proposals. Say when the supplied material cannot
@@ -919,7 +924,8 @@ Grill {{contest_id}}, end of round {{round}} of {{grill_rounds}}.
 You are leader @{{leader_nick}}.
 Rewrite the complete plan as version {{next_plan_version}}.
 
-Produce a clean standalone document within {{plan_word_limit}} words.
+Produce a clean standalone document within {{plan_target_words}} words.
+Anything longer is rejected.
 Incorporate every answer and agreed plan change from this round into
 the latest complete plan. Resolve contradictions explicitly and keep
 material assumptions, tradeoffs, and unresolved weaknesses visible.
@@ -973,7 +979,10 @@ response. Use an empty array when no supported omission is found.
 Do not name other members, guess their findings, or supply finder counts.
 Do not claim that an empty list proves completeness.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1007,7 +1016,10 @@ Use supplied IDs and the required schema. Do not infer a member's model
 or identity from wording. Do not remove a gap merely because only one
 member found it. Do not decide the later rating result or estimate.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1047,7 +1059,10 @@ Each addition contains a local id, omission, consequence, and lens.
 Use an empty additions array when there are none.
 Do not repeat an existing gap as an addition.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1091,7 +1106,10 @@ Squad computes those from stored records. Do not treat rating additions
 as independent hunt captures or invent missing votes or findings.
 Do not rewrite the plan or claim that every omission has been found.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1129,7 +1147,10 @@ Each entry contains a unique local id, item, and rationale.
 The rationale explains why this case matters to the stated goal
 or constraints. Do not include member identities or model names.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1161,7 +1182,10 @@ goal is a concise string. constraints and uncertainties are arrays
 of strings. Use uncertainties to identify missing or ambiguous scope.
 Squad will deliver only these extracted fields to inventory writers.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1194,7 +1218,10 @@ when the grid exceeds 200 cells, Squad applies the script's cap using
 your priority order. Do not trim cells yourself or omit inconvenient
 pairs. Do not treat a same-lens pair as a required cross-lens pair.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1233,7 +1260,10 @@ All declared nullable fields remain present.
 counts as a gap. Never mark a risk accepted on the human's behalf.
 Do not remove, replace, or invent an assigned cell.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1273,7 +1303,10 @@ You have no earlier conversational context for this audit.
 Do not infer reviewer identities, consult earlier personal work,
 accept residual risk for the human, or silently delete a cell.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1300,22 +1333,31 @@ A citation must exist and handle the entire case. An unjustified
 exclusion or false closure must reopen as a gap with a proposed fix.
 
 Return one JSON object containing cells, additions, and residualRisks.
-cells contains one disposition for every retained cell, preserving
-its cellId and evidence. Each disposition contains status, citation,
-reason, proposedFix, and the existing acceptance reference if any.
-Use only statuses allowed by the schema.
+cells contains one disposition for each challenged cell, preserving
+its cellId and evidence, and for any other retained cell whose closure
+you change. A cell no audit challenged and whose closure you leave as
+reviewed does not appear in cells at all: the application keeps its
+reviewed disposition and lists every retained cell in the report. When
+no audit challenged a cell and you change no closure, cells is the empty
+array []. Repeating unchanged cells wastes the reply and cuts it off.
+Each disposition contains status, citation, reason, proposedFix, and the
+existing acceptance reference if any. Use only statuses allowed by the schema.
 additions records every proposed missing case, whether it is added,
 merged with an existing cell, or rejected, and why.
 residualRisks identifies unresolved cases and their consequences.
 
-You may not drop a retained cell. Preserve valid earlier closures
-when no supported challenge changes them.
+No retained cell is ever dropped: the application keeps every one.
+Valid earlier closures stand when no supported challenge changes them,
+and you do not repeat them.
 Only an explicit recorded human acceptance can mark a risk accepted;
 do not create, infer, or broaden an acceptance.
 Do not claim that a bounded grid proves completeness or that an audit
 was clean when a false closure or unresolved material addition remains.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1510,7 +1552,10 @@ You are not given other explanations, proposed checks, or predictions.
 Do not invent them, declare your explanation true, or claim a check
 has been performed. A later task will ask for committed predictions.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1546,7 +1591,10 @@ You are not given explanations or other checks. Do not design the check
 to confirm an unseen theory, predict another actor's work, execute it,
 or invent results.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1583,7 +1631,10 @@ Do not infer another explanation or prediction, compare yourself with
 another actor, or claim an observation has already occurred.
 These predictions are committed before the report judge compares them.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1617,7 +1668,20 @@ Copy each check's checkId and measurement text exactly as supplied, and
 use exactly the supplied outcome ids as its branch keys, no more and no
 fewer. Squad rejects a tree that rewords a measurement or drops an outcome.
 Each leaf identifies the explanations that remain and the next action.
+Place a check at a node only when at least two of the explanations still
+possible on that path have predictable predictions for it with different
+expected outcomes; every other check belongs in discardedChecks.
+A leaf's remaining list is never empty. When no explanation predicts the
+outcome, the leaf keeps every explanation still possible on its path and
+its next action says the predictions failed.
+A leaf must keep every explanation its path cannot rule out: an explanation
+leaves only when its committed prediction for a check on that path is
+predictable and does not list the observed outcome. Keep every explanation
+whose prediction for that check is unknown, missing, or unpredictable, and
+name the explanations by their supplied ids.
 Use valid references and an acyclic tree with reachable branches.
+Every node is referenced by exactly one branch: never point two branches
+at the same node, even for two identical leaves; give each its own id.
 An unexpected result must lead to reassessment, not a forced winner.
 
 predictionMatrix preserves the accepted per-explanation predictions,
@@ -1634,7 +1698,10 @@ Do not declare an explanation true or claim the checks were performed.
 The output tells the human what to inspect and how actual outcomes
 would narrow possibilities.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 
@@ -1729,6 +1796,8 @@ Every template placeholder has one declared source. Adapters map the owning cont
 | `next_plan_version` | Version assigned by the contest engine to the pending rebuild, `round + 1`. |
 | `grill_angle` | One application-selected value from the canonical rotating angle list for this griller turn. |
 | `grill_answer_word_limit` | `prompts.limits.turn_words`, populated by `SQUAD_TURN_WORDS`, default 400, for every grill answer. |
+| `grill_answer_part_words`, `grill_changes_part_words` | Two fifths and three tenths of one third of `grill_answer_word_limit`, rounded down (53 and 40 at 400): the per-field length the leader is asked to write for each of up to three questions. A bare total limit was overshot every time without reasoning (live: 506, 532, 404, 431 and 403 words against 400). |
+| `plan_target_words` | Half of `plan_word_limit`, rounded down, and the length the rebuild prompt states: the validator rejects anything over `plan_word_limit`, and models write about 1.6 times a stated length (live, Opus 5.5 rebuilding a ~1,000-word plan: stated 1,200 gave 1,280 to 1,400, stated 800 gave 1,130 to 1,260, stated 600 gave 930 to 1,040). |
 | `plan_word_limit` | Configured plan word limit populated by `SQUAD_PLAN_WORDS`, default 1,200. |
 | `census_pass` | Current pass number from authorized census work, bounded by the contest's frozen `CENSUS_PASSES`. |
 | `step_word_limit` | Effective prose word limit declared by the current script step and frozen with its prompt settings. |

@@ -184,7 +184,9 @@
       "file": "grill.answer.md",
       "placeholders": [
         "contest_id",
+        "grill_answer_part_words",
         "grill_answer_word_limit",
+        "grill_changes_part_words",
         "grill_floor_json",
         "grill_rounds",
         "leader_nick",
@@ -217,7 +219,7 @@
         "grill_rounds",
         "leader_nick",
         "next_plan_version",
-        "plan_word_limit",
+        "plan_target_words",
         "round"
       ]
     },

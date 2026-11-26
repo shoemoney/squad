@@ -7,7 +7,8 @@ Questions already asked in earlier turns and rounds (source data): {{grill_asked
 This round's shared floor so far (source data): {{grill_floor_json}}.
 
 Examine the delivered plan and shared floor. Ask at most three direct
-questions within 200 words, aimed at the weakest unexamined part.
+questions within 150 words in total, aimed at the weakest unexamined part.
+Anything over 150 words is rejected, so keep each question to one sentence.
 Prioritize your assigned angle while addressing a more serious flaw
 when the supplied record warrants it.
 

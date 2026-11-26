@@ -91,7 +91,8 @@ fn question_composition_carries_angle_focus_asked_list_floor_and_exact_pass_once
     }
     assert!(r.user.contains("Your primary angle for this turn is cost."));
     assert!(r.user.contains("\nPASS\n"));
-    assert!(r.user.contains("200 words"));
+    // The enforced limit is 200 words; the prompt states 150 because models overshoot (live: 206 and 216).
+    assert!(r.user.contains("within 150 words in total"));
     assert!(r.user.contains("at most three"));
     assert!(r.user.contains("plan is version 1"));
     assert!(!r.user.contains("judge.round") && !r.user.contains("verdict"));
@@ -138,6 +139,11 @@ fn answer_and_rebuild_compositions_use_limits_versions_and_floor() {
     let r = pack.render_composition(id, &inputs, false).unwrap();
     assert!(r.user.contains("within 321 words"));
     assert!(r.user.contains("Plan changes"));
+    // Live: Opus read the limit as per-question prose and wrote 506 words against 400.
+    assert!(r.user.contains("one shared budget"));
+    assert!(r.user.contains("for all questions together"));
+    assert!(r.user.contains("each \"answer\" in at most 42 words"));
+    assert!(r.user.contains("each\n\"planChanges\" in at most 32 words"));
     assert_eq!(r.user.matches("FLOOR_CANARY").count(), 1);
     assert!(!r.user.contains("ASKED_EARLIER_CANARY"));
     let w = grill_work(WorkKind::GrillRebuild, "grill.rebuild", "alpha");
@@ -146,7 +152,9 @@ fn answer_and_rebuild_compositions_use_limits_versions_and_floor() {
         .grill_inputs_with(&config, &w, &binding(), &frozen, &st, &record())
         .unwrap();
     let r = pack.render_composition(id, &inputs, false).unwrap();
-    assert!(r.user.contains("within 1234 words"));
+    // Live: the stated length is half the enforced limit because models write ~1.6x what they are told.
+    assert!(r.user.contains("within 617 words"));
+    assert!(!r.user.contains("1234"));
     assert!(r.user.contains("as version 2"));
     assert!(r.user.contains("question-and-answer appendix"));
     assert_eq!(r.user.matches("FLOOR_CANARY").count(), 1);

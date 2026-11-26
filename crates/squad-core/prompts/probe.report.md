@@ -16,7 +16,20 @@ Copy each check's checkId and measurement text exactly as supplied, and
 use exactly the supplied outcome ids as its branch keys, no more and no
 fewer. Squad rejects a tree that rewords a measurement or drops an outcome.
 Each leaf identifies the explanations that remain and the next action.
+Place a check at a node only when at least two of the explanations still
+possible on that path have predictable predictions for it with different
+expected outcomes; every other check belongs in discardedChecks.
+A leaf's remaining list is never empty. When no explanation predicts the
+outcome, the leaf keeps every explanation still possible on its path and
+its next action says the predictions failed.
+A leaf must keep every explanation its path cannot rule out: an explanation
+leaves only when its committed prediction for a check on that path is
+predictable and does not list the observed outcome. Keep every explanation
+whose prediction for that check is unknown, missing, or unpredictable, and
+name the explanations by their supplied ids.
 Use valid references and an acyclic tree with reachable branches.
+Every node is referenced by exactly one branch: never point two branches
+at the same node, even for two identical leaves; give each its own id.
 An unexpected result must lead to reassessment, not a forced winner.
 
 predictionMatrix preserves the accepted per-explanation predictions,
@@ -33,7 +46,10 @@ Do not declare an explanation true or claim the checks were performed.
 The output tells the human what to inspect and how actual outcomes
 would narrow possibilities.
 
-Keep generated prose within {{step_word_limit}} words.
+Keep all generated prose within {{step_word_limit}} words in total. The limit counts
+every prose field of every item together, not each item separately, so divide it
+across the items and aim for about three quarters of it: a reply over the limit
+is rejected.
 Required schema:
 {{mode_schema_json}}
 

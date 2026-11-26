@@ -35,14 +35,22 @@ impl WorkExecutor for CrosscheckExecutor {
                     return Err(ReaderError::NotRunnable);
                 }
             };
-            let data = serde_json::from_str::<serde_json::Value>(&output.content).ok();
+            let data = serde_json::from_str::<serde_json::Value>(
+                squad_protocol::validation::strip_code_fence(&output.content),
+            )
+            .ok();
             let mut reason = String::from("Response does not match the assigned crosscheck task");
             let valid = match &data {
                 None => {
                     reason = format!(
-                        "The reply was not one complete JSON object ({} bytes, finish reason {:?}); it was probably cut off. Shorten every reason and return the whole object.",
+                        "The reply was not one complete JSON object ({} bytes, finish reason {:?}); it was probably cut off. Shorten every reason and return the whole object.{}",
                         output.content.len(),
-                        output.finish_reason
+                        output.finish_reason,
+                        if grant.work.kind == WorkKind::CrosscheckRule {
+                            " In a ruling, cells lists only challenged or changed cells; leave every other cell out, and use [] when there are none."
+                        } else {
+                            ""
+                        }
                     );
                     tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, bytes = output.content.len(), "crosscheck response is not JSON");
                     false

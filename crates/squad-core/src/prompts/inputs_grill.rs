@@ -79,7 +79,19 @@ impl PromptPack {
                 json!(crate::orchestrator::grill::angle(state)),
             ),
             ("grill_answer_word_limit".into(), json!(frozen.answer_words)),
+            (
+                "grill_answer_part_words".into(),
+                json!((frozen.answer_words * 4 / 30).max(1)),
+            ),
+            (
+                "grill_changes_part_words".into(),
+                json!((frozen.answer_words * 3 / 30).max(1)),
+            ),
             ("plan_word_limit".into(), json!(frozen.plan_words)),
+            (
+                "plan_target_words".into(),
+                json!((frozen.plan_words / 2).max(1)),
+            ),
             ("grill_focus_json".into(), json!(setup.focus)),
             ("grill_asked_json".into(), json!(record.asked_questions)),
             ("grill_floor_json".into(), json!(record.floor)),

@@ -379,9 +379,30 @@ impl CrosscheckRuling {
         audits: &[CrosscheckAudit],
         plan: &str,
     ) -> ValidationResult {
-        exact_cells(
-            self.cells.iter().map(|c| c.cell_id),
-            &grid.cells.iter().map(|c| c.cell_id).collect::<Vec<_>>(),
+        // A ruling names the cells it decides: every challenged closure, plus any other
+        // retained cell it changes. The application keeps the reviewed disposition of the
+        // rest, so a 153-cell grid does not have to fit in the 4,096-token judge ceiling.
+        let retained = grid
+            .cells
+            .iter()
+            .map(|c| c.cell_id)
+            .collect::<BTreeSet<_>>();
+        let ruled = self
+            .cells
+            .iter()
+            .map(|c| c.cell_id)
+            .collect::<BTreeSet<_>>();
+        ensure(
+            ruled.len() == self.cells.len() && ruled.is_subset(&retained),
+            "ruling names a cell twice or outside the retained grid",
+        )?;
+        ensure(
+            audits
+                .iter()
+                .flat_map(|a| &a.response.audits)
+                .filter(|f| f.verdict == CrosscheckAuditVerdict::Challenged)
+                .all(|f| ruled.contains(&f.cell_id)),
+            "ruling must decide every challenged cell",
         )?;
         for cell in &self.cells {
             cell.validate(plan)?;

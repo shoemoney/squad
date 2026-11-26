@@ -6,6 +6,15 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
+### Fixed
+
+- Live `MODE_INVALID_OUTPUT` / `JUDGE_INVALID_VERDICT` failures on the default roster:
+  Anthropic models go out prompt-only (constrained decoding answered an empty placeholder) and
+  take `reasoning.effort`; Gemini reasoning is capped at low effort; one surrounding Markdown
+  fence is removed before validation; grill, census, crosscheck and probe prompts state
+  calibrated word budgets; the crosscheck ruling names only challenged cells; probe validation
+  errors name the offending node, leaf and check.
+
 ## [0.1.1] - 2026-11-25
 
 Test-coverage and keyboard-reachability release: six gap branches merged on top

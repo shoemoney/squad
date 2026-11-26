@@ -1,0 +1,19 @@
+{
+ "answers": [
+  {
+   "questionIndex": 0,
+   "answer": "The plan assumes no size, which is a gap. My working assumption is a small single-VPS app with a database and uploads of a few GB at most. At that size a dump and restore should take minutes, but I haven't measured this, and it could be wrong. Step 3 already restores a dump, so that rehearsal should be timed. The uploads rsync can run repeatedly beforehand, so the final pass copies only changed files. Proposed decision rule: if the measured freeze exceeds what the owner accepts (for example, more than about 15\u201330 minutes), or an outage costs more than the time to set up replication, use native DB replication. A proxy from the old host to the new DB is the other option. The material can't tell us the actual size or what downtime costs this owner.",
+   "planChanges": "Step 3: time the dump and restore, then compare the result with an agreed downtime budget. Step 4: run incremental rsync passes before the freeze. Add a branch: if the timing exceeds the budget, set up replication and promote it at cutover. Tradeoff: replication adds setup and failure modes, so use it only when the measurement justifies it."
+  },
+  {
+   "questionIndex": 1,
+   "answer": "Conceded: as written, the plan doesn't prevent divergence. Calling the old host a rollback option is misleading once writes land on the new host. Proposed mechanism: at cutover, the old host stops accepting writes. It either stays in maintenance mode or reverse-proxies all traffic to the new host, so stale-DNS clients still write to one database. Rollback is cheap only before writes resume on the new host. At hour 24, a rollback is a reverse migration: freeze, dump new to old, then switch DNS back. That costs another downtime window, and no data is lost if done that way. Without the proxy or freeze, rollback means manual reconciliation of unknown scope.",
+   "planChanges": "Step 5: switch the old host to proxy-to-new or read-only at cutover. Step 6: redefine rollback as instant before the write-resume point and a reverse sync after it. Tradeoff: proxying adds latency and keeps the old host in the request path until DNS has settled."
+  },
+  {
+   "questionIndex": 2,
+   "answer": "Conceded on certs: the order is wrong. Certs should be installed and verified before DNS changes. Copy the existing certs, or issue new ones via a DNS-01 challenge (HTTP-01 fails until DNS points at the new host). Then test TLS through the hosts-file override. On sizing: the plan has no basis. The proposal is to size the new VPS from the old host's observed CPU, RAM, disk, and bandwidth peaks, plus headroom, and run a basic load test. Double hosting for 2\u20133 days costs roughly that fraction of the monthly price. Transfer charges depend on the provider and the data volume, so the supplied material can't settle them.",
+   "planChanges": "Move cert install and verification into Step 3. Add a sizing and load-test step that uses the old host's metrics. Add a cost check covering overlap days and egress pricing. Tradeoff: more prep time in exchange for avoiding TLS errors and an undersized host at cutover."
+  }
+ ]
+}

@@ -115,24 +115,43 @@ impl ChatRequest {
         if self.supports_reasoning {
             // OpenRouter rejects effort together with a token budget. Keep the
             // explicit budget so provider limits match admission reservations.
-            body["reasoning"] =
-                if self.model.starts_with("openai/") || self.model.starts_with("x-ai/") {
-                    // OpenAI and xAI reasoning ignores a token budget (live: 1,984
-                    // reasoning tokens against a 1,024 budget, truncating the JSON).
-                    // They honour effort, which keeps the reply inside max_tokens.
-                    json!({"effort": match self.reasoning_effort {
-                        ReasoningEffort::Low => "low",
-                        ReasoningEffort::Medium => "medium",
-                        ReasoningEffort::High => "high",
-                    }})
-                } else {
-                    json!({"max_tokens": reservation})
-                };
+            body["reasoning"] = if self.model.starts_with("openai/")
+                || self.model.starts_with("x-ai/")
+                || self.model.starts_with("anthropic/")
+            {
+                // OpenAI and xAI reasoning ignores a token budget (live: 1,984
+                // reasoning tokens against a 1,024 budget, truncating the JSON).
+                // Anthropic 5.x does too: Fable 5.2 spent 5,121 to 8,191 reasoning
+                // tokens against `max_tokens: 4096` and ended `length` in two of
+                // three probe reports, while effort medium finished three of three
+                // on 888 to 1,699 reasoning tokens. They honour effort, which keeps
+                // the reply inside max_tokens.
+                json!({"effort": match self.reasoning_effort {
+                    ReasoningEffort::Low => "low",
+                    ReasoningEffort::Medium => "medium",
+                    ReasoningEffort::High => "high",
+                }})
+            } else if self.model.starts_with("google/") {
+                // Gemini ignores a token budget too, and at medium it spent the
+                // whole 6,144-token ceiling thinking: eight of eight live
+                // crosscheck cells ended `length` with empty content. Low
+                // finished seven of eight, so it is the ceiling for Gemini.
+                json!({"effort": "low"})
+            } else {
+                json!({"max_tokens": reservation})
+            };
         }
-        if let Some(format) = self
-            .response_format
-            .as_ref()
-            .and_then(crate::wire_schema::sanitize_response_format)
+        // Anthropic's constrained decoding answered a conforming but empty
+        // placeholder (`{"gaps":[{"localId":"x","omission":"","consequence":""}]}`,
+        // zero reasoning tokens) for six of eight live Opus census hunts; the same
+        // request without `response_format` never did (0 of 8). The prompt carries
+        // the schema and the reply is validated locally, so Anthropic goes out
+        // prompt-only.
+        if !self.model.starts_with("anthropic/")
+            && let Some(format) = self
+                .response_format
+                .as_ref()
+                .and_then(crate::wire_schema::sanitize_response_format)
         {
             body["response_format"] = format;
         }

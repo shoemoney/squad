@@ -357,8 +357,14 @@ impl ProbeReport {
         )];
         while let Some((id, mut path, possible)) = stack.pop() {
             ensure(
-                path.insert(id) && visited.insert(id),
-                "cyclic or shared decision node",
+                path.insert(id),
+                format!("decision node {id} is its own ancestor; the tree must be acyclic"),
+            )?;
+            ensure(
+                visited.insert(id),
+                format!(
+                    "decision node {id} is referenced by more than one branch; give every branch its own node with a distinct id, even when two leaves say the same thing"
+                ),
             )?;
             let node = self.decision_tree.nodes.get(id);
             ensure(node.is_some(), "unknown decision node")?;
@@ -387,7 +393,9 @@ impl ProbeReport {
                                 .iter()
                                 .any(|b| a != b && separates(a, b, *check_id))
                         }),
-                        "recommended check does not distinguish explanations",
+                        format!(
+                            "check {check_id} at node {id} separates none of the explanations still possible on its path; move it to a node where two of them predict different outcomes for it, or list it in discardedChecks"
+                        ),
                     )?;
                     ensure(
                         matches!(self.decision_tree.nodes.get(unexpected.as_str()),Some(ProbeNode::Leaf{reassess:true,remaining,..}) if remaining.iter().copied().collect::<BTreeSet<_>>()==explanations),
@@ -414,13 +422,37 @@ impl ProbeReport {
                     }
                     stack.push((unexpected.as_str(), path, explanations.clone()));
                 }
-                ProbeNode::Leaf { remaining, .. } => ensure(
-                    !remaining.is_empty()
-                        && unique(remaining)
-                        && remaining.iter().all(|e| explanations.contains(e))
-                        && possible.iter().all(|e| remaining.contains(e)),
-                    "leaf eliminated compatible, missing or uncertain predictions",
-                )?,
+                ProbeNode::Leaf { remaining, .. } => {
+                    let still_possible = possible
+                        .iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    ensure(
+                        !remaining.is_empty(),
+                        format!(
+                            "leaf {id} has an empty remaining list; when no explanation predicts the outcome, keep every explanation still possible on its path ({still_possible}) and say in nextAction that the predictions failed"
+                        ),
+                    )?;
+                    ensure(
+                        unique(remaining) && remaining.iter().all(|e| explanations.contains(e)),
+                        format!(
+                            "leaf {id} repeats an explanation or names one that was not supplied"
+                        ),
+                    )?;
+                    let dropped = possible
+                        .iter()
+                        .filter(|e| !remaining.contains(e))
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>();
+                    ensure(
+                        dropped.is_empty(),
+                        format!(
+                            "leaf {id} eliminated compatible, missing or uncertain predictions; it must also keep explanations {}",
+                            dropped.join(", ")
+                        ),
+                    )?
+                }
             }
         }
         ensure(
