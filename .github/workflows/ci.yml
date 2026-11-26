@@ -2,8 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [main, 'release-*', 'integration-*']
-    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -18,14 +16,21 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   OPENROUTER_API_KEY: ''
+  CARGO_BUILD_JOBS: '4'
 
 jobs:
   rust:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - os: macos-latest
+            runner_variable: CI_MACOS_RUNNER
+          - os: ubuntu-latest
+            runner_variable: CI_LINUX_RUNNER
+    name: rust (${{ matrix.os }})
+    # Public PR code stays on hosted machines, including same-repository PRs.
+    runs-on: ${{ fromJSON(github.event_name != 'pull_request' && vars[matrix.runner_variable] || format('["{0}"]', matrix.os)) }}
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned toolchain and development tools
@@ -44,7 +49,7 @@ jobs:
         run: cargo test --workspace --doc --locked
 
   shellcheck:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.event_name != 'pull_request' && vars.CI_LINUX_RUNNER || '["ubuntu-latest"]') }}
     steps:
       - uses: actions/checkout@v4
       - name: Check shell scripts
@@ -54,15 +59,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - os: macos-latest
+            runner_variable: CI_MACOS_RUNNER
+          - os: ubuntu-latest
+            runner_variable: CI_LINUX_RUNNER
+    name: setup (${{ matrix.os }})
+    # Public PR code stays on hosted machines, including same-repository PRs.
+    runs-on: ${{ fromJSON(github.event_name != 'pull_request' && vars[matrix.runner_variable] || format('["{0}"]', matrix.os)) }}
     steps:
       - uses: actions/checkout@v4
       - name: Test installer without host changes
         run: ./scripts/test-setup.sh
 
   setup-containers:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.event_name != 'pull_request' && vars.CI_LINUX_RUNNER || '["ubuntu-latest"]') }}
     strategy:
       fail-fast: false
       matrix:
@@ -87,12 +98,12 @@ jobs:
         shell: bash
         run: |
           chown -R installer:installer "$GITHUB_WORKSPACE"
-          sudo -H -u installer env OPENROUTER_API_KEY=sk-ci-dummy ./setup.sh --yes
+          sudo -H -u installer env CARGO_BUILD_JOBS="$CARGO_BUILD_JOBS" OPENROUTER_API_KEY=sk-ci-dummy ./setup.sh --yes
       - name: Full setup with missing credential must fail
         shell: bash
         run: |
           set +e
-          sudo -H -u installer env OPENROUTER_API_KEY= ./setup.sh --yes > setup-empty-key.log 2>&1
+          sudo -H -u installer env CARGO_BUILD_JOBS="$CARGO_BUILD_JOBS" OPENROUTER_API_KEY= ./setup.sh --yes > setup-empty-key.log 2>&1
           status=$?
           set -e
           cat setup-empty-key.log

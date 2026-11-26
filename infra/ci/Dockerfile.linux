@@ -1,0 +1,9 @@
+# Pin BASE_IMAGE to a reviewed myoung34/github-runner ubuntu-noble digest.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential pkg-config shellcheck curl git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /home/runner/.cargo /home/runner/.rustup /home/runner/target /home/runner/work \
+    && chown -R runner:runner /home/runner/.cargo /home/runner/.rustup /home/runner/target /home/runner/work

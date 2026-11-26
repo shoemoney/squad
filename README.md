@@ -444,7 +444,7 @@ Publishing release artifacts is a separate step. Binaries and packages go out on
 
 ## 🧪 Development checks
 
-CI runs these on macOS and Ubuntu. Run them from the repository root. Use the pinned toolchain from `rust-toolchain.toml`.
+CI runs these on macOS and Ubuntu. Trusted pushes can use the project's own Linux and ARM Mac workers; pull requests use GitHub-hosted machines. See [automatic CI and runner operations](docs/ci.md) for setup, isolation and hosted fallback. Run the commands below from the repository root with the pinned toolchain from `rust-toolchain.toml`.
 
 ```bash
 cargo fmt --all -- --check
