@@ -57,6 +57,8 @@ Version rules: the manifest `version` increases whenever a prompt or composition
 
 Limits are prompt-enforced words. Output ceilings are visible tokens, with the reasoning budget added by the request builder when the model supports reasoning (`max_tokens = visible + reasoning`; otherwise only the visible ceiling is sent). Visible ceilings: replies and turns 2,048, final judge 4,096, `judge.round` 512, plan 4,096. The four new modes use `NEW_MODE_JUDGE_REASONING_EFFORT` (medium, 4,096 reasoning tokens) and `NEW_MODE_JUDGE_VISIBLE_TOKENS` (4,096) for every structured judge call, whatever the judge binding says; member steps keep the 2,048 ceiling.
 
+Daily admission and dispatch use the canonical daily maximum (`SQUAD_DAILY_MAX_USD`, default $20), rather than a separate room-lifetime budget. The router reserves the frozen plan's attempt bounds before dispatch and reconciles provider-reported cost; prompt text cannot authorize additional calls. See [`02-message-protocol-store-and-bus.md`](prd/02-message-protocol-store-and-bus.md) for the daily ledger and [`08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md`](prd/08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md) for preflight and confirmation contracts.
+
 ### Case modes
 
 A judge case is one of: `judge.debate` (scored debate), `judge.standalone` (unscored ruling), `judge.followup` (follow-up to a retained case ruling), `judge.round` (one round score) and `judge.tournament` (blind ranking). Each is exactly two provider messages. The standalone and follow-up modes return free-form text; debate verdicts and round scores are validated against the canonical schemas.
