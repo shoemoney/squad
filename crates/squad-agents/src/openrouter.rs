@@ -208,6 +208,18 @@ pub enum StreamEvent {
     },
 }
 
+/// Safe classifications only: never retain private reasoning or refusal text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EmptyResponseKind {
+    NoContent,
+    ReasoningOnly,
+    Truncated,
+    ReasoningTruncated,
+    Refusal,
+    ToolCall,
+    ProviderError,
+}
+
 /// Carries sanitized provider messages without attaching request URLs or headers.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TransportError {
@@ -222,6 +234,7 @@ pub enum TransportError {
     MalformedEvent,
     Provider(Option<u16>),
     Disconnected,
+    EmptyResponse(EmptyResponseKind),
     FirstTokenTimeout,
     IdleTimeout,
     Deadline,
@@ -231,6 +244,28 @@ impl fmt::Display for TransportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if matches!(self, Self::UnsupportedReasoning) {
             return f.write_str("MODEL_PARAMETER_UNSUPPORTED: reasoning");
+        }
+        if let Self::EmptyResponse(kind) = self {
+            let reason = match kind {
+                EmptyResponseKind::NoContent => "provider returned no visible answer",
+                EmptyResponseKind::ReasoningOnly => {
+                    "provider returned reasoning only, without a visible answer"
+                }
+                EmptyResponseKind::Truncated => {
+                    "provider exhausted its output limit without a visible answer"
+                }
+                EmptyResponseKind::ReasoningTruncated => {
+                    "provider exhausted its output limit on reasoning without a visible answer"
+                }
+                EmptyResponseKind::Refusal => "provider refused without a visible answer",
+                EmptyResponseKind::ToolCall => {
+                    "provider returned an unsupported tool call without a visible answer"
+                }
+                EmptyResponseKind::ProviderError => {
+                    "provider ended with an error without a visible answer"
+                }
+            };
+            return write!(f, "OpenRouter: {reason}");
         }
         if let Self::HttpMessage { status, message } = self {
             return write!(f, "OpenRouter HTTP {status}: {message}");
@@ -250,7 +285,12 @@ impl TransportError {
     pub fn retryable(&self) -> bool {
         matches!(
             self,
-            Self::Network
+            Self::EmptyResponse(
+                EmptyResponseKind::NoContent
+                    | EmptyResponseKind::ReasoningOnly
+                    | EmptyResponseKind::Truncated
+                    | EmptyResponseKind::ReasoningTruncated
+            ) | Self::Network
                 | Self::Disconnected
                 | Self::FirstTokenTimeout
                 | Self::IdleTimeout
@@ -552,12 +592,33 @@ impl OpenRouterClient {
             let mut bytes = response.bytes_stream();
             let mut parser = sse::SseParser::default();
             let mut finished = false;
+            let mut visible = false;
+            let mut reasoning = false;
+            let mut refusal = false;
+            let mut tool_call = false;
+            let mut empty_kind = EmptyResponseKind::NoContent;
             while let Some(chunk) = bytes.next().await {
                 let chunk = chunk.map_err(|_| TransportError::Network)?;
                 for event in parser.push(&chunk)? {
                     let payload = event.data;
                     if payload == "[DONE]" {
                         if !finished { Err(TransportError::Disconnected)?; }
+                        if !visible {
+                            let kind = if empty_kind == EmptyResponseKind::Truncated && reasoning {
+                                EmptyResponseKind::ReasoningTruncated
+                            } else if empty_kind == EmptyResponseKind::Truncated || empty_kind == EmptyResponseKind::ProviderError {
+                                empty_kind
+                            } else if refusal {
+                                EmptyResponseKind::Refusal
+                            } else if tool_call {
+                                EmptyResponseKind::ToolCall
+                            } else if reasoning {
+                                EmptyResponseKind::ReasoningOnly
+                            } else {
+                                empty_kind
+                            };
+                            Err(TransportError::EmptyResponse(kind))?;
+                        }
                         yield StreamEvent::Complete { attempt };
                         return;
                     }
@@ -581,17 +642,42 @@ impl OpenRouterClient {
                     if let Some(choices) = value.get("choices").and_then(Value::as_array) {
                         for choice in choices {
                             if choice.get("index").and_then(Value::as_u64).unwrap_or(0) != 0 { continue; }
-                            // Only content is answer text. reasoning/reasoning_details never leave this scope.
-                            if let Some(text) = choice.pointer("/delta/content").and_then(Value::as_str).filter(|s| !s.is_empty()) {
-                                yield StreamEvent::Delta { attempt, text: text.to_owned() };
+                            // Content parts are typed: thinking/reasoning is never an answer.
+                            let delta = choice.get("delta").or_else(|| choice.get("message"));
+                            if let Some(delta) = delta {
+                                reasoning |= delta.get("reasoning").is_some_and(nonempty)
+                                    || delta.get("reasoning_details").is_some_and(nonempty);
+                                refusal |= delta.get("refusal").is_some_and(nonempty);
+                                tool_call |= delta.get("tool_calls").is_some_and(nonempty)
+                                    || delta.get("function_call").is_some_and(nonempty);
+                                if let Some(content) = delta.get("content") {
+                                    if let Some(parts) = content.as_array() {
+                                        reasoning |= parts.iter().any(|part| matches!(part.get("type").and_then(Value::as_str), Some("thinking" | "reasoning")));
+                                    }
+                                    let text = answer_text(content);
+                                    if !text.is_empty() {
+                                        visible |= !text.trim().is_empty();
+                                        yield StreamEvent::Delta { attempt, text };
+                                    }
+                                }
                             }
                             if let Some(reason) = choice.get("finish_reason").and_then(Value::as_str) {
+                                empty_kind = match reason {
+                                    "length" => EmptyResponseKind::Truncated,
+                                    "error" => EmptyResponseKind::ProviderError,
+                                    "content_filter" => EmptyResponseKind::Refusal,
+                                    "tool_calls" | "function_call" => EmptyResponseKind::ToolCall,
+                                    _ => EmptyResponseKind::NoContent,
+                                };
+                                refusal |= empty_kind == EmptyResponseKind::Refusal;
+                                tool_call |= empty_kind == EmptyResponseKind::ToolCall;
                                 finished = true;
                                 yield StreamEvent::Finish { attempt, reason: reason.to_owned() };
                             }
                         }
                     }
                     if let Some(usage) = value.get("usage").filter(|u| !u.is_null()) {
+                        reasoning |= usage.pointer("/completion_tokens_details/reasoning_tokens").and_then(Value::as_u64).is_some_and(|n| n > 0);
                         let usage = serde_json::from_value(usage.clone()).map_err(|_| TransportError::MalformedEvent)?;
                         yield StreamEvent::Usage { attempt, usage };
                     }
@@ -602,6 +688,31 @@ impl OpenRouterClient {
             Err(TransportError::Disconnected)?;
         })
     }
+}
+
+fn nonempty(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::String(text) => !text.is_empty(),
+        Value::Array(parts) => !parts.is_empty(),
+        Value::Object(fields) => !fields.is_empty(),
+        _ => true,
+    }
+}
+
+fn answer_text(content: &Value) -> String {
+    if let Some(text) = content.as_str() {
+        return text.to_owned();
+    }
+    content
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|part| match part.get("type").and_then(Value::as_str) {
+            Some("text" | "output_text") => part.get("text").and_then(Value::as_str),
+            _ => None,
+        })
+        .collect()
 }
 
 fn parse_retry_after(value: &str) -> Option<Duration> {

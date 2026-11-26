@@ -574,3 +574,161 @@ async fn openrouters_404_with_a_json_body_still_triggers_alias_repair() {
     )));
     assert_eq!(*calls.lock().unwrap(), 1);
 }
+
+#[tokio::test]
+async fn empty_answers_fail_after_usage_with_safe_classification() {
+    for (delta, finish, kind) in [
+        (json!({"content": ""}), "stop", EmptyResponseKind::NoContent),
+        (
+            json!({"content": " \n"}),
+            "stop",
+            EmptyResponseKind::NoContent,
+        ),
+        (
+            json!({"reasoning": "PRIVATE", "reasoning_details": [{"text": "PRIVATE"}]}),
+            "stop",
+            EmptyResponseKind::ReasoningOnly,
+        ),
+        (
+            json!({"content": null, "reasoning": "PRIVATE"}),
+            "length",
+            EmptyResponseKind::ReasoningTruncated,
+        ),
+        (
+            json!({"content": null}),
+            "length",
+            EmptyResponseKind::Truncated,
+        ),
+        (
+            json!({"content": [{"type": "thinking", "thinking": "PRIVATE"}]}),
+            "stop",
+            EmptyResponseKind::ReasoningOnly,
+        ),
+        (
+            json!({"refusal": "PRIVATE"}),
+            "content_filter",
+            EmptyResponseKind::Refusal,
+        ),
+        (
+            json!({"tool_calls": [{"function": {"arguments": "PRIVATE"}}]}),
+            "tool_calls",
+            EmptyResponseKind::ToolCall,
+        ),
+        (json!({}), "error", EmptyResponseKind::ProviderError),
+    ] {
+        let fake = fake::FakeOpenRouter::start().await;
+        let body = fake::event(
+            json!({"id": "gen-empty", "choices": [{"index": 0, "delta": delta, "finish_reason": finish}]}),
+        ) + &fake::event(
+            json!({"choices": [], "usage": {"completion_tokens": 100, "cost": 0.001}}),
+        ) + "data: [DONE]\n\n";
+        fake.completions(vec![fake::raw_sse(body)]).await;
+        let events = client(&fake)
+            .stream(request(), CancellationToken::new())
+            .collect::<Vec<_>>()
+            .await;
+        assert!(!complete(&events, 1));
+        assert_eq!(
+            events.last(),
+            Some(&StreamEvent::AttemptFailed {
+                attempt: 1,
+                error: TransportError::EmptyResponse(kind)
+            })
+        );
+        assert!(
+            events.iter().any(
+                |e| matches!(e, StreamEvent::Usage { usage, .. } if usage.cost == Some(0.001))
+            )
+        );
+        assert!(!format!("{events:?}").contains("PRIVATE"));
+        assert_eq!(fake.captured_bodies().await.len(), 1);
+        assert_eq!(
+            TransportError::EmptyResponse(kind).retryable(),
+            matches!(
+                kind,
+                EmptyResponseKind::NoContent
+                    | EmptyResponseKind::ReasoningOnly
+                    | EmptyResponseKind::Truncated
+                    | EmptyResponseKind::ReasoningTruncated
+            )
+        );
+    }
+}
+
+#[tokio::test]
+async fn typed_content_parts_extract_answer_in_order_without_private_thinking() {
+    let fake = fake::FakeOpenRouter::start().await;
+    let body =
+        fake::event(json!({"choices": [{"index": 1, "delta": {"content": "wrong choice"}}]}))
+            + &fake::event(json!({"choices": [{"index": 0, "delta": {"content": [
+            {"type": "thinking", "thinking": "PRIVATE"},
+            {"type": "text", "text": "Hello "},
+            {"type": "reasoning", "text": "PRIVATE"},
+            {"type": "output_text", "text": "world"},
+            {"type": "unknown", "text": "PRIVATE"}
+        ]}, "finish_reason": "stop"}]}))
+            + "data: [DONE]\n\n";
+    fake.completions(vec![fake::raw_sse(body)]).await;
+    let events = client(&fake)
+        .stream(request(), CancellationToken::new())
+        .collect::<Vec<_>>()
+        .await;
+    assert_eq!(visible(&events, 1), "Hello world");
+    assert!(complete(&events, 1));
+    assert!(!format!("{events:?}").contains("PRIVATE"));
+}
+
+#[tokio::test]
+async fn ordinary_empty_response_retries_with_both_attempts_usage_retained() {
+    let fake = fake::FakeOpenRouter::start().await;
+    fake.completions(vec![
+        fake::streaming("", "length"),
+        fake::streaming("recovered", "stop"),
+    ])
+    .await;
+    let mut req = request();
+    req.policy = ExecutionPolicy::OrdinaryReply;
+    let events = client(&fake)
+        .stream(req, CancellationToken::new())
+        .collect::<Vec<_>>()
+        .await;
+    assert!(!complete(&events, 1));
+    assert!(complete(&events, 2));
+    assert_eq!(visible(&events, 2), "recovered");
+    for target in [1, 2] {
+        assert!(events.iter().any(|e| matches!(e, StreamEvent::Usage { attempt, usage } if *attempt == target && usage.cost == Some(0.000045))));
+    }
+    assert_eq!(fake.captured_bodies().await.len(), 2);
+}
+
+#[tokio::test]
+async fn captured_mistral_reasoning_only_stream_is_a_billed_truncation() {
+    let response: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/mistral-empty.json")).unwrap();
+    assert!(response["choices"][0]["message"]["content"].is_null());
+    assert_eq!(response["choices"][0]["finish_reason"], "length");
+    assert_eq!(
+        response["usage"]["completion_tokens_details"]["reasoning_tokens"],
+        511
+    );
+    let fake = fake::FakeOpenRouter::start().await;
+    fake.completions(vec![fake::raw_sse(include_str!(
+        "fixtures/mistral-empty.sse"
+    ))])
+    .await;
+    let events = client(&fake)
+        .stream(request(), CancellationToken::new())
+        .collect::<Vec<_>>()
+        .await;
+    assert!(visible(&events, 1).is_empty());
+    assert!(!complete(&events, 1));
+    assert_eq!(
+        events.last(),
+        Some(&StreamEvent::AttemptFailed {
+            attempt: 1,
+            error: TransportError::EmptyResponse(EmptyResponseKind::ReasoningTruncated)
+        })
+    );
+    assert!(events.iter().any(|e| matches!(e, StreamEvent::Usage { usage, .. } if usage.cost == Some(0.00142534) && usage.completion_tokens == Some(512))));
+    assert!(!format!("{events:?}").contains("SCRUBBED THINKING"));
+}
