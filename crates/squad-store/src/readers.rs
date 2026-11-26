@@ -94,6 +94,32 @@ impl HistoryReader for ScopedReaders {
                 let work = record.executable.ok_or(ReaderError::NotRunnable)?;
                 let mut history = crate::history::read(db, &work.context_id, work.history_through)
                     .map_err(map_error)?;
+                if work.kind == WorkKind::DebateTurn {
+                    let setup = history.iter().rev().find_map(|entry| {
+                        let HistoryMetadata::Attributed { projection_key, .. } = &entry.meta else {
+                            return None;
+                        };
+                        if projection_key.as_str() != "debate.setup" {
+                            return None;
+                        }
+                        serde_json::from_str::<DebateSetup>(&entry.content)
+                            .ok()
+                            .filter(|setup| Some(setup.debate_id) == work.debate_id)
+                    });
+                    if let Some(setup) = setup {
+                        // Setup carries both frozen solutions. Suppress their
+                        // original projections only for this work, retaining
+                        // ordinary replies in the member's durable history.
+                        let mut query = db.prepare("SELECT id FROM events WHERE kind IN ('message.final','debate.turn') AND json_extract(payload,'$.messageId') IN (?,?)").map_err(|error| map_error(error.into()))?;
+                        let sources = query.query_map(
+                            [setup.solutions[0].message_id.to_string(), setup.solutions[1].message_id.to_string()],
+                            |row| row.get::<_, String>(0),
+                        ).map_err(|error| map_error(error.into()))?.collect::<Result<std::collections::HashSet<_>, _>>().map_err(|error| map_error(error.into()))?;
+                        history.retain(|entry| !matches!(&entry.meta,
+                            HistoryMetadata::Attributed { origin_event_id, .. }
+                            if sources.contains(&origin_event_id.to_string())));
+                    }
+                }
                 if work.kind == WorkKind::Reply && work.round.is_some() {
                     history.retain(|entry| {
                         let HistoryMetadata::Attributed {
