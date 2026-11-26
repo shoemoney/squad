@@ -265,13 +265,16 @@ impl Session {
             .collect::<Vec<_>>();
         self.snapshot.context = authoritative.context;
         for record in reports {
-            if !self
+            if let Some(existing) = self
                 .snapshot
                 .context
                 .records
-                .iter()
-                .any(|existing| existing.event_id == record.event_id)
+                .iter_mut()
+                .find(|existing| existing.event_id == record.event_id)
             {
+                existing.content = record.content;
+                existing.contest_id = record.contest_id;
+            } else {
                 self.snapshot.context.records.push(record);
             }
         }
@@ -1270,14 +1273,16 @@ impl Session {
                 }
                 _ => None,
             };
-            self.snapshot.events.push(e.clone());
-            if let Some((id, scope, kind)) = report {
+            let report =
+                report.map(|(id, scope, kind)| (id, scope, kind, e.base.clone(), e.commit.clone()));
+            self.snapshot.events.push(e);
+            if let Some((id, scope, kind, base, commit)) = report {
                 let source = squad_core::export::ExportSnapshot {
                     events: self.snapshot.events.clone(),
                     ..Default::default()
                 };
                 if let Ok(text) = squad_core::export::render(&source, scope, Some(id)) {
-                    self.record(&e.base, Some(&e.commit), kind, None, None, text);
+                    self.record(&base, Some(&commit), kind, None, None, text);
                     if let Some(record) = self.snapshot.context.records.last_mut() {
                         record.contest_id = Some(id);
                     }

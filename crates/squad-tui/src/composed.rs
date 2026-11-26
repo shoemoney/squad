@@ -576,7 +576,9 @@ impl Composed {
                     "CENSUS" | "CROSSCHECK" | "SURVEY" | "PROBE"
                 )
             {
-                let mut progress = vec![Line::from(contest.report_header())];
+                let mut progress = vec![Line::from(crate::markdown::sanitize(
+                    &contest.report_header(),
+                ))];
                 if let Some(step) = contest.steps.values().next_back() {
                     progress.push(Line::from(widgets::contest_status::step_label(step)));
                     let kind = match model.author.as_str() {
@@ -589,7 +591,12 @@ impl Composed {
                         progress.push(Line::from(label));
                     }
                 }
-                progress.extend(contest.work.values().map(|work| Line::from(work.line())));
+                progress.extend(
+                    contest
+                        .work
+                        .values()
+                        .map(|work| Line::from(crate::markdown::sanitize(&work.line()))),
+                );
                 // Append below the report so effect geometry remains relative to its static rows.
                 model.widget_rows.extend(progress);
             }

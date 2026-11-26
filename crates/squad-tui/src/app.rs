@@ -440,8 +440,7 @@ impl App {
                         .widget_rows
                         .iter()
                         .position(|line| line.to_string().contains(&self.search.query))
-                })
-                .map(|row| row + 1);
+                });
             if let Some(record) =
                 self.session
                     .snapshot

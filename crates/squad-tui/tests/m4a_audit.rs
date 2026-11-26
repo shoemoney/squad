@@ -86,7 +86,7 @@ fn four_mode_completion_protected_text_and_rejected_drafts_use_the_parser() {
     }
 }
 #[test]
-fn census_pass_assignment_stays_pending_and_rejection_preserves_quotes() {
+fn census_pass_assignment_and_lookup_use_authoritative_parser() {
     let mut app = app();
     app.input
         .apply(EditorAction::Insert("$CENSUS_PASSES=3".into()))
@@ -108,11 +108,18 @@ fn census_pass_assignment_stays_pending_and_rejection_preserves_quotes() {
     });
     assert!(app.pending_updates.is_empty());
     assert!(app.input.text().is_empty());
-    app.input
-        .apply(EditorAction::Insert("$CENSUS_PASSES".into()))
-        .unwrap();
-    app.submit();
-    assert!(app.awaiting_ack);
+    app.session
+        .snapshot
+        .context
+        .vars
+        .insert(VariableName::CensusPasses, 3);
+    let lookup = validation::validate(
+        "@alpha Use $CENSUS_PASSES passes",
+        &Default::default(),
+        &app.session.snapshot.context,
+    )
+    .unwrap();
+    assert!(matches!(lookup.parsed, ParsedInput::Message { body, .. } if body == "Use 3 passes"));
 }
 #[test]
 fn expanded_input_and_f12_redacted_diagnostics_snapshot_at_both_viewports() {
@@ -246,6 +253,14 @@ fn source_references_and_shared_script_progress_reach_the_ui() {
     assert!(preflight.text().contains("extraction call included"));
     let mut app = app();
     let contest = app.session.contests.entry(id).or_default();
+    contest.crosscheck.setup = Some(CrosscheckSetup {
+        contest_id: id,
+        plan_id: PlanId::new(),
+        plan_version: 1,
+        plan: Text::new("Authoritative queue source").unwrap(),
+        participants: vec!["alpha".parse().unwrap()],
+        goal: None,
+    });
     contest.crosscheck.state = Some(CrosscheckState {
         contest_id: id,
         state_version: 1,
@@ -283,4 +298,18 @@ fn source_references_and_shared_script_progress_reach_the_ui() {
     assert!(screen.contains("Step 1 · fan out"), "{screen}");
     assert!(screen.contains("Plan hidden"), "{screen}");
     assert!(screen.contains("alpha · failed · retry 1"), "{screen}");
+    let source = squad_tui::widgets::preflight::source_preview(&preflight.plan, &app.session);
+    assert!(source.contains("Authoritative queue source"));
+    // Real plans do not carry the optional sourceEventIds field; the committed setup does.
+    let mut plan = preflight.plan;
+    if let PendingPreflight::Contest(plan) = &mut plan {
+        plan.settings = serde_json::json!({"extractionRequired": true});
+    }
+    app.session.snapshot.preflights = vec![plan];
+    let modal = draw(&mut app, 80, 24);
+    assert!(
+        modal.contains("Authoritative") && modal.contains("queue source"),
+        "{modal}"
+    );
+    assert!(modal.contains("Y Confirm · N Cancel"), "{modal}");
 }

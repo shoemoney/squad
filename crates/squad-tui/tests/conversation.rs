@@ -201,3 +201,122 @@ async fn question_first_chat_pick_preflight_debate_verdict_and_restart() {
 fn debate_id(session: &Session) -> ContestId {
     *session.debates.keys().next().unwrap()
 }
+
+/// Admit and cancel real M5 fixture plans in the binding D71 order. Actual mode
+/// result payloads remain covered by their dedicated widget/runtime suites.
+#[tokio::test]
+async fn d71_mode_fixtures_restore_preflight_and_cancel_in_order() {
+    let dir = tempfile::tempdir().unwrap();
+    let options = config::LoadOptions {
+        env_file: None,
+        data_dir: Some(dir.path().join("data")),
+        working_dir: dir.path().into(),
+        config_dir: None,
+        default_data_dir: dir.path().join("data"),
+    };
+    let mut config = SquadConfig::load_with_env(
+        &options,
+        &BTreeMap::from([("OPENROUTER_API_KEY".into(), "fake-key".into())]),
+    )
+    .unwrap();
+    config.agents = (0..4)
+        .map(|i| config::AgentConfig {
+            nick: ["alpha", "beta", "gamma", "delta"][i].parse().unwrap(),
+            model: format!("fixture/member{i}"),
+            persona: format!("PERSONA_{i}"),
+            reasoning_effort: None,
+        })
+        .collect();
+    config.judge.model = "fixture/judge".into();
+    config.budget.daily_max_usd = 100.;
+    config.budget.debate_confirm_usd = 0.;
+    let fake = FakeOpenRouter::start().await;
+    let models=config.agents.iter().map(|a|a.model.clone()).chain(std::iter::once(config.judge.model.clone())).map(|id|serde_json::json!({"id":id,"context_length":1000000,"top_provider":{"max_completion_tokens":65536},"supported_parameters":["reasoning"],"pricing":{"prompt":"0.000001","completion":"0.000002"}})).collect::<Vec<_>>();
+    fake.catalog(serde_json::json!({"data":models})).await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .respond_with(Answers)
+        .mount(&fake.server)
+        .await;
+    let room = RoomHandle::open_with_client(
+        config.clone(),
+        "main",
+        OpenMode::Interactive,
+        squad_agents::openrouter::OpenRouterClient::new(&fake.base_url(), "fake-key").unwrap(),
+    )
+    .await
+    .unwrap();
+
+    assert!(matches!(
+        send(&room, "@alpha Prepare a concrete queue plan").await,
+        RequestResult::Accepted { .. }
+    ));
+    wait_for(&room, "message.final").await;
+    let mut observed = vec![];
+    for (kind, command) in [
+        (
+            ContestKind::Debate,
+            "@alpha @beta $debate $ROUNDS=1 @judge Compare queues",
+        ),
+        (ContestKind::Grill, "@alpha $grill $GRILL_ROUNDS=1"),
+        (ContestKind::Census, "@all $census Build a queue service."),
+        (
+            ContestKind::Crosscheck,
+            "@all $crosscheck Maintain service.\n--\nKeep service available.",
+        ),
+        (ContestKind::Tournament, "@all $tournament Design a queue"),
+        (
+            ContestKind::Survey,
+            "@all $survey Which checks improve reliability?",
+        ),
+        (
+            ContestKind::Probe,
+            "@all $probe Intermittent noise, fan ruled out, inspect indicator only",
+        ),
+    ] {
+        let result = send(&room, command).await;
+        let RequestResult::PendingConfirmation { preflight, .. } = result else {
+            panic!("{kind:?}: {result:?}")
+        };
+        let mut session = Session::default();
+        session.restore(snapshot(&room.state().await, events(&room).await));
+        assert!(session.active_contest(), "{kind:?}");
+        assert_eq!(session.snapshot.preflights.len(), 1, "{kind:?}");
+        let view = squad_tui::widgets::preflight::PreflightView {
+            plan: preflight.clone(),
+            pending: false,
+        };
+        assert!(view.model_calls() > 0);
+        assert!(view.text().contains("Y Confirm · N Cancel"));
+        assert!(matches!(
+            room.submit(actions::preflight(&preflight, false)).await,
+            RequestResult::Accepted { .. }
+        ));
+        session.restore(snapshot(&room.state().await, events(&room).await));
+        assert!(!session.active_contest(), "{kind:?}");
+        assert!(session.snapshot.preflights.is_empty(), "{kind:?}");
+        assert!(
+            session
+                .transcript
+                .cards
+                .values()
+                .any(|card| card.text.contains("backpressure"))
+        );
+        observed.push(kind);
+    }
+    assert_eq!(
+        observed,
+        [
+            ContestKind::Debate,
+            ContestKind::Grill,
+            ContestKind::Census,
+            ContestKind::Crosscheck,
+            ContestKind::Tournament,
+            ContestKind::Survey,
+            ContestKind::Probe
+        ]
+    );
+    // Cancelled preflights never caused member/judge execution; only the seed chat did.
+    assert_eq!(fake.captured_bodies().await.len(), 1);
+    room.shutdown().await.unwrap();
+}
