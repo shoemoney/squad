@@ -20,14 +20,11 @@ pub async fn execute(
     let request = ChatRequest {
         model: grant.binding.model.to_string(),
         messages: vec![],
-        visible_ceiling: if grant.work.kind == WorkKind::DecideScore {
-            4096
-        } else {
-            grant
-                .work
-                .max_output_tokens
-                .ok_or(ReaderError::NotRunnable)?
-        },
+        visible_ceiling: grant
+            .work
+            .max_output_tokens
+            .or_else(|| grant.work.kind.new_mode_visible_tokens())
+            .ok_or(ReaderError::NotRunnable)?,
         published_output_limit: frozen["maxOutput"]
             .as_u64()
             .ok_or(ReaderError::NotRunnable)? as u32,

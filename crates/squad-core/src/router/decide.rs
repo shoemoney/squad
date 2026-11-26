@@ -700,11 +700,7 @@ fn allocate(
             replay: None,
             case_id: case,
             prompt_ref: Some(serde_json::from_value(source["reference"].clone())?),
-            max_output_tokens: if k == WorkKind::DecideScore {
-                None
-            } else {
-                Some(if judge { 4096 } else { 2048 })
-            },
+            max_output_tokens: k.new_mode_visible_tokens(),
             contest_id: Some(c),
             step_id: Some(step),
         };

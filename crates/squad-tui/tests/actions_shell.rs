@@ -88,7 +88,6 @@ fn disabled_scaffold_modes_are_absent_from_completion_and_help() {
     for mode in [
         "forge",
         "forecast",
-        "decide",
         "negotiate",
         "blow_it_up",
         "readback",

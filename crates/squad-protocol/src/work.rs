@@ -672,6 +672,7 @@ impl Work {
                         self.kind,
                         WorkKind::ForgeDraft
                             | WorkKind::ForgeFuse
+                            | WorkKind::DecideScore
                             | WorkKind::TraceExtract
                             | WorkKind::RankCompare
                     )
@@ -959,6 +960,7 @@ impl WorkKind {
                 self,
                 Self::ForgeDraft
                     | Self::ForgeFuse
+                    | Self::DecideScore
                     | Self::TraceExtract
                     | Self::RankCompare
                     | Self::TuneMutate

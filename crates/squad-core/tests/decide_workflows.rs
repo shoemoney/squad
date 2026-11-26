@@ -225,7 +225,6 @@ impl Fixture {
     }
 }
 #[tokio::test]
-#[ignore = "Integrator: route new_mode_judge through runtime/judge.rs; run with Decide ENABLED=true"]
 async fn given_and_generated_six_member_call_counts_blinding_and_recovery() {
     for generated in [false, true] {
         let f = Fixture::new().await;
@@ -262,6 +261,15 @@ async fn given_and_generated_six_member_call_counts_blinding_and_recovery() {
             }
         }
         assert!(orders.len() > 1);
+        let scoring_allowances: Vec<i64> = f
+            .db()
+            .prepare("SELECT max_output_tokens FROM work WHERE kind='decide.score'")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(scoring_allowances, vec![4096; 6]);
         let raw: String = f
             .db()
             .query_row(
@@ -658,9 +666,21 @@ async fn failures_repairs_skips_and_quorums_remain_exportable() {
 }
 
 #[tokio::test]
-#[ignore = "Integrator: executor::failed must classify MODE_INVALID_OUTPUT as InvalidOutput for D75"]
 async fn member_invalid_output_repairs_once() {
-    let (f, _, c) = owned_run(false, Fault::Repair).await;
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .respond_with(Faults {
+            kind: Fault::Repair,
+            seen: Default::default(),
+        })
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.start("@all $decide Select service\n--\nBuild\nBuy").await;
+    f.wait(|| f.status() == "COMPLETE" || f.status() == "FAILED")
+        .await;
+    let c = f.contest();
     assert_eq!(
         squad_store::decide::state(&f.db(), c).unwrap().state,
         DecideStatus::Complete
@@ -672,6 +692,9 @@ async fn member_invalid_output_repairs_once() {
             .unwrap(),
         6
     );
+    assert_eq!(f.fake.captured_bodies().await.len(), 20);
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
 }
 
 #[tokio::test]

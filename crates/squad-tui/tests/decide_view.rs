@@ -1,6 +1,61 @@
 use squad_protocol::*;
 use squad_tui::widgets::decide::*;
 #[test]
+fn enabled_mode_is_discoverable_and_f7_toggles_its_table() {
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    use squad_tui::{app::App, fx::TerminalCaps, session::ContestView};
+    let ctx = parser::ParseContext {
+        roster: ["a", "b", "c"].map(|s| s.parse().unwrap()).to_vec(),
+        ..Default::default()
+    };
+    assert!(
+        squad_tui::typeahead::MODES
+            .iter()
+            .any(|(mode, _)| *mode == "$decide")
+    );
+    assert!(
+        parser::help_examples()
+            .iter()
+            .any(|s| s.contains("$decide"))
+    );
+    let examples = squad_tui::typeahead::examples(&ctx);
+    let example = examples.iter().find(|s| s.contains("$decide")).unwrap();
+    parse(example, &Default::default(), &ctx).unwrap();
+    assert!(
+        (0..examples.len())
+            .any(|i| squad_tui::typeahead::tip(&ctx, i as u64 * 8).contains("$decide"))
+    );
+
+    let c = ContestId::new();
+    let state = DecideState {
+        contest_id: c,
+        state_version: 1,
+        state: DecideStatus::Complete,
+        step_id: None,
+        round: 0,
+        artifact_event_ids: vec![],
+        terminal_reason: None,
+    };
+    let mut contest = ContestView {
+        state: Some(ContestState::Decide(state.clone())),
+        ..Default::default()
+    };
+    contest
+        .decide
+        .apply(EventId::new(), &EnvelopePayload::DecideState(state));
+    let mut app = App::new(TerminalCaps::resolve(|_| None, true, (80, 24).into()).unwrap());
+    app.session.contests.insert(c, contest);
+    for expected in [true, false] {
+        app.dirty = false;
+        app.handle(
+            Event::Key(KeyEvent::new(KeyCode::F(7), KeyModifiers::NONE)),
+            std::time::Duration::ZERO,
+        );
+        assert_eq!(app.session.contests[&c].decide.leave_one_out, expected);
+        assert!(app.dirty);
+    }
+}
+#[test]
 fn replay_does_not_duplicate_artifacts_or_regress_state() {
     let c = ContestId::new();
     let mut view = View::default();

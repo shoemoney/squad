@@ -2762,8 +2762,7 @@
     "row": 183,
     "input": "@all $decide select a plan",
     "m8": true,
-    "error": "Command $decide is disabled until its implementation lands.",
-    "condition": "disabled"
+    "kind": "decide"
   },
   {
     "row": 184,

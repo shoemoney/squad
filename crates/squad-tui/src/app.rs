@@ -805,6 +805,9 @@ impl App {
                             view.toggle_matrix();
                         }
                         for contest in self.session.contests.values_mut() {
+                            if matches!(contest.state, Some(ContestState::Decide(_))) {
+                                contest.decide.toggle();
+                            }
                             if let Some(view) = &mut contest.survey {
                                 view.collapsed = !view.collapsed;
                             }

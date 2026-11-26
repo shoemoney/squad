@@ -85,14 +85,11 @@ impl WorkExecutor for DecideExecutor {
                 rendered.user.push_str(&suffix);
             }
             let mut request = self.request.clone();
-            request.visible_ceiling = if *kind == WorkKind::DecideScore {
-                4096
-            } else {
-                grant
-                    .work
-                    .max_output_tokens
-                    .ok_or(ReaderError::NotRunnable)?
-            };
+            request.visible_ceiling = grant
+                .work
+                .max_output_tokens
+                .or_else(|| grant.work.kind.new_mode_visible_tokens())
+                .ok_or(ReaderError::NotRunnable)?;
             request.response_format = Some(
                 json!({"type":"json_schema","json_schema":{"name":"decide_response","strict":true,"schema":schema}}),
             );
