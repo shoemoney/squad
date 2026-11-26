@@ -49,3 +49,32 @@ fn committed_view_collapses_drafts_and_ignores_stale_state() {
     assert!(!lines.contains("private draft text"));
     assert_eq!(view.artifacts.len(), 1);
 }
+
+#[test]
+fn enable_switch_controls_help_completion_and_parser_checked_tips() {
+    let enabled = forge::ENABLED;
+    assert_eq!(
+        squad_tui::typeahead::MODES
+            .iter()
+            .any(|(name, _)| *name == "$forge"),
+        enabled
+    );
+    assert_eq!(
+        squad_tui::actions::help_lines()
+            .join("\n")
+            .contains("$forge"),
+        enabled
+    );
+    let context = parser::ParseContext {
+        roster: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
+        ..Default::default()
+    };
+    let examples = squad_tui::typeahead::examples(&context);
+    assert_eq!(examples.iter().any(|text| text.contains("$forge")), enabled);
+    for text in examples.iter().filter(|text| text.contains("$forge")) {
+        assert!(matches!(
+            parse(text, &parser::SubmissionMeta::default(), &context).unwrap(),
+            ParsedInput::Forge { .. }
+        ));
+    }
+}

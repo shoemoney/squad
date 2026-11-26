@@ -441,6 +441,55 @@ async fn original_winner_is_byte_identical() {
     );
 }
 #[tokio::test]
+#[ignore = "Shared runtime/judge.rs outer gate and blind prompt header require integrator fixes"]
+async fn full_room_completes_with_fifteen_blind_calls() {
+    let f = Fixture::scenario(6, Scenario::Happy).await;
+    let room = f.open(OpenMode::Interactive).await;
+    assert!(matches!(
+        room.submit(request(&f.config, BRIEF)).await,
+        RequestResult::Accepted { .. }
+    ));
+    f.wait(|| terminal(&f)).await;
+    assert_eq!(report(&f).reason, "fusion_won");
+    assert_eq!(report(&f).body, "Fused deliverable with the best opening.");
+    let requests = f.fake.captured_bodies().await;
+    assert_eq!(requests.len(), 15);
+    for request in requests {
+        let messages = request["messages"].to_string();
+        for member in &f.config.agents {
+            assert!(!messages.contains(member.nick.as_str()));
+            assert!(!messages.contains(&member.model));
+            assert!(!messages.contains(&member.persona));
+        }
+        // This literal is present in the default judge identity header even
+        // when a fixture uses a different roster and anonymous placeholders.
+        assert!(!messages.contains("@fable"));
+    }
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+
+fn private_maps(f: &Fixture) -> Vec<(String, String)> {
+    f.db()
+        .prepare("SELECT scope_key,map_json FROM contest_private_maps ORDER BY scope_key")
+        .unwrap()
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap()
+}
+
+fn accepted_work(f: &Fixture) -> Vec<String> {
+    f.db()
+        .prepare("SELECT work_id FROM work WHERE status='completed' ORDER BY work_id")
+        .unwrap()
+        .query_map([], |r| r.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap()
+}
+
+#[tokio::test]
 #[ignore = "Shared runtime/judge.rs outer gate must route new_mode_judge() work; integrator-owned"]
 async fn restart_and_stop_fence_each_provider_state() {
     for scenario in [
@@ -472,19 +521,22 @@ async fn restart_and_stop_fence_each_provider_state() {
         })
         .await;
         room.shutdown().await.unwrap();
-        let maps_before: i64 = f
-            .db()
-            .query_row(
-                "SELECT COUNT(*) FROM contest_private_maps WHERE scope_key LIKE 'forge.%'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
+        let maps_before = private_maps(&f);
+        let accepted_before = accepted_work(&f);
         let room = f.open(OpenMode::Interactive).await;
         f.wait(|| terminal(&f)).await;
+        assert_eq!(report(&f).reason, "fusion_won");
+        let maps_after = private_maps(&f);
+        for entry in &maps_before {
+            assert!(maps_after.contains(entry), "committed label map changed");
+        }
+        let accepted_after = accepted_work(&f);
+        for id in accepted_before {
+            assert!(accepted_after.contains(&id), "accepted work was replaced");
+        }
         let duplicates:i64=f.db().query_row("SELECT COUNT(*) FROM (SELECT target,kind,COUNT(*) n FROM work GROUP BY target,kind HAVING n>1)",[],|r|r.get(0)).unwrap();
         assert_eq!(duplicates, 0);
-        assert!(maps_before > 0);
+        assert!(!maps_before.is_empty());
         room.shutdown().await.unwrap();
         let f = Fixture::scenario(6, scenario).await;
         let room = f.open(OpenMode::Interactive).await;
