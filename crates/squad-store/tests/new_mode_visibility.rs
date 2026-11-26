@@ -42,6 +42,7 @@ fn fixture() -> (Store, Work, EventId) {
  db.execute("UPDATE contests SET plan_json=? WHERE contest_id=?",params![serde_json::to_string(&plan)?,contest.to_string()])?;
  squad_store::work::insert(db,&w,&ExecutorBinding{model:Text::new("test/model").unwrap(),effort:ReasoningEffort::Low},None)?;
  contest_steps::attach_work(db,step,&w)?;
+ db.execute("UPDATE work SET status='running',attempt=1,history_through=1,lease_owner=?,lease_until='2099-01-01T00:00:00Z' WHERE work_id=?",params![serde_json::to_string(&ExecutorKey::Member("a".parse().unwrap()))?,w.work_id.to_string()])?;
  assert_eq!(db.query_row("SELECT json_extract(scheduling_meta,'$.attemptReservationMicros') FROM work WHERE work_id=?",[w.work_id.to_string()],|r|r.get::<_,i64>(0))?,1_000_000);
  db.execute("INSERT INTO contest_artifacts VALUES(1,?,?,'forge','forge.draft',0,'system','members','[\"a\"]','{\"body\":\"private\"}')",params![contest.to_string(),step.to_string()])?;
  Ok(())}).unwrap();
@@ -79,6 +80,24 @@ fn artifact_reads_require_both_work_assignment_and_audience() {
         })
         .unwrap();
     assert!(reader.artifact_for_work(work.work_id, event).is_err());
+}
+#[test]
+fn artifact_reader_refuses_finished_and_expired_work() {
+    let (store, work, event) = fixture();
+    let reader = ScopedReaders::new(store.clone(), ExecutorKey::Member("a".parse().unwrap()), 1);
+    let id = work.work_id;
+    store
+        .call(move |db| {
+            db.execute(
+                "UPDATE work SET lease_until='2000-01-01T00:00:00Z' WHERE work_id=?",
+                [id.to_string()],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+    assert!(reader.artifact_for_work(id, event).is_err());
+    store.call(move|db|{db.execute("UPDATE work SET status='completed',lease_until='2099-01-01T00:00:00Z' WHERE work_id=?",[id.to_string()])?;Ok(())}).unwrap();
+    assert!(reader.artifact_for_work(id, event).is_err());
 }
 #[test]
 fn member_repair_diagnostics_are_private_and_attempt_bound() {
