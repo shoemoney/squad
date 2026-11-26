@@ -6,6 +6,8 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-26
+
 ### Changed
 
 - The default `SQUAD_DAILY_MAX_USD` is now `150` (was `20`). Worst-case up-front
@@ -23,9 +25,7 @@ All notable changes to Squad will be documented in this file, following
   calibrated word budgets; the crosscheck ruling names only challenged cells; probe validation
   errors name the offending node, leaf and check.
 
-## [0.1.1] - 2026-11-25
-
-Test-coverage and keyboard-reachability release: six gap branches merged on top
+Also in 0.1.1: test-coverage and keyboard-reachability release: six gap branches merged on top
 of 0.1.0, plus the fixes their tests exposed.
 
 ### Added
