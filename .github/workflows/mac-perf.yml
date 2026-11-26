@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo bench -p squad-tui --locked --bench twelve_streams --bench composed_streams --bench fx_frame --no-run
-          cargo test -p squad-tui --locked --release --test fx_invariants --test fx_governor --test event_loop_shell --test m4b_fx_integration_audit --test fx_crosscheck --test fx_survey --test fx_probe --no-run
+          cargo test -p squad-tui --locked --release --test clipboard --test fx_invariants --test fx_governor --test event_loop_shell --test m4b_fx_integration_audit --test fx_crosscheck --test fx_survey --test fx_probe --no-run
           cargo build -p squad-tui --locked --release --example demo
           cp target/release/examples/demo mac-perf-results/squad-demo
       - name: Effects invariants and sustained feed / idle checks
@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo test -p squad-tui --locked --release --test fx_invariants --test fx_governor --test event_loop_shell --test m4b_fx_integration_audit --test fx_crosscheck --test fx_survey --test fx_probe -- --nocapture 2>&1 | tee mac-perf-results/invariants.log
+          cargo test -p squad-tui --locked --release --test clipboard --test fx_invariants --test fx_governor --test event_loop_shell --test m4b_fx_integration_audit --test fx_crosscheck --test fx_survey --test fx_probe -- --nocapture 2>&1 | tee mac-perf-results/invariants.log
       - name: Five-minute spike per viewport (effects off by design)
         if: ${{ !cancelled() }}
         shell: bash

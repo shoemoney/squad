@@ -46,6 +46,22 @@ pub async fn run<B: Backend>(
 where
     B::Error: std::error::Error + 'static,
 {
+    run_with_output(app, room, terminal, input, &mut io::stdout()).await
+}
+
+/// Run with the terminal control writer supplied explicitly. Clipboard control
+/// bytes must be flushed by the same event loop that handles the copy action;
+/// producing a CopyRequest alone does not deliver it to the terminal.
+pub async fn run_with_output<B: Backend>(
+    app: &mut App,
+    room: Arc<dyn RoomPort>,
+    terminal: &mut Terminal<B>,
+    input: &mut mpsc::Receiver<io::Result<Event>>,
+    output: &mut impl io::Write,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    B::Error: std::error::Error + 'static,
+{
     // Subscribe first. Events committed during state() queue in the receiver;
     // canonical identity reconciliation removes duplicates after restoration.
     let mut feed = match room.subscribe(None) {
@@ -65,6 +81,13 @@ where
     let result = async {
         while !app.quit {
             let now = app.now(); app.expire(now);
+            if let Some(copy) = app.take_copy() {
+                // tmux handles OSC 52 through its set-clipboard/Ms mechanism.
+                // DCS passthrough would instead require allow-passthrough and
+                // must not be imposed on the default terminal configuration.
+                output.write_all(copy.sequence.as_bytes())?;
+                output.flush()?;
+            }
             if let Some(request) = app.pending.take() {
                 let room = room.clone(); ack = Some(tokio::spawn(async move { room.submit(request).await }));
             }
