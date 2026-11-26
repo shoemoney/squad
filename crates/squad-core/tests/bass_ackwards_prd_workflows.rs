@@ -206,7 +206,7 @@ impl Respond for Answers {
         if scenario.contains("BROKEN_DONE") && schema.get("items").is_some() {
             output = json!({"items":[]});
         }
-        if scenario.contains("BROKEN_REVISE")
+        if (scenario.contains("BROKEN_REVISE") || scenario.contains("TRUNCATED_REVISE"))
             && schema.get("decisions").is_some()
             && d.get("comments").is_some()
         {
@@ -220,12 +220,20 @@ impl Respond for Answers {
                 output["additions"] = json!([]);
             }
         }
+        let truncated = scenario.contains("TRUNCATED_REVISE")
+            && schema.get("decisions").is_some()
+            && d.get("comments").is_some();
+        let mut content = output.to_string();
+        if truncated {
+            // Complete edits followed by a missing closing array/object: apply none.
+            content.truncate(content.len() - 2);
+        }
         // Streaming framing is covered by the transport suite; one chunk keeps
         // this suite focused on durable workflow transitions.
         raw_sse(format!(
             "{}{}data: [DONE]\r\n\r\n",
             event(
-                json!({"id":GENERATION,"model":MODEL,"choices":[{"index":0,"delta":{"content":output.to_string()},"finish_reason":"stop"}]})
+                json!({"id":GENERATION,"model":MODEL,"choices":[{"index":0,"delta":{"content":content},"finish_reason":if truncated {"length"} else {"stop"}}]})
             ),
             event(json!({"choices":[],"usage":usage()}))
         ))
@@ -704,25 +712,32 @@ async fn invalid_member_output_repairs_once_then_fails_quorum_without_file() {
 }
 #[tokio::test]
 async fn revision_exhaustion_saves_last_good_version_and_keeps_failure() {
-    let f = Fixture::new().await;
-    let h = Harness::new(&f);
-    h.send("@all $bass_ackwards_prd BROKEN_REVISE status page");
-    h.pump().await;
-    let s = h.state();
-    assert_eq!(s.state, BassAckwardsPrdStatus::Failed);
-    assert_eq!(s.terminal_reason.unwrap().as_str(), "judge_failed");
-    let saved = h
-        .store
-        .call(move |db| {
-            squad_store::bass_ackwards_prd::get::<
-                squad_protocol::bass_ackwards_prd::BassAckwardsPrdSaved,
-            >(db, s.contest_id, "saved")
-        })
-        .unwrap();
-    let text = std::fs::read_to_string(saved.path).unwrap();
-    assert!(text.contains("Deploy the public status page"));
-    assert!(!text.contains("Unauthorized edit"));
-    f.assert_ledger();
+    for scenario in ["BROKEN_REVISE", "TRUNCATED_REVISE"] {
+        let f = Fixture::new().await;
+        let h = Harness::new(&f);
+        h.send(&format!("@all $bass_ackwards_prd {scenario} status page"));
+        h.pump().await;
+        let s = h.state();
+        assert_eq!(s.state, BassAckwardsPrdStatus::Failed);
+        assert_eq!(s.terminal_reason.unwrap().as_str(), "judge_failed");
+        let saved = h
+            .store
+            .call(move |db| {
+                squad_store::bass_ackwards_prd::get::<
+                    squad_protocol::bass_ackwards_prd::BassAckwardsPrdSaved,
+                >(db, s.contest_id, "saved")
+            })
+            .unwrap();
+        let text = std::fs::read_to_string(saved.path).unwrap();
+        assert!(text.contains("Deploy the public status page"));
+        assert!(!text.contains("Unauthorized edit"));
+        f.assert_ledger();
+        let version = h
+            .store
+            .call(move |db| squad_store::bass_ackwards_prd::get::<u32>(db, s.contest_id, "version"))
+            .unwrap();
+        assert_eq!(version, 1);
+    }
 }
 #[tokio::test]
 async fn empty_rounds_release_calls_and_save_failure_retains_report() {
@@ -858,7 +873,8 @@ async fn accepted_sparse_revision_and_final_addition_are_saved() {
             |r| r.get(0),
         )
         .unwrap();
-    let saved: BassAckwardsPrdSaved = serde_json::from_str(&raw).unwrap();
+    let saved: squad_protocol::bass_ackwards_prd::BassAckwardsPrdSaved =
+        serde_json::from_str(&raw).unwrap();
     let text = std::fs::read_to_string(saved.path).unwrap();
     assert!(text.contains("Tested sparse revision"));
     assert!(text.contains("Publish operations guide"));

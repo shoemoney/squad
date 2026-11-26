@@ -223,7 +223,6 @@ fn patches_reject_invalid_targets_identity_mutations_and_partial_documents() {
     assert!(validate_output(&WorkKind::BassAckwardsPrdFinalize, &data, &patch).is_err());
     patch["document"] = data["document"].clone();
     assert!(validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &patch).is_err());
-    assert!(serde_json::from_str::<serde_json::Value>("{\"decisions\":[],\"edits\":[").is_err());
 }
 
 #[test]
