@@ -49,7 +49,7 @@ Accepted criteria excerpt:
 ## Integration requirements
 
 - `crates/squad-core/src/runtime/judge.rs`, `Executor::execute`: include `grant.work.kind.new_mode_judge()` in the condition routing structured work to `self.crosscheck.execute`. The inner `Runner` already dispatches new modes, but the outer executor sends these work kinds to the legacy adapter, which rejects them before the owned runtime runs. This blocks complete RoomHandle workflows and live smoke. The owned callback/executor fixture bypasses only that outer dispatcher and exercises the real router, store and provider transport.
-- Shared TUI input dispatch: route the Decide matrix/leave-one-out toggle to `widgets::decide::View::toggle`. The owned view supports both projections; shared input wiring is integrator-owned.
+- `crates/squad-tui/src/app.rs`, `KeyCode::F(7)` handler: in the existing loop over `self.session.contests.values_mut()`, call `contest.decide.toggle()` for a Decide contest. The handler already invalidates composed artifacts through `toggle_verdict()` and marks the frame dirty. The owned view supports both projections; shared input wiring is integrator-owned.
 - `crates/squad-core/src/router/executor.rs`, `failed`: classify `MODE_INVALID_OUTPUT` alongside `JUDGE_INVALID_MODE_OUTPUT` as `FailureClass::InvalidOutput`. Otherwise a member's D75 repair is rejected as `PRODUCER_FORBIDDEN`, because a transport retry cannot carry diagnostics.
 - `crates/squad-protocol/src/work.rs`, both visible-token match sites: include `DecideScore` in the 4,096-token member set. Until then the owned score executor explicitly requests 4,096 and the stored optional override is absent; reservation bounds already price 4,096. This avoids the scaffold's incorrect 2,048 ceiling without changing a shared file.
 
@@ -58,3 +58,9 @@ Mode activation stays off until the complete RoomHandle and D75 regressions pass
 ## Verification
 
 On dev2 with four Cargo build jobs, the workspace suite passed with 1,343 passing test executions (1,342 unique), zero failures and six ignored tests. Seventeen new Decide tests pass. Two further Decide integration regressions remain ignored for the shared judge-dispatch and member-repair blockers above. All-target workspace Clippy with warnings denied and the format check passed. Eleven of fourteen M8.P4 tasks are checked; complete runtime acceptance, toggle input wiring and activation remain open.
+
+### Recovery verification on `mode-decide-r2`
+
+The recovery worker on 2026-11-26 reproduced both integration failures against the recovered commits. With `ENABLED` temporarily set to true, `cargo test -p squad-core --test decide_workflows -- --ignored --nocapture` completed all six criteria calls and timed out after 15 seconds with `decide.freeze` still running. The member repair regression failed with `PRODUCER_FORBIDDEN`. The switch was restored to false after this probe; running the RoomHandle regression with the switch off stops at `COMMAND_NOT_IMPLEMENTED` before reaching dispatch.
+
+The owned shortlist validator now rejects empty or whitespace-only option names and descriptions, with a regression covering both fields. No additional live call was made while the reproduced shared dispatcher failure remained unresolved. The earlier live attempt above remains the only live evidence; there is still no complete live decision report. The brief's shared-file ownership restriction remains in force.

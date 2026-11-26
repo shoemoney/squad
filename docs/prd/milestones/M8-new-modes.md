@@ -165,6 +165,8 @@ Decide worker evidence (2026-11-26):
 
 Final worker gates (dev2, `CARGO_BUILD_JOBS=4`, 2026-11-26): `cargo test --workspace --no-fail-fast` passed with 1,343 passing test executions, zero failures and six ignored (four inherited manual/subprocess entries plus the two documented integration blockers). The WAL subprocess repeats one passing test, so the unique passing count is 1,342. Seventeen new tests pass; two additional Decide integration regressions are deliberately ignored pending shared fixes. Workspace all-target Clippy with `-D warnings` and `cargo fmt --all -- --check` passed. The final store-fixture correction uses valid anonymous history metadata so prompt provenance is exercised. No shared implementation files were edited.
 
+Recovery evidence (`mode-decide-r2`, 2026-11-26): rejected blank shortlisted option names/descriptions with a new protocol regression. Explicitly ran both ignored regressions with the owned activation switch temporarily true: six criteria calls completed before the freeze judge stalled (15-second fixture timeout), and member repair failed with `PRODUCER_FORBIDDEN`. Restored the switch to false. The shared TUI toggle site is `crates/squad-tui/src/app.rs`, `KeyCode::F(7)`, in the existing mutable contest loop. The three open tasks above still require integrator-owned changes; no additional live request or completed activation is claimed.
+
 ## Phase M8.P5 — Negotiate
 
 Owns only the `negotiate` module files listed in **New modes → Files each mode worker owns**, migration `0013_negotiate.sql` and `docs/modes/negotiate.md`.

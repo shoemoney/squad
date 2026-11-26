@@ -225,7 +225,7 @@ impl Fixture {
     }
 }
 #[tokio::test]
-#[ignore = "Integrator: route new_mode_judge through the structured runner in runtime/judge.rs"]
+#[ignore = "Integrator: route new_mode_judge through runtime/judge.rs; run with Decide ENABLED=true"]
 async fn given_and_generated_six_member_call_counts_blinding_and_recovery() {
     for generated in [false, true] {
         let f = Fixture::new().await;
