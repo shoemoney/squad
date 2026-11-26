@@ -746,6 +746,12 @@ pub(crate) fn drive_move(
                 r.interpretations
                     .insert(label, serde_json::from_value(a.body.ok_or_else(invalid)?)?);
             }
+            squad_store::contest_steps::private_map(
+                tx,
+                s.contest_id,
+                &format!("readback.readers.{}", s.round),
+                &serde_json::json!({"labels":r.provenance}),
+            )?;
             if r.interpretations.len() < 2 {
                 squad_store::readback::save(tx, s.contest_id, &run)?;
                 finish(tx, g, id, &mut s, "insufficient_readings", true)?;

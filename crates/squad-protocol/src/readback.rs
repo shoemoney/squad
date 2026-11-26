@@ -48,7 +48,10 @@ impl ReadbackState {
             self.state.is_terminal() == self.terminal_reason.is_some(),
             "terminal reason mismatch",
         )?;
-        ensure((1..=4).contains(&self.round), "invalid readback round")
+        ensure(
+            self.round <= 4 && (self.round > 0 || self.state == ReadbackStatus::Preflight),
+            "invalid readback round",
+        )
     }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

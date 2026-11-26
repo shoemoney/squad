@@ -151,7 +151,7 @@ struct Answers;
 const SPEC: &str =
     "The service retains records. The operator deletes backups. The client retries requests.";
 fn ledger(spec: &str) -> serde_json::Value {
-    serde_json::json!({"entries":if spec.contains("CONVERGE") || spec.contains("for thirty days"){vec![]}else{vec![serde_json::json!({"entryId":"retention","passage":"The service retains records.","question":"For how long?","readings":[{"readingId":"a","text":"Retain for thirty days","sourceLabels":["Reader 1"]},{"readingId":"b","text":"Retain forever","sourceLabels":["Reader 2"]}],"behaviourChange":"Records expire or persist"}),serde_json::json!({"entryId":"backups","passage":"The operator deletes backups.","question":"When?","readings":[{"readingId":"a","text":"Delete daily","sourceLabels":["Reader 1"]},{"readingId":"b","text":"Delete on request","sourceLabels":["Reader 2"]}],"behaviourChange":"Backup lifetime differs"})]}})
+    serde_json::json!({"entries":if spec.contains("CONVERGE") || spec.contains("for thirty days"){vec![]}else{vec![serde_json::json!({"entryId":"retention","passage":"The service retains records.","question":"For how long?","readings":[{"readingId":"a","text":"Retain for thirty days","sourceLabels":["Reader 1"]},{"readingId":"b","text":"Retain forever","sourceLabels":["Reader 2"]}],"behaviourChange":"Records expire or persist"}),serde_json::json!({"entryId":"backups","passage":"The operator deletes backups.","question":"When?","readings":[{"readingId":"a","text":"Delete daily","sourceLabels":["Reader 1"]},{"readingId":"b","text":"Delete on request","sourceLabels":["Reader 2"]}],"behaviourChange":"Backup lifetime differs"}),serde_json::json!({"entryId":"retries","passage":"The client retries requests.","question":"Who initiates retries?","readings":[{"readingId":"a","text":"Retry automatically","sourceLabels":["Reader 1"]},{"readingId":"b","text":"Retry only on request","sourceLabels":["Reader 2"]}],"behaviourChange":"Duplicate side effects may be automatic or manually initiated"})]}})
 }
 impl Respond for Answers {
     fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
@@ -169,9 +169,9 @@ impl Respond for Answers {
             return ResponseTemplate::new(503);
         }
         let output = if text.contains("Read this spec independently") {
-            if spec.contains("FAIL_MEMBERS") {
-                serde_json::json!({"wrong":"shape"})
-            } else if spec.contains("REPAIR_MEMBER") && !text.contains("failed validation") {
+            if spec.contains("FAIL_MEMBERS")
+                || spec.contains("REPAIR_MEMBER") && !text.contains("failed validation")
+            {
                 serde_json::json!({"wrong":"shape"})
             } else {
                 serde_json::json!({"build":"Implement retention","behaviours":[{"localId":"one","situation":"A record is saved","behaviour":"Keep it","specQuote":if spec.contains("for thirty days"){"The service retains records for thirty days."}else{"The service retains records."}}],"edgeCases":[],"assumptions":[]})
@@ -337,7 +337,7 @@ async fn partial_choices_restart_rewrite_fresh_round_and_export() {
     let a: ContestArtifact = serde_json::from_str(&report).unwrap();
     let report: squad_protocol::readback::ReadbackReport =
         serde_json::from_value(a.body.unwrap()).unwrap();
-    assert_eq!(report.convergence[0].open, 1);
+    assert_eq!(report.convergence[0].open, 2);
     assert_eq!(report.raw_answers, vec!["1b", "1a"]);
     assert_eq!(
         f.db()
@@ -506,13 +506,15 @@ impl Direct {
         let mut router = self.router.lock().unwrap();
         let ctx = router.parse_context().unwrap();
         let meta = Default::default();
-        let parsed = if let Some(spec) = text.strip_prefix("@all $readback ") {
+        let id = EventId::new();
+        let result = if let Some(spec) = text.strip_prefix("@all $readback ") {
+            // Invoke the owned admission seam while public parsing stays disabled.
             let (rounds, spec) = if let Some(spec) = spec.strip_prefix("$READBACK_ROUNDS=1 ") {
                 (1, spec)
             } else {
                 (2, spec)
             };
-            ParsedInput::Readback {
+            let parsed = ParsedInput::Readback {
                 input: parser::ConversationalInput {
                     raw: text.into(),
                     quote: vec![],
@@ -521,18 +523,60 @@ impl Direct {
                 participants: ctx.roster.clone(),
                 source: parser::PlanSource::Pasted { text: spec.into() },
                 rounds,
-            }
+            };
+            let request = Request::from_parsed_with_context(id, parsed, &meta, &ctx, true).unwrap();
+            let Request::UserMessage { input, parsed, .. } = request else {
+                panic!()
+            };
+            let config = f.config.clone();
+            let bindings = config
+                .agents
+                .iter()
+                .map(|a| {
+                    (
+                        a.nick.to_string(),
+                        ExecutorBinding {
+                            model: a.model.parse().unwrap(),
+                            effort: ReasoningEffort::Low,
+                        },
+                    )
+                })
+                .chain(std::iter::once((
+                    "judge".into(),
+                    ExecutorBinding {
+                        model: config.judge.model.parse().unwrap(),
+                        effort: ReasoningEffort::High,
+                    },
+                )))
+                .collect();
+            self.store
+                .commit(id, "direct-fixture".into(), id.to_string(), move |tx, g| {
+                    squad_core::router::readback::prepare(
+                        tx,
+                        g,
+                        id,
+                        &input,
+                        &parsed,
+                        &squad_core::router::NewModeAdmission {
+                            bindings: &bindings,
+                            config: Some(&config),
+                            daily_max: 200_000_000,
+                            confirmation_threshold: 100.0,
+                            preconfirmed: true,
+                        },
+                    )
+                })
+                .unwrap()
+                .result
         } else {
-            parse(text, &meta, &ctx).unwrap()
+            let parsed = parse(text, &meta, &ctx).unwrap();
+            let request = Request::from_parsed_with_context(id, parsed, &meta, &ctx, true).unwrap();
+            router.process(request, None).unwrap().result
         };
-        let request =
-            Request::from_parsed_with_context(EventId::new(), parsed, &meta, &ctx, true).unwrap();
-        let result = router.process(request, None).unwrap().result;
         assert!(
             matches!(result, RequestResult::Accepted { .. }),
             "{result:?}"
         );
-        let _ = f;
     }
     fn state(&self) -> ReadbackState {
         self.store
