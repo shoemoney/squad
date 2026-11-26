@@ -7,6 +7,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /home/runner/.cargo /home/runner/.rustup /home/runner/target /home/runner/work \
     && chown -R runner:runner /home/runner/.cargo /home/runner/.rustup /home/runner/target /home/runner/work
-COPY job-start.sh /usr/local/bin/squad-ci-job-start
-RUN chmod 755 /usr/local/bin/squad-ci-job-start
-ENV ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/bin/squad-ci-job-start
+COPY job-start.sh /usr/local/bin/squad-ci-job-start.sh
+RUN chmod 755 /usr/local/bin/squad-ci-job-start.sh
+ENV ACTIONS_RUNNER_HOOK_JOB_STARTED=/usr/local/bin/squad-ci-job-start.sh
