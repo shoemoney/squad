@@ -36,6 +36,7 @@ fn document_requires_sources_dod_and_forward_acyclic_dependencies() {
     for (field, value) in [
         ("sources", json!([])),
         ("serves", json!([])),
+        ("serves", json!(["D99"])),
         ("dependsOn", json!(["unknown"])),
         ("dependsOn", json!(["l2"])),
     ] {
@@ -74,4 +75,29 @@ fn schemas_are_available_for_all_nine_work_kinds() {
     ] {
         assert!(output_schema(&kind).is_some());
     }
+}
+
+#[test]
+fn empty_quote_is_an_accepted_comment_for_app_drop_without_repair() {
+    let output = json!({"build":null,"comments":[{"localId":"x","quote":"","comment":"Check this passage","proposed":null}]});
+    validate_output(
+        &WorkKind::BassAckwardsPrdReview,
+        &json!({"lens":"GAPS"}),
+        &output,
+    )
+    .unwrap();
+}
+#[test]
+fn tree_node_cap_and_uninvented_keys_are_enforced() {
+    let mut t = tree();
+    let first = t["nodes"][0].clone();
+    for i in 4..=21 {
+        let mut node = first.clone();
+        node["nodeId"] = json!(format!("n{i}"));
+        t["nodes"].as_array_mut().unwrap().push(node);
+    }
+    assert!(validate_artifact("bass_ackwards_prd.tree", &t).is_err());
+    let mut d = document();
+    d["milestones"][0]["key"] = json!("invented-permanent-key");
+    assert!(validate_output(&WorkKind::BassAckwardsPrdMerge, &data(), &d).is_err());
 }

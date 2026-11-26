@@ -1,5 +1,7 @@
 # Bass ackwards PRD
 
+The mode is enabled in the parser, typeahead, help, TUI and CLI.
+
 Start with the finished result. Squad agrees on observable acceptance tests, works backward to today's prerequisites, and saves a dependency-ordered PRD.
 
 ```text
@@ -38,10 +40,49 @@ Export includes the final PRD and the complete accepted record, including droppe
 
 ## Example run
 
-Live smoke evidence will be recorded here after the shared judge dispatch prerequisite is resolved. No live spend has been incurred yet.
+On 2026-11-26, one release `squad send --yes --json` used the default six-model roster, `SQUAD_DAILY_MAX_USD=150`, `/dev/null` as the environment file and a fresh private data directory. The end result was “a self-hosted status page for a small SaaS, live with alerts”.
 
-## Integration prerequisite
+- Recorded actual cost, including startup alias probes: **$2.913638**; unknown-cost calls: **0**.
+- Wall time, including credential retrieval and startup: **429.081 seconds**.
+- Preflight: **28** normal calls, **60** reserved attempts, **$9.531904** normal estimate and **$43.344783** maximum reservation. The remaining reservation was **$0** after termination.
+- Actual execution: **21** logical mode calls, **24** mode attempts (one repair each for merge, one review and revision), plus **4** startup alias probes.
+- Outcome: **FAILED / judge_failed**, CLI exit **1**. Revision output reached its token limit twice. D98 saved the last good version (version 1); all four application checks passed, with no uncovered DoD items.
+- Verified save: **16,568 bytes**, mode **0600**, SHA-256 `99b38c263ab1f915ff467e431cd161e982cb3f2531527e18a73c4c614d60fc72`. The CLI emitted `export.ready` with the saved path.
 
-The scaffold's `crates/squad-core/src/runtime/judge.rs`, in `impl WorkExecutor for Executor`, sends only Probe/Census/Survey work directly to `self.crosscheck.execute`. New-mode judge work instead reaches `squad_agents::judge::JudgeExecutor`, whose old-kind allowlist rejects it before `Runner::execute` can reach the registered new-mode dispatch.
+Saved path:
 
-Required shared change: add `|| grant.work.kind.new_mode_kind().is_some()` to the initial `if` condition in that core adapter. This keeps all new-mode calls on their existing registered handlers and preserves grant ownership checks there. The mode worker has not edited that shared file. An end-to-end fake-provider run reproduces six completed done calls followed by a stuck `bass_ackwards_prd.freeze` work with no provider request.
+```text
+/tmp/squad-bass-smoke-20261126-hrgkt18a/data/exports/prd-self-hosted-status-page-for-a-small-saas-live-wi-01a21a0e-53d7-701d-9e38-1320a08fa318.md
+```
+
+Short excerpt of the saved report:
+
+```markdown
+# Self-hosted status page for a small SaaS, live with alerts
+
+Checks passed: 4/4.
+
+**End result:** a self-hosted status page for a small SaaS, live with alerts
+**Starting point:** Not stated.
+
+## Overview
+Deliver a self-hosted public status page on operator-controlled infrastructure, isolated from the main SaaS application. The plan moves forward from confirming scope, access and tool choice, through an independent HTTPS deployment, to health probes that update component status within five minutes and send outage and recovery alerts to the on-call channel. It then adds authenticated incident management, public history and uptime, and visitor subscriptions with email notifications. The final milestone is a set of acceptance drills against every definition of done, including a full main-application shutdown. No current-state baseline was supplied, so the starting items rest on assumptions that need confirming.
+
+## Definition of done
+- D1 — The status page loads over HTTPS at its public domain without login, showing current status for every monitored SaaS component. (verified by: Open the public URL in a logged-out browser.; support: 6)
+- D2 — When a monitored component is deliberately taken down, its displayed status changes to degraded or down within five minutes. (verified by: Controlled outage drill with stopwatch; support: 5)
+- D3 — A detected outage sends an alert to the on-call channel within five minutes, naming the affected component. (verified by: Trigger a test outage and check the alert channel timestamp.; support: 5)
+- D4 — When the failed service recovers, the page returns to operational and a recovery notification reaches the same alert channel. (verified by: Restore the test endpoint and check page and channel.; support: 4)
+```
+
+The run exposed unnecessary output overhead from UUID-length document keys. The implementation now allocates compact permanent `K1`, `K2`, … identities from a persisted counter and never reuses a removed identity; M/P/L display numbers remain positional. Assembly prompts request compact JSON and preserve unchanged text. Offline tests cover this correction. There was no second paid smoke.
+
+## Shared integration
+
+An owner-approved one-line fix in `crates/squad-core/src/runtime/judge.rs` routes new-mode judge work directly through its already-registered handler. This avoids the older standalone-judge adapter's work-kind allowlist. The fix is isolated in commit `ce2d07a` so it can be integrated independently for the other modes.
+
+## Implementation evidence
+
+The owned engine/handler harness uses real Store, Router, scoped readers, attempt accounting and a wiremock OpenRouter endpoint. It exercises 28 calls for six members, 29 with a human note, and 26 when both decision rounds are empty. It checks invalid member output with one diagnostic repair, insufficient quorum, last-good-version saving after revision exhaustion, quote dropping, request blindness and one-lens instructions, disk failure, human-note conflicts, stop, and restart checkpoints through the committed report before writing.
+
+The production `RoomHandle` workflow passes as well: all 28 calls, automatic save, export, printed path material and restart without repeated calls. Across the seven mode-specific test targets, 45 executions pass with no failures or ignores (27 distinct test functions; shared contract fixtures run in several targets). The release build and workspace Clippy with warnings denied pass. The live smoke and its limitation are recorded above; final workspace evidence is recorded in the M9.P3 checklist.

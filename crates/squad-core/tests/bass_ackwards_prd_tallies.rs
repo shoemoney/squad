@@ -43,7 +43,10 @@ fn keys_levels_critical_chain_and_slug() {
     mint_keys(&mut d);
     d.validate().unwrap();
     let first = d.lines()[0].key.clone().unwrap();
-    assert_eq!(d.lines()[1].depends_on, [first.clone()]);
+    assert_eq!(
+        d.lines()[1].depends_on.as_slice(),
+        std::slice::from_ref(&first)
+    );
     let done = BassAckwardsPrdDone {
         items: ["D1", "D2"]
             .map(|id| BassAckwardsPrdDoneEntry {
@@ -62,6 +65,7 @@ fn keys_levels_critical_chain_and_slug() {
     assert_eq!(c.critical_path[0], first);
     assert_eq!(slug("  Héllo WORLD!! "), "h-llo-world");
     assert_eq!(slug("💥"), "prd");
+    assert_eq!(slug(""), "prd");
     assert_eq!(slug(&"a".repeat(100)).len(), 48);
     let old = d.clone();
     mint_keys(&mut d);
@@ -84,6 +88,7 @@ fn revision_integrity_decision_coverage_and_add_only() {
     output["decisions"][0]["appliedTo"] = json!([key]);
     validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &output).unwrap();
     assert!(validate_output(&WorkKind::BassAckwardsPrdFinalize, &data, &output).is_err());
+    output["document"] = data["document"].clone();
     output["decisions"] = json!([]);
     assert!(validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &output).is_err());
 }
@@ -112,4 +117,35 @@ fn diamond_and_equal_chains_tie_by_document_order() {
     d.milestones[1].phases[0].line_items[0].depends_on = vec!["left".into()];
     d.milestones[1].phases[0].line_items.push(extra);
     assert_eq!(checks(&d, &done).critical_path, vec!["left", "l2"]);
+}
+
+#[test]
+fn redaction_does_not_change_unaddressed_committed_bytes() {
+    let mut original: BassAckwardsPrdDocument =
+        serde_json::from_value(fixtures::document()).unwrap();
+    mint_keys(&mut original);
+    original.milestones[0].phases[0].line_items[0].text = "Ask @alpha to deploy the page".into();
+    let mut projected = original.clone();
+    projected.milestones[0].phases[0].line_items[0].text =
+        "Ask [redacted] to deploy the page".into();
+    let mut next = projected.clone();
+    restore_unaddressed(&original, &projected, &mut next, &[], false);
+    assert_eq!(next, original);
+}
+
+#[test]
+fn compact_key_counter_never_reuses_removed_identities() {
+    let mut doc: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    let mut counter = 0;
+    mint_keys_after(&mut doc, &mut counter);
+    let removed = doc.milestones[1].phases[0].line_items[0]
+        .key
+        .clone()
+        .unwrap();
+    doc.milestones[1].phases[0].line_items[0].key = None;
+    doc.milestones[1].phases[0].line_items[0].local_id = "replacement".into();
+    mint_keys_after(&mut doc, &mut counter);
+    assert_ne!(doc.lines()[1].key.as_ref(), Some(&removed));
+    assert!(doc.order().iter().all(|key| key.len() <= 3));
+    doc.validate().unwrap();
 }

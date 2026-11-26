@@ -51,33 +51,31 @@ pub fn render(view: &View) -> Vec<String> {
                         } else {
                             "bass_ackwards_prd.finalize"
                         }
-                    {
-                        if let Some(entries) =
+                        && let Some(entries) =
                             a.body.as_ref().and_then(|b| b["decisions"].as_array())
-                        {
-                            out.push("Decision | Ref | Reason".into());
-                            for d in entries {
-                                out.push(format!(
-                                    "{} | {} | {}",
-                                    if d["verdict"] == "accept" {
-                                        "✓"
-                                    } else {
-                                        "✗"
-                                    },
-                                    d["ref"].as_str().unwrap_or(""),
-                                    d["reason"].as_str().unwrap_or("")
-                                ));
-                            }
+                    {
+                        out.push("Decision | Ref | Reason".into());
+                        for d in entries {
+                            out.push(format!(
+                                "{} | {} | {}",
+                                if d["verdict"] == "accept" {
+                                    "✓"
+                                } else {
+                                    "✗"
+                                },
+                                d["ref"].as_str().unwrap_or(""),
+                                d["reason"].as_str().unwrap_or("")
+                            ));
                         }
                     }
                 }
             }
             "SAVED" => {
                 for a in view.artifacts.values() {
-                    if a.artifact_kind.as_str() == "bass_ackwards_prd.saved" {
-                        if let Some(path) = a.body.as_ref().and_then(|b| b["path"].as_str()) {
-                            out.push(format!("PRD saved to {path}"));
-                        }
+                    if a.artifact_kind.as_str() == "bass_ackwards_prd.saved"
+                        && let Some(path) = a.body.as_ref().and_then(|b| b["path"].as_str())
+                    {
+                        out.push(format!("PRD saved to {path}"));
                     }
                 }
             }

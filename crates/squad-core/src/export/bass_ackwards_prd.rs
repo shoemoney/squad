@@ -118,7 +118,14 @@ pub fn render(
     let mut records = vec![];
     let mut report = None;
     let mut saved = None;
+    let mut state = None;
     for e in &snapshot.events {
+        if let EnvelopePayload::BassAckwardsPrdState(s) = &e.content
+            && s.contest_id == id
+        {
+            state = Some(s.clone());
+        }
+
         if let EnvelopePayload::ContestArtifact(a) = &e.content
             && a.contest_id == id
             && a.kind == Some(ContestKind::BassAckwardsPrd)
@@ -139,10 +146,21 @@ pub fn render(
             records.push((a.artifact_kind.to_string(), body.clone()));
         }
     }
-    if records.is_empty() {
+    if records.is_empty() && state.is_none() {
         return Err(super::ExportError::ContestNotFound);
     }
     let mut out = String::new();
+    if report.is_none()
+        && let Some(s) = state
+    {
+        let _ = writeln!(
+            out,
+            "# Bass ackwards PRD\n\nNo PRD saved. State: {:?}; result: {}.\n",
+            s.state,
+            s.terminal_reason.as_ref().map_or("pending", |r| r.as_str())
+        );
+    }
+
     if let Some(saved) = saved {
         let _ = writeln!(out, "PRD saved to {}\n", saved.path);
     }

@@ -3,7 +3,16 @@ use crate::validation::{ValidationResult, ensure, unique};
 use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-pub const ENABLED: bool = false;
+pub const ENABLED: bool = true;
+pub const MAX_DONE_ITEMS: usize = 8;
+pub const MAX_FROZEN_DONE: usize = 12;
+pub const MAX_TREE_NODES: usize = 20;
+pub const MAX_TREE_DEPTH: usize = 4;
+pub const MAX_MILESTONES: usize = 8;
+pub const MAX_LINE_ITEMS: usize = 60;
+pub const MAX_COMMENTS: usize = 4;
+pub const MAX_ADDITIONS: usize = 3;
+pub const PRD_WORD_LIMIT: usize = 2400;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum BassAckwardsPrdStatus {
@@ -98,6 +107,7 @@ pub struct BassAckwardsPrdDoneItem {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BassAckwardsPrdDoneList {
+    #[schemars(length(min = 3, max = 8))]
     pub items: Vec<BassAckwardsPrdDoneItem>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -141,10 +151,12 @@ pub struct BassAckwardsPrdNode {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BassAckwardsPrdTree {
+    #[schemars(length(min = 3, max = 20))]
     pub nodes: Vec<BassAckwardsPrdNode>,
     pub reaches_today: bool,
     #[schemars(extend("x-required-nullable" = true))]
     pub gap_note: Option<String>,
+    #[schemars(length(max = 5))]
     pub today_assumptions: Vec<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -163,8 +175,11 @@ pub struct BassAckwardsPrdLineItem {
     pub owner_role: String,
     pub precondition: String,
     pub risk: String,
+    #[schemars(length(min = 1, max = 12))]
     pub serves: Vec<String>,
+    #[schemars(length(max = 60))]
     pub depends_on: Vec<String>,
+    #[schemars(length(min = 1))]
     pub sources: Vec<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -174,6 +189,7 @@ pub struct BassAckwardsPrdPhase {
     pub key: Option<String>,
     pub local_id: String,
     pub title: String,
+    #[schemars(length(min = 1, max = 8))]
     pub line_items: Vec<BassAckwardsPrdLineItem>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -184,6 +200,7 @@ pub struct BassAckwardsPrdMilestone {
     pub local_id: String,
     pub title: String,
     pub goal: String,
+    #[schemars(length(min = 1, max = 4))]
     pub phases: Vec<BassAckwardsPrdPhase>,
     pub provenance: BassAckwardsPrdProvenance,
 }
@@ -192,8 +209,10 @@ pub struct BassAckwardsPrdMilestone {
 pub struct BassAckwardsPrdDocument {
     pub title: String,
     pub overview: String,
+    #[schemars(length(min = 2, max = 8))]
     pub milestones: Vec<BassAckwardsPrdMilestone>,
     pub overview_provenance: BassAckwardsPrdProvenance,
+    #[schemars(length(max = 8))]
     pub open_questions: Vec<String>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -210,6 +229,7 @@ pub struct BassAckwardsPrdComment {
 pub struct BassAckwardsPrdReview {
     #[schemars(extend("x-required-nullable" = true))]
     pub build: Option<String>,
+    #[schemars(length(max = 4))]
     pub comments: Vec<BassAckwardsPrdComment>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -227,6 +247,7 @@ pub struct BassAckwardsPrdAddition {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BassAckwardsPrdMustHaves {
+    #[schemars(length(max = 3))]
     pub additions: Vec<BassAckwardsPrdAddition>,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -281,6 +302,14 @@ pub struct BassAckwardsPrdSaved {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BassAckwardsPrdReport {
+    pub review_log: Vec<serde_json::Value>,
+    pub must_have_log: Vec<serde_json::Value>,
+    pub decisions: Vec<serde_json::Value>,
+    pub human_notes: Vec<serde_json::Value>,
+    pub human_application: Vec<BassAckwardsPrdApplied>,
+    pub skipped_members: Vec<serde_json::Value>,
+    pub dropped_quotes: usize,
+    pub provenance: std::collections::BTreeMap<String, String>,
     pub markdown: String,
     pub checks: BassAckwardsPrdChecks,
     #[schemars(extend("x-required-nullable" = true))]
@@ -381,9 +410,7 @@ pub fn validate_artifact(kind: &str, body: &serde_json::Value) -> ValidationResu
                             .collect::<Vec<_>>(),
                     )
                     && v.comments.iter().all(|c| {
-                        !c.quote.is_empty()
-                            && words(&c.comment, 60)
-                            && c.proposed.as_ref().is_none_or(|p| words(p, 60))
+                        words(&c.comment, 60) && c.proposed.as_ref().is_none_or(|p| words(p, 60))
                     }),
                 "invalid review",
             )
@@ -557,6 +584,15 @@ impl BassAckwardsPrdDocument {
             "invalid document size",
         )?;
         ensure(valid_ids(&self.order()), "duplicate document identities")?;
+        ensure(
+            !self.overview_provenance.source_labels.is_empty()
+                && self.overview_provenance.note.split_whitespace().count() <= 30,
+            "invalid overview provenance",
+        )?;
+        ensure(
+            prose_words(&serde_json::to_value(self).expect("typed document")) <= PRD_WORD_LIMIT,
+            "PRD prose exceeds 2400 words",
+        )?;
         for (mi, m) in self.milestones.iter().enumerate() {
             ensure(
                 (1..=4).contains(&m.phases.len())
@@ -696,16 +732,18 @@ pub fn validate_output(
     }
     if *kind == WorkKind::BassAckwardsPrdMustHave {
         let v = validation::decode::<BassAckwardsPrdMustHaves>(out)?;
-        let milestones = data["document"]["milestones"]
+        let milestones = data["keys"]["milestones"]
             .as_array()
             .cloned()
             .unwrap_or_default();
-        let line_keys = milestones
-            .iter()
-            .flat_map(|m| m["phases"].as_array().into_iter().flatten())
-            .flat_map(|p| p["lineItems"].as_array().into_iter().flatten())
-            .filter_map(|l| l["key"].as_str())
-            .collect::<Vec<_>>();
+        let line_keys = data["keys"]["lines"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|l| l["key"].as_str())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
         ensure(
             v.additions.iter().all(|a| {
                 milestones.iter().any(|m| m["key"] == a.under)
@@ -911,4 +949,38 @@ pub fn validate_output(
         }
     }
     Ok(())
+}
+
+/// Count prose, excluding the identifiers and graph edges needed to reproduce it.
+pub fn prose_words(v: &serde_json::Value) -> usize {
+    match v {
+        serde_json::Value::String(s) => s.split_whitespace().count(),
+        serde_json::Value::Array(a) => a.iter().map(prose_words).sum(),
+        serde_json::Value::Object(o) => o
+            .iter()
+            .filter(|(k, _)| !(k.as_str() == "note" && o.contains_key("conflict")))
+            .filter(|(k, _)| {
+                ![
+                    "key",
+                    "localId",
+                    "nodeId",
+                    "parent",
+                    "serves",
+                    "dependsOn",
+                    "sources",
+                    "sourceRefs",
+                    "sourceLabels",
+                    "ref",
+                    "appliedTo",
+                    "removes",
+                    "under",
+                    "verdict",
+                    "lens",
+                ]
+                .contains(&k.as_str())
+            })
+            .map(|(_, v)| prose_words(v))
+            .sum(),
+        _ => 0,
+    }
 }

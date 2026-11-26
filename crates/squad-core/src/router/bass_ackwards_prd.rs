@@ -119,7 +119,7 @@ pub fn steps(
     let mut out = vec![];
     for (kind, data, visible) in [
         (WorkKind::BassAckwardsPrdDone, end + today, 2048),
-        (WorkKind::BassAckwardsPrdFreeze, end + m * member, 2048),
+        (WorkKind::BassAckwardsPrdFreeze, end + m * member, 4096),
         (WorkKind::BassAckwardsPrdTree, end + today + done, 4096),
         (
             WorkKind::BassAckwardsPrdMerge,
@@ -271,6 +271,10 @@ pub fn prepare(
     let (calls, reserved) = script::calls(participants.len() as u32, setup.human_review);
     let mut settings = priced.settings();
     settings["reservedAttempts"] = reserved.into();
+    let member_calls = 4 * participants.len() as u32;
+    settings["memberCalls"] = member_calls.into();
+    settings["executorCalls"] = 0.into();
+    settings["judgeCalls"] = (calls - member_calls).into();
     let plan = ContestPreflight {
         contest_id: contest,
         kind: ContestKind::BassAckwardsPrd,
@@ -494,9 +498,7 @@ fn projection(
                 }
             }
             if s.state == BassAckwardsPrdStatus::MustHaves {
-                let mut public = serde_json::to_value(&d)?;
-                strip_provenance(&mut public);
-                data["document"] = public;
+                data["keys"] = json!({"milestones":d.milestones.iter().enumerate().map(|(mi,m)|json!({"key":m.key,"display":format!("M{}",mi+1)})).collect::<Vec<_>>(),"lines":d.milestones.iter().enumerate().flat_map(|(mi,m)|m.phases.iter().enumerate().flat_map(move |(pi,p)|p.line_items.iter().enumerate().map(move |(li,l)|json!({"key":l.key,"display":format!("M{}.P{}.L{}",mi+1,pi+1,li+1)})))).collect::<Vec<_>>()});
             }
             if matches!(
                 s.state,
@@ -521,6 +523,9 @@ fn projection(
         }
         _ => {}
     }
+    if *target == Target::Judge {
+        data.as_object_mut().expect("projection").remove("rendered");
+    }
     if matches!(target, Target::Member(_)) {
         if let Some(items) = data["done"]["items"].as_array_mut() {
             for item in items {
@@ -536,24 +541,6 @@ fn projection(
     }
     script::blind(&mut data, setup);
     Ok(data)
-}
-fn strip_provenance(v: &mut Value) {
-    match v {
-        Value::Object(o) => {
-            o.remove("provenance");
-            o.remove("overviewProvenance");
-            o.remove("sources");
-            for v in o.values_mut() {
-                strip_provenance(v);
-            }
-        }
-        Value::Array(a) => {
-            for v in a {
-                strip_provenance(v)
-            }
-        }
-        _ => {}
-    }
 }
 fn allocate(
     tx: &Transaction<'_>,
@@ -589,19 +576,7 @@ fn allocate(
             .get(&target.to_string())
             .ok_or_else(invalid)?
             .clone();
-        let visible = if matches!(
-            kind,
-            WorkKind::BassAckwardsPrdMerge
-                | WorkKind::BassAckwardsPrdRevise
-                | WorkKind::BassAckwardsPrdFinalize
-                | WorkKind::BassAckwardsPrdApply
-        ) {
-            8192
-        } else if kind == WorkKind::BassAckwardsPrdTree {
-            4096
-        } else {
-            2048
-        };
+        let visible = kind.new_mode_visible_tokens().ok_or_else(invalid)?;
         let words = match kind {
             WorkKind::BassAckwardsPrdDone | WorkKind::BassAckwardsPrdMustHave => 300,
             WorkKind::BassAckwardsPrdTree => setup.plan_words,
@@ -827,7 +802,37 @@ pub fn drive_move(
         store::put(tx, s.contest_id, "checks", &checks)?;
         let markdown = full_document(tx, &setup, &d, &checks)?;
         let filename = format!("prd-{}-{}.md", script::slug(&d.title), s.contest_id);
+        let review_log: Vec<Value> =
+            store::optional(tx, s.contest_id, "review_log")?.unwrap_or_default();
+        let dropped_quotes = review_log
+            .iter()
+            .filter(|l| l["quoteValid"] == false)
+            .count();
+        let mut provenance: BTreeMap<String, String> =
+            store::get(tx, s.contest_id, "tree_authors")?;
+        let done_authors: BTreeMap<String, String> = store::get(tx, s.contest_id, "done_authors")?;
+        provenance.extend(done_authors);
+        let mut decisions = vec![];
+        for stage in ["Revising", "Finalizing"] {
+            if let Some(v) =
+                store::optional::<Value>(tx, s.contest_id, &format!("decisions:{stage}"))?
+            {
+                decisions.push(json!({"stage":stage,"decisions":v["decisions"]}));
+            }
+        }
+        let human_application =
+            store::optional::<BassAckwardsPrdApplication>(tx, s.contest_id, "decisions:Applying")?
+                .map(|a| a.applied)
+                .unwrap_or_default();
         let report = BassAckwardsPrdReport {
+            review_log,
+            must_have_log: store::optional(tx, s.contest_id, "must_have_log")?.unwrap_or_default(),
+            decisions,
+            human_notes: store::optional(tx, s.contest_id, "notes")?.unwrap_or_default(),
+            human_application,
+            skipped_members: store::optional(tx, s.contest_id, "skipped")?.unwrap_or_default(),
+            dropped_quotes,
+            provenance,
             markdown,
             checks,
             path: Some(
@@ -953,8 +958,29 @@ pub fn drive_move(
             FreezingDone
         }
         FreezingDone => {
-            let grouping: BassAckwardsPrdGrouping = serde_json::from_value(accepted[0].1.clone())?;
-            let items = store::get(tx, s.contest_id, "items")?;
+            let mut grouping: BassAckwardsPrdGrouping =
+                serde_json::from_value(accepted[0].1.clone())?;
+            let items: Value = store::get(tx, s.contest_id, "items")?;
+            let material: Value =
+                store::get(tx, s.contest_id, &format!("work:{}", accepted[0].0.work_id))?;
+            for group in &mut grouping.groups {
+                if let Some(reference) = material["data"]["items"]
+                    .as_array()
+                    .and_then(|a| {
+                        a.iter().find(|i| {
+                            i["test"] == group.text
+                                && group.source_refs.iter().any(|r| i["ref"] == *r)
+                        })
+                    })
+                    .and_then(|i| i["ref"].as_str())
+                    && let Some(original) = items
+                        .as_array()
+                        .and_then(|a| a.iter().find(|i| i["ref"] == reference))
+                        .and_then(|i| i["test"].as_str())
+                {
+                    group.text = original.into();
+                }
+            }
             let frozen = script::freeze(&grouping, &items);
             store::put(tx, s.contest_id, "grouping", &grouping)?;
             store::put(tx, s.contest_id, "done", &frozen)?;
@@ -996,7 +1022,7 @@ pub fn drive_move(
         }
         Merging => {
             let mut doc: BassAckwardsPrdDocument = serde_json::from_value(accepted[0].1.clone())?;
-            script::mint_keys(&mut doc);
+            mint_committed(tx, s.contest_id, &mut doc)?;
             store::put(tx, s.contest_id, "document", &doc)?;
             artifact(tx, g, id, &s, "version", serde_json::to_value(&doc)?)?;
             store::put(tx, s.contest_id, "version:1", &doc)?;
@@ -1034,7 +1060,34 @@ pub fn drive_move(
         Revising | Finalizing | Applying => {
             let mut doc: BassAckwardsPrdDocument =
                 serde_json::from_value(accepted[0].1["document"].clone())?;
-            script::mint_keys(&mut doc);
+            let prior = document(tx, s.contest_id)?;
+            let material: Value =
+                store::get(tx, s.contest_id, &format!("work:{}", accepted[0].0.work_id))?;
+            let projected: BassAckwardsPrdDocument =
+                serde_json::from_value(material["data"]["document"].clone())?;
+            let touched = if s.state == Applying {
+                serde_json::from_value::<BassAckwardsPrdApplication>(accepted[0].1.clone())?
+                    .applied
+                    .into_iter()
+                    .flat_map(|a| a.applied_to)
+                    .collect::<Vec<_>>()
+            } else {
+                serde_json::from_value::<BassAckwardsPrdDecisions>(accepted[0].1.clone())?
+                    .decisions
+                    .into_iter()
+                    .filter(|d| d.verdict == "accept")
+                    .flat_map(|d| d.applied_to)
+                    .collect()
+            };
+            script::restore_unaddressed(
+                &prior,
+                &projected,
+                &mut doc,
+                &touched,
+                s.state == Finalizing,
+            );
+            doc.validate().map_err(|_| invalid())?;
+            mint_committed(tx, s.contest_id, &mut doc)?;
             let version: u32 = store::get(tx, s.contest_id, "version")?;
             store::put(tx, s.contest_id, "document", &doc)?;
             artifact(tx, g, id, &s, "version", serde_json::to_value(&doc)?)?;
@@ -1340,4 +1393,14 @@ fn release_skipped(tx: &Connection, contest: ContestId, kind: &WorkKind) -> Resu
         params![release, day],
     )?;
     Ok(())
+}
+
+fn mint_committed(
+    tx: &Connection,
+    contest: ContestId,
+    doc: &mut BassAckwardsPrdDocument,
+) -> Result<()> {
+    let mut counter: u64 = store::optional(tx, contest, "key_counter")?.unwrap_or(0);
+    script::mint_keys_after(doc, &mut counter);
+    store::put(tx, contest, "key_counter", &counter)
 }

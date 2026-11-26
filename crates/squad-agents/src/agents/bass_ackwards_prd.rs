@@ -211,32 +211,5 @@ pub fn enabled() -> bool {
     squad_protocol::bass_ackwards_prd::ENABLED
 }
 pub fn prose_words(v: &Value) -> usize {
-    match v {
-        Value::String(s) => s.split_whitespace().count(),
-        Value::Array(a) => a.iter().map(prose_words).sum(),
-        Value::Object(o) => o
-            .iter()
-            .filter(|(k, _)| {
-                ![
-                    "key",
-                    "localId",
-                    "nodeId",
-                    "parent",
-                    "serves",
-                    "dependsOn",
-                    "sources",
-                    "sourceRefs",
-                    "sourceLabels",
-                    "ref",
-                    "appliedTo",
-                    "removes",
-                    "under",
-                    "note",
-                ]
-                .contains(&k.as_str())
-            })
-            .map(|(_, v)| prose_words(v))
-            .sum(),
-        _ => 0,
-    }
+    squad_protocol::bass_ackwards_prd::prose_words(v)
 }

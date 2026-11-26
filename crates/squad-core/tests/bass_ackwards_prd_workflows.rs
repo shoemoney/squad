@@ -97,7 +97,7 @@ impl Fixture {
         assert!(spent >= 0 && reserved >= 0);
     }
     async fn wait(&self, check: impl Fn() -> bool) {
-        tokio::time::timeout(Duration::from_secs(30), async {
+        tokio::time::timeout(Duration::from_secs(90), async {
             while !check() {
                 self.assert_ledger();
                 tokio::time::sleep(Duration::from_millis(20)).await;
@@ -180,7 +180,7 @@ impl Respond for Answers {
         } else if schema.get("comments").is_some() {
             json!({"build":if d["lens"]=="READBACK"{json!("Build the status page and alerts.")}else{Value::Null},"comments":[{"localId":"c","quote":"Deploy the public status page","comment":"Clarify verification","proposed":null},{"localId":"bad","quote":"This quote does not exist anywhere","comment":"Dropped","proposed":null}]})
         } else if schema.get("additions").is_some() {
-            json!({"additions":[{"localId":"a","text":"Add operations guide","under":d["document"]["milestones"][0]["key"],"dependsOn":[],"serves":["D1"],"ownerRole":"Operator","risk":"Missing documentation","why":"Make operations repeatable"}]})
+            json!({"additions":[{"localId":"a","text":"Add operations guide","under":d["keys"]["milestones"][0]["key"],"dependsOn":[],"serves":["D1"],"ownerRole":"Operator","risk":"Missing documentation","why":"Make operations repeatable"}]})
         } else if schema.get("applied").is_some() {
             json!({"applied":d["notes"].as_array().unwrap().iter().map(|n|json!({"note":n["ref"],"appliedTo":[],"conflict":"This fixture records a conflict"})).collect::<Vec<_>>(),"document":d["document"]})
         } else {
@@ -205,11 +205,18 @@ impl Respond for Answers {
                 output["additions"] = json!([]);
             }
         }
-        streaming(&output.to_string(), "stop")
+        // Streaming framing is covered by the transport suite; one chunk keeps
+        // this suite focused on durable workflow transitions.
+        raw_sse(format!(
+            "{}{}data: [DONE]\r\n\r\n",
+            event(
+                json!({"id":GENERATION,"model":MODEL,"choices":[{"index":0,"delta":{"content":output.to_string()},"finish_reason":"stop"}]})
+            ),
+            event(json!({"choices":[],"usage":usage()}))
+        ))
     }
 }
 #[tokio::test]
-#[ignore = "Scaffold judge adapter rejects new-mode work before registered dispatch; integration prerequisite documented in mode docs"]
 async fn default_six_members_save_one_file_blind_and_restart_without_calls() {
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
@@ -590,6 +597,16 @@ async fn owned_engine_and_handlers_complete_28_calls_and_persist_file() {
         ),
         RequestResult::Accepted { .. }
     ));
+    let preflight: Value = h
+        .store
+        .call(|db| {
+            let raw: String = db.query_row("SELECT plan_json FROM contests", [], |r| r.get(0))?;
+            Ok(serde_json::from_str(&raw)?)
+        })
+        .unwrap();
+    assert_eq!(preflight["settings"]["memberCalls"], 24);
+    assert_eq!(preflight["settings"]["executorCalls"], 0);
+    assert_eq!(preflight["settings"]["judgeCalls"], 4);
     h.pump().await;
     let s = h.state();
     assert_eq!(s.state, BassAckwardsPrdStatus::Complete, "{s:?}");

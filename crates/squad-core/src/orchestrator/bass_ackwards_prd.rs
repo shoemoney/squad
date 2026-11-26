@@ -79,22 +79,41 @@ pub fn readback(rotation: &[MemberNick], nick: &MemberNick, milestones: usize) -
         % milestones
 }
 pub fn mint_keys(d: &mut BassAckwardsPrdDocument) {
+    let mut counter = d
+        .order()
+        .iter()
+        .filter_map(|k| k.strip_prefix('K').and_then(|k| k.parse::<u64>().ok()))
+        .max()
+        .unwrap_or(0);
+    mint_keys_after(d, &mut counter);
+}
+/// The counter is persisted with every version, including after removals. Keys
+/// are stable identities, independent of positional M/P/L display numbers.
+pub fn mint_keys_after(d: &mut BassAckwardsPrdDocument, counter: &mut u64) {
+    let mut used = d.order().into_iter().collect::<BTreeSet<_>>();
+    let mut next_key = || loop {
+        *counter += 1;
+        let key = format!("K{counter}");
+        if used.insert(key.clone()) {
+            break key;
+        }
+    };
     let mut refs = BTreeMap::new();
     for m in &mut d.milestones {
         if m.key.is_none() {
-            let k = CellId::new().to_string();
+            let k = next_key();
             refs.insert(m.local_id.clone(), k.clone());
             m.key = Some(k);
         }
         for p in &mut m.phases {
             if p.key.is_none() {
-                let k = CellId::new().to_string();
+                let k = next_key();
                 refs.insert(p.local_id.clone(), k.clone());
                 p.key = Some(k);
             }
             for l in &mut p.line_items {
                 if l.key.is_none() {
-                    let k = CellId::new().to_string();
+                    let k = next_key();
                     refs.insert(l.local_id.clone(), k.clone());
                     l.key = Some(k);
                 }
@@ -311,4 +330,66 @@ pub fn drive(
         }
     }
     Ok(outcomes)
+}
+
+/// Blind projections can redact prose. Restore the original bytes of every
+/// unaddressed entity before committing a judge's next version.
+pub fn restore_unaddressed(
+    previous: &BassAckwardsPrdDocument,
+    projected: &BassAckwardsPrdDocument,
+    next: &mut BassAckwardsPrdDocument,
+    touched: &[String],
+    add_only: bool,
+) {
+    if next.title == projected.title {
+        next.title = previous.title.clone();
+    }
+    if next.overview == projected.overview {
+        next.overview = previous.overview.clone();
+    }
+    if next.overview_provenance == projected.overview_provenance {
+        next.overview_provenance = previous.overview_provenance.clone();
+    }
+    if next.open_questions == projected.open_questions {
+        next.open_questions = previous.open_questions.clone();
+    }
+    for m in &mut next.milestones {
+        if let Some(old) = previous
+            .milestones
+            .iter()
+            .find(|old| old.key == m.key && m.key.is_some())
+            && (add_only || !touched.iter().any(|k| Some(k) == m.key.as_ref()))
+        {
+            m.local_id = old.local_id.clone();
+            m.title = old.title.clone();
+            m.goal = old.goal.clone();
+            m.provenance = old.provenance.clone();
+        }
+        for p in &mut m.phases {
+            if let Some(old) = previous
+                .milestones
+                .iter()
+                .flat_map(|m| &m.phases)
+                .find(|old| old.key == p.key && p.key.is_some())
+                && (add_only || !touched.iter().any(|k| Some(k) == p.key.as_ref()))
+            {
+                p.local_id = old.local_id.clone();
+                p.title = old.title.clone();
+            }
+            for l in &mut p.line_items {
+                if let Some(old) = previous
+                    .lines()
+                    .into_iter()
+                    .find(|old| old.key == l.key && l.key.is_some())
+                    && (add_only || !touched.iter().any(|k| Some(k) == l.key.as_ref()))
+                {
+                    let dependencies = l.depends_on.clone();
+                    *l = old.clone();
+                    if add_only {
+                        l.depends_on = dependencies;
+                    }
+                }
+            }
+        }
+    }
 }
