@@ -111,6 +111,9 @@ All Rust checks use `rust-toolchain.toml` and the committed lockfile: formatting
 Clippy with warnings denied, build, workspace tests, Nextest and documentation
 tests. Installer fixtures, shellcheck and full Debian/Fedora installs also run.
 `CARGO_BUILD_JOBS=4` reaches both native builds and installer subprocesses.
+`RUST_TEST_THREADS=4` and `NEXTEST_TEST_THREADS=4` cap test concurrency to match
+the Linux runner's four CPUs; otherwise concurrent room fixtures can exceed
+their bounded deadlines.
 Jobs on each runner execute sequentially; newer pushes cancel older non-main,
 non-tag runs of the same branch.
 
