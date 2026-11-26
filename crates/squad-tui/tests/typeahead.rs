@@ -137,7 +137,25 @@ fn empty_partial_and_next_token_tab_menus() {
         );
         assert!(!app.input.text().contains('\t'));
         if text.is_empty() {
-            assert_eq!(app.completion.items.len(), 4 + 7 + SLASH_COMMANDS.len());
+            assert_eq!(
+                app.completion.items.len(),
+                4 + typeahead::MODES.len() + SLASH_COMMANDS.len()
+            );
+            // Keep the released layout snapshot independent of optional modes;
+            // the registry and parser checks use the full menu above.
+            app.completion.items.retain(|item| {
+                !item.starts_with('$')
+                    || [
+                        "$debate",
+                        "$grill",
+                        "$tournament",
+                        "$census",
+                        "$crosscheck",
+                        "$survey",
+                        "$probe",
+                    ]
+                    .contains(&item.as_str())
+            });
             insta::assert_snapshot!("starter_menu", screen(&mut app, 80));
         }
     }
@@ -248,7 +266,7 @@ fn tips_parse_rotate_hide_and_respect_narrow_and_no_colour() {
     let examples = typeahead::examples(&context());
     assert_eq!(
         examples.len(),
-        6,
+        6 + typeahead::MODES.len() - 7,
         "every authored example must parse with this roster"
     );
     assert!(

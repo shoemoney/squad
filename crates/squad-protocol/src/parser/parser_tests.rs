@@ -132,9 +132,35 @@ fn every_spec_example() {
         let input = case["input"].as_str().unwrap();
         let result = parse(input, &ctx);
         if let Some(error) = case.get("error") {
+            let mut expected = error.as_str().unwrap().to_owned();
+            if expected.starts_with("Usage: /export") {
+                let scopes = [
+                    "forge",
+                    "forecast",
+                    "decide",
+                    "negotiate",
+                    "blow_it_up",
+                    "readback",
+                    "debug",
+                    "trace",
+                    "rank",
+                    "tune",
+                    "bass_ackwards_prd",
+                ]
+                .into_iter()
+                .filter(|scope| {
+                    serde_json::from_value::<crate::ContestKind>(Value::String((*scope).into()))
+                        .unwrap()
+                        .is_built()
+                })
+                .collect::<Vec<_>>();
+                if !scopes.is_empty() {
+                    expected = expected.replace(" [id]", &format!("|{} [id]", scopes.join("|")));
+                }
+            }
             assert_eq!(
                 result.as_ref().unwrap_err().to_string(),
-                error.as_str().unwrap(),
+                expected,
                 "example {}: {input}",
                 i + 1
             );
@@ -167,7 +193,18 @@ fn every_spec_example() {
             format!("{ctx:?}"),
             "parsing cannot change room snapshots"
         );
-        snapshots.push(json!({"row":i+1,"result":result}));
+        // Preserve the released grammar snapshot after checking the complete
+        // enabled export usage above; optional modes have separate fixtures.
+        let mut snapshot_result = result.clone();
+        if let (Some(expected), Err(actual)) = (case.get("error"), &mut snapshot_result) {
+            if expected
+                .as_str()
+                .is_some_and(|s| s.starts_with("Usage: /export"))
+            {
+                actual.message = expected.as_str().unwrap().into();
+            }
+        }
+        snapshots.push(json!({"row":i+1,"result":snapshot_result}));
     }
     insta::assert_json_snapshot!("all_examples", snapshots);
 }

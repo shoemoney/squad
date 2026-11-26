@@ -99,13 +99,20 @@ fn disabled_scaffold_modes_are_absent_from_completion_and_help() {
         "bass_ackwards_prd",
     ] {
         let token = format!("${mode}");
-        assert!(!squad_tui::typeahead::MODES.iter().any(|(m, _)| *m == token));
-        assert!(
-            !squad_protocol::parser::help_examples()
-                .iter()
-                .any(|e| e.contains(&token))
+        let built = serde_json::from_value::<squad_protocol::ContestKind>(serde_json::json!(mode))
+            .unwrap()
+            .is_built();
+        assert_eq!(
+            squad_tui::typeahead::MODES.iter().any(|(m, _)| *m == token),
+            built
         );
-        assert!(!examples.iter().any(|e| e.contains(&token)));
+        assert_eq!(
+            squad_protocol::parser::help_examples()
+                .iter()
+                .any(|e| e.contains(&token)),
+            built
+        );
+        assert_eq!(examples.iter().any(|e| e.contains(&token)), built);
     }
     for example in examples {
         squad_protocol::parse(&example, &Default::default(), &ctx).unwrap();

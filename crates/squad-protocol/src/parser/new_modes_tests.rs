@@ -69,6 +69,20 @@ fn new_mode_examples_and_refusals() {
         let ctx = context(case);
         let raw = case["input"].as_str().unwrap();
         let run = || super::parser::parse_snapshot(raw, &ctx);
+        if case["condition"] == "disabled" {
+            let mode = raw
+                .split_once('$')
+                .unwrap()
+                .1
+                .split_whitespace()
+                .next()
+                .unwrap();
+            let kind: ContestKind = serde_json::from_value(Value::String(mode.into())).unwrap();
+            if kind.is_built() {
+                assert!(run().is_ok(), "enabled example must parse: {raw}");
+                continue;
+            }
+        }
         let result = if case["condition"] == "disabled" {
             run()
         } else {
