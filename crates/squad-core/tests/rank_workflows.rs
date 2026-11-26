@@ -226,7 +226,6 @@ impl Direct {
     async fn pump_limit(&self, f: &Fixture, limit: usize) {
         let mut calls = 0;
         for _ in 0..30 {
-            self.store.call(|db| {db.execute("UPDATE work SET status='queued',runnable=1 WHERE status='failed' AND attempt<CASE WHEN kind='rank.explain' THEN 3 ELSE 2 END AND COALESCE(json_extract(error_json,'$.code'),'')<>'WORK_CANCELLED'",[])?;Ok(())}).unwrap();
             squad_core::orchestrator::rank::drive(&mut self.router.lock().unwrap()).unwrap();
             let records = self
                 .store
@@ -558,4 +557,26 @@ async fn judge_gets_one_private_schema_repair() {
             .unwrap()
             .contains("validation")
     );
+}
+
+#[tokio::test]
+async fn judge_second_schema_failure_does_not_get_another_repair() {
+    let f = Fixture::new().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(wiremock::matchers::body_partial_json(
+            serde_json::json!({"model":"fixture/judge"}),
+        ))
+        .respond_with(streaming(
+            "{\"top\":[],\"cycles\":[],\"caveats\":\"\"}",
+            "stop",
+        ))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    let d = Direct::new(&f);
+    d.send(&f, START);
+    d.pump(&f).await;
+    assert_eq!(d.state().state, RankStatus::Failed);
+    d.store.call(|db|{let (repairs,calls):(i64,i64)=db.query_row("SELECT (SELECT COUNT(*) FROM mode_repairs),(SELECT COUNT(*) FROM attempts WHERE target='judge')",[],|r|Ok((r.get(0)?,r.get(1)?)))?;assert_eq!((repairs,calls),(1,2));Ok(())}).unwrap();
 }

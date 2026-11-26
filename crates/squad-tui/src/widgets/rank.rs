@@ -17,6 +17,7 @@ pub struct View {
     pub state: Option<RankState>,
     pub artifacts: std::collections::BTreeMap<EventId, ContestArtifact>,
     pub planned_judgments: usize,
+    pub report_lines: Option<Vec<String>>,
 }
 impl View {
     pub fn apply(&mut self, event: EventId, payload: &EnvelopePayload) {
@@ -33,6 +34,7 @@ impl View {
                 {
                     self.artifacts.clear();
                     self.planned_judgments = 0;
+                    self.report_lines = None;
                 }
                 self.state = Some(s.clone());
             }
@@ -40,6 +42,12 @@ impl View {
                 if a.kind == Some(ContestKind::Rank)
                     && a.audience == Some(ArtifactAudience::Human) =>
             {
+                if a.artifact_kind.as_str() == "rank.report"
+                    && let Some(body) = &a.body
+                    && let Ok(r) = validation::decode::<squad_protocol::rank::RankReport>(body)
+                {
+                    self.report_lines = Some(report_lines(&r));
+                }
                 self.artifacts.insert(event, a.clone());
             }
             _ => {}
@@ -47,6 +55,9 @@ impl View {
     }
 }
 pub fn render(view: &View) -> Vec<String> {
+    if let Some(lines) = &view.report_lines {
+        return lines.clone();
+    }
     let mut out = view
         .state
         .as_ref()
@@ -61,30 +72,6 @@ pub fn render(view: &View) -> Vec<String> {
                 .and_then(|b| b["choices"].as_array())
                 .map_or(0, Vec::len);
         }
-        if a.artifact_kind.as_str() == "rank.report"
-            && let Some(body) = &a.body
-            && let Ok(r) = validation::decode::<squad_protocol::rank::RankReport>(body)
-        {
-            let mut lines = vec![format!(
-                "COMPARING {}/{} judgments returned",
-                r.batches.values().map(|b| b.choices.len()).sum::<usize>(),
-                r.setup.pairs.len() * r.setup.votes_per_pair
-            )];
-            lines.extend(
-                squad_core::export::rank::report_text(&r, false)
-                    .lines()
-                    .map(|line| {
-                        if line.trim_start().starts_with("clear gap") {
-                            format!("──────── {line}")
-                        } else if line.trim_start().starts_with("close gap") {
-                            format!("········ {line}")
-                        } else {
-                            line.to_owned()
-                        }
-                    }),
-            );
-            return lines;
-        }
     }
     out.push(if view.planned_judgments > 0 {
         format!(
@@ -95,4 +82,27 @@ pub fn render(view: &View) -> Vec<String> {
         format!("COMPARING {returned} judgments returned")
     });
     out
+}
+
+fn report_lines(r: &squad_protocol::rank::RankReport) -> Vec<String> {
+    let mut lines = vec![format!(
+        "COMPARING {}/{} judgments returned",
+        r.batches.values().map(|b| b.choices.len()).sum::<usize>(),
+        r.setup.pairs.len() * r.setup.votes_per_pair
+    )];
+    lines.extend(
+        squad_core::export::rank::report_text(r, false)
+            .lines()
+            .map(|line| {
+                if line.trim_start().starts_with("clear gap") {
+                    format!("──────── {line}")
+                } else if line.trim_start().starts_with("close gap") {
+                    format!("········ {line}")
+                } else {
+                    line.to_owned()
+                }
+            }),
+    );
+
+    lines
 }
