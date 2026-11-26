@@ -73,6 +73,7 @@ fn report_uses_the_winning_prompt_byte_for_byte_and_lineage() {
         finalists: vec![],
         skipped: vec![],
         skipped_members: vec![],
+        skipped_steps: BTreeMap::new(),
         redaction: vec![],
     };
     let report = squad_core::export::tune::report(&run);

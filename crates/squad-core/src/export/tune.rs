@@ -170,7 +170,21 @@ pub fn report(run: &squad_store::tune::TuneRun) -> String {
         }
     }
     for n in &run.skipped_members {
-        let _ = writeln!(out, "\nSkipped member @{n}");
+        let steps: Vec<_> = run
+            .skipped_steps
+            .values()
+            .filter(|(nick, _)| nick == n)
+            .map(|(_, step)| step.as_str())
+            .collect();
+        let _ = writeln!(
+            out,
+            "\nSkipped member @{n}{}",
+            if steps.is_empty() {
+                String::new()
+            } else {
+                format!(" at {}", steps.join(", "))
+            }
+        );
     }
     for w in &run.skipped {
         let _ = writeln!(out, "\nSkipped work {w}");

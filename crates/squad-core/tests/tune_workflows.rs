@@ -71,6 +71,9 @@ impl Fixture {
         .unwrap()
     }
     fn admit(&self, named: bool) -> RequestResult {
+        self.admit_with_confirmation(named, true)
+    }
+    fn admit_with_confirmation(&self, named: bool, preconfirmed: bool) -> RequestResult {
         let id = EventId::new();
         let raw = "@all $tune PROMPT answer clearly\n--\ntask";
         let input = UserMessageInput {
@@ -126,8 +129,8 @@ impl Fixture {
                     bindings: &bindings,
                     config: Some(&self.config),
                     daily_max: 20_000_000,
-                    confirmation_threshold: 100.,
-                    preconfirmed: true,
+                    confirmation_threshold: 0.,
+                    preconfirmed,
                 },
             )
         })
@@ -291,7 +294,9 @@ impl Respond for Answers {
                 } else {
                     "BASELINE output"
                 });
-                return if matches!(self.scenario, Scenario::Pause("execute")) {
+                return if matches!(self.scenario, Scenario::Pause("execute"))
+                    || (self.scenario == Scenario::Pause("holdout_execute") && execution >= 12)
+                {
                     response.set_delay(Duration::from_millis(300))
                 } else {
                     response
@@ -350,7 +355,14 @@ impl Respond for Answers {
             _ => panic!("unknown stage {stage}"),
         };
         let response = streaming(&answer.to_string());
-        if matches!(self.scenario,Scenario::Pause(p) if p==stage) {
+        if matches!(self.scenario,Scenario::Pause(p) if p==stage)
+            || (self.scenario == Scenario::Pause("holdout_score")
+                && stage == "score"
+                && input["cases"][0]["caseLabel"]
+                    .as_str()
+                    .unwrap()
+                    .starts_with('H'))
+        {
             response.set_delay(Duration::from_millis(300))
         } else if self.scenario == Scenario::Slow && stage == "cases" {
             response.set_delay(Duration::from_secs(2))
@@ -486,7 +498,7 @@ async fn invalid_notes_repair_once_and_skipped_member_keeps_quorum() {
     for scenario in [Scenario::LeakRepair, Scenario::BadMember] {
         let (f, room, id) = run(scenario).await;
         let run = squad_store::tune::load(&f.db(), id).unwrap();
-        assert_eq!(run.report.unwrap().reason, "tuned");
+        assert_eq!(run.report.as_ref().unwrap().reason, "tuned");
         if scenario == Scenario::LeakRepair {
             let repairs: i64 = f
                 .db()
@@ -496,6 +508,10 @@ async fn invalid_notes_repair_once_and_skipped_member_keeps_quorum() {
         } else {
             assert_eq!(run.proposals.len(), 5);
             assert_eq!(run.skipped.len(), 1);
+            assert!(
+                squad_core::export::tune::report(&run)
+                    .contains("Skipped member @member0 at tune.cases")
+            );
         }
         room.shutdown().await.unwrap();
     }
@@ -670,6 +686,8 @@ async fn restart_keeps_seed_suite_and_accepted_execution_pairs() {
         ("execute", "EXECUTING"),
         ("score", "SCORING"),
         ("mutate", "MUTATING"),
+        ("holdout_execute", "HOLDOUT_EXECUTING"),
+        ("holdout_score", "HOLDOUT_SCORING"),
     ] {
         let f = Fixture::scenario(6, Scenario::Pause(phase)).await;
         let room = f.open(OpenMode::Interactive).await;
@@ -691,6 +709,14 @@ async fn restart_keeps_seed_suite_and_accepted_execution_pairs() {
         let id: ContestId = id.parse().unwrap();
         let before = squad_store::tune::load(&f.db(), id).unwrap();
         let accepted = squad_store::tune::executions(&f.db(), id).unwrap();
+        let completed: Vec<String> = f
+            .db()
+            .prepare("SELECT work_id FROM work WHERE status='completed' AND kind LIKE 'tune.%'")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
         room.shutdown().await.unwrap();
         let room = f.open(OpenMode::Interactive).await;
         f.wait(|| {
@@ -701,6 +727,28 @@ async fn restart_keeps_seed_suite_and_accepted_execution_pairs() {
         .await;
         let after = squad_store::tune::load(&f.db(), id).unwrap();
         assert_eq!(before.setup, after.setup);
+        for sheet in &before.sheets {
+            let restored = after
+                .sheets
+                .iter()
+                .find(|s| s.generation == sheet.generation && s.holdout == sheet.holdout)
+                .unwrap();
+            assert_eq!(
+                serde_json::to_value(sheet).unwrap(),
+                serde_json::to_value(restored).unwrap()
+            );
+        }
+        for work in completed {
+            let attempts: i64 = f
+                .db()
+                .query_row(
+                    "SELECT COUNT(*) FROM attempts WHERE work_id=?",
+                    [work],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(attempts, 1, "accepted work was repeated");
+        }
         if let Some(suite) = before.suite {
             assert_eq!(suite, after.suite.unwrap());
         }
@@ -710,6 +758,244 @@ async fn restart_keeps_seed_suite_and_accepted_execution_pairs() {
                 Some(e)
             );
         }
+        f.assert_ledger();
+        room.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn stop_at_each_paid_phase_fences_results_and_releases_reservations() {
+    for (phase, state) in [
+        ("cases", "BUILDING_CASES"),
+        ("freeze", "FREEZING"),
+        ("execute", "EXECUTING"),
+        ("score", "SCORING"),
+        ("mutate", "MUTATING"),
+        ("holdout_execute", "HOLDOUT_EXECUTING"),
+        ("holdout_score", "HOLDOUT_SCORING"),
+    ] {
+        let f = Fixture::scenario(6, Scenario::Pause(phase)).await;
+        let room = f.open(OpenMode::Interactive).await;
+        f.admit(false);
+        f.wait(|| {
+            f.db()
+                .query_row(
+                    "SELECT json_extract(state_json,'$.state')=? FROM contests",
+                    [state],
+                    |r| r.get::<_, bool>(0),
+                )
+                .unwrap_or(false)
+        })
+        .await;
+        assert!(matches!(
+            room.submit(request(&f.config, "/stop")).await,
+            RequestResult::Accepted { .. }
+        ));
+        room.shutdown().await.unwrap();
+        let id: String = f
+            .db()
+            .query_row("SELECT contest_id FROM contests", [], |r| r.get(0))
+            .unwrap();
+        let id: ContestId = id.parse().unwrap();
+        let state = squad_core::router::tune::load_state(&f.db(), id).unwrap();
+        assert_eq!(state.state, TuneStatus::Stopped);
+        let accepted = squad_store::tune::executions(&f.db(), id).unwrap();
+        let run = squad_store::tune::load(&f.db(), id).unwrap();
+        let room = f.open(OpenMode::Interactive).await;
+        assert_eq!(
+            squad_core::router::tune::load_state(&f.db(), id).unwrap(),
+            state
+        );
+        assert_eq!(
+            squad_store::tune::executions(&f.db(), id).unwrap(),
+            accepted
+        );
+        assert_eq!(
+            squad_store::tune::load(&f.db(), id).unwrap().setup,
+            run.setup
+        );
+        assert!(!f.db().query_row("SELECT EXISTS(SELECT 1 FROM work WHERE kind LIKE 'tune.%' AND status IN ('queued','running'))", [], |r| r.get::<_, bool>(0)).unwrap());
+        assert!(
+            !f.db()
+                .query_row("SELECT EXISTS(SELECT 1 FROM reservations)", [], |r| r
+                    .get::<_, bool>(0))
+                .unwrap()
+        );
+        f.assert_ledger();
+        room.shutdown().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn report_commit_is_atomic_and_terminal_restart_makes_no_provider_call() {
+    let (f, room, id) = run(Scenario::Happy).await;
+    let before = room.export(ExportScope::Tune, Some(id)).await.unwrap();
+    room.shutdown().await.unwrap();
+    let calls = f
+        .fake
+        .server
+        .received_requests()
+        .await
+        .unwrap()
+        .into_iter()
+        .filter(|r| r.method == "POST")
+        .count();
+    // REPORTING and COMPLETE share the final transaction. There is no durable
+    // gap in which a report exists while its terminal state is missing.
+    let reports: i64 = f
+        .db()
+        .query_row(
+            "SELECT COUNT(*) FROM events WHERE kind='contest.report' AND json_type(payload,'$.data.tuneArchive')='object'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(reports, 1);
+    let state = squad_core::router::tune::load_state(&f.db(), id).unwrap();
+    assert_eq!(state.state, TuneStatus::Complete);
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(
+        room.export(ExportScope::Tune, Some(id)).await.unwrap(),
+        before
+    );
+    assert_eq!(
+        squad_core::router::tune::load_state(&f.db(), id).unwrap(),
+        state
+    );
+    room.shutdown().await.unwrap();
+    assert_eq!(
+        f.fake
+            .server
+            .received_requests()
+            .await
+            .unwrap()
+            .into_iter()
+            .filter(|r| r.method == "POST")
+            .count(),
+        calls
+    );
+    f.assert_ledger();
+}
+
+#[tokio::test]
+async fn named_executor_completes_without_proposing_or_mutating() {
+    let f = Fixture::scenario(4, Scenario::Happy).await;
+    let room = f.open(OpenMode::Interactive).await;
+    assert!(matches!(f.admit(true), RequestResult::Accepted { .. }));
+    f.wait(|| {
+        f.db()
+            .query_row("SELECT active=0 FROM contests", [], |r| r.get::<_, bool>(0))
+            .unwrap_or(false)
+    })
+    .await;
+    let id: String = f
+        .db()
+        .query_row("SELECT contest_id FROM contests", [], |r| r.get(0))
+        .unwrap();
+    let run = squad_store::tune::load(&f.db(), id.parse().unwrap()).unwrap();
+    assert_eq!(run.report.as_ref().unwrap().reason, "tuned");
+    assert_eq!(run.proposals.len(), 3);
+    assert!(!run.proposals.contains_key(&nick("member0")));
+    assert!(
+        run.candidates
+            .iter()
+            .all(|c| c.author.as_ref() != Some(&nick("member0")))
+    );
+    for r in f
+        .fake
+        .server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .filter(|r| r.method == "POST")
+    {
+        let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+        if input_from(&body).is_some() {
+            assert_ne!(body["model"], "fixture/member0");
+        } else if body["messages"][0]["content"]
+            .as_str()
+            .unwrap_or("")
+            .starts_with("PROMPT")
+        {
+            assert_eq!(body["model"], "fixture/member0");
+        }
+    }
+    f.assert_ledger();
+    room.shutdown().await.unwrap();
+}
+
+#[tokio::test]
+async fn preflight_restart_preserves_setup_and_can_confirm_or_stop_without_calls() {
+    for confirm in [false, true] {
+        let f = Fixture::scenario(6, Scenario::Happy).await;
+        let room = f.open(OpenMode::Interactive).await;
+        let RequestResult::PendingConfirmation {
+            preflight: PendingPreflight::Contest(plan),
+            ..
+        } = f.admit_with_confirmation(false, false)
+        else {
+            panic!("missing preflight")
+        };
+        assert_eq!(
+            squad_core::router::tune::load_state(&f.db(), plan.contest_id)
+                .unwrap()
+                .state,
+            TuneStatus::Preflight
+        );
+        let before = squad_store::tune::load(&f.db(), plan.contest_id).unwrap();
+        room.shutdown().await.unwrap();
+        let room = f.open(OpenMode::Interactive).await;
+        assert_eq!(
+            squad_store::tune::load(&f.db(), plan.contest_id)
+                .unwrap()
+                .setup,
+            before.setup
+        );
+        assert!(
+            f.fake
+                .server
+                .received_requests()
+                .await
+                .unwrap()
+                .iter()
+                .all(|r| r.method != "POST")
+        );
+        let request = if confirm {
+            squad_protocol::Request::ContestConfirm {
+                request_id: EventId::new(),
+                contest_id: plan.contest_id,
+                plan_id: plan.plan_id,
+            }
+        } else {
+            request(&f.config, "/stop")
+        };
+        assert!(matches!(
+            room.submit(request).await,
+            RequestResult::Accepted { .. }
+        ));
+        f.wait(|| {
+            f.db()
+                .query_row("SELECT active=0 FROM contests", [], |r| r.get::<_, bool>(0))
+                .unwrap_or(false)
+        })
+        .await;
+        assert_eq!(
+            squad_core::router::tune::load_state(&f.db(), plan.contest_id)
+                .unwrap()
+                .state,
+            if confirm {
+                TuneStatus::Complete
+            } else {
+                TuneStatus::Stopped
+            }
+        );
+        assert_eq!(
+            squad_store::tune::load(&f.db(), plan.contest_id)
+                .unwrap()
+                .setup,
+            before.setup
+        );
         f.assert_ledger();
         room.shutdown().await.unwrap();
     }

@@ -330,6 +330,7 @@ pub fn prepare(
         finalists: vec![],
         skipped: vec![],
         skipped_members: vec![],
+        skipped_steps: BTreeMap::new(),
         redaction: super::probe::blind_tokens(tokens),
     };
     squad_store::tune::save(tx, contest_id, &run)?;
@@ -700,10 +701,12 @@ fn consume(
         let body = body_for(tx, job.work_id)?;
         if body.is_none() {
             run.skipped.push(job.work_id);
-            if let Target::Member(nick) = &work.target
-                && !run.skipped_members.contains(nick)
-            {
-                run.skipped_members.push(nick.clone());
+            if let Target::Member(nick) = &work.target {
+                if !run.skipped_members.contains(nick) {
+                    run.skipped_members.push(nick.clone());
+                }
+                run.skipped_steps
+                    .insert(job.work_id, (nick.clone(), work_name(&work.kind).into()));
             }
             squad_store::contest_steps::settle_if_pending(
                 tx,

@@ -51,3 +51,35 @@ fn human_view_dividers_and_report_are_committed_only() {
     view.apply(EventId::new(), &EnvelopePayload::ContestArtifact(a));
     assert!(render(&view).iter().any(|l| l.starts_with("Tuned: 0.58")));
 }
+
+#[test]
+fn tune_discovery_follows_the_public_switch_and_examples_parse() {
+    let ctx = ParseContext {
+        roster: ["alice", "bob", "carol", "dave"]
+            .map(|n| n.parse().unwrap())
+            .to_vec(),
+        ..Default::default()
+    };
+    let modes = squad_tui::typeahead::MODES
+        .iter()
+        .filter(|(token, _)| *token == "$tune")
+        .count();
+    assert_eq!(modes, usize::from(ENABLED));
+    let examples = squad_tui::typeahead::examples(&ctx);
+    let tune: Vec<_> = examples.iter().filter(|s| s.contains("$tune")).collect();
+    assert_eq!(tune.len(), usize::from(ENABLED));
+    for example in tune {
+        assert!(matches!(
+            parse(example, &SubmissionMeta::default(), &ctx).unwrap(),
+            ParsedInput::Tune { .. }
+        ));
+    }
+    if ENABLED {
+        assert!(squad_tui::typeahead::enabled("$tune"));
+        assert!(
+            squad_protocol::parser::help_examples()
+                .iter()
+                .any(|s| s.contains("$tune"))
+        );
+    }
+}

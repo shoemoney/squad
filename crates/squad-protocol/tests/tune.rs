@@ -114,6 +114,23 @@ fn enabled_parser_example_and_named_executor_counts() {
     } else {
         panic!("wrong AST");
     }
+    let mut small = ctx;
+    small.roster.pop();
+    assert!(
+        parse(
+            "@all $tune prompt\n--\ntask\n--\n@alice",
+            &SubmissionMeta::default(),
+            &small
+        )
+        .is_err()
+    );
+    assert_eq!(
+        parser::help_examples()
+            .iter()
+            .filter(|s| s.contains("$tune"))
+            .count(),
+        1
+    );
 }
 #[test]
 fn proposal_and_freeze_enforce_distinct_member_case_caps() {

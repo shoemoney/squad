@@ -42,6 +42,9 @@ pub struct TuneRun {
     pub skipped: Vec<WorkId>,
     #[serde(default)]
     pub skipped_members: Vec<MemberNick>,
+    /// Failed step names retained for human reports after jobs are consumed.
+    #[serde(default)]
+    pub skipped_steps: BTreeMap<WorkId, (MemberNick, String)>,
     pub redaction: Vec<String>,
 }
 pub fn load(db: &Connection, id: ContestId) -> Result<TuneRun> {
