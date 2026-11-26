@@ -122,9 +122,9 @@ the latter failure. They cannot establish a quiet-host pass or regression.
 This standalone benchmark uses Ratatui directly, with effects off. It imports no
 Squad transcript, Markdown pipeline, application loop, or effects implementation.
 This measures the feasibility baseline; the real-widget, full-effects gate must
-be repeated after M4.P5. **macOS arm64 is pending, so the two-platform L1 gate
-remains blocked.** Linux headless results do not establish terminal-emulator or
-PTY input latency.
+be repeated after M4.P5. **macOS arm64 missed the measured key-latency gate on
+2026-11-26, so the two-platform L1 gate remains blocked.** Linux headless results
+do not establish terminal-emulator or PTY input latency.
 
 Run from the workspace root:
 
@@ -179,7 +179,9 @@ points. The macOS fallback reads cumulative user+system time via `ps -o time=`;
 its coarser resolution is unsuitable for interpreting very short CPU samples.
 Linux memory reports current resident size (`VmRSS`) and process-lifetime peak
 resident size (`VmHWM`) from `/proc/self/status` at each viewport's end. Peak is
-cumulative across both viewports. macOS reports RSS through `ps` (peak pending).
+cumulative across both viewports. macOS reports per-viewport RSS through `ps`;
+`time -l` adds a command-level maximum RSS including Cargo/child-process resource
+use, not a per-viewport peak.
 
 ### Linux x64 measurement (2026-11-24)
 
@@ -222,50 +224,108 @@ is code-path validation, not a physical terminal performance measurement.
 
 ### macOS arm64 measurement and terminal checks (2026-11-26)
 
-**Incomplete; the cross-platform gates remain blocked.** The new manual workflow
-[mac-perf.yml](../../.github/workflows/mac-perf.yml) is pushed on `mac-gates`, but
-GitHub rejected dispatch with HTTP 404 and lists only CI/Release as registered
-workflows. The new file needs default-branch registration. No macOS five-minute
-run, startup/RSS measurement, <6 ms catalogue result, run URL or CI artifact is
-available. No main push or tag was made.
+**FAIL; M4 exit remains blocked and all six assigned boxes remain open.**
+[Run 45899337976](https://github.com/shoemoney/squad/actions/runs/45899337976)
+completed on source `a402d57fa2c8f1ba6a16edbd64337752fab2bc11` and uploaded
+[the measurement artifact](https://github.com/shoemoney/squad/actions/runs/45899337976/artifacts/15157022695).
+The new manual [mac-perf.yml](../../.github/workflows/mac-perf.yml) first needed
+default-branch registration by the integrator. Changes were pushed to `mac-gates`, without a main push or
+tag. Compilation, all 54 release tests, FX timing and upload passed; the
+spike and real-transcript gates failed their unchanged limits.
 
-The workflow runs the effects-off `twelve_streams` at 120×36/80×24 and the actual
-transcript/full-FX `composed_streams` at 140×42/80×24/200×60, 300 seconds per size.
-It preserves draw p95 ≤8 ms, p99 ≤16.7 ms, key p95 ≤50 ms and CPU ≤25% of one
-core. It also runs the unchanged 200×60 `fx_frame` <6 ms gate and release
-invariant/governor/feed/idle and grid/bars/tree tests. CPU uses cumulative
-user+system `ps` time divided by wall time; harness startup/RSS and macOS
-`time -l` maximum RSS are retained with host/toolchain/lockfile evidence.
-`fx_frame` still uses catalogue samples rather than the combined real grid,
-survey-bar and probe-tree transcript; a green result alone cannot close L20.T3.
+Host: hueb (192.168.1.3), Apple M3 Ultra, 28 reported CPUs, 96 GiB RAM; macOS
+27.2.1 arm64, build 26B131, Darwin 27.2.0. Rust/Cargo 1.99.1, native
+`aarch64-apple-darwin`, optimized bench/release profile. Cargo.lock records
+Ratatui 0.30.2, crossterm 0.29.0, TachyonFX 0.25.2 and Criterion 0.7.0.
+The self-hosted runner labels are `self-hosted, macOS, ARM64, squad-ci`.
 
-Terminal host: hueb (192.168.1.3), Apple M3 Ultra, 96 GiB, macOS 27.2.1 arm64
-(build 26B131). Homebrew Squad 0.1.2 was installed; tmux 3.8 already existed.
-Kitty 0.42.1, Ghostty 1.4.0 and iTerm 3.5.14 were inspected. The benchmark pins
-Rust/Cargo 1.99.1 and Cargo.lock (Ratatui 0.30.2, crossterm 0.29.0), but its macOS
-environment artifact has not been generated. Linux results above retain their
-original hardware, methods and qualifications.
+The effects-off `twelve_streams` ran 300 seconds at 120×36 and 80×24. The actual
+App/reducer/Markdown/transcript `composed_streams` ran full effects for 300 seconds
+at 140×42, 80×24 and 200×60. Both use TestBackend, 10,000 preloaded messages,
+twelve 40-delta/s streams, typing, history scrolling and resize. These are
+headless drawing and scheduled-key measurements, not terminal/display latency.
+CPU is cumulative process user+system `ps -o time=` divided by wall time, as a
+percentage of one core, without dividing by 28. Startup is fixture preparation
+and first draw, excluding executable launch and compilation.
 
-Kitty used a temporary remote-control socket and launch-only
-`allow_remote_control=yes`. The installed release used separate temporary data
-directories, `/dev/null` as env file and a loopback streamed provider fixture;
-no live-model calls or spend were required. Raw bounded capability probes and
-Kitty text-buffer inspection provided the following evidence, without a
-physical-display visual or terminal performance measurement:
+| Workload / size | Draw p95 ms ≤8 | Draw p99 ms ≤16.7 | Key p95 ms ≤50 | CPU one core % ≤25 | Result |
+|---|---:|---:|---:|---:|---|
+| Spike 120×36 | 0.517 | 0.572 | **107.662** | 0.927 | FAIL key |
+| Spike 80×24 | 0.322 | 0.371 | **99.597** | 0.753 | FAIL key |
+| Full FX 140×42 | **12.295** | 13.041 | **122.909** | 17.402 | FAIL draw p95, key |
+| Full FX 80×24 | **11.738** | 12.634 | **125.049** | 16.533 | FAIL draw p95, key |
+| Full FX 200×60 | **13.042** | 13.906 | **129.535** | 15.851 | FAIL draw p95, key |
 
-| Route | Synchronized output | Kitty keyboard | Mode 2027 | OSC 52 via Ctrl+Y | Viewports |
-|---|---|---|---|---|---|
-| Kitty direct | probe supported (`2026;2`); app capture emitted no sync begin | supported; app pushed flags 3 | unsupported (`2027;0`) | failed: copy notice, empty `pbpaste`, no OSC 52 in capture | 120×36, 80×24 startup/input/reply passed |
-| Kitty + isolated tmux | probe supported (`2026;2`) | no response; ordinary fallback | unsupported (`2027;0`) | fixture not delivered | 120×36 with status off; resize to 80×24 retained reply |
-| Ghostty / iTerm | unverified | unverified | unverified | unverified | Ghostty produced no probe output; iTerm AppleScript timed out |
-| wick → hueb SSH | unverified | unverified | unverified | unverified | agent-forwarded shell hop passed; GUI SSH route failed “No route to host” |
+| Workload / size | Startup ms | End RSS KiB |
+|---|---:|---:|
+| Spike 120×36 | 3.346 | 15,712 |
+| Spike 80×24 | 4.794 | 17,168 |
+| Full FX 140×42 | 994.588 | 241,504 |
+| Full FX 80×24 | 950.997 | 281,728 |
+| Full FX 200×60 | 948.603 | 287,184 |
 
-System Events automation also hung and screen capture was unavailable. These
-limitations were not counted as passes. The fixture server, owned apps/windows,
-isolated tmux server and temporary Mac files were cleaned up; no Mac development
-checkout or permanent terminal config change was made. Full commands, raw probe
-replies, failed copy evidence, measurement limitations and the six open boxes are
-in [the macOS gate report](../../docs/reports/macos-gates-2026-11-26.md).
+Command-level maximum RSS (`time -l`, bytes) was 121,749,504 for the spike,
+299,515,904 for composed and 121,995,264 for FX; these include Cargo/child-process
+resource use and are not per-viewport peak profiles. All windows lasted
+300.017–300.065 seconds. Frame counts were only 4,025–5,332, retained in the
+report; the cause of the missed latency limits was not diagnosed. The host was
+not isolated: composed start/end load was 1.86/2.05/2.21 → 2.37/2.09/2.11.
+This is one complete macOS run, not a three-run distribution. No samples were
+excluded and no short run was substituted. Linux results retain their existing
+hardware, method and qualifications above.
+
+The 200×60 catalogue warmed mean passed at **5.163428 ms <6 ms**; Criterion
+estimated 5.1210 ms (5.1168–5.1261 ms). All 54 release tests passed, covering
+the 256-cue queue, 48-effect cap, governor degradation, sustained feed and idle
+timer disarming, clipboard and grid/bars/tree properties. `fx_frame` still uses
+catalogue sample painters rather than a combined real 200-cell grid/survey-bars/
+probe-tree transcript, so its timing does not close L20.T3. Full-effects draw
+p95/key failures also keep the M4.P5 dependency and both-platform exit gates open.
+
+Terminal versions: Kitty 0.42.1, Ghostty 1.4.0, iTerm 3.5.14 and tmux 3.8.
+Homebrew Squad 0.1.2 supplied the baseline; the artifact's FakeRoom demo supplied
+the fixed-source check. Temporary data directories and a loopback provider
+fixture or FakeRoom required **$0 live-provider spend**. Kitty used a temporary
+remote-control socket and launch-only `allow_remote_control=yes`. Checks inspected
+the real emulator's text buffer, without a physical-display visual inspection.
+
+| Route | Synchronized output / keyboard / mode 2027 | Clipboard and sizes |
+|---|---|---|
+| Kitty direct | 2026 probe supported; app emitted no sync begin; Kitty flags 3; 2027 unsupported | brew 0.1.2 copy failed; fixed demo exact `pbpaste` delivery at 120×36 and 80×24, exit 0 and termios restored |
+| Kitty + isolated tmux | 2026 probe supported; ordinary keyboard fallback; 2027 unsupported | default `external` blocked app OSC 52; `set-clipboard on` delivered exact copy at 120×36 and 80×24, exit 0 and termios restored |
+| Ghostty / iTerm | unverified | Ghostty produced no probe output; iTerm AppleScript timed out |
+| wick → hueb SSH | unverified in terminal | agent-forwarded shell hop passed; GUI route failed “No route to host” |
+
+The full terminal box stays open for the app sync, Ghostty/iTerm and terminal-SSH
+gaps. Owned test windows/processes, isolated tmux servers and temporary Mac files
+were removed; no Mac development checkout or permanent terminal config change
+was made. Commands, raw replies, failed and passing clipboard evidence, full
+measurements and each box's remaining reason are in
+[the macOS gate report](../../docs/reports/macos-gates-2026-11-26.md).
+
+#### Clipboard troubleshooting: Kitty and tmux
+
+Ctrl+Y sends OSC 52 to the terminal. Kitty's default `clipboard_control` permits
+`write-clipboard`; keep that permission if you customize the setting. A copy
+request notice confirms initiation, not delivery: verify the clipboard or use
+`/export` if the terminal blocks it.
+
+Inside tmux, its default `set-clipboard external` ignores clipboard requests
+from applications. Enable forwarding in the running tmux server with:
+
+```sh
+tmux set-option -s set-clipboard on
+```
+
+To make this your persistent user setting, add `set -s set-clipboard on` to
+`~/.tmux.conf`. This route uses tmux's normal OSC 52 / `Ms` forwarding and does
+not require `allow-passthrough` or DCS wrapping. The macOS check passed manual and fixed-demo
+OSC 52 delivery at both sizes with this setting and Kitty's existing permissions;
+only a temporary isolated tmux server was changed during testing.
+
+Squad 0.1.2 also had a separate event-loop defect: it constructed the copy
+request without writing it. The branch fix in `10939fb` writes and flushes the
+request; tmux configuration alone cannot repair the installed 0.1.2 binary.
 
 ## Integrated effects catalogue (2026-11-24)
 
