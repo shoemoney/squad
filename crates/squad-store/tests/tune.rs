@@ -141,3 +141,18 @@ fn ready<T>(mut future: ReaderFuture<'_, T>) -> Result<T, ReaderError> {
         std::task::Poll::Pending => panic!("store reader must be ready"),
     }
 }
+#[test]
+fn execution_pairs_are_immutable_and_clear_with_their_contest() {
+    let store = Store::open(":memory:").unwrap();
+    store.call(|db|{
+        let id=ContestId::new();db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES(?,'tune',1,1,'{}',0)",[id.to_string()])?;
+        squad_store::tune::ensure_holds(db)?;
+        assert!(db.query_row("SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='tune_hold_ordinary')",[],|r|r.get::<_,bool>(0))?);
+        let e=squad_protocol::tune::TuneExecution{candidate_id:"candidate".into(),case_label:"T1".into(),output:Some("retained bytes".into()),truncated:true};
+        squad_store::tune::retain_execution(db,id,&e)?;squad_store::tune::retain_execution(db,id,&e)?;
+        let mut different=e.clone();different.output=Some("changed".into());assert!(squad_store::tune::retain_execution(db,id,&different).is_err());
+        assert_eq!(squad_store::tune::executions(db,id)?,vec![e]);
+        db.execute("DELETE FROM contests WHERE contest_id=?",[id.to_string()])?;
+        assert!(squad_store::tune::executions(db,id)?.is_empty());Ok(())
+    }).unwrap();
+}

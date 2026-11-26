@@ -126,7 +126,14 @@ pub async fn execute(
         &input,
         invocation["candidateId"].as_str(),
         invocation["caseLabel"].as_str(),
-        crate::orchestrator::tune::validate_output,
+        |input, body| {
+            crate::orchestrator::tune::validate_output(input, body)?;
+            crate::orchestrator::tune::validate_word_budget(
+                input,
+                body,
+                invocation["roomWords"].as_u64().unwrap_or(300) as usize,
+            )
+        },
         cancel,
     )
     .await

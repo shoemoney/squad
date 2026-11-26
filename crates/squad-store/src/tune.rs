@@ -96,8 +96,9 @@ pub fn executions(db: &Connection, id: ContestId) -> Result<Vec<TuneExecution>> 
 
 /// Install after all registry migrations: later scaffold migrations rebuild work
 /// and would otherwise drop a trigger declared in 0019.
-pub fn ensure_holds(db:&Connection)->Result<()> {
-    db.execute_batch(r#"CREATE TRIGGER IF NOT EXISTS tune_hold_ordinary AFTER INSERT ON work
+pub fn ensure_holds(db: &Connection) -> Result<()> {
+    db.execute_batch(
+        r#"CREATE TRIGGER IF NOT EXISTS tune_hold_ordinary AFTER INSERT ON work
 WHEN NEW.kind='reply' AND NEW.step_id IS NULL AND NEW.held_by_contest_id IS NULL
  AND EXISTS(SELECT 1 FROM contests c JOIN tune_runs t USING(contest_id)
   WHERE c.active=1 AND c.kind='tune' AND json_extract(c.state_json,'$.state')<>'PREFLIGHT'
@@ -109,5 +110,7 @@ BEGIN
   AND EXISTS(SELECT 1 FROM json_each(t.run_json,'$.setup.participants') WHERE value=NEW.target)
  ) WHERE work_id=NEW.work_id;
 END;
-"#)?;Ok(())
+"#,
+    )?;
+    Ok(())
 }

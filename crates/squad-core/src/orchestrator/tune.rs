@@ -230,3 +230,28 @@ pub fn drive(
     }
     Ok(outcomes)
 }
+
+/// Generated prose is bounded independently of the provider's token ceiling.
+pub fn validate_word_budget(
+    input: &TuneCaseMaterial,
+    value: &serde_json::Value,
+    room_words: usize,
+) -> validation::ValidationResult {
+    fn count(v: &serde_json::Value) -> usize {
+        match v {
+            serde_json::Value::String(s) => s.split_whitespace().count(),
+            serde_json::Value::Array(a) => a.iter().map(count).sum(),
+            serde_json::Value::Object(o) => o.values().map(count).sum(),
+            _ => 0,
+        }
+    }
+    let limit = match input {
+        TuneCaseMaterial::Cases { .. } | TuneCaseMaterial::Freeze { .. } => room_words,
+        TuneCaseMaterial::Score { .. } => 600,
+        _ => return Ok(()),
+    };
+    validation::ensure(
+        count(value) <= limit,
+        "generated output exceeds its word budget",
+    )
+}

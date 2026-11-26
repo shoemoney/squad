@@ -508,6 +508,14 @@ pub fn accepted_work(
         squad_store::tune::retain_execution(tx, state.contest_id, &execution)?;
     } else {
         math::validate_output(&job.input, body).map_err(|_| invalid())?;
+        math::validate_word_budget(
+            &job.input,
+            body,
+            plan(tx, state.contest_id)?.settings["roomWords"]
+                .as_u64()
+                .ok_or_else(invalid)? as usize,
+        )
+        .map_err(|_| invalid())?;
     }
     squad_store::contest_steps::artifact(tx, artifact, seq)
 }
@@ -533,7 +541,9 @@ pub fn stop(
     state.terminal_reason = Some(text("stopped"));
     save_state(tx, g, id, &state)
 }
-pub fn recover(tx: &Connection, _contest: ContestId) -> Result<()> { squad_store::tune::ensure_holds(tx) }
+pub fn recover(tx: &Connection, _contest: ContestId) -> Result<()> {
+    squad_store::tune::ensure_holds(tx)
+}
 pub fn transition(
     tx: &Transaction<'_>,
     g: &mut CommitGroup,
@@ -946,8 +956,16 @@ fn redact_value(value: &mut serde_json::Value, tokens: &[String]) {
             }
         }
         serde_json::Value::Object(o) => {
-            for (_, v) in o {
-                redact_value(v, tokens)
+            for (key, v) in o {
+                // Labels and reference tokens are structural identities, not
+                // blind prose. Scrubbing A for a roster nick `a` would destroy
+                // the private score map and change the meaning of a sheet.
+                if !matches!(
+                    key.as_str(),
+                    "step" | "kind" | "label" | "caseLabel" | "localId" | "sourceRefs" | "targets"
+                ) {
+                    redact_value(v, tokens);
+                }
             }
         }
         _ => {}
@@ -1693,4 +1711,18 @@ fn resize_reservation(tx: &Connection, s: &TuneState, run: &TuneRun) -> Result<(
         )?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn blind_prose_scrubbing_preserves_structural_label_maps() {
+        let mut value = serde_json::json!({"caseLabel":"T1","label":"A","localId":"a","input":"a secret story","sourceRefs":["P1:a"]});
+        super::redact_value(&mut value, &["a".into(), "t1".into()]);
+        assert_eq!(value["caseLabel"], "T1");
+        assert_eq!(value["label"], "A");
+        assert_eq!(value["localId"], "a");
+        assert_eq!(value["sourceRefs"][0], "P1:a");
+        assert_eq!(value["input"], "[redacted] secret story");
+    }
 }

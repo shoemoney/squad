@@ -115,3 +115,34 @@ fn enabled_parser_example_and_named_executor_counts() {
         panic!("wrong AST");
     }
 }
+#[test]
+fn proposal_and_freeze_enforce_distinct_member_case_caps() {
+    let mut p = proposal();
+    let c = p["cases"][0].clone();
+    p["cases"] = json!([c.clone(), c.clone(), c.clone(), c]);
+    assert!(validate_artifact("tune.cases", &p).is_err());
+    let mut p: TuneCaseProposal = serde_json::from_value(proposal()).unwrap();
+    let mut b = p.cases[0].clone();
+    b.local_id = "b".into();
+    p.cases.push(b);
+    let mut c = p.cases[0].clone();
+    c.local_id = "c".into();
+    p.cases.push(c);
+    let q: TuneCaseProposal = serde_json::from_value(proposal()).unwrap();
+    let input = TuneCaseMaterial::Freeze {
+        prompt: "prompt".into(),
+        task: "task".into(),
+        proposals: vec![
+            TuneLabelledProposal {
+                label: "P1".into(),
+                proposal: p,
+            },
+            TuneLabelledProposal {
+                label: "P2".into(),
+                proposal: q,
+            },
+        ],
+    };
+    let frozen = json!({"cases":["P1:a","P1:b","P1:c","P2:a"],"dropped":[],"rubric":[{"name":"Accuracy","description":"Be correct","sourceRefs":["P1:r"]},{"name":"Clarity","description":"Be clear","sourceRefs":["P2:r"]}]});
+    assert!(input.validate_output(&frozen).is_err());
+}

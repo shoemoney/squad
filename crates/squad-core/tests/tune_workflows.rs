@@ -342,7 +342,7 @@ impl Respond for Answers {
                     let outputs:Vec<_>=c["outputs"].as_array().unwrap().iter().map(|o|{
                         let improved=o["output"].as_str().unwrap().contains("IMPROVED");let holdout=c["caseLabel"].as_str().unwrap().starts_with('H');
                         let score=if self.scenario==Scenario::Perfect || (improved&&self.scenario!=Scenario::NoImprovement&&!(holdout&&self.scenario==Scenario::HoldoutReject)){4}else{2};
-                        json!({"label":o["label"],"scores":[{"criterion":"Correctness","score":score},{"criterion":"Conciseness","score":score}],"note":if self.scenario==Scenario::LeakRepair&&n==0{"SECRET_CASE one two three four five six"}else{"Partially addresses requested behavior"}})
+                        json!({"label":o["label"],"scores":[{"criterion":"Correctness","score":score},{"criterion":"Conciseness","score":score}],"note":if self.scenario==Scenario::LeakRepair&&n==0{"SECRET_RUBRIC correct response to every requirement"}else{"Partially addresses requested behavior"}})
                     }).collect();json!({"caseLabel":c["caseLabel"],"outputs":outputs})
                 }).collect();
                 json!({"cases":rows})
@@ -401,9 +401,6 @@ async fn complete_blind_tune_reuses_outputs_and_balances_ledger() {
             let text = b.to_string();
             match input["step"].as_str().unwrap() {
                 "mutate" => {
-                    if self.scenario == Scenario::EmptyGeneration {
-                        return streaming("{}");
-                    }
                     for forbidden in [
                         "SECRET_CASE",
                         "SECRET_EXPECT",
@@ -518,6 +515,11 @@ async fn named_executor_is_removed_and_stop_fences_work() {
     assert_eq!(run.setup.participants.len(), 3);
     assert!(!run.setup.participants.contains(&nick("member0")));
     assert_eq!(run.setup.executor.model.as_str(), "fixture/member0");
+    let held = room
+        .submit(request(&f.config, "@member1 follow up after tune"))
+        .await;
+    assert!(matches!(held, RequestResult::Accepted { .. }));
+    assert!(f.db().query_row("SELECT EXISTS(SELECT 1 FROM work WHERE kind='reply' AND held_by_contest_id=? AND runnable=0)",[id.clone()],|r|r.get::<_,bool>(0)).unwrap());
     let _ = room.submit(request(&f.config, "/stop")).await;
     f.wait(|| {
         f.db()

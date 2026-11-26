@@ -55,7 +55,7 @@ pub fn render(view: &View) -> Vec<String> {
         };
         match a.artifact_kind.as_str() {
             "tune.suite" => {
-                if let Ok(suite) = serde_json::from_value::<TuneSuite>(body.clone()) {
+                if let Ok(suite) = validation::decode::<TuneSuite>(body) {
                     out.push(format!(
                         "Test set: {} train · {} held out (collapsed)",
                         suite.train.len(),
@@ -64,7 +64,7 @@ pub fn render(view: &View) -> Vec<String> {
                 }
             }
             "tune.generation" => {
-                if let Ok(g) = serde_json::from_value::<TuneGeneration>(body.clone()) {
+                if let Ok(g) = validation::decode::<TuneGeneration>(body) {
                     for (id, score) in &g.scores {
                         out.push(format!(
                             "Generation {} · {} · {:.2}{}",
@@ -81,7 +81,7 @@ pub fn render(view: &View) -> Vec<String> {
                 }
             }
             "tune.report" => {
-                if let Ok(r) = serde_json::from_value::<TuneReport>(body.clone()) {
+                if let Ok(r) = validation::decode::<TuneReport>(body) {
                     out.push(r.result_line);
                 }
             }

@@ -129,7 +129,13 @@ pub fn report(run: &squad_store::tune::TuneRun) -> String {
             out,
             "| {} | {} | {} | {} |",
             g.generation,
-            score(Some(&g.champion)),
+            score(
+                g.best
+                    .as_ref()
+                    .and_then(|id| run.candidates.iter().find(|c| &c.id == id))
+                    .and_then(|c| c.parent.as_ref())
+                    .or(Some(&g.champion))
+            ),
             score(g.best.as_ref()),
             g.promoted
         );
