@@ -57,19 +57,21 @@ wall time is claimed until it completes.
 
 ## Integration and verification
 
-With explicit scope approval on 2026-11-26, `mode-forecast-r2` changes five
-shared files required for enablement:
+With explicit scope approval on 2026-11-26, `mode-forecast-r2` changes shared runtime code and fixtures required for enablement:
 
 - `crates/squad-core/src/runtime/judge.rs`: route new-mode judge grants to the
   structured runner, which already dispatches to the forecast executor.
 - `crates/squad-core/src/router/executor.rs`: classify member
   `MODE_INVALID_OUTPUT` as invalid output so its private repair is accepted.
-- `crates/squad-protocol/src/parser/examples.json`: replace row 176's disabled
-  forecast expectation with an enabled parse fixture.
+- `crates/squad-protocol/src/parser/examples.json` and its `all_examples`
+  snapshot: enable row 176 and include forecast in export usage diagnostics.
 - `crates/squad-protocol/tests/contests.rs`: check forecast availability against
   its enable switch instead of requiring it to remain disabled.
-- `crates/squad-tui/tests/typeahead.rs`: derive the starter menu count from the
-  enabled inventory instead of hard-coding seven modes.
+- `crates/squad-core/tests/router_validation.rs`: skip enabled forecast in the
+  disabled-mode rejection fixture.
+- `crates/squad-tui/tests/typeahead.rs`, `actions_shell.rs` and
+  `contest_actions.rs`: reflect enabled forecast in starter/example counts,
+  disabled-mode filtering, help and export inventories.
 
 The owned forecast executor now reports `MODE_INVALID_OUTPUT` for members and
 `JUDGE_INVALID_MODE_OUTPUT` for judges. All workflow fixtures use the production

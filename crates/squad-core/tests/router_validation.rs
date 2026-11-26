@@ -342,6 +342,9 @@ fn disabled_modes_are_rejected_before_admission_or_spend() {
         "trace",
         "rank",
     ] {
+        if mode == "forecast" && forecast::ENABLED {
+            continue;
+        }
         let raw = format!("@all ${mode} brief");
         let ctx = router.parse_context().unwrap();
         let e = parse(&raw, &Default::default(), &ctx).unwrap_err();
