@@ -46,8 +46,19 @@ No live result or measured dollar cost is claimed. The production wrapper reject
 Only tune-owned files and tune's milestone tasks were edited.
 
 - In `crates/squad-core/src/runtime/judge.rs`, `Executor::execute` must route `grant.work.kind.new_mode_kind().is_some()` through `self.crosscheck.execute`, including `TuneExecute`. `new_mode_judge()` alone misses the bare executor, whose target is also a case. The downstream runner already dispatches to `runtime::tune::execute`. The legacy `JudgeExecutor` currently rejects these grants and leaves them running.
-- In `crates/squad-protocol/src/envelopes.rs`, replace the unconditional rejection of `CaseMaterial::Tune(_)` with validation of the tune material. Tune currently stores its typed JSON through the existing scoped standalone case carrier, with its source step, preserving the capability boundary.
+- In `crates/squad-protocol/src/envelopes.rs`, replace the unconditional rejection of `CaseMaterial::Tune(_)` with validation of the tune material. Then replace the standalone carrier in `router/tune.rs::allocate` with `CaseMaterial::Tune(input)`. The current compatibility carrier stores the same typed JSON with its scoped source step, preserving the capability boundary.
 - In `crates/squad-core/src/prompts/render.rs`, allow new-mode prefixes in the `mode_step` placeholder validator. Tune currently freezes the literal step name in the repair source and removes that unused slot before rendering, so repairs work without this shared edit.
 - In `crates/squad-core/src/router/executor.rs`, treat `MODE_INVALID_OUTPUT` as `FailureClass::InvalidOutput`. Tune uses the already recognized `JUDGE_INVALID_MODE_OUTPUT` for both member and judge structured validation so D75 repair policy works.
 
 After the judge dispatch change, enable `squad_protocol::tune::ENABLED`, switch the workflow fixture to the default launcher, verify parser/typeahead/help, rerun all gates, and run the approved release `squad send` with the default six-model roster, `SQUAD_DAILY_MAX_USD=150`, `TUNE_GENERATIONS=1`, `--env-file /dev/null` and a fresh private data directory. Fetch the credential directly into the process environment with `aigate-key openrouter`; never print it. Record measured spend, wall time, initial reservation, final reservation and report excerpt here. Project default-G cost using per-step measured class costs and the extra two generations, explicitly qualifying that estimate.
+
+## Validation
+
+On dev3, 2026-11-26, with `CARGO_BUILD_JOBS=4`, implementation commit `28f9c57d7a5958cc3988c6622319b65057ee20c5` passed:
+
+- `cargo test --workspace --no-fail-fast`: 1,352 unique passing tests, zero failures, four ignored entries. Cargo prints 1,353 passing summary entries because the WAL subprocess repeats one test.
+- `cargo clippy --workspace --all-targets -- -D warnings`.
+- `cargo fmt --all -- --check`.
+- The workspace's release CLI gate built `squad` with `cargo build --release --locked -p squad-cli` and passed its release behavior checks.
+
+Twenty-seven tune tests were added across protocol, store, agents, core workflow/tally/export, blinding and TUI. The public mode remains disabled. Default-launcher acceptance, the remaining held-out/report crash boundaries, parser/typeahead/help enablement and the real live smoke remain integration work; green injected-runtime tests do not substitute for those checks.

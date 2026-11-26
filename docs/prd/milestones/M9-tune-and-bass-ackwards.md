@@ -107,6 +107,8 @@ The owned protocol/store, script, bounds, prompts, report/export and view are im
 
 L5.T3 stays open: the shared production judge wrapper rejects new-mode work before a provider call. `ENABLED` remains false, and the approved live smoke and measured default-G cost projection are unperformed. Exact shared-file changes and compatibility workarounds are recorded in `docs/modes/tune.md` under **Integration requirements**. In particular, dispatch must include `TuneExecute`, not only structured judge kinds. No shared registries or other mode files were edited.
 
+**Final owned-code gates (dev3, 2026-11-26):** `CARGO_BUILD_JOBS=4 cargo test --workspace --no-fail-fast`, `cargo clippy --workspace --all-targets -- -D warnings` and `cargo fmt --all -- --check` passed on implementation `28f9c57d7a5958cc3988c6622319b65057ee20c5`. The suite has 1,352 unique passing tests, zero failures and four ignored entries (1,353 passing summary entries including the repeated WAL subprocess). Twenty-seven tests are new tune checks. The release CLI gate also built and exercised the release binary. Thirteen P2 tasks are checked; L5.T1 and L5.T3 remain open for the integration reasons above. No paid tune run was attempted, so live cost/time and a measured default-G dollar projection are unavailable.
+
 ## Phase M9.P3 — Bass_ackwards_prd
 
 Owns only the `bass_ackwards_prd` module files listed in **New modes → Files each mode worker owns**, migration `0020_bass_ackwards_prd.sql` and `docs/modes/bass_ackwards_prd.md`.
