@@ -48,6 +48,21 @@ pub async fn stream_attempt(
     forward_deltas: bool,
 ) -> Result<StreamOutput, ExecutionError> {
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
+        WorkKind::TuneCases => DeadlineClass::DebateTurn,
+        WorkKind::TuneFreeze => DeadlineClass::FinalJudge,
+        WorkKind::TuneExecute => DeadlineClass::Executor,
+        WorkKind::TuneScore => DeadlineClass::FinalJudge,
+        WorkKind::TuneMutate => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdDone => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdFreeze => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdTree => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdMerge => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdReview => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdRevise => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdMustHave => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdFinalize => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdApply => DeadlineClass::FinalJudge,
+
         WorkKind::ForgeDraft => DeadlineClass::DebateTurn,
         WorkKind::ForgeRank => DeadlineClass::DebateTurn,
         WorkKind::ForgeFuse => DeadlineClass::DebateTurn,
@@ -113,7 +128,8 @@ pub async fn stream_attempt(
     request.reasoning_effort = if matches!(
         grant.work.kind,
         WorkKind::SurveyExtract | WorkKind::SurveyReport
-    ) {
+    ) || grant.work.kind.new_mode_judge()
+    {
         squad_protocol::constants::NEW_MODE_JUDGE_REASONING_EFFORT
     } else if grant.work.kind == WorkKind::JudgeRound {
         ReasoningEffort::Low
@@ -348,3 +364,75 @@ pub mod rank;
 pub mod tune;
 
 pub mod bass_ackwards_prd;
+
+/// A frozen executor request has no prompt-pack, persona, history or redaction inputs.
+pub fn bare_executor_request(
+    grant: &ExecutionGrant,
+    prompt: &str,
+    input: &str,
+    published_output_limit: u32,
+) -> Result<ChatRequest, TransportError> {
+    if !grant.work.kind.is_executor()
+        || grant.work.validate().is_err()
+        || !grant.owner.owns(&grant.work)
+        || prompt.matches("{{input}}").count() > 1
+    {
+        return Err(TransportError::InvalidConfiguration);
+    }
+    let message = |role: &str, content: String| ChatMessage {
+        role: role.into(),
+        name: None,
+        content,
+    };
+    let messages = if prompt.contains("{{input}}") {
+        vec![message("user", prompt.replacen("{{input}}", input, 1))]
+    } else {
+        vec![
+            message("system", prompt.into()),
+            message("user", input.into()),
+        ]
+    };
+    let request = ChatRequest {
+        model: grant.binding.model.to_string(),
+        messages,
+        visible_ceiling: constants::TUNE_EXEC_VISIBLE_TOKENS,
+        published_output_limit,
+        supports_reasoning: false,
+        reasoning_effort: grant.binding.effort,
+        reasoning_explicit: false,
+        response_format: None,
+        policy: ExecutionPolicy::SingleAttempt(DeadlineClass::Executor),
+    };
+    request.body()?;
+    Ok(request)
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutorOutput {
+    pub text: String,
+    pub truncated: bool,
+}
+pub fn executor_output(output: StreamOutput) -> Result<ExecutorOutput, ExecutionError> {
+    if output.content.trim().is_empty() {
+        return Err(ExecutionError::Reader(ReaderError::NotRunnable));
+    }
+    Ok(ExecutorOutput {
+        text: output.content,
+        truncated: output.finish_reason == FinishReason::Length,
+    })
+}
+
+/// Execute one already admitted bare attempt; the router owns any plain retry.
+#[allow(clippy::too_many_arguments)]
+pub async fn execute_bare(
+    context: &AgentContext,
+    grant: &ExecutionGrant,
+    client: &OpenRouterClient,
+    prompt: &str,
+    input: &str,
+    published_output_limit: u32,
+    cancel: CancellationToken,
+) -> Result<ExecutorOutput, ExecutionError> {
+    let request = bare_executor_request(grant, prompt, input, published_output_limit)
+        .map_err(ExecutionError::Transport)?;
+    executor_output(stream_attempt(context, grant, client, request, cancel, false).await?)
+}

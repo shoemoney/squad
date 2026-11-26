@@ -9,6 +9,7 @@ pub struct Defaults {
     pub readback_rounds: u8,
     pub debug_rounds: u8,
     pub tune_generations: u8,
+    pub prd_human_review: u8,
 }
 impl Default for Defaults {
     fn default() -> Self {
@@ -20,6 +21,7 @@ impl Default for Defaults {
             readback_rounds: 2,
             debug_rounds: 3,
             tune_generations: 3,
+            prd_human_review: 0,
         }
     }
 }
@@ -33,6 +35,7 @@ impl From<&squad_protocol::config::RoomDefaults> for Defaults {
             readback_rounds: defaults.readback_rounds,
             debug_rounds: defaults.debug_rounds,
             tune_generations: defaults.tune_generations,
+            prd_human_review: defaults.prd_human_review,
         }
     }
 }
@@ -46,6 +49,8 @@ pub fn content_with_defaults(db: &rusqlite::Transaction<'_>, defaults: Defaults)
         || !(1..=6).contains(&defaults.negotiate_rounds)
         || !(1..=4).contains(&defaults.readback_rounds)
         || !(1..=6).contains(&defaults.debug_rounds)
+        || !(1..=6).contains(&defaults.tune_generations)
+        || defaults.prd_human_review > 1
     {
         return Err(crate::error::invalid("Invalid room variable defaults"));
     }
@@ -61,6 +66,7 @@ pub fn content_with_defaults(db: &rusqlite::Transaction<'_>, defaults: Defaults)
         ("READBACK_ROUNDS", defaults.readback_rounds),
         ("DEBUG_ROUNDS", defaults.debug_rounds),
         ("TUNE_GENERATIONS", defaults.tune_generations),
+        ("PRD_HUMAN_REVIEW", defaults.prd_human_review),
     ] {
         db.execute(
             "UPDATE vars SET value=? WHERE name=?",

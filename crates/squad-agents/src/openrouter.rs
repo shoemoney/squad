@@ -54,6 +54,7 @@ pub enum ExecutionPolicy {
 }
 #[derive(Clone, Copy, Debug)]
 pub enum DeadlineClass {
+    Executor,
     Ordinary,
     DebateTurn,
     FinalJudge,
@@ -63,6 +64,7 @@ pub enum DeadlineClass {
 impl DeadlineClass {
     fn duration(self) -> Duration {
         Duration::from_millis(match self {
+            Self::Executor => limits::DEBATE_TURN_DEADLINE_MS,
             Self::Ordinary => limits::TOTAL_TIMEOUT_MS,
             Self::DebateTurn => limits::DEBATE_TURN_DEADLINE_MS,
             Self::FinalJudge => limits::FINAL_JUDGE_DEADLINE_MS,
@@ -106,7 +108,7 @@ impl ChatRequest {
             .filter(|n| *n > 0)
             .ok_or(TransportError::OutputLimit)?;
         let visible = self.visible_ceiling.min(remaining);
-        if visible == 0 || self.visible_ceiling > limits::FINAL_JUDGE_VISIBLE_TOKENS {
+        if visible == 0 || self.visible_ceiling > limits::PRD_VISIBLE_TOKENS {
             return Err(TransportError::OutputLimit);
         }
         let mut body = json!({"model": self.model, "messages": self.messages,

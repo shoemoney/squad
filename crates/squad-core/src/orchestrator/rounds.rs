@@ -112,6 +112,17 @@ pub fn failure_policy(
     repair_used: bool,
     failure: super::types::FailureClass,
 ) -> AttemptDecision {
+    if kind.is_executor() {
+        return if attempt > 0 && attempt < 2 {
+            AttemptDecision::Retry {
+                work_id,
+                next_attempt: attempt + 1,
+                repair: false,
+            }
+        } else {
+            AttemptDecision::Forfeit(work_id)
+        };
+    }
     let invalid = failure == super::types::FailureClass::InvalidOutput;
     let ceiling = budget.min(attempt_limit(kind));
     if attempt > 0

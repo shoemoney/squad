@@ -3,6 +3,14 @@ use super::{ParseError, Span};
 use crate::ErrorCode;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Rule {
+    TuneCountExecutor,
+    TuneSegments,
+    TuneExecutor,
+    TunePromptSize,
+    TunePlaceholder,
+    PrdHumanReview,
+    PrdNote,
+
     TuneMissing,
     TuneTask,
     BassAckwardsPrdMissing,
@@ -105,9 +113,21 @@ pub enum Rule {
 impl Rule {
     pub fn template(self) -> &'static str {
         match self {
-            Self::TuneMissing => "Add a prompt to optimise after $tune.",
-            Self::TuneTask => "Add the task description after -- for $tune.",
-            Self::BassAckwardsPrdMissing => "Add an end result after $bass_ackwards_prd.",
+            Self::TuneCountExecutor => "$tune needs at least three members besides the executor.",
+            Self::TuneSegments => {
+                "$tune takes the prompt, then -- and the task, then an optional -- @nick executor."
+            }
+            Self::TuneExecutor => "The $tune executor must be one roster member, like -- @nick.",
+            Self::TunePromptSize => "$tune takes a prompt of at most 1,200 words.",
+            Self::TunePlaceholder => "$tune allows {{input}} at most once in the prompt.",
+            Self::PrdHumanReview => "PRD_HUMAN_REVIEW must be 0 or 1.",
+            Self::PrdNote => {
+                "Add your note after /answer, or use /continue to save the PRD as it is."
+            }
+
+            Self::TuneMissing => "Add the prompt to optimise after $tune.",
+            Self::TuneTask => "Add the task after -- for $tune.",
+            Self::BassAckwardsPrdMissing => "Add the end result after $bass_ackwards_prd.",
             Self::TuneGenerations => "TUNE_GENERATIONS must be an integer from 1 to 6.",
 
             Self::ModeDisabled => "Command ${verb} is disabled until its implementation lands.",
@@ -239,6 +259,14 @@ impl Rule {
     }
     pub fn code(self) -> ErrorCode {
         match self {
+            Self::TuneCountExecutor => ErrorCode::INVALID_COMMAND,
+            Self::TuneSegments => ErrorCode::INVALID_COMMAND,
+            Self::TuneExecutor => ErrorCode::INVALID_COMMAND,
+            Self::TunePromptSize => ErrorCode::INVALID_COMMAND,
+            Self::TunePlaceholder => ErrorCode::INVALID_COMMAND,
+            Self::PrdHumanReview => ErrorCode::INVALID_COMMAND,
+            Self::PrdNote => ErrorCode::INVALID_COMMAND,
+
             Self::TuneMissing => ErrorCode::INVALID_COMMAND,
             Self::TuneTask => ErrorCode::INVALID_COMMAND,
             Self::BassAckwardsPrdMissing => ErrorCode::INVALID_COMMAND,
@@ -382,6 +410,13 @@ pub fn contest_busy(
 
 /// All parser-owned diagnostics in specification order.
 pub const ALL_RULES: &[Rule] = &[
+    Rule::TuneCountExecutor,
+    Rule::TuneSegments,
+    Rule::TuneExecutor,
+    Rule::TunePromptSize,
+    Rule::TunePlaceholder,
+    Rule::PrdHumanReview,
+    Rule::PrdNote,
     Rule::TuneMissing,
     Rule::TuneTask,
     Rule::BassAckwardsPrdMissing,
@@ -479,3 +514,14 @@ pub const ALL_RULES: &[Rule] = &[
     Rule::NoCompleteCrosscheck,
     Rule::AcceptanceStale,
 ];
+
+/// Validate the resolved prompt at admission (including a quoted source).
+pub fn tune_prompt(text: &str, span: Span) -> Result<(), ParseError> {
+    if text.split_whitespace().count() > 1200 {
+        return Err(Rule::TunePromptSize.error(span, &[]));
+    }
+    if text.matches("{{input}}").count() > 1 {
+        return Err(Rule::TunePlaceholder.error(span, &[]));
+    }
+    Ok(())
+}

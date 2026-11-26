@@ -231,7 +231,6 @@ fn shared_parser_api_maps_modes_picks_and_all_export_scopes() {
 
 #[test]
 fn nine_mode_registries_roundtrip_and_remain_disabled() {
-    assert!(!forge::ENABLED);
     assert!(!ContestKind::Forge.is_built());
     assert_eq!(serde_json::to_value(ContestKind::Forge).unwrap(), "forge");
     let state = ForgeState {
@@ -248,7 +247,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "forge");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!forecast::ENABLED);
     assert!(!ContestKind::Forecast.is_built());
     assert_eq!(
         serde_json::to_value(ContestKind::Forecast).unwrap(),
@@ -268,7 +266,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "forecast");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!decide::ENABLED);
     assert!(!ContestKind::Decide.is_built());
     assert_eq!(serde_json::to_value(ContestKind::Decide).unwrap(), "decide");
     let state = DecideState {
@@ -285,7 +282,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "decide");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!negotiate::ENABLED);
     assert!(!ContestKind::Negotiate.is_built());
     assert_eq!(
         serde_json::to_value(ContestKind::Negotiate).unwrap(),
@@ -305,7 +301,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "negotiate");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!blow_it_up::ENABLED);
     assert!(!ContestKind::BlowItUp.is_built());
     assert_eq!(
         serde_json::to_value(ContestKind::BlowItUp).unwrap(),
@@ -325,7 +320,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "blow_it_up");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!readback::ENABLED);
     assert!(!ContestKind::Readback.is_built());
     assert_eq!(
         serde_json::to_value(ContestKind::Readback).unwrap(),
@@ -345,7 +339,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "readback");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!debugging::ENABLED);
     assert!(!ContestKind::Debugging.is_built());
     assert_eq!(
         serde_json::to_value(ContestKind::Debugging).unwrap(),
@@ -365,7 +358,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "debug");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!trace::ENABLED);
     assert!(!ContestKind::Trace.is_built());
     assert_eq!(serde_json::to_value(ContestKind::Trace).unwrap(), "trace");
     let state = TraceState {
@@ -382,7 +374,6 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "trace");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!rank::ENABLED);
     assert!(!ContestKind::Rank.is_built());
     assert_eq!(serde_json::to_value(ContestKind::Rank).unwrap(), "rank");
     let state = RankState {
@@ -406,187 +397,187 @@ fn all_new_work_kinds_have_the_frozen_composition_and_attempt_policy() {
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forge.draft");
     assert_eq!(kind.new_mode_composition(), Some("forge.draft"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::ForgeRank;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forge.rank");
     assert_eq!(kind.new_mode_composition(), Some("forge.rank"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::ForgeFuse;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forge.fuse");
     assert_eq!(kind.new_mode_composition(), Some("forge.fuse"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::ForgeJudge;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forge.judge");
     assert_eq!(kind.new_mode_composition(), Some("forge.judge"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::ForecastFrame;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forecast.frame");
     assert_eq!(kind.new_mode_composition(), Some("forecast.frame"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::ForecastEstimate;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forecast.estimate");
     assert_eq!(kind.new_mode_composition(), Some("forecast.estimate"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::ForecastRevise;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forecast.revise");
     assert_eq!(kind.new_mode_composition(), Some("forecast.revise"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::ForecastCruxes;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "forecast.cruxes");
     assert_eq!(kind.new_mode_composition(), Some("forecast.cruxes"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::DecideOptions;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "decide.options");
     assert_eq!(kind.new_mode_composition(), Some("decide.options"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::DecideShortlist;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "decide.shortlist");
     assert_eq!(kind.new_mode_composition(), Some("decide.shortlist"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::DecideCriteria;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "decide.criteria");
     assert_eq!(kind.new_mode_composition(), Some("decide.criteria"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::DecideFreeze;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "decide.freeze");
     assert_eq!(kind.new_mode_composition(), Some("decide.freeze"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::DecideScore;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "decide.score");
     assert_eq!(kind.new_mode_composition(), Some("decide.score"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::DecideExplain;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "decide.explain");
     assert_eq!(kind.new_mode_composition(), Some("decide.explain"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::NegotiateMap;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "negotiate.map");
     assert_eq!(kind.new_mode_composition(), Some("negotiate.map"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::NegotiateBrief;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "negotiate.brief");
     assert_eq!(kind.new_mode_composition(), Some("negotiate.brief"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::NegotiatePackage;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "negotiate.package");
     assert_eq!(kind.new_mode_composition(), Some("negotiate.package"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::NegotiateMove;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "negotiate.move");
     assert_eq!(kind.new_mode_composition(), Some("negotiate.move"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::NegotiateCounter;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "negotiate.counter");
     assert_eq!(kind.new_mode_composition(), Some("negotiate.counter"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::NegotiatePlaybook;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "negotiate.playbook");
     assert_eq!(kind.new_mode_composition(), Some("negotiate.playbook"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::BlowItUpAttack;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "blow_it_up.attack");
     assert_eq!(kind.new_mode_composition(), Some("blow_it_up.attack"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::BlowItUpChallenge;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "blow_it_up.challenge");
     assert_eq!(kind.new_mode_composition(), Some("blow_it_up.challenge"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::BlowItUpRule;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "blow_it_up.rule");
     assert_eq!(kind.new_mode_composition(), Some("blow_it_up.rule"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::ReadbackInterpret;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "readback.interpret");
     assert_eq!(kind.new_mode_composition(), Some("readback.interpret"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::ReadbackDiff;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "readback.diff");
     assert_eq!(kind.new_mode_composition(), Some("readback.diff"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::ReadbackRewrite;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "readback.rewrite");
     assert_eq!(kind.new_mode_composition(), Some("readback.rewrite"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::DebuggingHypothesize;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "debug.hypothesize");
     assert_eq!(kind.new_mode_composition(), Some("debug.hypothesize"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::DebuggingMerge;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "debug.merge");
     assert_eq!(kind.new_mode_composition(), Some("debug.merge"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::DebuggingTest;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "debug.test");
     assert_eq!(kind.new_mode_composition(), Some("debug.test"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::DebuggingSelect;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "debug.select");
     assert_eq!(kind.new_mode_composition(), Some("debug.select"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::DebuggingReport;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "debug.report");
     assert_eq!(kind.new_mode_composition(), Some("debug.report"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::TraceExtract;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "trace.extract");
     assert_eq!(kind.new_mode_composition(), Some("trace.extract"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::TraceMerge;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "trace.merge");
     assert_eq!(kind.new_mode_composition(), Some("trace.merge"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::TraceVerify;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "trace.verify");
     assert_eq!(kind.new_mode_composition(), Some("trace.verify"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::TraceAssemble;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "trace.assemble");
     assert_eq!(kind.new_mode_composition(), Some("trace.assemble"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
     let kind = WorkKind::RankCompare;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "rank.compare");
     assert_eq!(kind.new_mode_composition(), Some("rank.compare"));
     assert_eq!(constants::attempt_limit(&kind), 2);
-    assert_eq!(kind.new_mode_judge(), false);
+    assert!(!kind.new_mode_judge());
     let kind = WorkKind::RankExplain;
     assert_eq!(serde_json::to_value(&kind).unwrap(), "rank.explain");
     assert_eq!(kind.new_mode_composition(), Some("rank.explain"));
     assert_eq!(constants::attempt_limit(&kind), 3);
-    assert_eq!(kind.new_mode_judge(), true);
+    assert!(kind.new_mode_judge());
 }
 #[test]
 fn artifact_headers_require_explicit_nonempty_distinct_member_audiences() {
@@ -618,4 +609,147 @@ fn artifact_headers_require_explicit_nonempty_distinct_member_audiences() {
     a.validate_header().unwrap();
     a.body = Some(serde_json::json!([]));
     assert!(a.validate_header().is_err());
+}
+
+#[test]
+fn m9_work_classes_and_explicit_wire_names_are_registered() {
+    let kind = WorkKind::TuneCases;
+    let judge = false;
+    let executor = false;
+    assert_eq!(serde_json::to_value(&kind).unwrap(), "tune.cases");
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 2);
+    let kind = WorkKind::TuneFreeze;
+    let judge = true;
+    let executor = false;
+    assert_eq!(serde_json::to_value(&kind).unwrap(), "tune.freeze");
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 3);
+    let kind = WorkKind::TuneExecute;
+    let judge = false;
+    let executor = true;
+    assert_eq!(serde_json::to_value(&kind).unwrap(), "tune.execute");
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 2);
+    let kind = WorkKind::TuneScore;
+    let judge = true;
+    let executor = false;
+    assert_eq!(serde_json::to_value(&kind).unwrap(), "tune.score");
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 3);
+    let kind = WorkKind::TuneMutate;
+    let judge = false;
+    let executor = false;
+    assert_eq!(serde_json::to_value(&kind).unwrap(), "tune.mutate");
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 2);
+    let kind = WorkKind::BassAckwardsPrdDone;
+    let judge = false;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.done"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 2);
+    let kind = WorkKind::BassAckwardsPrdFreeze;
+    let judge = true;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.freeze"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 3);
+    let kind = WorkKind::BassAckwardsPrdTree;
+    let judge = false;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.tree"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 2);
+    let kind = WorkKind::BassAckwardsPrdMerge;
+    let judge = true;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.merge"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 3);
+    let kind = WorkKind::BassAckwardsPrdReview;
+    let judge = false;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.review"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 2);
+    let kind = WorkKind::BassAckwardsPrdRevise;
+    let judge = true;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.revise"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 3);
+    let kind = WorkKind::BassAckwardsPrdMustHave;
+    let judge = false;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.must_have"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 2);
+    let kind = WorkKind::BassAckwardsPrdFinalize;
+    let judge = true;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.finalize"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 3);
+    let kind = WorkKind::BassAckwardsPrdApply;
+    let judge = true;
+    let executor = false;
+    assert_eq!(
+        serde_json::to_value(&kind).unwrap(),
+        "bass_ackwards_prd.apply"
+    );
+    assert_eq!(kind.new_mode_judge(), judge);
+    assert_eq!(kind.is_executor(), executor);
+    assert_eq!(constants::attempt_limit(&kind), 3);
+    assert_eq!(
+        serde_json::to_value(ContestKind::BassAckwardsPrd).unwrap(),
+        "bass_ackwards_prd"
+    );
+    assert_eq!(
+        serde_json::to_value(ExportScope::BassAckwardsPrd).unwrap(),
+        "bass_ackwards_prd"
+    );
+    assert_eq!(WorkKind::TuneExecute.new_mode_composition(), None);
+    assert_eq!(WorkKind::TuneExecute.new_mode_visible_tokens(), Some(1024));
+    assert_eq!(
+        WorkKind::BassAckwardsPrdMerge.new_mode_visible_tokens(),
+        Some(8192)
+    );
 }

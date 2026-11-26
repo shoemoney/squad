@@ -34,8 +34,11 @@ const MODE_INVENTORY: &[(&str, &str)] = &[
         "Build a brief where every claim quotes its source",
     ),
     ("$rank", "Order a list by pairwise comparison"),
-    ("$tune", "Optimise a prompt for a task"),
-    ("$bass_ackwards_prd", "Work backwards from an end result"),
+    ("$tune", "Evolve a prompt against a hidden test set"),
+    (
+        "$bass_ackwards_prd",
+        "Plan backward from the end result into a saved PRD",
+    ),
 ];
 
 /// Stable sorting keeps roster/pick priority within each match class.
@@ -109,7 +112,7 @@ pub fn examples(ctx: &ParseContext) -> Vec<String> {
     ]);
     examples.extend([
         "@all $tune prompt\n--\ntask".into(),
-        "@all $bass_ackwards_prd end result".into(),
+        "@all $bass_ackwards_prd our CLI is installed by 1,000 teams and has a paid tier".into(),
     ]);
     examples.retain(|s| squad_protocol::parse(s, &SubmissionMeta::default(), ctx).is_ok());
     examples
@@ -192,9 +195,11 @@ const fn enabled_modes() -> ([(&'static str, &'static str); 18], usize) {
 const ENABLED_MODES: ([(&str, &str); 18], usize) = enabled_modes();
 pub const MODES: &[(&str, &str)] = ENABLED_MODES.0.split_at(ENABLED_MODES.1).0;
 
-pub const KEY_TIPS: &[&str] =
-    if squad_protocol::readback::ENABLED || squad_protocol::debugging::ENABLED {
-        ALL_KEY_TIPS
-    } else {
-        ALL_KEY_TIPS.split_at(6).0
-    };
+pub const KEY_TIPS: &[&str] = if squad_protocol::readback::ENABLED
+    || squad_protocol::debugging::ENABLED
+    || squad_protocol::bass_ackwards_prd::ENABLED
+{
+    ALL_KEY_TIPS
+} else {
+    ALL_KEY_TIPS.split_at(6).0
+};

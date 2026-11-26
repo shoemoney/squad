@@ -1,6 +1,6 @@
 # M8 scaffold: mode-worker ownership
 
-All eleven switches remain `ENABLED = false`. The first nine follow section 11. Tune and bass_ackwards_prd have the minimal grammar and placeholders requested in the scope addition; their detailed script contracts await section 12. No mode worker edits a shared registry. Bring any shared-file need back to the integrator.
+All eleven switches remain `ENABLED = false`. The first nine follow section 11; tune and bass_ackwards_prd follow section 12, decisions D88–D100 and M9.P1. No mode worker edits a shared registry. Bring any shared-file need back to the integrator.
 
 The lists below are exact owned paths, including tests and user documentation the worker creates. `debug` uses module `debugging`; its prompts, export and numbered migration keep wire name `debug`. The F12 widget remains `widgets/debug.rs`.
 
@@ -268,7 +268,10 @@ The original 166 parser rows and snapshot are retained. Additional rows use a te
 - `crates/squad-core/src/runtime/tune.rs`
 - `crates/squad-core/src/export/tune.rs`
 - `crates/squad-core/src/prompts/inputs_tune.rs`
-- `crates/squad-core/prompts/tune.placeholder.md`
+- `crates/squad-core/prompts/tune.cases.md`
+- `crates/squad-core/prompts/tune.freeze.md`
+- `crates/squad-core/prompts/tune.score.md`
+- `crates/squad-core/prompts/tune.mutate.md`
 - `crates/squad-core/tests/tune_workflows.rs`
 - `crates/squad-core/tests/tune_tallies.rs`
 - `crates/squad-core/tests/tune_export.rs`
@@ -291,7 +294,15 @@ The original 166 parser rows and snapshot are retained. Additional rows use a te
 - `crates/squad-core/src/runtime/bass_ackwards_prd.rs`
 - `crates/squad-core/src/export/bass_ackwards_prd.rs`
 - `crates/squad-core/src/prompts/inputs_bass_ackwards_prd.rs`
-- `crates/squad-core/prompts/bass_ackwards_prd.placeholder.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.done.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.freeze.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.tree.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.merge.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.review.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.revise.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.must_have.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.finalize.md`
+- `crates/squad-core/prompts/bass_ackwards_prd.apply.md`
 - `crates/squad-core/tests/bass_ackwards_prd_workflows.rs`
 - `crates/squad-core/tests/bass_ackwards_prd_tallies.rs`
 - `crates/squad-core/tests/bass_ackwards_prd_export.rs`
@@ -300,4 +311,4 @@ The original 166 parser rows and snapshot are retained. Additional rows use a te
 - `crates/squad-tui/tests/bass_ackwards_prd_view.rs`
 - `docs/modes/bass_ackwards_prd.md`
 
-The worker owns any additional `prompts/<wire name>.*.md` assets for its mode. One integration worker assembles the user-facing mode pages into README.md; README.md is not a concurrent worker file. Tune and bass_ackwards_prd currently register one placeholder composition each and no invented executable work kinds; their addendum determines those names before implementation.
+The worker owns any additional `prompts/<wire name>.*.md` assets for its mode. One integration worker assembles the user-facing mode pages into README.md; README.md is not a concurrent worker file. Tune registers five work kinds, including the bare executor `tune.execute` which has no template. Bass_ackwards_prd registers nine. The shared executor, reservation pricing and atomic export writer are implemented. The scaffold adds core dependencies for persisted randomness and SHA-256 so mode workers need no Cargo manifest edits. A quoted tune prompt is represented by `PlanSource`, preserving its identity until admission.

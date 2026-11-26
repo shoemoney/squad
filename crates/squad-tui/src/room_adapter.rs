@@ -43,6 +43,7 @@ pub fn snapshot(state: &RoomState, events: Vec<CommittedEnvelope>) -> RoomSnapsh
         (VariableName::ReadbackRounds, state.vars.readback_rounds),
         (VariableName::DebugRounds, state.vars.debug_rounds),
         (VariableName::TuneGenerations, state.vars.tune_generations),
+        (VariableName::PrdHumanReview, state.vars.prd_human_review),
     ]
     .into();
     view.context.pending_human = parser::restore_pending_human(&events);

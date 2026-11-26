@@ -155,6 +155,7 @@ impl RoomApi for RoomHandle {
         let mut crosschecks = BTreeMap::new();
         let mut surveys = BTreeMap::new();
         let mut probes = BTreeMap::new();
+        let mut scripted = BTreeMap::new();
         let mut addressed = BTreeSet::new();
         let mut terminal = BTreeSet::new();
         let mut failed = false;
@@ -249,6 +250,101 @@ impl RoomApi for RoomHandle {
                 EnvelopePayload::SurveyState(s) => {
                     surveys.insert(s.contest_id, s.state);
                 }
+                EnvelopePayload::ForgeState(s)
+                | EnvelopePayload::ContestState(ContestState::Forge(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Forge(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::ForecastState(s)
+                | EnvelopePayload::ContestState(ContestState::Forecast(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Forecast(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::DecideState(s)
+                | EnvelopePayload::ContestState(ContestState::Decide(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Decide(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::NegotiateState(s)
+                | EnvelopePayload::ContestState(ContestState::Negotiate(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Negotiate(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::BlowItUpState(s)
+                | EnvelopePayload::ContestState(ContestState::BlowItUp(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::BlowItUp(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::ReadbackState(s)
+                | EnvelopePayload::ContestState(ContestState::Readback(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Readback(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::DebuggingState(s)
+                | EnvelopePayload::ContestState(ContestState::Debugging(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Debugging(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::TraceState(s)
+                | EnvelopePayload::ContestState(ContestState::Trace(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Trace(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::RankState(s)
+                | EnvelopePayload::ContestState(ContestState::Rank(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Rank(s.clone())),
+                    );
+                }
+                EnvelopePayload::TuneState(s)
+                | EnvelopePayload::ContestState(ContestState::Tune(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Tune(s.clone())),
+                    );
+                }
+                EnvelopePayload::BassAckwardsPrdState(s)
+                | EnvelopePayload::ContestState(ContestState::BassAckwardsPrd(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(
+                            &ContestState::BassAckwardsPrd(s.clone()),
+                        ),
+                    );
+                }
                 EnvelopePayload::ProbeState(p) => {
                     probes.insert(p.contest_id, p.state);
                 }
@@ -257,6 +353,16 @@ impl RoomApi for RoomHandle {
                 }
                 _ => (),
             }
+        }
+        if !scripted.is_empty() {
+            use squad_tui::widgets::contest_status::RunOutcome;
+            return if scripted.values().any(|v| *v == RunOutcome::Running) {
+                Progress::Running
+            } else if scripted.values().all(|v| *v == RunOutcome::Complete) {
+                Progress::Succeeded
+            } else {
+                Progress::Failed
+            };
         }
         if !probes.is_empty() {
             return if probes.values().any(|s| !s.is_terminal()) {
@@ -489,6 +595,7 @@ mod tests {
                     readback_rounds: 2,
                     debug_rounds: 3,
                     tune_generations: 3,
+                    prd_human_review: 0,
                 },
                 participants: vec![],
                 debates: vec![],

@@ -57,6 +57,9 @@ impl<'a> Registry<'a> {
         grant: &squad_protocol::ExecutionGrant,
     ) -> Result<ChatRequest, crate::openrouter::TransportError> {
         use squad_protocol::{ExecutorKey, WorkKind};
+        if grant.work.kind.is_executor() {
+            return Err(crate::openrouter::TransportError::InvalidConfiguration);
+        }
         if model.id != grant.binding.model.as_str()
             || grant.work.validate().is_err()
             || !grant.owner.owns(&grant.work)
@@ -68,6 +71,21 @@ impl<'a> Registry<'a> {
             return Err(crate::openrouter::TransportError::InvalidModel);
         }
         let (kind, deadline) = match grant.work.kind {
+            WorkKind::TuneCases => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::TuneFreeze => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::TuneExecute => (TaskKind::Reply, DeadlineClass::Executor),
+            WorkKind::TuneScore => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::TuneMutate => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdDone => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdFreeze => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdTree => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdMerge => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdReview => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdRevise => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdMustHave => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdFinalize => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdApply => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+
             WorkKind::ForgeDraft => (TaskKind::Plan, DeadlineClass::DebateTurn),
             WorkKind::ForgeRank => (TaskKind::Reply, DeadlineClass::DebateTurn),
             WorkKind::ForgeFuse => (TaskKind::Plan, DeadlineClass::DebateTurn),
@@ -158,6 +176,9 @@ impl<'a> Registry<'a> {
             .work
             .max_output_tokens
             .unwrap_or(request.visible_ceiling);
+        if let Some(visible) = grant.work.kind.new_mode_visible_tokens() {
+            request.visible_ceiling = grant.work.max_output_tokens.unwrap_or(visible);
+        }
         request.policy = ExecutionPolicy::SingleAttempt(deadline);
         request.body()?;
         Ok(request)

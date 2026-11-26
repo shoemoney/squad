@@ -381,6 +381,7 @@ fn complete_exact_validation_table_and_execution_helpers() {
             !rule
                 .error(Span { start: 0, end: 0 }, &values)
                 .message
+                .replace("{{input}}", "input")
                 .contains('{')
         );
     }

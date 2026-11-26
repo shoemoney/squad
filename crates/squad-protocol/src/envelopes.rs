@@ -776,7 +776,7 @@ fn validate_envelope(
                 && base.sender == Actor::System
                 && matches!(
                     v.pending.kind,
-                    ContestKind::Readback | ContestKind::Debugging
+                    ContestKind::Readback | ContestKind::Debugging | ContestKind::BassAckwardsPrd
                 )
                 && v.pending.state_version > 0,
             "invalid human request",
@@ -900,7 +900,7 @@ fn validate_envelope(
                 && base.sender == Actor::System
                 && matches!(
                     v.pending.kind,
-                    ContestKind::Readback | ContestKind::Debugging
+                    ContestKind::Readback | ContestKind::Debugging | ContestKind::BassAckwardsPrd
                 )
                 && v.pending.state_version > 0,
             "invalid human request",
@@ -1556,7 +1556,32 @@ fn validate_envelope(
             )?;
         }
         EnvelopePayload::ContestArtifact(artifact) => {
-            if artifact.kind.is_some() {
+            if artifact.kind.is_some()
+                || artifact.body.is_some()
+                || artifact.audience.is_some()
+                || artifact.actor.is_some()
+                || artifact.round.is_some()
+                || artifact
+                    .artifact_kind
+                    .as_str()
+                    .split_once('.')
+                    .is_some_and(|(prefix, _)| {
+                        matches!(
+                            prefix,
+                            "forge"
+                                | "forecast"
+                                | "decide"
+                                | "negotiate"
+                                | "blow_it_up"
+                                | "readback"
+                                | "debug"
+                                | "trace"
+                                | "rank"
+                                | "tune"
+                                | "bass_ackwards_prd"
+                        )
+                    })
+            {
                 artifact.validate_mode()?;
                 ensure(
                     artifact.actor.as_ref() == Some(&base.sender),
@@ -1618,6 +1643,7 @@ fn distinct_members(nicks: &[MemberNick]) -> bool {
 }
 pub fn variable_value(name: &VariableName, value: u8) -> bool {
     match name {
+        VariableName::PrdHumanReview => value <= 1,
         VariableName::NegotiateRounds
         | VariableName::DebugRounds
         | VariableName::TuneGenerations => (1..=6).contains(&value),

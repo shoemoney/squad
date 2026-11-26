@@ -133,8 +133,12 @@ pub fn render(
 ) -> Result<String, ExportError> {
     check_scope(&scope, id)?;
     match scope {
-        ExportScope::Tune=>return tune::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
-        ExportScope::BassAckwardsPrd=>return bass_ackwards_prd::render(snapshot,id.ok_or(ExportError::ContestIdRequired)?),
+        ExportScope::Tune => {
+            return tune::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::BassAckwardsPrd => {
+            return bass_ackwards_prd::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
         ExportScope::Forge => {
             return forge::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
         }
@@ -970,3 +974,68 @@ pub mod rank;
 pub mod tune;
 
 pub mod bass_ackwards_prd;
+
+/// Durable destination, independent of the process working directory.
+pub fn export_dir(data_dir: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+    let path = data_dir.join("exports");
+    let mut builder = std::fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        builder.mode(0o700);
+    }
+    builder.create(&path)?;
+    if !std::fs::symlink_metadata(&path)?.is_dir() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotADirectory,
+            "export destination is not a directory",
+        ));
+    }
+    Ok(path)
+}
+
+/// Publish complete bytes atomically; a restart can safely repeat the same write.
+pub fn write_export_file(
+    data_dir: &std::path::Path,
+    filename: &str,
+    bytes: &[u8],
+) -> std::io::Result<std::path::PathBuf> {
+    use std::io::Write;
+    if filename.is_empty()
+        || std::path::Path::new(filename).components().count() != 1
+        || !matches!(
+            std::path::Path::new(filename).components().next(),
+            Some(std::path::Component::Normal(_))
+        )
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "export filename must be one path component",
+        ));
+    }
+    let directory = export_dir(data_dir)?;
+    let destination = directory.join(filename);
+    let temporary = directory.join(format!(".{filename}.{}.tmp", uuid::Uuid::new_v4()));
+    let result = (|| {
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let mut file = options.open(&temporary)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        drop(file);
+        std::fs::rename(&temporary, &destination)?;
+        #[cfg(unix)]
+        std::fs::File::open(&directory)?.sync_all()?;
+        Ok(destination)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result
+}

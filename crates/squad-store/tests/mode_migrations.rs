@@ -1,7 +1,7 @@
 use rusqlite::{Connection, params};
 use squad_store::schema;
 
-const MIGRATIONS: [&str; 7] = [
+const MIGRATIONS: [&str; 8] = [
     schema::INITIAL,
     include_str!("../migrations/0002_tournament.sql"),
     include_str!("../migrations/0003_census.sql"),
@@ -9,6 +9,7 @@ const MIGRATIONS: [&str; 7] = [
     include_str!("../migrations/0005_survey.sql"),
     include_str!("../migrations/0006_grill.sql"),
     include_str!("../migrations/0007_probe.sql"),
+    include_str!("../migrations/0008_alias_cache.sql"),
 ];
 
 #[test]
@@ -21,6 +22,7 @@ fn every_populated_mode_schema_upgrades_without_losing_events_work_or_indexes() 
         "survey.vote",
         "grill.plan",
         "probe.prediction",
+        "user.message",
     ];
     for version in 1..=MIGRATIONS.len() {
         let mut db = Connection::open_in_memory().unwrap();

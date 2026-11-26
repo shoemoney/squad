@@ -103,3 +103,13 @@ pub fn barrier(
 ) -> Result<()> {
     disabled()
 }
+
+pub fn validate_prompt(prompt: &str) -> std::result::Result<(), parser::ParseError> {
+    parser::errors::tune_prompt(
+        prompt,
+        parser::Span {
+            start: 0,
+            end: prompt.len(),
+        },
+    )
+}

@@ -20,6 +20,7 @@ fn core_snapshot_and_feed_use_the_same_reducer() {
             readback_rounds: 2,
             debug_rounds: 3,
             tune_generations: 3,
+            prd_human_review: 0,
         },
         participants: vec![Presence {
             nick: nick.clone(),

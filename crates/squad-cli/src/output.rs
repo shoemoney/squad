@@ -150,6 +150,18 @@ impl Output<'_> {
         event: &CommittedEnvelope,
         latest_round: Option<u32>,
     ) -> io::Result<()> {
+        if let EnvelopePayload::ContestArtifact(a) = &event.content
+            && a.artifact_kind.as_str() == "bass_ackwards_prd.saved"
+            && matches!(a.audience, Some(ArtifactAudience::Human))
+            && let Some(body) = &a.body
+            && let (Some(filename), Some(path)) = (body["filename"].as_str(), body["path"].as_str())
+        {
+            return if self.json {
+                self.record(json!({"type":"export.ready","scope":"bass_ackwards_prd","filename":filename,"path":path}))
+            } else {
+                writeln!(self.stdout, "PRD saved to {}", sanitize(path))
+            };
+        }
         if self.json {
             self.record(json!({"type":"event","cursor":event.commit.seq,"event":event}))
         } else {

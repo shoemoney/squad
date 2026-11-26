@@ -39,3 +39,5 @@ Optional new-mode room seeds (frozen when admitted):
 - `SQUAD_DEBUG_ROUNDS`: 3 by default; integer 1–6.
 
 - `SQUAD_TUNE_GENERATIONS`: 3 by default; integer 1–6.
+
+- `SQUAD_PRD_HUMAN_REVIEW`: 0 by default; 0 (automatic save) or 1 (pause for notes).

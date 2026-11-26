@@ -10,6 +10,8 @@ pub struct Span {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum VariableName {
+    #[serde(rename = "PRD_HUMAN_REVIEW")]
+    PrdHumanReview,
     #[serde(rename = "TUNE_GENERATIONS")]
     TuneGenerations,
     #[serde(rename = "NEGOTIATE_ROUNDS")]
@@ -179,8 +181,9 @@ pub enum ParsedInput {
         #[serde(flatten)]
         input: ConversationalInput,
         participants: Vec<Nick>,
-        prompt: String,
-        task_description: String,
+        prompt: PlanSource,
+        task: String,
+        executor: Option<Nick>,
         generations: u8,
     },
     #[serde(rename = "bass_ackwards_prd")]
@@ -189,6 +192,7 @@ pub enum ParsedInput {
         input: ConversationalInput,
         participants: Vec<Nick>,
         end_result: String,
+        today: Option<String>,
     },
 
     #[serde(rename = "forge")]
@@ -376,6 +380,7 @@ pub struct RoomVariables {
     pub readback_rounds: u8,
     pub debug_rounds: u8,
     pub tune_generations: u8,
+    pub prd_human_review: u8,
 
     pub rounds: u8,
     pub grill_rounds: u8,
@@ -388,6 +393,7 @@ impl Default for RoomVariables {
             readback_rounds: 2,
             debug_rounds: 3,
             tune_generations: 3,
+            prd_human_review: 0,
             rounds: 10,
             grill_rounds: 2,
             census_passes: 2,
@@ -402,6 +408,7 @@ impl VariableName {
             Self::ReadbackRounds => "READBACK_ROUNDS",
             Self::DebugRounds => "DEBUG_ROUNDS",
             Self::TuneGenerations => "TUNE_GENERATIONS",
+            Self::PrdHumanReview => "PRD_HUMAN_REVIEW",
 
             Self::GrillRounds => "GRILL_ROUNDS",
             Self::CensusPasses => "CENSUS_PASSES",
@@ -414,6 +421,7 @@ impl VariableName {
             "READBACK_ROUNDS" => Some(Self::ReadbackRounds),
             "DEBUG_ROUNDS" => Some(Self::DebugRounds),
             "TUNE_GENERATIONS" => Some(Self::TuneGenerations),
+            "PRD_HUMAN_REVIEW" => Some(Self::PrdHumanReview),
 
             "GRILL_ROUNDS" => Some(Self::GrillRounds),
             "CENSUS_PASSES" => Some(Self::CensusPasses),
@@ -427,6 +435,7 @@ impl VariableName {
             Self::ReadbackRounds => vars.readback_rounds,
             Self::DebugRounds => vars.debug_rounds,
             Self::TuneGenerations => vars.tune_generations,
+            Self::PrdHumanReview => vars.prd_human_review,
 
             Self::GrillRounds => vars.grill_rounds,
             Self::CensusPasses => vars.census_passes,
@@ -439,6 +448,7 @@ impl VariableName {
             Self::ReadbackRounds => vars.readback_rounds = value,
             Self::DebugRounds => vars.debug_rounds = value,
             Self::TuneGenerations => vars.tune_generations = value,
+            Self::PrdHumanReview => vars.prd_human_review = value,
 
             Self::GrillRounds => vars.grill_rounds = value,
             Self::CensusPasses => vars.census_passes = value,

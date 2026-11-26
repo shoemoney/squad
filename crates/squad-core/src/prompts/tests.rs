@@ -89,7 +89,7 @@ fn composition_fixture(pack: &PromptPack, id: &str, repair: bool) -> Inputs {
 #[test]
 fn embedded_inventory_and_every_registered_composition_render() {
     let pack = PromptPack::embedded().unwrap();
-    assert_eq!(pack.manifest().templates.len(), 46);
+    assert_eq!(pack.manifest().templates.len(), 96);
     assert_eq!(pack.version(), "1.0.0");
     assert!(pack.overrides().is_empty());
     for template in &pack.manifest().templates {

@@ -3327,6 +3327,186 @@
     "row": 271,
     "m8": true,
     "input": "@all $tune prompt",
-    "error": "Add the task description after -- for $tune."
+    "error": "Add the task after -- for $tune."
+  },
+  {
+    "row": 272,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune prompt\n--\ntask\n--\n@d",
+    "kind": "tune"
+  },
+  {
+    "row": 273,
+    "m8": true,
+    "m9": true,
+    "input": "@a @b @c $tune prompt\n--\ntask\n--\n@d",
+    "kind": "tune"
+  },
+  {
+    "row": 274,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune\n--\ntask",
+    "kind": "tune",
+    "condition": "quote"
+  },
+  {
+    "row": 275,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune\n--\ntask\n--\n@d",
+    "kind": "tune",
+    "condition": "quote"
+  },
+  {
+    "row": 276,
+    "m8": true,
+    "m9": true,
+    "input": "@all $bass_ackwards_prd the finished result\n--\nwhat exists today",
+    "kind": "bass_ackwards_prd"
+  },
+  {
+    "row": 277,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune prompt\n--\ntask",
+    "error": "A tune is already running. Stop it before starting another.",
+    "condition": "busy:tune"
+  },
+  {
+    "row": 278,
+    "m8": true,
+    "m9": true,
+    "input": "@a $tune prompt\n--\ntask",
+    "error": "$tune needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 279,
+    "m8": true,
+    "m9": true,
+    "input": "@all @judge $tune prompt\n--\ntask",
+    "error": "@judge cannot be used with $tune."
+  },
+  {
+    "row": 280,
+    "m8": true,
+    "m9": true,
+    "input": "@all $bass_ackwards_prd end result",
+    "error": "A bass_ackwards_prd is already running. Stop it before starting another.",
+    "condition": "busy:bass_ackwards_prd"
+  },
+  {
+    "row": 281,
+    "m8": true,
+    "m9": true,
+    "input": "@a $bass_ackwards_prd end result",
+    "error": "$bass_ackwards_prd needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 282,
+    "m8": true,
+    "m9": true,
+    "input": "@all @judge $bass_ackwards_prd end result",
+    "error": "@judge cannot be used with $bass_ackwards_prd."
+  },
+  {
+    "row": 283,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune",
+    "error": "Add the prompt to optimise after $tune."
+  },
+  {
+    "row": 284,
+    "m8": true,
+    "m9": true,
+    "input": "@all $bass_ackwards_prd",
+    "error": "Add the end result after $bass_ackwards_prd."
+  },
+  {
+    "row": 285,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune prompt\n--\ntask\n--\n@a",
+    "error": "$tune needs at least three members besides the executor.",
+    "condition": "small"
+  },
+  {
+    "row": 286,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune p\n--\nt\n--\n@d\n--\nextra",
+    "error": "$tune takes the prompt, then -- and the task, then an optional -- @nick executor."
+  },
+  {
+    "row": 287,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune p\n--\nt\n--\n@d extra",
+    "error": "The $tune executor must be one roster member, like -- @nick."
+  },
+  {
+    "row": 288,
+    "m8": true,
+    "m9": true,
+    "input": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+    "error": "$tune takes a prompt of at most 1,200 words.",
+    "admission": true
+  },
+  {
+    "row": 289,
+    "m8": true,
+    "m9": true,
+    "input": "{{input}} and {{input}}",
+    "error": "$tune allows {{input}} at most once in the prompt.",
+    "admission": true
+  },
+  {
+    "row": 290,
+    "m8": true,
+    "m9": true,
+    "input": "/set PRD_HUMAN_REVIEW 0",
+    "kind": "slash"
+  },
+  {
+    "row": 291,
+    "m8": true,
+    "m9": true,
+    "input": "$PRD_HUMAN_REVIEW=1",
+    "kind": "assignment"
+  },
+  {
+    "row": 292,
+    "m8": true,
+    "m9": true,
+    "input": "/set PRD_HUMAN_REVIEW 2",
+    "error": "PRD_HUMAN_REVIEW must be 0 or 1."
+  },
+  {
+    "row": 293,
+    "m8": true,
+    "m9": true,
+    "input": "/answer add a migration test",
+    "kind": "slash",
+    "condition": "prd"
+  },
+  {
+    "row": 294,
+    "m8": true,
+    "m9": true,
+    "input": "/continue",
+    "kind": "slash",
+    "condition": "prd"
+  },
+  {
+    "row": 295,
+    "m8": true,
+    "m9": true,
+    "input": "/answer",
+    "error": "Add your note after /answer, or use /continue to save the PRD as it is.",
+    "condition": "prd"
   }
 ]

@@ -247,3 +247,8 @@ pub fn effective_effort(
         bound
     }
 }
+
+/// Bare candidate execution output, independent of member and judge caps.
+pub const TUNE_EXEC_VISIBLE_TOKENS: u32 = 1024;
+/// PRD assembly/revision output cap.
+pub const PRD_VISIBLE_TOKENS: u32 = 8192;

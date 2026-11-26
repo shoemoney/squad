@@ -414,10 +414,10 @@ async fn too_few_answers_end_the_collection_with_the_canonical_error() {
 }
 
 #[test]
-fn sixteen_kinds_share_exactly_one_active_claim() {
+fn eighteen_kinds_share_exactly_one_active_claim() {
     let (store, _) = fixture();
     store.call(|db|{
-  let kinds=["debate","tournament","grill","census","crosscheck","survey","probe","forge","forecast","decide","negotiate","blow_it_up","readback","debug","trace","rank"];
+  let kinds=["debate","tournament","grill","census","crosscheck","survey","probe","forge","forecast","decide","negotiate","blow_it_up","readback","debug","trace","rank","tune","bass_ackwards_prd"];
   for first in kinds {
    db.execute("DELETE FROM contests",[])?;
    db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES('first',?,1,1,'{}',1)",[first])?;

@@ -414,6 +414,9 @@ pub fn shared_move_composition(
 ) -> Result<Option<&'static str>, PromptError> {
     work.validate()
         .map_err(|_| error("invalid executable work"))?;
+    if work.kind.is_executor() {
+        return Ok(None);
+    }
     if let Some(composition) = work.kind.new_mode_composition() {
         let matches = if work.kind.new_mode_judge() {
             matches!(move_name, ContestMove::Judge)

@@ -56,7 +56,7 @@ impl Banner {
         match self {
             Self::Forge => "FORGE".into(),
             Self::Tune => "TUNE".into(),
-            Self::BassAckwardsPrd => "BASS ACKWARDS PRD".into(),
+            Self::BassAckwardsPrd => "BASS ACKWARDS".into(),
             Self::Forecast => "FORECAST".into(),
             Self::Decide => "DECIDE".into(),
             Self::Negotiate => "NEGOTIATE".into(),

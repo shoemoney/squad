@@ -53,6 +53,7 @@ expression: "serde_json::to_string_pretty(&value).unwrap()"
     "DEBUG_ROUNDS": 3,
     "GRILL_ROUNDS": 2,
     "NEGOTIATE_ROUNDS": 3,
+    "PRD_HUMAN_REVIEW": 0,
     "READBACK_ROUNDS": 2,
     "ROUNDS": 10,
     "TUNE_GENERATIONS": 3

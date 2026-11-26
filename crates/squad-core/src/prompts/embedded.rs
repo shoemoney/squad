@@ -1,13 +1,45 @@
 // Explicit build-time inventory; keep in sync with prompts/manifest.json.
 pub(super) const MANIFEST: &str = include_str!("../../prompts/manifest.json");
 pub(super) const TEMPLATES: &[(&str, &str)] = &[
+    ("tune.cases", include_str!("../../prompts/tune.cases.md")),
+    ("tune.freeze", include_str!("../../prompts/tune.freeze.md")),
+    ("tune.score", include_str!("../../prompts/tune.score.md")),
+    ("tune.mutate", include_str!("../../prompts/tune.mutate.md")),
     (
-        "tune.placeholder",
-        include_str!("../../prompts/tune.placeholder.md"),
+        "bass_ackwards_prd.done",
+        include_str!("../../prompts/bass_ackwards_prd.done.md"),
     ),
     (
-        "bass_ackwards_prd.placeholder",
-        include_str!("../../prompts/bass_ackwards_prd.placeholder.md"),
+        "bass_ackwards_prd.freeze",
+        include_str!("../../prompts/bass_ackwards_prd.freeze.md"),
+    ),
+    (
+        "bass_ackwards_prd.tree",
+        include_str!("../../prompts/bass_ackwards_prd.tree.md"),
+    ),
+    (
+        "bass_ackwards_prd.merge",
+        include_str!("../../prompts/bass_ackwards_prd.merge.md"),
+    ),
+    (
+        "bass_ackwards_prd.review",
+        include_str!("../../prompts/bass_ackwards_prd.review.md"),
+    ),
+    (
+        "bass_ackwards_prd.revise",
+        include_str!("../../prompts/bass_ackwards_prd.revise.md"),
+    ),
+    (
+        "bass_ackwards_prd.must_have",
+        include_str!("../../prompts/bass_ackwards_prd.must_have.md"),
+    ),
+    (
+        "bass_ackwards_prd.finalize",
+        include_str!("../../prompts/bass_ackwards_prd.finalize.md"),
+    ),
+    (
+        "bass_ackwards_prd.apply",
+        include_str!("../../prompts/bass_ackwards_prd.apply.md"),
     ),
     ("forge.draft", include_str!("../../prompts/forge.draft.md")),
     ("forge.rank", include_str!("../../prompts/forge.rank.md")),

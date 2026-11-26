@@ -131,7 +131,17 @@ impl PreflightView {
                         Some(0) | None => format!("{n} members · using existing answers"),
                         Some(k) => format!("{n} members · collecting {k} new answers"),
                     },
-                    ContestKind::Tune | ContestKind::BassAckwardsPrd | ContestKind::Forge => {
+                    ContestKind::Tune => format!(
+                        "{n} members · {} member calls · {} executor calls · {} judge calls",
+                        p.settings["memberCalls"],
+                        p.settings["executorCalls"],
+                        p.settings["judgeCalls"]
+                    ),
+                    ContestKind::BassAckwardsPrd => format!(
+                        "{n} members · {} member calls · 0 executor calls · {} judge calls",
+                        p.settings["memberCalls"], p.settings["judgeCalls"]
+                    ),
+                    ContestKind::Forge => {
                         format!(
                             "{n} participants · {} model calls · {} reserved attempts",
                             p.estimate.model_calls,

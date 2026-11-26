@@ -6,7 +6,11 @@ pub fn complete(pending: &PendingHuman) -> bool {
             && (1..=pending.items.len() as u32).all(|n| pending.answers.contains_key(&n))
 }
 pub fn apply(pending: &mut PendingHuman, text: &str) {
-    if pending.kind == ContestKind::Debugging {
+    if pending.kind == ContestKind::BassAckwardsPrd {
+        pending
+            .answers
+            .insert(pending.answers.len() as u32 + 1, text.into());
+    } else if pending.kind == ContestKind::Debugging {
         pending.answers.insert(1, text.into());
     } else if let Some((n, reading)) = text.split_once(':') {
         if let Ok(n) = n.trim().parse() {

@@ -133,6 +133,7 @@ pub struct RoomDefaults {
     pub readback_rounds: u8,
     pub debug_rounds: u8,
     pub tune_generations: u8,
+    pub prd_human_review: u8,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct BudgetConfig {
@@ -235,6 +236,7 @@ pub enum ConfigError {
     ReadbackRounds,
     DebugRounds,
     TuneGenerations,
+    PrdHumanReview,
 
     AliasCacheTtl,
 }
@@ -313,6 +315,7 @@ impl fmt::Display for ConfigError {
                 f.write_str("SQUAD_READBACK_ROUNDS must be an integer from 1 to 4.")
             }
             Self::DebugRounds => f.write_str("SQUAD_DEBUG_ROUNDS must be an integer from 1 to 6."),
+            Self::PrdHumanReview => f.write_str("SQUAD_PRD_HUMAN_REVIEW must be 0 or 1."),
             Self::TuneGenerations => {
                 f.write_str("SQUAD_TUNE_GENERATIONS must be an integer from 1 to 6.")
             }
@@ -653,6 +656,10 @@ impl EffectiveEnvironment {
             bounded(&get("SQUAD_DEBUG_ROUNDS", "3"), 1, 6).ok_or(ConfigError::DebugRounds),
             3
         );
+        let prd_human_review = take!(
+            bounded(&get("SQUAD_PRD_HUMAN_REVIEW", "0"), 0, 1).ok_or(ConfigError::PrdHumanReview),
+            0
+        );
         let tune_generations = take!(
             bounded(&get("SQUAD_TUNE_GENERATIONS", "3"), 1, 6).ok_or(ConfigError::TuneGenerations),
             3
@@ -741,6 +748,7 @@ impl EffectiveEnvironment {
                 readback_rounds,
                 debug_rounds,
                 tune_generations,
+                prd_human_review,
 
                 reasoning_effort: take!(
                     effort(

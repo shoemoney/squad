@@ -13,6 +13,10 @@ pub fn lines(pending: &PendingHuman) -> Vec<String> {
             .enumerate()
             .map(|(i, item)| format!("{}. {}", i + 1, item)),
     );
+    if pending.kind == squad_protocol::ContestKind::BassAckwardsPrd {
+        out.push("/answer <your note>, then /continue to save".into());
+        return out;
+    }
     out.push(
         if pending.kind == squad_protocol::ContestKind::Readback {
             "1b 2a or /answer 3: your own reading"

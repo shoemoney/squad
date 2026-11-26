@@ -284,6 +284,7 @@ impl RoomHandle {
         let readback_rounds = config.defaults.readback_rounds;
         let debug_rounds = config.defaults.debug_rounds;
         let tune_generations = config.defaults.tune_generations;
+        let prd_human_review = config.defaults.prd_human_review;
 
         store.call(move |db| {
             for (name, value) in [
@@ -294,6 +295,7 @@ impl RoomHandle {
                 ("READBACK_ROUNDS", readback_rounds),
                 ("DEBUG_ROUNDS", debug_rounds),
                 ("TUNE_GENERATIONS", tune_generations),
+                ("PRD_HUMAN_REVIEW", prd_human_review),
             ] {
                 if !existing_vars.iter().any(|stored| stored == name) {
                     db.execute(

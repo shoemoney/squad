@@ -23,6 +23,7 @@ fn value(name: &VariableName, value: &str, span: Span) -> Result<u8, ParseError>
         VariableName::ReadbackRounds => (4, Rule::ReadbackRounds),
         VariableName::DebugRounds => (6, Rule::DebugRounds),
         VariableName::TuneGenerations => (6, Rule::TuneGenerations),
+        VariableName::PrdHumanReview => (1, Rule::PrdHumanReview),
 
         VariableName::GrillRounds => (10, Rule::GrillRounds),
         VariableName::CensusPasses => (5, Rule::CensusPasses),
@@ -30,7 +31,12 @@ fn value(name: &VariableName, value: &str, span: Span) -> Result<u8, ParseError>
     if !value.is_empty()
         && value.bytes().all(|b| b.is_ascii_digit())
         && let Ok(n) = value.parse::<u8>()
-        && (1..=max).contains(&n)
+        && ((if *name == VariableName::PrdHumanReview {
+            0
+        } else {
+            1
+        })..=max)
+            .contains(&n)
     {
         return Ok(n);
     }
@@ -61,6 +67,8 @@ pub(crate) fn parse_snapshot(raw: &str, ctx: &ParserSnapshot) -> ParseResult {
     }
     if let Some(pending) = &ctx.pending_human
         && pending.kind == crate::ContestKind::Readback
+        && ctx.metadata.quote.is_empty()
+        && ctx.metadata.reply_to.is_empty()
         && choice_tokens(raw)
     {
         validate_human_answer(raw, pending, whole(raw))?;
@@ -174,7 +182,18 @@ pub(crate) fn parse_snapshot(raw: &str, ctx: &ParserSnapshot) -> ParseResult {
         command == Some(Verb::Debate),
         question_first,
     )?;
-    let resolved = resolve_recipients(raw, &tokens, &ctx.roster);
+    let tune_executor_separator = if command == Some(Verb::Tune) {
+        tokens
+            .iter()
+            .enumerate()
+            .filter(|(_, t)| matches!(t.kind, TokenKind::Separator))
+            .nth(1)
+            .map(|(i, _)| i)
+    } else {
+        None
+    };
+    let selectors = tune_executor_separator.map_or(tokens.as_slice(), |i| &tokens[..i]);
+    let resolved = resolve_recipients(raw, selectors, &ctx.roster);
     let illegal_judge = has_judge
         && (command == Some(Verb::Grill)
             || command.is_none()
@@ -669,7 +688,7 @@ const EXPORT_USAGE: &str =
 pub const SLASH_COMMANDS: &[(&str, &str)] = &[
     (
         "/set",
-        "ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5>",
+        "ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5> | NEGOTIATE_ROUNDS <1-6> | READBACK_ROUNDS <1-4> | DEBUG_ROUNDS <1-6> | TUNE_GENERATIONS <1-6>",
     ),
     ("/answer", "<literal text>"),
     ("/stop", "[@nick]"),
@@ -915,6 +934,21 @@ pub(super) fn validate_human_answer(
     pending: &PendingHuman,
     span: Span,
 ) -> Result<(), ParseError> {
+    if pending.kind == crate::ContestKind::BassAckwardsPrd {
+        if text.trim().is_empty()
+            || pending.answers.len() >= 10
+            || pending
+                .answers
+                .values()
+                .map(|v| v.split_whitespace().count())
+                .sum::<usize>()
+                + text.split_whitespace().count()
+                > 500
+        {
+            return Err(Rule::PrdNote.error(span, &[]));
+        }
+        return Ok(());
+    }
     if pending.kind == crate::ContestKind::Readback {
         if choice_tokens(text) {
             for token in text.split_whitespace() {
@@ -958,6 +992,7 @@ pub(super) fn validate_human_answer(
     }
     Err(Rule::NoHuman.error(span, &[]))
 }
+#[allow(clippy::too_many_arguments)]
 fn new_mode(
     raw: &str,
     kind: crate::ContestKind,
@@ -969,6 +1004,9 @@ fn new_mode(
     ctx: &ParserSnapshot,
 ) -> ParseResult {
     let span = whole(raw);
+    if kind == crate::ContestKind::Tune {
+        return tune(raw, input, recipients, tokens, vars, ctx);
+    }
     let shortcut = !has_all
         && recipients.len() == 1
         && matches!(
@@ -1058,22 +1096,12 @@ fn new_mode(
         return Err(missing.error(span, &[]));
     }
     let parsed = match kind {
-        crate::ContestKind::Tune => {
-            let task_description = tail
-                .filter(|s| !s.trim().is_empty())
-                .ok_or_else(|| Rule::TuneTask.error(span, &[]))?;
-            ParsedInput::Tune {
-                input,
-                participants,
-                prompt: first,
-                task_description,
-                generations: vars.tune_generations,
-            }
-        }
+        crate::ContestKind::Tune => unreachable!("tune parsed above"),
         crate::ContestKind::BassAckwardsPrd => ParsedInput::BassAckwardsPrd {
             input,
             participants,
             end_result: first,
+            today: tail,
         },
         crate::ContestKind::Forge => ParsedInput::Forge {
             input,
@@ -1171,4 +1199,92 @@ fn new_mode(
         _ => unreachable!(),
     };
     validate_snapshot(&parsed, ctx)
+}
+
+fn tune(
+    raw: &str,
+    input: ConversationalInput,
+    mut participants: Vec<Nick>,
+    tokens: &[Token],
+    vars: &RoomVariables,
+    ctx: &ParserSnapshot,
+) -> ParseResult {
+    let span = whole(raw);
+    let separators = tokens
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| matches!(t.kind, TokenKind::Separator))
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+    if separators.is_empty() {
+        return Err(
+            if render(raw, tokens, vars, false).is_empty() && input.quote.len() != 1 {
+                Rule::TuneMissing
+            } else {
+                Rule::TuneTask
+            }
+            .error(span, &[]),
+        );
+    }
+    if separators.len() > 2 {
+        return Err(Rule::TuneSegments.error(span, &[]));
+    }
+    let first = separators[0];
+    let second = separators.get(1).copied();
+    let prompt = render(raw, &tokens[..first], vars, false);
+    let task = render(
+        raw,
+        &tokens[first + 1..second.unwrap_or(tokens.len())],
+        vars,
+        false,
+    );
+    let executor = if let Some(second) = second {
+        let name = raw[tokens[second].span.end..]
+            .trim()
+            .strip_prefix('@')
+            .filter(|s| !s.is_empty() && !s.contains(char::is_whitespace))
+            .ok_or_else(|| Rule::TuneExecutor.error(span.clone(), &[]))?;
+        Some(
+            Nick::new(name)
+                .ok()
+                .filter(|n| ctx.roster.contains(n))
+                .ok_or_else(|| Rule::TuneExecutor.error(span.clone(), &[]))?,
+        )
+    } else {
+        None
+    };
+    if let Some(nick) = &executor {
+        participants.retain(|n| n != nick);
+    }
+    if participants.len() < 3 {
+        return Err(if executor.is_some() {
+            Rule::TuneCountExecutor
+        } else {
+            Rule::ModeCount
+        }
+        .error(span, &[("mode", "tune")]));
+    }
+    if task.trim().is_empty() {
+        return Err(Rule::TuneTask.error(span, &[]));
+    }
+    let prompt = if prompt.is_empty() && input.quote.len() == 1 {
+        PlanSource::Quoted {
+            event_id: input.quote[0],
+        }
+    } else if !prompt.is_empty() && input.quote.is_empty() {
+        PlanSource::Pasted { text: prompt }
+    } else {
+        return Err(Rule::TuneMissing.error(span, &[]));
+    };
+    validate_snapshot(
+        &ParsedInput::Tune {
+            input,
+            participants,
+            prompt,
+            task,
+            executor,
+            generations: vars.tune_generations,
+        },
+        ctx,
+    )
 }

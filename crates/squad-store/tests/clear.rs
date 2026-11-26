@@ -32,7 +32,7 @@ fn populated_clear_is_foreign_key_safe_and_retains_only_accounting_and_counters(
         tx.execute("INSERT INTO superseded VALUES (?1,?2,'alice',?3,?4,?5,1)",params![source_id.to_string(),MessageId::new().to_string(),MessageId::new().to_string(),work.to_string(),MessageId::new().to_string()])?;
         tx.execute("INSERT INTO history VALUES (1,?1,1,?2,'fixture','user',NULL,'case secret','{}',0)",params![format!("judge:{case}"),source_id.to_string()])?;
         tx.execute("INSERT INTO deferred_history VALUES (?1,'alice',?2,'fixture','{}')",params![contest.to_string(),source_id.to_string()])?;
-        tx.execute_batch("UPDATE room_meta SET next_history_pos=2; UPDATE vars SET value=3,updated_seq=1; INSERT INTO scores VALUES ('alice',2,1,3,1); INSERT INTO spend_daily VALUES ('2026-11-24',123,50,1);")?;
+        tx.execute_batch("UPDATE room_meta SET next_history_pos=2; UPDATE vars SET value=CASE WHEN name='PRD_HUMAN_REVIEW' THEN 1 ELSE 3 END,updated_seq=1; INSERT INTO scores VALUES ('alice',2,1,3,1); INSERT INTO spend_daily VALUES ('2026-11-24',123,50,1);")?;
         tx.execute("INSERT INTO attempts(work_id,attempt,epoch,target,context_id,model,day,started_at,outcome,unresolved) VALUES (?1,1,1,'judge',?2,'test/judge','2026-11-24','2026-11-24T00:00:00Z','unknown',1)",params![work.to_string(),format!("judge:{case}")])?;
         tx.execute("INSERT INTO reservations(reservation_id,epoch,work_id,attempt,amount_usd,unresolved,day,amount_micros) VALUES ('started',1,?,1,0.00003,1,'2026-11-24',30)",[work.to_string()])?;
         tx.execute("INSERT INTO reservations(reservation_id,epoch,amount_usd,unresolved,day,amount_micros) VALUES ('unstarted',1,0.00002,0,'2026-11-24',20)",[])?;
@@ -68,6 +68,7 @@ fn populated_clear_is_foreign_key_safe_and_retains_only_accounting_and_counters(
                 readback_rounds: 2,
                 debug_rounds: 3,
                 tune_generations: 3,
+                prd_human_review: 0,
             },
         )?;
         group.epoch += 1;

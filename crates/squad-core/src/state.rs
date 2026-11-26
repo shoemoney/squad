@@ -33,7 +33,10 @@ pub struct RoomVars {
     pub readback_rounds: u8,
     #[serde(rename = "DEBUG_ROUNDS")]
     pub debug_rounds: u8,
+    #[serde(rename = "TUNE_GENERATIONS")]
     pub tune_generations: u8,
+    #[serde(rename = "PRD_HUMAN_REVIEW")]
+    pub prd_human_review: u8,
 }
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -330,6 +333,7 @@ pub fn snapshot(
             readback_rounds: variable("READBACK_ROUNDS")?,
             debug_rounds: variable("DEBUG_ROUNDS")?,
             tune_generations: variable("TUNE_GENERATIONS")?,
+            prd_human_review: variable("PRD_HUMAN_REVIEW")?,
         },
         participants,
         debates,

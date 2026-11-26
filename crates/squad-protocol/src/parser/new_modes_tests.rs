@@ -28,10 +28,12 @@ fn context(case: &Value) -> ParserSnapshot {
             ctx.metadata.quote.push(id);
         }
     }
-    if matches!(condition, "debug" | "readback" | "debug_literal") {
+    if matches!(condition, "debug" | "readback" | "debug_literal" | "prd") {
         ctx.pending_human = Some(PendingHuman {
             contest_id: ContestId::new(),
-            kind: if condition == "readback" {
+            kind: if condition == "prd" {
+                ContestKind::BassAckwardsPrd
+            } else if condition == "readback" {
                 ContestKind::Readback
             } else {
                 ContestKind::Debugging
@@ -51,6 +53,19 @@ fn context(case: &Value) -> ParserSnapshot {
 fn new_mode_examples_and_refusals() {
     let cases: Vec<Value> = serde_json::from_str(include_str!("examples.json")).unwrap();
     for case in cases.iter().skip(166) {
+        if case["admission"].as_bool() == Some(true) {
+            let raw = case["input"].as_str().unwrap();
+            let error = super::errors::tune_prompt(
+                raw,
+                Span {
+                    start: 0,
+                    end: raw.len(),
+                },
+            )
+            .unwrap_err();
+            assert_eq!(error.message, case["error"].as_str().unwrap());
+            continue;
+        }
         let ctx = context(case);
         let raw = case["input"].as_str().unwrap();
         let run = || super::parser::parse_snapshot(raw, &ctx);
@@ -90,5 +105,37 @@ fn override_resets_after_fixture() {
             .unwrap_err()
             .code,
         ErrorCode::COMMAND_NOT_IMPLEMENTED
+    );
+}
+
+#[test]
+fn tune_excludes_named_executor_and_preserves_quoted_prompt_identity() {
+    let ctx = ParserSnapshot {
+        roster: ["a", "b", "c", "d"].map(|n| Nick::new(n).unwrap()).to_vec(),
+        ..Default::default()
+    };
+    let parsed = with_new_modes(|| {
+        super::parser::parse_snapshot("@all $tune exact prompt\n--\ntask\n--\n@d", &ctx)
+    })
+    .unwrap();
+    let ParsedInput::Tune {
+        participants,
+        executor,
+        prompt,
+        task,
+        ..
+    } = parsed
+    else {
+        panic!()
+    };
+    assert_eq!(participants.len(), 3);
+    assert!(!participants.contains(&Nick::new("d").unwrap()));
+    assert_eq!(executor, Some(Nick::new("d").unwrap()));
+    assert_eq!(task, "task");
+    assert_eq!(
+        prompt,
+        PlanSource::Pasted {
+            text: "exact prompt".into()
+        }
     );
 }

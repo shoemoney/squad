@@ -9,7 +9,13 @@ pub const ENABLED: bool = false;
 pub enum TuneStatus {
     Preflight,
     WaitingForParticipants,
-    Running,
+    BuildingCases,
+    Freezing,
+    Executing,
+    Scoring,
+    Mutating,
+    HoldoutExecuting,
+    HoldoutScoring,
     Reporting,
     Complete,
     Stopped,
@@ -43,7 +49,7 @@ impl TuneState {
             self.state.is_terminal() == self.terminal_reason.is_some(),
             "terminal reason mismatch",
         )?;
-        ensure(self.round == 0, "invalid tune round")
+        ensure(self.round <= 6, "invalid tune generation")
     }
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]

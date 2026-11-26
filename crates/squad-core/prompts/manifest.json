@@ -3,11 +3,6 @@
   "source": "docs/prd/09-prompt-pack.md",
   "templates": [
     {
-      "id": "bass_ackwards_prd.placeholder",
-      "file": "bass_ackwards_prd.placeholder.md",
-      "placeholders": []
-    },
-    {
       "id": "blow_it_up.attack",
       "file": "blow_it_up.attack.md",
       "placeholders": [
@@ -762,9 +757,108 @@
       ]
     },
     {
-      "id": "tune.placeholder",
-      "file": "tune.placeholder.md",
-      "placeholders": []
+      "id": "tune.cases",
+      "file": "tune.cases.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "tune.freeze",
+      "file": "tune.freeze.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "tune.score",
+      "file": "tune.score.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "tune.mutate",
+      "file": "tune.mutate.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.done",
+      "file": "bass_ackwards_prd.done.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.freeze",
+      "file": "bass_ackwards_prd.freeze.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.tree",
+      "file": "bass_ackwards_prd.tree.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.merge",
+      "file": "bass_ackwards_prd.merge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.review",
+      "file": "bass_ackwards_prd.review.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.revise",
+      "file": "bass_ackwards_prd.revise.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.must_have",
+      "file": "bass_ackwards_prd.must_have.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.finalize",
+      "file": "bass_ackwards_prd.finalize.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.apply",
+      "file": "bass_ackwards_prd.apply.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
     }
   ],
   "compositions": [
@@ -1663,6 +1757,7 @@
     {
       "id": "forge.judge",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1711,6 +1806,7 @@
     {
       "id": "forecast.cruxes",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1783,6 +1879,7 @@
     {
       "id": "decide.explain",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1891,6 +1988,7 @@
     {
       "id": "blow_it_up.rule",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1915,6 +2013,7 @@
     {
       "id": "readback.diff",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1951,6 +2050,7 @@
     {
       "id": "debug.merge",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1975,6 +2075,7 @@
     {
       "id": "debug.select",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2011,6 +2112,7 @@
     {
       "id": "trace.merge",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2059,6 +2161,7 @@
     {
       "id": "rank.explain",
       "system": [
+        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2069,27 +2172,165 @@
       "repair_suffix": "mode.repair"
     },
     {
-      "id": "tune.placeholder",
+      "id": "tune.cases",
       "system": [
         "room.system"
       ],
       "user": [
-        "tune.placeholder"
+        "tune.cases"
       ],
       "provider_user_name": "squad",
-      "step": "tune.placeholder",
+      "step": "tune.cases",
       "repair_suffix": "mode.repair"
     },
     {
-      "id": "bass_ackwards_prd.placeholder",
+      "id": "tune.freeze",
+      "system": [
+        "judge.system.blind-prefix",
+        "judge.system"
+      ],
+      "user": [
+        "tune.freeze"
+      ],
+      "provider_user_name": "squad",
+      "step": "tune.freeze",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "tune.score",
+      "system": [
+        "judge.system.blind-prefix",
+        "judge.system"
+      ],
+      "user": [
+        "tune.score"
+      ],
+      "provider_user_name": "squad",
+      "step": "tune.score",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "tune.mutate",
       "system": [
         "room.system"
       ],
       "user": [
-        "bass_ackwards_prd.placeholder"
+        "tune.mutate"
       ],
       "provider_user_name": "squad",
-      "step": "bass_ackwards_prd.placeholder",
+      "step": "tune.mutate",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.done",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.done"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.done",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.freeze",
+      "system": [
+        "judge.system.blind-prefix",
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.freeze"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.freeze",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.tree",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.tree"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.tree",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.merge",
+      "system": [
+        "judge.system.blind-prefix",
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.merge"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.merge",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.review",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.review"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.review",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.revise",
+      "system": [
+        "judge.system.blind-prefix",
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.revise"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.revise",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.must_have",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.must_have"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.must_have",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.finalize",
+      "system": [
+        "judge.system.blind-prefix",
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.finalize"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.finalize",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.apply",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.apply"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.apply",
       "repair_suffix": "mode.repair"
     }
   ],

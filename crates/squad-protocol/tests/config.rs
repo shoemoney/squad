@@ -872,6 +872,7 @@ fn new_mode_round_seeds_have_independent_defaults_and_bounds() {
         ("SQUAD_NEGOTIATE_ROUNDS", 6),
         ("SQUAD_READBACK_ROUNDS", 4),
         ("SQUAD_DEBUG_ROUNDS", 6),
+        ("SQUAD_TUNE_GENERATIONS", 6),
     ] {
         for valid in [1, max] {
             f.load(&[(key, &valid.to_string())]).unwrap();
@@ -882,5 +883,28 @@ fn new_mode_round_seeds_have_independent_defaults_and_bounds() {
                 format!("{key} must be an integer from 1 to {max}.")
             );
         }
+    }
+}
+
+#[test]
+fn prd_human_review_defaults_off_and_accepts_only_zero_or_one() {
+    let f = Fixture::new();
+    assert_eq!(f.load(&[]).unwrap().defaults.prd_human_review, 0);
+    for value in ["0", "1"] {
+        assert_eq!(
+            f.load(&[("SQUAD_PRD_HUMAN_REVIEW", value)])
+                .unwrap()
+                .defaults
+                .prd_human_review,
+            value.parse::<u8>().unwrap()
+        );
+    }
+    for value in ["2", "-1", "1.5", "yes"] {
+        assert_eq!(
+            f.load(&[("SQUAD_PRD_HUMAN_REVIEW", value)])
+                .unwrap_err()
+                .to_string(),
+            "SQUAD_PRD_HUMAN_REVIEW must be 0 or 1."
+        );
     }
 }

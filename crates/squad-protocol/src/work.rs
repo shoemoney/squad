@@ -6,6 +6,35 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum WorkKind {
+    #[serde(rename = "tune.cases")]
+    TuneCases,
+    #[serde(rename = "tune.freeze")]
+    TuneFreeze,
+    #[serde(rename = "tune.execute")]
+    TuneExecute,
+    #[serde(rename = "tune.score")]
+    TuneScore,
+    #[serde(rename = "tune.mutate")]
+    TuneMutate,
+    #[serde(rename = "bass_ackwards_prd.done")]
+    BassAckwardsPrdDone,
+    #[serde(rename = "bass_ackwards_prd.freeze")]
+    BassAckwardsPrdFreeze,
+    #[serde(rename = "bass_ackwards_prd.tree")]
+    BassAckwardsPrdTree,
+    #[serde(rename = "bass_ackwards_prd.merge")]
+    BassAckwardsPrdMerge,
+    #[serde(rename = "bass_ackwards_prd.review")]
+    BassAckwardsPrdReview,
+    #[serde(rename = "bass_ackwards_prd.revise")]
+    BassAckwardsPrdRevise,
+    #[serde(rename = "bass_ackwards_prd.must_have")]
+    BassAckwardsPrdMustHave,
+    #[serde(rename = "bass_ackwards_prd.finalize")]
+    BassAckwardsPrdFinalize,
+    #[serde(rename = "bass_ackwards_prd.apply")]
+    BassAckwardsPrdApply,
+
     #[serde(rename = "forge.draft")]
     ForgeDraft,
     #[serde(rename = "forge.rank")]
@@ -201,7 +230,45 @@ impl Work {
         };
         ensure(owner.owns(self), "invalid executor context")?;
         match self.kind {
-            WorkKind::ForgeDraft
+            WorkKind::TuneExecute => {
+                ensure(
+                    self.contest_id.is_some()
+                        && self.step_id.is_some()
+                        && self.debate_id.is_none()
+                        && self.in_reply_to_message_id.is_none()
+                        && self.attempt <= 2
+                        && self.prompt_ref.is_none()
+                        && self.max_output_tokens == Some(constants::TUNE_EXEC_VISIBLE_TOKENS),
+                    "invalid bare executor work",
+                )?;
+                if let Target::Member(nick) = &self.target {
+                    ensure(
+                        self.case_id.is_none()
+                            && self.context_id.0
+                                == format!(
+                                    "contest:{}:{}:{nick}",
+                                    self.contest_id.expect("checked"),
+                                    self.step_id.expect("checked")
+                                ),
+                        "executor needs fresh context",
+                    )?;
+                }
+            }
+
+            WorkKind::TuneCases
+            | WorkKind::TuneFreeze
+            | WorkKind::TuneScore
+            | WorkKind::TuneMutate
+            | WorkKind::BassAckwardsPrdDone
+            | WorkKind::BassAckwardsPrdFreeze
+            | WorkKind::BassAckwardsPrdTree
+            | WorkKind::BassAckwardsPrdMerge
+            | WorkKind::BassAckwardsPrdReview
+            | WorkKind::BassAckwardsPrdRevise
+            | WorkKind::BassAckwardsPrdMustHave
+            | WorkKind::BassAckwardsPrdFinalize
+            | WorkKind::BassAckwardsPrdApply
+            | WorkKind::ForgeDraft
             | WorkKind::ForgeRank
             | WorkKind::ForgeFuse
             | WorkKind::ForgeJudge
@@ -546,6 +613,23 @@ impl Work {
             )?;
         }
         let ceiling = match self.kind {
+            WorkKind::TuneCases
+            | WorkKind::TuneFreeze
+            | WorkKind::TuneExecute
+            | WorkKind::TuneScore
+            | WorkKind::TuneMutate
+            | WorkKind::BassAckwardsPrdDone
+            | WorkKind::BassAckwardsPrdFreeze
+            | WorkKind::BassAckwardsPrdTree
+            | WorkKind::BassAckwardsPrdMerge
+            | WorkKind::BassAckwardsPrdReview
+            | WorkKind::BassAckwardsPrdRevise
+            | WorkKind::BassAckwardsPrdMustHave
+            | WorkKind::BassAckwardsPrdFinalize
+            | WorkKind::BassAckwardsPrdApply => {
+                self.kind.new_mode_visible_tokens().expect("new mode")
+            }
+
             WorkKind::ForgeDraft
             | WorkKind::ForgeRank
             | WorkKind::ForgeFuse
@@ -715,6 +799,21 @@ impl WorkKind {
 impl WorkKind {
     pub fn new_mode_kind(&self) -> Option<ContestKind> {
         match self {
+            Self::TuneCases
+            | Self::TuneFreeze
+            | Self::TuneExecute
+            | Self::TuneScore
+            | Self::TuneMutate => Some(ContestKind::Tune),
+            Self::BassAckwardsPrdDone
+            | Self::BassAckwardsPrdFreeze
+            | Self::BassAckwardsPrdTree
+            | Self::BassAckwardsPrdMerge
+            | Self::BassAckwardsPrdReview
+            | Self::BassAckwardsPrdRevise
+            | Self::BassAckwardsPrdMustHave
+            | Self::BassAckwardsPrdFinalize
+            | Self::BassAckwardsPrdApply => Some(ContestKind::BassAckwardsPrd),
+
             Self::ForgeDraft | Self::ForgeRank | Self::ForgeFuse | Self::ForgeJudge => {
                 Some(ContestKind::Forge)
             }
@@ -754,6 +853,20 @@ impl WorkKind {
     }
     pub fn new_mode_composition(&self) -> Option<&'static str> {
         match self {
+            Self::TuneCases => Some("tune.cases"),
+            Self::TuneFreeze => Some("tune.freeze"),
+            Self::TuneScore => Some("tune.score"),
+            Self::TuneMutate => Some("tune.mutate"),
+            Self::BassAckwardsPrdDone => Some("bass_ackwards_prd.done"),
+            Self::BassAckwardsPrdFreeze => Some("bass_ackwards_prd.freeze"),
+            Self::BassAckwardsPrdTree => Some("bass_ackwards_prd.tree"),
+            Self::BassAckwardsPrdMerge => Some("bass_ackwards_prd.merge"),
+            Self::BassAckwardsPrdReview => Some("bass_ackwards_prd.review"),
+            Self::BassAckwardsPrdRevise => Some("bass_ackwards_prd.revise"),
+            Self::BassAckwardsPrdMustHave => Some("bass_ackwards_prd.must_have"),
+            Self::BassAckwardsPrdFinalize => Some("bass_ackwards_prd.finalize"),
+            Self::BassAckwardsPrdApply => Some("bass_ackwards_prd.apply"),
+
             Self::ForgeDraft => Some("forge.draft"),
             Self::ForgeRank => Some("forge.rank"),
             Self::ForgeFuse => Some("forge.fuse"),
@@ -797,7 +910,14 @@ impl WorkKind {
     pub fn new_mode_judge(&self) -> bool {
         matches!(
             self,
-            Self::ForgeJudge
+            Self::TuneFreeze
+                | Self::TuneScore
+                | Self::BassAckwardsPrdFreeze
+                | Self::BassAckwardsPrdMerge
+                | Self::BassAckwardsPrdRevise
+                | Self::BassAckwardsPrdFinalize
+                | Self::BassAckwardsPrdApply
+                | Self::ForgeJudge
                 | Self::ForecastFrame
                 | Self::ForecastCruxes
                 | Self::DecideShortlist
@@ -815,5 +935,39 @@ impl WorkKind {
                 | Self::TraceAssemble
                 | Self::RankExplain
         )
+    }
+}
+
+impl WorkKind {
+    pub fn is_executor(&self) -> bool {
+        matches!(self, Self::TuneExecute)
+    }
+    pub fn new_mode_visible_tokens(&self) -> Option<u32> {
+        self.new_mode_kind()?;
+        Some(if self.is_executor() {
+            constants::TUNE_EXEC_VISIBLE_TOKENS
+        } else if matches!(
+            self,
+            Self::BassAckwardsPrdMerge
+                | Self::BassAckwardsPrdRevise
+                | Self::BassAckwardsPrdFinalize
+                | Self::BassAckwardsPrdApply
+        ) {
+            constants::PRD_VISIBLE_TOKENS
+        } else if self.new_mode_judge()
+            || matches!(
+                self,
+                Self::ForgeDraft
+                    | Self::ForgeFuse
+                    | Self::TraceExtract
+                    | Self::RankCompare
+                    | Self::TuneMutate
+                    | Self::BassAckwardsPrdTree
+            )
+        {
+            constants::PLAN_VISIBLE_TOKENS
+        } else {
+            constants::REPLY_VISIBLE_TOKENS
+        })
     }
 }
