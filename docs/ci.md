@@ -32,6 +32,8 @@ Docker container with four CPUs, 16 GiB RAM, no extra swap, and automatic restar
 It starts a dedicated nested Docker daemon for the Debian/Fedora job containers.
 The runner container requires privileged mode for this daemon. It has **no host
 Docker socket, development home, credentials directory or published port**.
+A job-start hook restores workspace ownership after installer containers change
+it to their own user, before the next checkout.
 It uses dedicated named volumes for registration state, work, Cargo, Rustup,
 build outputs and its own Docker data. These are CI caches, not production data.
 
