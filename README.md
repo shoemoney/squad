@@ -9,9 +9,9 @@ Squad is a terminal chat room where you talk to several LLMs at once through Ope
 @grok @gemini $debate your solutions until $ROUNDS at which time @judge decides which is better
 ```
 
-![Six models answer one question at the same time in the Squad room, each streaming into its own coloured lane.](docs/media/room-streaming.gif)
+![Squad v0.1.2 live: the startup checklist, Tab typeahead, six models streaming side by side, then a judged debate and verdict card.](docs/media/squad-demo.gif)
 
-_The room above is the scripted rehearsal that ships with the repository, so it runs without an API key or any cost._
+_A real recording with the v0.1.2 release binary against OpenRouter, about 46 s. The long model waits are cut and labelled on screen; the complete recording is [`docs/demo/squad-raw.mp4`](docs/demo/squad-raw.mp4)._
 
 
 ## 📍 Status
