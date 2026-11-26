@@ -31,4 +31,3 @@ M6 soak PASS elapsed_s=1805 rosters=6,12 waves=156 combined_process_peak_rss_kib
 test six_and_twelve_agent_streaming_for_thirty_minutes ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1805.88s
-

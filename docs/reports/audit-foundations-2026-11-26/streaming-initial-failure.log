@@ -13,4 +13,3 @@ failures:
     six_and_twelve_agent_streaming_for_thirty_minutes
 
 test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 91.56s
-

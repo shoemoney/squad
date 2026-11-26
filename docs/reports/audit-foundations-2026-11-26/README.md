@@ -65,3 +65,5 @@ The existing PTY round-trip also now verifies debug JSON reaches the flushed fil
 - Both memory measurements are qualified debug test-process results on shared dev2; see `docs/performance.md` for workload and reference-host limitations.
 
 The first manual soak timed out with the character-at-a-time SSE fixture during concurrent compilation; [its failure is retained](streaming-initial-failure.log). A second run exposed fixture retention: disabling Wiremock's global request recording still left cloned requests in each mounted mock. It was stopped after the issue was found; [its samples are retained](streaming-unbounded-fixture-aborted.log). The final harness retains all application history, sends the same 3,712-byte answer in eight SSE deltas, and resets/remounts the provider mock between completed waves. Neither earlier run is claimed as a product pass or a diagnosed application memory defect.
+
+Trailing empty lines were normalized in the retained text logs.
