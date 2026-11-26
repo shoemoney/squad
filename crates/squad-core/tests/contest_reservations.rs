@@ -285,7 +285,7 @@ const MODES: [Scenario; 7] = [
 /// (mode, expected reserved USD, tolerance). Probe splits roles at random, so its
 /// reservation varies with who explains.
 const EXPECTED: [(&str, f64, f64); 7] = [
-    ("debate", 5.58, 0.01),
+    ("debate", 7.62, 0.01),
     ("tournament", 24.36, 0.01),
     ("grill", 4.19, 0.01),
     ("census", 19.56, 0.01),

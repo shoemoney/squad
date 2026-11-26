@@ -349,3 +349,38 @@ fn preflight_round_judge_bound_matches_the_runtime_reservation_budget() {
         }
     }
 }
+
+#[test]
+fn debate_reserves_prior_turns_at_the_same_bounds_as_the_new_modes() {
+    // A prior turn can be re-sent at its word limit (8 bytes per word) or four
+    // bytes per visible token, whichever is lower, plus framing; never 1 byte/token.
+    let mut p = plan(3, true, true);
+    freeze(&mut p, 100.0);
+    let turn = squad_core::router::bounds::limited(
+        constants::DEBATE_TURN_VISIBLE_TOKENS,
+        p.prompts.turn_words.max(p.prompts.final_turn_words),
+    );
+    assert!(turn > u64::from(constants::DEBATE_TURN_VISIBLE_TOKENS));
+    let member_turns = |nick_index: usize| -> Vec<u64> {
+        p.calls
+            .iter()
+            .filter(|c| c.kind == WorkKind::DebateTurn)
+            .filter(|c| c.actor == Target::Member(p.preflight.debaters[nick_index].clone()))
+            .map(|c| c.input_tokens)
+            .collect()
+    };
+    let inputs = member_turns(0);
+    for (round, input) in inputs.iter().enumerate() {
+        assert!(
+            *input >= 100 + round as u64 * 2 * turn,
+            "round {round}: {input}"
+        );
+    }
+    let judges: Vec<_> = p
+        .calls
+        .iter()
+        .filter(|c| matches!(c.kind, WorkKind::JudgeRound | WorkKind::Judge))
+        .collect();
+    // The final judge sees every turn of every round, openings included.
+    assert!(judges.last().unwrap().input_tokens >= 300 + 4 * 2 * turn);
+}

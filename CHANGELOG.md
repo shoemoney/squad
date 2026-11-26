@@ -6,16 +6,6 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
-### Fixed
-
-- Contest plan reservations are sized from what each planned step can actually
-  receive (frozen templates, response schema, frozen inputs and accepted
-  artifacts bounded by their word limits and output ceilings) instead of assuming
-  prompts fill the model's context window. Every permitted attempt is still
-  reserved, each started attempt draws a frozen per-step share, and a census plan
-  that grows between passes needs a revised preflight. A six-member grill no
-  longer fails with `CONTEXT_TOO_LARGE` on 256k-context models.
-
 ## [0.1.1] - 2026-11-25
 
 Test-coverage and keyboard-reachability release: six gap branches merged on top
@@ -59,6 +49,24 @@ of 0.1.0, plus the fixes their tests exposed.
 - Terminal control bytes in model text are neutralised in export.
 - A started attempt cancelled before its provider call (stop or `/clear`)
   releases its spend reservation instead of leaking it.
+- Contest plan reservations are sized from what each planned step can actually
+  receive (frozen templates, response schema, frozen inputs and accepted
+  artifacts bounded by their word limits and output ceilings) instead of assuming
+  prompts fill the model's context window. Every permitted attempt is still
+  reserved, each started attempt draws a frozen per-step share, and a census plan
+  that grows between passes needs a revised preflight. A six-member grill no
+  longer fails with `CONTEXT_TOO_LARGE` on 256k-context models.
+- Debate reservations use the same bounds: prior turns are bounded by their word
+  limit or four bytes per visible token (not one byte per token), selected
+  solutions and the opening round count toward the judge's input, and per-round
+  scores are included. The default-roster debate reserves $7.62 (was $5.58).
+- Structured-output schemas are sanitised per provider (`wire_schema`), map
+  schemas fall back to prompt-only JSON, survey, probe and census live-run
+  failures are fixed, and OpenAI and xAI models receive `reasoning.effort`.
+- One usage record is committed per attempt change, not per streamed chunk (a
+  single call used to commit about 1,300), and `squad send` waits on the room feed
+  instead of re-reading the whole history every 50 ms, so it exits promptly once
+  a contest ends.
 
 ### Changed
 

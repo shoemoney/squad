@@ -168,17 +168,35 @@ pub fn freeze(
         }
     }
     let mut calls = Vec::new();
-    let mut judge_input = bounds.judge;
+    // Prior turns are re-sent in the same unit as ordinary dispatch (UTF-8 bytes
+    // plus framing), so each is bounded by its word limit or four bytes per
+    // visible token, whichever is lower, exactly like the other modes' artifacts.
+    let turn = crate::router::bounds::limited(
+        constants::DEBATE_TURN_VISIBLE_TOKENS,
+        plan.prompts.turn_words.max(plan.prompts.final_turn_words),
+    );
+    let score = crate::router::bounds::artifact(constants::ROUND_JUDGE_VISIBLE_TOKENS);
+    let solutions: u64 = plan.sources.solutions.as_ref().map_or(0, |s| {
+        s.iter()
+            .map(|s| {
+                crate::router::bounds::json_text(s.text.as_str())
+                    + crate::router::bounds::ARTIFACT_FRAME
+            })
+            .sum()
+    });
+    let first = u32::from(!plan.preflight.opening_round_required);
+    let judge_base = bounds.judge.saturating_add(solutions);
+    let mut scored = 0_u64;
     if !plan.preflight.judge_only {
-        for round in u32::from(!plan.preflight.opening_round_required)..=plan.preflight.rounds {
-            let prior = round.saturating_sub(u32::from(!plan.preflight.opening_round_required));
+        for round in first..=plan.preflight.rounds {
+            let prior = u64::from(round - first);
             for (index, member) in plan.members.iter().enumerate() {
                 if member.nick.as_ref() != Some(&plan.preflight.debaters[index]) {
                     return Err(ErrorCode::DEBATE_PLAN_STALE);
                 }
-                let input = bounds.members[index].saturating_add(
-                    u64::from(prior) * 2 * u64::from(constants::DEBATE_TURN_VISIBLE_TOKENS),
-                );
+                let input = bounds.members[index]
+                    .saturating_add(solutions)
+                    .saturating_add(prior * 2 * turn);
                 calls.push(call(
                     member,
                     WorkKind::DebateTurn,
@@ -188,21 +206,29 @@ pub fn freeze(
                 )?);
             }
             if round > 0 && plan.preflight.judge_requested {
-                judge_input = judge_input
-                    .saturating_add(2 * u64::from(constants::DEBATE_TURN_VISIBLE_TOKENS));
                 let judge = plan.judge.as_ref().ok_or(ErrorCode::MODEL_UNAVAILABLE)?;
+                let input = judge_base
+                    .saturating_add((prior + 1) * 2 * turn)
+                    .saturating_add(scored * score);
                 calls.push(call(
                     judge,
                     WorkKind::JudgeRound,
                     Some(round),
                     Target::Judge,
-                    judge_input,
+                    input,
                 )?);
-                judge_input =
-                    judge_input.saturating_add(u64::from(constants::ROUND_JUDGE_VISIBLE_TOKENS));
+                scored += 1;
             }
         }
     }
+    let judge_input = judge_base
+        .saturating_add(
+            u64::from(
+                plan.preflight.rounds + 1 - if plan.preflight.judge_only { 0 } else { first },
+            ) * 2
+                * turn,
+        )
+        .saturating_add(scored * score);
     if plan.preflight.judge_requested {
         let judge = plan.judge.as_ref().ok_or(ErrorCode::MODEL_UNAVAILABLE)?;
         if plan.preflight.judge_model.as_deref() != Some(judge.resolved_slug.as_str()) {
