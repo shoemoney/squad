@@ -258,6 +258,11 @@ async fn question_first_survey_runs_real_engine_and_private_fanouts() {
             );
             assert!(text.contains("up to\\n25 distinct claims"), "{text}");
         }
+        if text.contains("write the human's claim map") {
+            // Live: a 25-claim report overran the word budget three times (1,425 > 1,200).
+            assert!(text.contains("budget it"), "{text}");
+            assert!(text.contains("settlingQuestion is needed only for contested"));
+        }
         if b["model"] == "fixture/judge" {
             assert!(!text.contains("PERSONA_"));
             assert_eq!(b["messages"].as_array().unwrap().len(), 2);

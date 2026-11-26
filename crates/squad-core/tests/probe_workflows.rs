@@ -498,6 +498,17 @@ async fn six_members_ten_calls_and_locked_visibility() {
     room.shutdown().await.unwrap();
 }
 
+/// Live regression: the report judge reworded a check's measurement, which the
+/// validator rejects ("tree changed measurement or outcomes"), because the
+/// prompt never said to copy it.
+#[test]
+fn report_prompt_demands_verbatim_measurements_outcomes_and_matrix() {
+    let prompt = include_str!("../prompts/probe.report.md");
+    assert!(prompt.contains("measurement text exactly as supplied"));
+    assert!(prompt.contains("exactly the supplied outcome ids"));
+    assert!(prompt.contains("Copy it exactly as\nsupplied"));
+}
+
 const BRIEF: &str = "@all $probe Intermittent noise, fan ruled out, inspect indicator only";
 fn terminal(f: &Fixture) -> bool {
     f.db()
