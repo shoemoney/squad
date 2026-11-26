@@ -53,12 +53,12 @@
   - [x] M7.P2.L1.T6 — Record D71’s shared-engine build order and all seven v1 modes, and place `$lattice`, `$delphi`, `$assemble`, and the grill/census-until-quiet meta-mode on the post-v1 roadmap in `CHANGELOG.md` and `docs/release-checklist.md`.
 
 - **M7.P2.L2 — Demonstration and publication decision**
-  - [ ] M7.P2.L2.T1 — Write the timed canonical terminal demonstration and conditional-confirmation steps for `squad-cli` and `squad-tui` in `docs/demo.md`.
-  - [ ] M7.P2.L2.T2 — Record the demonstration, label time cuts, retain the complete recording, and record credential inspection for `squad-cli` and `squad-tui` in `docs/demo.md`.
-  - [ ] M7.P2.L2.T3 — Link the recorded demonstration of `squad-cli` and `squad-tui` from `README.md`.
+  - [x] M7.P2.L2.T1 — Write the timed canonical terminal demonstration and conditional-confirmation steps for `squad-cli` and `squad-tui` in `docs/demo.md`.
+  - [x] M7.P2.L2.T2 — Record the demonstration, label time cuts, retain the complete recording, and record credential inspection for `squad-cli` and `squad-tui` in `docs/demo.md`.
+  - [x] M7.P2.L2.T3 — Link the recorded demonstration of `squad-cli` and `squad-tui` from `README.md`.
   - [x] M7.P2.L2.T4 — Prepare the release artifact inventory and owner publication decision record for `squad-cli` in `docs/release-checklist.md`.
   - [x] M7.P2.L2.T5 — Record the public repository visibility under D61 and the owner’s M7 boundary check-in for the workspace crates in `docs/release-checklist.md`.
   - [x] M7.P2.L2.T6 — If publication is explicitly authorized, publish only approved `squad-cli` artifacts and record installation verification in `docs/release-checklist.md`.
-  - [ ] M7.P2.L2.T7 — Record and link separate census, crosscheck, survey, and probe walkthroughs showing blind steps, costs, reports, stop caveats, and exports; disclose time cuts and inspect for credentials in `docs/demo.md` and `README.md`.
+  - [ ] M7.P2.L2.T7 (census and crosscheck recorded; survey and probe fail live on v0.1.0, see docs/demo.md) — Record and link separate census, crosscheck, survey, and probe walkthroughs showing blind steps, costs, reports, stop caveats, and exports; disclose time cuts and inspect for credentials in `docs/demo.md` and `README.md`.
 
 
