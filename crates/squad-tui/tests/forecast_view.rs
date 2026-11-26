@@ -11,6 +11,11 @@ fn enabled_forecast_is_discoverable_in_completion_help_and_rotating_tips() {
     );
     assert_eq!(typeahead::rank("$forecast", "$fore"), Some(0));
     assert!(typeahead::describe("$forecast", &[]).contains("pooled probability"));
+    assert!(
+        squad_tui::actions::help_lines()
+            .iter()
+            .any(|line| line.contains("$forecast"))
+    );
     let context = parser::ParseContext {
         roster: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
         ..Default::default()

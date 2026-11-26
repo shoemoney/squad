@@ -230,7 +230,7 @@ fn shared_parser_api_maps_modes_picks_and_all_export_scopes() {
 }
 
 #[test]
-fn nine_mode_registries_roundtrip_and_remain_disabled() {
+fn nine_mode_registries_roundtrip_and_follow_enable_switches() {
     assert!(!ContestKind::Forge.is_built());
     assert_eq!(serde_json::to_value(ContestKind::Forge).unwrap(), "forge");
     let state = ForgeState {
@@ -247,7 +247,7 @@ fn nine_mode_registries_roundtrip_and_remain_disabled() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "forge");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Forecast.is_built());
+    assert_eq!(ContestKind::Forecast.is_built(), forecast::ENABLED);
     assert_eq!(
         serde_json::to_value(ContestKind::Forecast).unwrap(),
         "forecast"

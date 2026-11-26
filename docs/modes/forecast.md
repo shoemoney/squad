@@ -4,8 +4,8 @@
 observable signposts. Use it for a yes/no event with a deadline. Use `$survey`
 for a map of claims.
 
-**Status: disabled pending shared judge dispatch integration.** The commands
-below describe the mode after that integration.
+**Status: enabled.** Forecast uses the production room runtime, parser,
+completion, help and rotating examples.
 
 ```text
 @all $forecast Will the project release version 1 by 2027-06-30?
@@ -52,76 +52,31 @@ bill; unused holds are released.
 
 ## Example run
 
-No live example is claimed. The approved smoke is blocked before any forecast
-provider call by the shared legacy judge gate. Live cost/time are **not measured**.
-The fake-provider six-member fixture verifies 14 calls, 30 reserved attempts and
-a stored/exported 55.0% pool; this is test data, not forecasting evidence.
+The default-roster live smoke is pending the final gate run. No live cost or
+wall time is claimed until it completes.
 
-## Integration requirements
+## Integration and verification
 
-Only forecast-owned files were changed. In
-`crates/squad-core/src/runtime/judge.rs`, `Executor::execute` must route
-`grant.work.kind.new_mode_judge()` to `self.crosscheck.execute` alongside the
-existing structured judge kinds. That runner already routes new-mode work to
-`runtime::forecast::execute`. The wrapper currently uses the legacy
-`squad_agents::judge::JudgeExecutor` allowlist, which rejects forecast work with
-`ReaderError::Forbidden`. Default-room testing reproduced `forecast.frame`
-stuck running without a forecast provider call.
+With explicit scope approval on 2026-11-26, `mode-forecast-r2` changes four
+shared files required for enablement:
 
-In `crates/squad-core/src/router/executor.rs`, classify `MODE_INVALID_OUTPUT`
-as `FailureClass::InvalidOutput` alongside `JUDGE_INVALID_MODE_OUTPUT`.
-Forecast currently uses the recognized latter diagnostic for member validation
-failures so D75 repairs work; normalize the member diagnostic after this fix.
+- `crates/squad-core/src/runtime/judge.rs`: route new-mode judge grants to the
+  structured runner, which already dispatches to the forecast executor.
+- `crates/squad-core/src/router/executor.rs`: classify member
+  `MODE_INVALID_OUTPUT` as invalid output so its private repair is accepted.
+- `crates/squad-protocol/src/parser/examples.json`: replace row 176's disabled
+  forecast expectation with an enabled parse fixture.
+- `crates/squad-protocol/tests/contests.rs`: check forecast availability against
+  its enable switch instead of requiring it to remain disabled.
 
-The workflow suite directly admits through the owned admission entry point and
-uses the public runtime injection seam. It tests the full owned engine with the
-public switch off, including captured revision privacy, repair, quorum, missing
-revisions, crux failure with retained tally, stop fencing and restart. It does
-not establish that the production judge wrapper works.
+The owned forecast executor now reports `MODE_INVALID_OUTPUT` for members and
+`JUDGE_INVALID_MODE_OUTPUT` for judges. All workflow fixtures use the production
+launcher and public parser/room submission; the wrapper captures only the store
+handle for assertions. No injected executor or second driver remains. Coverage
+includes 14 normal calls/30 reserved attempts, captured revision privacy, member
+repair, missing revisions, insufficient quorum, framing refusal, failed-crux
+export, stop fencing and restart with frozen frame, labels and bundles.
 
-The resume branch `mode-forecast-r2` adds
-`default_launcher_completes_forecast_and_repairs_invalid_member_output` in
-`crates/squad-core/tests/forecast_workflows.rs`. This regression captures the store
-handle but delegates execution and recovery to the production launcher. While
-disabled it advances only initial admission through the owned driver, because
-the shared driver deliberately skips disabled modes. Once enabled it submits
-through the public parser and room engine. It requires completion, fourteen
-normal provider calls plus one schema repair, an export and consistent billing.
-It is explicitly ignored pending the shared dispatch fix; run it with:
-
-```sh
-CARGO_BUILD_JOBS=4 cargo test -p squad-core --test forecast_workflows default_launcher_completes -- --ignored --nocapture
-```
-
-Enablement also requires updating row 176 in the integrator-owned
-`crates/squad-protocol/src/parser/examples.json`: that fixture currently requires
-the disabled error for `@all $forecast will we ship?`. Change it to an enabled
-forecast parse fixture when flipping the switch. Typeahead, help and rotating
-TIP examples already derive availability from the switch and live parser.
-
-After the shared dispatch fix: set `forecast::ENABLED = true`, verify the parser,
-typeahead/TIP/help, rerun default-launcher workflows and all gates, then run the
-approved single live `squad send` in a fresh temporary data directory with the
-default six-model roster and `SQUAD_DAILY_MAX_USD=150`. Record actual cost,
-wall time and reservations here.
-
-## Worker gates (2026-11-26)
-
-Final tested code head: `00a83cae89a3384e68e6624bbed00091519026ca` on `mode-forecast`, dev3,
-`CARGO_BUILD_JOBS=4`.
-
-- `cargo test --workspace --no-fail-fast`: 1,348 unique tests passed, zero
-  failures, four existing ignored entries. Cargo prints 1,349 passing summaries
-  because the SQLite WAL subprocess repeats one test.
-- `cargo clippy --workspace --all-targets -- -D warnings`: passed.
-- `cargo fmt --all -- --check`: passed.
-- `cargo build --release --locked -p squad-cli`: passed inside the release
-  suite, which also exercises private binary snapshots and packaged sources.
-- 23 added tests span protocol, store, agents, core workflows/tallies/export
-  and TUI. The six-member workflow exports both rounds' unrounded aggregates;
-  the current TUI bar uses the latest pool.
-
-Twelve of fourteen M8.P3 tasks are checked. Default-launcher verification and
-public enable/discovery/live verification remain open for the shared dispatch
-fix. No real API calls were made: live spend is $0; real run cost, duration and
-reserved-versus-actual amounts remain unmeasured.
+The TUI discovery test verifies completion inventory/ranking, help description,
+a parseable forecast example and its appearance in the rotating TIP. Strict
+calendar validation also rejects signed numeric date components.
