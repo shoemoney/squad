@@ -172,17 +172,14 @@ mod tests {
     }
 
     #[test]
-    fn map_valued_objects_turn_strict_off() {
+    fn map_valued_objects_go_out_as_prompt_only_json() {
         let strict = json!({"type":"json_schema","json_schema":{"name":"x","strict":true,"schema":{"type":"object","additionalProperties":false,"properties":{"a":{"type":"string"}}}}});
         assert_eq!(
-            sanitize_response_format(&strict)["json_schema"]["strict"],
+            sanitize_response_format(&strict).unwrap()["json_schema"]["strict"],
             true
         );
         let map = json!({"type":"json_schema","json_schema":{"name":"x","strict":true,"schema":{"type":"object","additionalProperties":false,"properties":{"m":{"type":"object","additionalProperties":{"type":"string"}}}}}});
-        assert_eq!(
-            sanitize_response_format(&map)["json_schema"]["strict"],
-            false
-        );
+        assert_eq!(sanitize_response_format(&map), None);
     }
 
     #[test]
