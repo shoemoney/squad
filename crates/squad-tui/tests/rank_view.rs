@@ -90,3 +90,32 @@ fn fitted_order_has_gap_markers_and_cycle_section() {
     assert!(text.contains("────────    clear"));
     assert!(text.contains("········    close"));
 }
+
+#[test]
+fn new_contest_clears_cached_report() {
+    let old = RankState {
+        contest_id: ContestId::new(),
+        state_version: 1,
+        state: RankStatus::Complete,
+        step_id: None,
+        round: 0,
+        artifact_event_ids: vec![],
+        terminal_reason: Some("ranked".parse().unwrap()),
+    };
+    let mut view = View {
+        state: Some(old),
+        report_lines: Some(vec!["old report".into()]),
+        ..Default::default()
+    };
+    let next = RankState {
+        contest_id: ContestId::new(),
+        state_version: 1,
+        state: RankStatus::Comparing,
+        step_id: None,
+        round: 0,
+        artifact_event_ids: vec![],
+        terminal_reason: None,
+    };
+    view.apply(EventId::new(), &EnvelopePayload::RankState(next));
+    assert!(!render(&view).join("\n").contains("old report"));
+}

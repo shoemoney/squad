@@ -30,7 +30,9 @@ impl View {
                 if self
                     .state
                     .as_ref()
-                    .is_some_and(|old| old.contest_id != s.contest_id)
+                    .map(|old| old.contest_id)
+                    .or_else(|| self.artifacts.values().next().map(|a| a.contest_id))
+                    .is_some_and(|old| old != s.contest_id)
                 {
                     self.artifacts.clear();
                     self.planned_judgments = 0;
@@ -40,7 +42,11 @@ impl View {
             }
             EnvelopePayload::ContestArtifact(a)
                 if a.kind == Some(ContestKind::Rank)
-                    && a.audience == Some(ArtifactAudience::Human) =>
+                    && a.audience == Some(ArtifactAudience::Human)
+                    && self
+                        .state
+                        .as_ref()
+                        .is_none_or(|s| s.contest_id == a.contest_id) =>
             {
                 if a.artifact_kind.as_str() == "rank.report"
                     && let Some(body) = &a.body
