@@ -221,6 +221,10 @@ impl Direct {
             .unwrap()
     }
     async fn pump(&self, f: &Fixture) {
+        self.pump_limit(f, usize::MAX).await;
+    }
+    async fn pump_limit(&self, f: &Fixture, limit: usize) {
+        let mut calls = 0;
         for _ in 0..30 {
             self.store.call(|db| {db.execute("UPDATE work SET status='queued',runnable=1 WHERE status='failed' AND attempt<CASE WHEN kind='rank.explain' THEN 3 ELSE 2 END AND COALESCE(json_extract(error_json,'$.code'),'')<>'WORK_CANCELLED'",[])?;Ok(())}).unwrap();
             squad_core::orchestrator::rank::drive(&mut self.router.lock().unwrap()).unwrap();
@@ -294,6 +298,10 @@ impl Direct {
                 )
                 .await
                 .unwrap();
+                calls += 1;
+                if calls >= limit {
+                    return;
+                }
             }
         }
         panic!("mode script did not settle");
@@ -428,10 +436,23 @@ async fn restart_reuses_design_and_accepted_batches() {
         .store
         .call(move |db| squad_store::rank::setup(db, id))
         .unwrap();
-    d.store
-        .call(move |db| squad_core::router::rank::recover(db, id))
-        .unwrap();
+    d.pump_limit(&f, 1).await;
+    let accepted = d
+        .store
+        .call(move |db| squad_store::rank::run(db, id))
+        .unwrap()
+        .batches;
+    assert_eq!(accepted.len(), 1);
+    squad_core::router::recovery::recover_on_open(&d.store).unwrap();
     d.pump(&f).await;
+    let run = d
+        .store
+        .call(move |db| squad_store::rank::run(db, id))
+        .unwrap();
+    for (nick, batch) in accepted {
+        assert_eq!(run.batches[&nick], batch);
+    }
+    assert_eq!(f.fake.captured_bodies().await.len(), 7);
     assert_eq!(d.state().state, RankStatus::Complete);
     assert_eq!(
         before,

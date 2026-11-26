@@ -54,10 +54,11 @@ fn balanced_complete_set_and_phantom_have_unit_strength() {
 }
 #[test]
 fn undefeated_and_winless_pair_match_analytic_strengths() {
-    // Independent root of p^3 - p^2 - p - 3 = 0; symmetry gives q=1/p.
+    // Independent 60-digit decimal MM golden at the required log-delta stop (87 updates).
+    // The equilibrium solves p^3 - p^2 - p - 3 = 0; q=1/p.
     let t = fit(&[vec![0, 1], vec![0, 0]], &[]);
-    assert!((t.strengths[0] - 2.1303954347672787).abs() < 1e-8);
-    assert!((t.strengths[1] - 0.4693964245699947).abs() < 1e-9);
+    assert!((t.strengths[0] - 2.130395426518053).abs() < 1e-9);
+    assert!((t.strengths[1] - 0.4693964235759998).abs() < 1e-9);
     assert_eq!(t.order, vec![0, 1]);
     assert_eq!(t.gaps[0].label, "clear");
 }
@@ -109,4 +110,35 @@ fn input_limits_are_enforced() {
     assert!(prepare(&p(41, "short".into())).is_err());
     assert!(prepare(&p(3, "word ".repeat(61))).is_err());
     assert!(prepare(&p(3, "short".into())).is_ok());
+}
+#[test]
+fn two_member_replication_never_assigns_a_pair_twice() {
+    let members = vec!["a".parse().unwrap(), "b".parse().unwrap()];
+    for n in [3, 7, 8, 40] {
+        let (pairs, v, deal) = design(n, &members, 7);
+        assert!(v <= 2);
+        assert_eq!(deal.values().map(Vec::len).sum::<usize>(), pairs.len() * v);
+        for ds in deal.values() {
+            let unique = ds
+                .iter()
+                .map(|d| &d.pair_id)
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(unique.len(), ds.len());
+            assert!(ds.len() <= 60);
+        }
+    }
+}
+
+#[test]
+fn sparse_three_item_chain_matches_independent_decimal_mm_golden() {
+    // 104 simultaneous updates at 60 decimal digits; equilibrium is (3,1,1/3).
+    let t = fit(&[vec![0, 1, 0], vec![0, 0, 1], vec![0, 0, 0]], &[]);
+    for (actual, expected) in
+        t.strengths
+            .iter()
+            .zip([2.9999999866934495, 0.9999999968478517, 0.3333333326641813])
+    {
+        assert!((actual - expected).abs() < 1e-9);
+    }
+    assert_eq!(t.order, vec![0, 1, 2]);
 }

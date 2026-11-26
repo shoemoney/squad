@@ -289,7 +289,9 @@ impl RankExplanation {
 pub struct RankReport {
     pub setup: RankSetup,
     pub batches: std::collections::BTreeMap<MemberNick, RankBatch>,
+    #[schemars(extend("x-required-nullable" = true))]
     pub tally: Option<RankTally>,
+    #[schemars(extend("x-required-nullable" = true))]
     pub explanation: Option<RankExplanation>,
     pub skipped: Vec<MemberNick>,
     pub reason: String,
@@ -343,7 +345,7 @@ pub fn validate_artifact(kind: &str, body: &serde_json::Value) -> ValidationResu
                     .iter()
                     .map(|x| x.cycle_id.clone())
                     .collect::<Vec<_>>(),
-                500,
+                usize::MAX, // Frozen room budget is checked against the assigned input.
             )
         }
         "rank.tally" => {

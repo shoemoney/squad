@@ -64,3 +64,49 @@ fn snapshot_export_requires_matching_contest_and_human_audience() {
     let snapshot = ExportSnapshot::default();
     assert!(render(&snapshot, ContestId::new()).is_err());
 }
+
+fn event(payload: serde_json::Value) -> CommittedEnvelope {
+    serde_json::from_value(serde_json::json!({"version":1,"id":EventId::new(),"roomId":"main","correlationId":EventId::new(),"sender":"system","recipients":["me"],"createdAt":"2026-11-26T00:00:00Z","seq":"1","acceptedAt":"2026-11-26T00:00:00Z","commitIndex":0,"commitSize":1,"kind":"contest.artifact","payload":payload})).unwrap()
+}
+#[test]
+fn full_export_maps_raw_judgments_and_honors_visibility() {
+    let mut r = report();
+    let nick = r.setup.participants[0].clone();
+    let d = &r.setup.deal[&nick][0];
+    r.batches.insert(
+        nick,
+        RankBatch {
+            choices: vec![RankChoice {
+                pair_id: d.pair_id.clone(),
+                winner: RankWinner::B,
+                reason: "More impact".into(),
+            }],
+        },
+    );
+    let id = ContestId::new();
+    let a = ContestArtifact {
+        contest_id: id,
+        step_id: StepId::new(),
+        artifact_kind: "rank.report".parse().unwrap(),
+        work_id: None,
+        source_refs: vec![],
+        data: serde_json::json!({}),
+        kind: Some(ContestKind::Rank),
+        round: Some(0),
+        actor: Some(Actor::System),
+        audience: Some(ArtifactAudience::Human),
+        body: Some(serde_json::to_value(&r).unwrap()),
+    };
+    let mut snapshot = ExportSnapshot {
+        events: vec![event(serde_json::to_value(&a).unwrap())],
+        ..Default::default()
+    };
+    let output = render(&snapshot, id).unwrap();
+    assert!(output.contains("winner=B; More impact"));
+    assert!(output.contains("A=I") && output.contains("B=I"));
+    assert!(render(&snapshot, ContestId::new()).is_err());
+    let mut hidden = a;
+    hidden.audience = Some(ArtifactAudience::Case);
+    snapshot.events = vec![event(serde_json::to_value(hidden).unwrap())];
+    assert!(render(&snapshot, id).is_err());
+}

@@ -76,11 +76,7 @@ impl WorkExecutor for RankExecutor {
                 rendered.user.push_str(rest);
             }
             let mut request = self.request.clone();
-            request.visible_ceiling = if kind != &WorkKind::RankCompare {
-                squad_protocol::constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
-            } else {
-                4096
-            };
+            request.visible_ceiling = 4096;
             request.response_format = Some(
                 json!({"type":"json_schema","json_schema":{"name":"rank_response","strict":true,"schema":schema}}),
             );

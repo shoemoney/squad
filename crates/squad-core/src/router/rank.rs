@@ -207,12 +207,7 @@ pub fn prepare(
         "rank.seed",
         &serde_json::json!({"seed":seed}),
     )?;
-    let tokens = config
-        .agents
-        .iter()
-        .flat_map(|a| [a.nick.to_string(), a.model.clone(), a.persona.clone()])
-        .chain(std::iter::once(config.judge.model.clone()))
-        .collect::<Vec<_>>();
+    let tokens = crate::orchestrator::blind::tokens(config, a.bindings);
     squad_store::contest_steps::private_map(
         tx,
         contest,
@@ -798,7 +793,7 @@ fn allocate(
                                 "{} beats {}: {}",
                                 setup.items[winner].item_id,
                                 setup.items[if winner == pair.a { pair.b } else { pair.a }].item_id,
-                                blind(&choice.reason, &tokens).0
+                                crate::orchestrator::blind::redact(&choice.reason, &tokens)
                             ));
                     }
                 }
@@ -806,11 +801,15 @@ fn allocate(
             // Ten top-item pairs plus three edges per displayed cycle: at most forty.
             let reasons = reasons.into_iter().take(40).collect::<BTreeMap<_, _>>();
             let mut value = serde_json::json!({"criterion":setup.criterion,"items":setup.items,"tally":tally,"reasons":reasons,"topIds":tally.order.iter().take(5).map(|i|setup.items[*i].item_id.clone()).collect::<Vec<_>>(),"cycleIds":tally.cycles.iter().map(|c|c.cycle_id.clone()).collect::<Vec<_>>(),"wordLimit":words});
-            value["criterion"] = serde_json::json!(blind(&setup.criterion, &tokens).0);
+            value["criterion"] = serde_json::json!(crate::orchestrator::blind::redact(
+                &setup.criterion,
+                &tokens
+            ));
             if let Some(items) = value["items"].as_array_mut() {
                 for item in items {
                     if let Some(text) = item["text"].as_str() {
-                        item["text"] = serde_json::json!(blind(text, &tokens).0);
+                        item["text"] =
+                            serde_json::json!(crate::orchestrator::blind::redact(text, &tokens));
                     }
                 }
             }
@@ -1014,66 +1013,4 @@ pub fn barrier(tx: &Transaction<'_>, g: &mut CommitGroup, _c: BarrierCommit) -> 
     }
     drive_move(tx, g, _c.barrier_event.base.id, s)?;
     Ok(())
-}
-
-pub fn blind(text: &str, tokens: &[String]) -> (String, Vec<std::ops::Range<usize>>) {
-    let mut tokens = tokens
-        .iter()
-        .filter(|s| !s.trim().is_empty())
-        .cloned()
-        .collect::<Vec<_>>();
-    for slug in tokens.clone() {
-        if slug.contains('/') {
-            tokens.extend(
-                slug.split(['/', '-', '_', '.', '~'])
-                    .filter(|p| p.chars().any(char::is_alphabetic))
-                    .map(str::to_owned),
-            );
-        }
-    }
-    tokens.sort_by_key(|s| std::cmp::Reverse(s.len()));
-    tokens.dedup();
-    if tokens.is_empty() {
-        return (text.into(), (0..text.len()).map(|i| i..i + 1).collect());
-    }
-    let pattern = format!(
-        r"(?i)\b(?:{})\b",
-        tokens
-            .iter()
-            .map(|s| regex::escape(s.trim_start_matches('~')))
-            .collect::<Vec<_>>()
-            .join("|")
-    );
-    let regex = regex::Regex::new(&pattern).expect("escaped tokens");
-    let mut out = String::new();
-    let mut spans = vec![];
-    let mut end = 0;
-    for m in regex.find_iter(text) {
-        out.push_str(&text[end..m.start()]);
-        spans.extend((end..m.start()).map(|i| i..i + 1));
-        out.push_str("[redacted]");
-        spans.extend((0..10).map(|_| m.start()..m.end()));
-        end = m.end();
-    }
-    out.push_str(&text[end..]);
-    spans.extend((end..text.len()).map(|i| i..i + 1));
-    (out, spans)
-}
-pub fn blind_value(value: &mut serde_json::Value, tokens: &[String]) {
-    match value {
-        serde_json::Value::String(s) => *s = blind(s, tokens).0,
-        serde_json::Value::Array(a) => {
-            for v in a {
-                blind_value(v, tokens)
-            }
-        }
-        serde_json::Value::Object(o) => {
-            for (key, v) in o {
-                if key != "localId" {
-                    blind_value(v, tokens)
-                }
-            }
-        }
-        _ => {}
-    }
 }
