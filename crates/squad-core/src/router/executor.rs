@@ -131,7 +131,7 @@ pub fn failed(
             return Err(super::authorization::forbidden());
         }
         let repair_used: bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM judge_repairs WHERE work_id=?1 UNION ALL SELECT 1 FROM mode_repairs WHERE work_id=?1)",[work_id.to_string()],|r|r.get(0))?;
-        let failure_class=if matches!(failure.code,ErrorCode::JUDGE_INVALID_VERDICT|ErrorCode::JUDGE_INVALID_MODE_OUTPUT) { crate::orchestrator::types::FailureClass::InvalidOutput } else if failure.code==ErrorCode::PROVIDER_TIMEOUT { crate::orchestrator::types::FailureClass::Timeout } else { crate::orchestrator::types::FailureClass::Transport };
+        let failure_class=if matches!(failure.code,ErrorCode::JUDGE_INVALID_VERDICT|ErrorCode::JUDGE_INVALID_MODE_OUTPUT|ErrorCode::MODE_INVALID_OUTPUT) { crate::orchestrator::types::FailureClass::InvalidOutput } else if failure.code==ErrorCode::PROVIDER_TIMEOUT { crate::orchestrator::types::FailureClass::Timeout } else { crate::orchestrator::types::FailureClass::Transport };
         // Judge transport/deadline failures are terminal; only invalid output
         // receives a repair attempt. The shared policy still chooses the outcome.
         let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound|WorkKind::SurveyExtract|WorkKind::SurveyReport) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
