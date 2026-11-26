@@ -179,12 +179,11 @@ pub fn render(
     }
     let mut out = format!("# Decide {id}\n\n");
     for e in &events {
-        if let EnvelopePayload::DecideState(s) = &e.content {
-            if s.contest_id == id {
-                if let Some(reason) = &s.terminal_reason {
-                    writeln!(out, "Status: {:?} ({reason})\n", s.state).expect("string");
-                }
-            }
+        if let EnvelopePayload::DecideState(s) = &e.content
+            && s.contest_id == id
+            && let Some(reason) = &s.terminal_reason
+        {
+            writeln!(out, "Status: {:?} ({reason})\n", s.state).expect("string");
         }
     }
     let artifacts = events

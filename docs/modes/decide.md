@@ -40,7 +40,7 @@ The decision compared SQLite with daily file backups against managed PostgreSQL 
 - Remaining reservation at shutdown: **$14.003520**. The private smoke database is retained for reconciliation; no later run or manual ledger edit was performed.
 - Local evidence: `/tmp/squad-decide-live-Yz1Yfl/` on dev2 (`events.jsonl`, timing and SQLite ledger). No credentials are in those artifacts.
 
-Excerpt of accepted criteria, rather than a nonexistent final report:
+Accepted criteria excerpt:
 
 > Low maintenance burden — weight 30: Effort required for setup, upgrades, monitoring, patching, and routine administration on a single server.
 >
@@ -54,3 +54,7 @@ Excerpt of accepted criteria, rather than a nonexistent final report:
 - `crates/squad-protocol/src/work.rs`, both visible-token match sites: include `DecideScore` in the 4,096-token member set. Until then the owned score executor explicitly requests 4,096 and the stored optional override is absent; reservation bounds already price 4,096. This avoids the scaffold's incorrect 2,048 ceiling without changing a shared file.
 
 Mode activation stays off until the complete RoomHandle and D75 regressions pass after integration. The documented syntax is the intended enabled behavior.
+
+## Verification
+
+On dev2 with four Cargo build jobs, the workspace suite passed with 1,343 passing test executions (1,342 unique), zero failures and six ignored tests. Seventeen new Decide tests pass. Two further Decide integration regressions remain ignored for the shared judge-dispatch and member-repair blockers above. All-target workspace Clippy with warnings denied and the format check passed. Eleven of fourteen M8.P4 tasks are checked; complete runtime acceptance, toggle input wiring and activation remain open.
