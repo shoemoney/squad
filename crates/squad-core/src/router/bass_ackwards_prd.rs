@@ -113,7 +113,11 @@ pub fn steps(
     let end = blinded(&setup.end_result);
     let today = json_text(setup.today.as_deref().unwrap_or(""));
     let done = 12 * limited(2048, 50);
-    let document = artifact(8192);
+    // Later versions can retain the merge plus each accepted sparse patch.
+    // Reserve their accumulated input size, including minted keys/projection framing.
+    let document = project(artifact(8192));
+    let revised = document + project(artifact(8192));
+    let assembled = revised + project(artifact(8192));
     let member = project(limited(2048, setup.room_words));
     let tree = project(limited(4096, setup.plan_words));
     let mut out = vec![];
@@ -138,17 +142,17 @@ pub fn steps(
         ),
         (
             WorkKind::BassAckwardsPrdMustHave,
-            end + today + document + done,
+            end + today + revised + done,
             2048,
         ),
         (
             WorkKind::BassAckwardsPrdFinalize,
-            end + document + done + m * project(limited(2048, 300)),
+            end + revised + done + m * project(limited(2048, 300)),
             8192,
         ),
         (
             WorkKind::BassAckwardsPrdApply,
-            end + document + done + limited(2048, 500),
+            end + assembled + done + limited(2048, 500),
             8192,
         ),
     ] {
