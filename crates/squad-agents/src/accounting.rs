@@ -104,13 +104,23 @@ impl AttemptAccounting {
         debug_assert!(attribution.matches(&self.record));
         attribution
     }
-    pub fn metadata(&mut self, id: Option<String>, model: Option<String>) {
-        if let Some(id) = id.filter(|id| !id.is_empty()) {
+    /// Returns true only when the identity actually changed, so a stream that
+    /// repeats the same id and model on every chunk is accounted once.
+    pub fn metadata(&mut self, id: Option<String>, model: Option<String>) -> bool {
+        let mut changed = false;
+        if let Some(id) = id.filter(|id| !id.is_empty())
+            && self.record.provider_request_id.as_ref() != Some(&id)
+        {
             self.record.provider_request_id = Some(id);
+            changed = true;
         }
-        if let Some(model) = model.and_then(|m| Text::new(m).ok()) {
+        if let Some(model) = model.and_then(|m| Text::new(m).ok())
+            && self.record.response_model.as_ref() != Some(&model)
+        {
             self.record.response_model = Some(model);
+            changed = true;
         }
+        changed
     }
     pub fn usage(&mut self, usage: &ProviderUsage) {
         if let Some(tokens) = usage.prompt_tokens {

@@ -413,12 +413,16 @@ async fn execute<R: RoomApi>(
             }
             return Ok(u8::from(progress == Progress::Failed));
         }
+        // Each evaluation re-reads and re-links the whole history, so wait for the
+        // feed (a safety poll covers a missed wakeup) and coalesce bursts into one pass.
         tokio::select! {
-            _ = tokio::time::sleep(Duration::from_millis(50)) => {},
+            _ = tokio::time::sleep(Duration::from_millis(500)) => {},
             received = feed.recv() => {
                 if matches!(received, Err(tokio::sync::broadcast::error::RecvError::Closed)) {
                     return Err(RoomError { code: ErrorCode::NOT_READY, message: "Room feed closed before request completion.".into(), retryable: true });
                 }
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                while let Ok(_item) = feed.try_recv() {}
             }
         }
     }

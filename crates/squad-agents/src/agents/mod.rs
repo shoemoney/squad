@@ -108,8 +108,9 @@ pub async fn stream_attempt(
                 response_model,
                 ..
             } => {
-                account.metadata(generation_id, response_model);
-                account.submit(context.submit.as_ref()).await?;
+                if account.metadata(generation_id, response_model) {
+                    account.submit(context.submit.as_ref()).await?;
+                }
             }
             StreamEvent::Usage { usage, .. } => account.usage(&usage),
             StreamEvent::RetryAfter { delay } => retry_after = Some(delay),

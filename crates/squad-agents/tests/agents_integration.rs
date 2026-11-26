@@ -782,3 +782,39 @@ async fn member_estimates_the_assembled_prompt_before_dispatch() {
         "{estimate:?}"
     );
 }
+#[tokio::test]
+async fn long_streamed_reply_with_repeated_chunk_metadata_submits_constant_accounting() {
+    let mut body = String::new();
+    for part in "x".repeat(1500).chars() {
+        body.push_str(&fake::event(serde_json::json!({
+            "id": fake::GENERATION, "model": fake::MODEL,
+            "choices": [{"index": 0, "delta": {"content": part.to_string()}, "finish_reason": null}]})));
+    }
+    body.push_str(&fake::event(
+        serde_json::json!({"id": fake::GENERATION, "model": fake::MODEL, "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]}),
+    ));
+    body.push_str(&fake::event(
+        serde_json::json!({"id": fake::GENERATION, "model": fake::MODEL, "choices": [], "usage": fake::usage()}),
+    ));
+    body.push_str("data: [DONE]\r\n\r\n");
+    let server = fake::FakeOpenRouter::start().await;
+    server.completions(vec![fake::raw_sse(body)]).await;
+    let f = Fixture::new("alice", "hello");
+    let (ctx, _tx) = f.context();
+    let cancel = ctx.cancel.clone();
+    let task = worker::spawn(ctx, executor(&server));
+    wait_completed(&f).await;
+    cancel.cancel();
+    task.await.unwrap().unwrap();
+    let accounts = f
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|r| matches!(r, ExecutorRequest::Account { .. }))
+        .count();
+    assert!(
+        accounts <= 4,
+        "a 1500-chunk reply submitted {accounts} accounting records"
+    );
+}

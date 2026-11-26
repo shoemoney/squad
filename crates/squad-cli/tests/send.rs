@@ -621,3 +621,36 @@ async fn no_wait_for_each_mode_commits_only_and_stops_after_the_acknowledgement(
         assert_eq!(lines(&output)[0]["type"], "ack");
     }
 }
+
+#[tokio::test]
+async fn send_exits_promptly_after_terminal_over_a_large_usage_log() {
+    let room = FakeRoom::default();
+    for seq in 2..=3000 {
+        room.emitted.borrow_mut().push(event(
+            seq,
+            "usage.record",
+            json!({
+                "workId": ID, "attempt": 1, "target": "alpha", "contextId": "member:alpha",
+                "model": "p/model", "startedAt": "2026-11-24T00:00:00Z",
+                "endedAt": "2026-11-24T00:00:01Z", "outcome": "completed",
+                "usage": {"inputTokens": 10, "outputTokens": 5, "costUsd": 0.001},
+                "responseModel": "p/model", "day": "2026-11-24"
+            }),
+        ));
+    }
+    room.progress.set(Progress::Running);
+    let options = args("@alpha hello", true, false);
+    let finish = async {
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        room.progress.set(Progress::Succeeded);
+        let _ = room.feed.send(FeedItem::Committed(reply(3001, "done")));
+    };
+    let started = std::time::Instant::now();
+    let ((code, _, _), ()) = tokio::join!(send(&room, &options, None), finish);
+    assert_eq!(code, 0);
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "send took {:?} after the terminal commit",
+        started.elapsed()
+    );
+}
