@@ -178,6 +178,17 @@ impl Respond for Answers {
             }
         } else if text.contains("Compare the labelled") {
             let mut value = ledger(spec);
+            if spec.contains("CAP_LEDGER") {
+                value["entries"] = serde_json::Value::Array(
+                    (0..12)
+                        .map(|i| {
+                            let mut entry = value["entries"][0].clone();
+                            entry["entryId"] = serde_json::json!(format!("entry{i}"));
+                            entry
+                        })
+                        .collect(),
+                );
+            }
             if spec.contains("FAIL_JUDGE") {
                 return streaming("{}", "stop");
             }
@@ -196,6 +207,14 @@ impl Respond for Answers {
                     c["before"].as_str().unwrap(),
                     c["after"].as_str().unwrap(),
                     1,
+                );
+            }
+            if spec.contains("FAIL_REWRITE")
+                || spec.contains("REPAIR_REWRITE") && !text.contains("failed validation")
+            {
+                rewritten = rewritten.replace(
+                    "The operator deletes backups.",
+                    "The operator always keeps backups.",
                 );
             }
             serde_json::json!({"spec":rewritten,"changes":changes})
@@ -252,7 +271,6 @@ impl Fixture {
     }
 }
 #[tokio::test]
-#[ignore = "requires shared judge dispatch, D75 failure classification and readback enablement; see docs/modes/readback.md"]
 async fn partial_choices_restart_rewrite_fresh_round_and_export() {
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
@@ -352,7 +370,6 @@ async fn partial_choices_restart_rewrite_fresh_round_and_export() {
     room.shutdown().await.unwrap();
 }
 #[tokio::test]
-#[ignore = "requires shared judge dispatch, D75 failure classification and readback enablement; see docs/modes/readback.md"]
 async fn converged_no_choices_and_insufficient_readings() {
     for (marker, reason) in [
         ("CONVERGE", "converged"),
@@ -388,7 +405,6 @@ async fn converged_no_choices_and_insufficient_readings() {
     }
 }
 #[tokio::test]
-#[ignore = "requires shared judge dispatch, D75 failure classification and readback enablement; see docs/modes/readback.md"]
 async fn member_and_judge_repairs_and_stop_fence() {
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
@@ -425,8 +441,7 @@ async fn member_and_judge_repairs_and_stop_fence() {
     room.shutdown().await.unwrap();
 }
 
-// Exercise the mode-owned runtime independently of the shared judge wrapper so
-// its script and storage contracts remain testable while scaffold fixes integrate.
+// Drive leased calls deterministically alongside the real RoomHandle workflows.
 struct Direct {
     router: std::sync::Arc<std::sync::Mutex<squad_core::router::Router>>,
     store: squad_store::Store,
@@ -502,77 +517,14 @@ impl Direct {
             store,
         }
     }
-    fn send(&self, f: &Fixture, text: &str) {
+    fn send(&self, _f: &Fixture, text: &str) {
         let mut router = self.router.lock().unwrap();
         let ctx = router.parse_context().unwrap();
         let meta = Default::default();
-        let id = EventId::new();
-        let result = if let Some(spec) = text.strip_prefix("@all $readback ") {
-            // Invoke the owned admission seam while public parsing stays disabled.
-            let (rounds, spec) = if let Some(spec) = spec.strip_prefix("$READBACK_ROUNDS=1 ") {
-                (1, spec)
-            } else {
-                (2, spec)
-            };
-            let parsed = ParsedInput::Readback {
-                input: parser::ConversationalInput {
-                    raw: text.into(),
-                    quote: vec![],
-                    variable_updates: vec![],
-                },
-                participants: ctx.roster.clone(),
-                source: parser::PlanSource::Pasted { text: spec.into() },
-                rounds,
-            };
-            let request = Request::from_parsed_with_context(id, parsed, &meta, &ctx, true).unwrap();
-            let Request::UserMessage { input, parsed, .. } = request else {
-                panic!()
-            };
-            let config = f.config.clone();
-            let bindings = config
-                .agents
-                .iter()
-                .map(|a| {
-                    (
-                        a.nick.to_string(),
-                        ExecutorBinding {
-                            model: a.model.parse().unwrap(),
-                            effort: ReasoningEffort::Low,
-                        },
-                    )
-                })
-                .chain(std::iter::once((
-                    "judge".into(),
-                    ExecutorBinding {
-                        model: config.judge.model.parse().unwrap(),
-                        effort: ReasoningEffort::High,
-                    },
-                )))
-                .collect();
-            self.store
-                .commit(id, "direct-fixture".into(), id.to_string(), move |tx, g| {
-                    squad_core::router::readback::prepare(
-                        tx,
-                        g,
-                        id,
-                        &input,
-                        &parsed,
-                        &squad_core::router::NewModeAdmission {
-                            bindings: &bindings,
-                            config: Some(&config),
-                            daily_max: 200_000_000,
-                            confirmation_threshold: 100.0,
-                            preconfirmed: true,
-                        },
-                    )
-                })
-                .unwrap()
-                .result
-        } else {
-            let parsed = parse(text, &meta, &ctx).unwrap();
-            let request = Request::from_parsed_with_context(id, parsed, &meta, &ctx, true).unwrap();
-            router.process(request, None).unwrap().result
-        };
+        let parsed = parse(text, &meta, &ctx).unwrap();
+        let request =
+            Request::from_parsed_with_context(EventId::new(), parsed, &meta, &ctx, true).unwrap();
+        let result = router.process(request, None).unwrap().result;
         assert!(
             matches!(result, RequestResult::Accepted { .. }),
             "{result:?}"
@@ -673,6 +625,11 @@ async fn direct_runtime_partial_rewrite_and_convergence() {
     let f = Fixture::new().await;
     let direct = Direct::new(&f);
     direct.send(&f, &format!("@all $readback {SPEC}"));
+    let attempts = direct.store.call(|db| Ok(db.query_row(
+        "SELECT json_extract(plan_json,'$.settings.reservedAttempts') FROM contests WHERE kind='readback'",
+        [], |r| r.get::<_, u32>(0),
+    )?)).unwrap();
+    assert_eq!(attempts, 36);
     direct.pump(&f).await;
     assert_eq!(direct.state().state, ReadbackStatus::AwaitingHuman);
     direct.send(&f, "1b");
@@ -698,6 +655,31 @@ async fn direct_runtime_partial_rewrite_and_convergence() {
     assert!(exported.contains("OPEN"));
     assert!(exported.contains("Retain for thirty days"));
     assert!(exported.contains("Spec version 2"));
+    let bodies = f.fake.captured_bodies().await;
+    assert_eq!(bodies.len(), 15); // Six readers twice, two diffs, one rewrite.
+    let mut fresh_readers = 0;
+    for body in bodies {
+        let text = body["messages"][1]["content"].as_str().unwrap();
+        let input = extract(text);
+        if text.contains("Read this spec independently") {
+            assert_eq!(input.as_object().unwrap().len(), 1);
+            if input["spec"].as_str().unwrap().contains("for thirty days") {
+                fresh_readers += 1;
+                assert_eq!(input["spec"], run.spec);
+                assert!(!text.contains("Retain forever"));
+            }
+        } else if text.contains("Compare the labelled") {
+            let messages = body["messages"].to_string();
+            for i in 0..6 {
+                assert!(!messages.contains(&format!("member{i}")));
+                assert!(!messages.contains(&format!("PERSONA_{i}")));
+            }
+            assert!(!messages.contains("fixture/"));
+            assert!(!messages.contains("supportCount"));
+            assert_eq!(input["interpretations"].as_array().unwrap().len(), 6);
+        }
+    }
+    assert_eq!(fresh_readers, 6);
 }
 #[tokio::test]
 async fn direct_runtime_converged_and_no_readings_chosen_release_reservations() {
@@ -823,4 +805,96 @@ async fn direct_skipped_members_quorum_and_judge_exhaustion() {
             assert_eq!(run.rounds[0].interpretations.len(), 5);
         }
     }
+}
+
+#[tokio::test]
+async fn direct_rewrite_repairs_unresolved_edits_and_keeps_last_good_version_on_exhaustion() {
+    for (marker, reason, rewritten) in [
+        ("REPAIR_REWRITE", "rounds_complete", true),
+        ("FAIL_REWRITE", "judge_attempts_exhausted", false),
+    ] {
+        let f = Fixture::new().await;
+        let d = Direct::new(&f);
+        let original = format!("{SPEC} {marker}");
+        d.send(&f, &format!("@all $readback $READBACK_ROUNDS=1 {original}"));
+        d.pump(&f).await;
+        d.send(&f, "1a");
+        d.send(&f, "/continue");
+        d.pump(&f).await;
+        let state = d.state();
+        assert_eq!(state.terminal_reason.unwrap().as_str(), reason);
+        let run = d
+            .store
+            .call(move |db| squad_store::readback::run(db, state.contest_id))
+            .unwrap();
+        assert_eq!(run.rounds[0].rewrite.is_some(), rewritten);
+        assert!(
+            run.spec
+                .contains("The operator deletes backups. The client retries requests.")
+        );
+        if !rewritten {
+            assert_eq!(run.spec, original);
+        }
+        let (repairs, reserved) = d
+            .store
+            .call(|db| {
+                Ok((
+                    db.query_row("SELECT COUNT(*) FROM mode_repairs", [], |r| {
+                        r.get::<_, i64>(0)
+                    })?,
+                    db.query_row(
+                        "SELECT COALESCE(SUM(reserved_micros),0) FROM spend_daily",
+                        [],
+                        |r| r.get::<_, i64>(0),
+                    )?,
+                ))
+            })
+            .unwrap();
+        assert_eq!((repairs, reserved), (1, 0));
+        let bodies = f.fake.captured_bodies().await;
+        let calls = bodies
+            .iter()
+            .filter(|b| {
+                b["messages"][1]["content"]
+                    .as_str()
+                    .unwrap()
+                    .contains("Rewrite only")
+            })
+            .count();
+        assert!(calls >= 2);
+    }
+}
+
+#[tokio::test]
+async fn direct_ledger_cap_keeps_impact_order_and_reports_cut_entries() {
+    let f = Fixture::new().await;
+    let d = Direct::new(&f);
+    d.send(&f, &format!("@all $readback {SPEC} CAP_LEDGER"));
+    d.pump(&f).await;
+    assert_eq!(d.state().state, ReadbackStatus::AwaitingHuman);
+    let pending = d
+        .router
+        .lock()
+        .unwrap()
+        .parse_context()
+        .unwrap()
+        .pending_human
+        .unwrap();
+    assert_eq!(pending.items.len(), 10);
+    assert!(pending.items[0].contains("1 members"));
+    d.send(&f, "/continue");
+    d.pump(&f).await;
+    let id = d.state().contest_id;
+    let run = d
+        .store
+        .call(move |db| squad_store::readback::run(db, id))
+        .unwrap();
+    let round = &run.rounds[0];
+    assert_eq!(round.cut, 2);
+    let entries = &round.ledger.as_ref().unwrap().entries;
+    assert_eq!(entries.len(), 10);
+    assert_eq!(entries[0].entry_id, "entry0");
+    assert_eq!(entries[9].entry_id, "entry9");
+    let exported = squad_core::export::export(&d.store, ExportScope::Readback, Some(id)).unwrap();
+    assert!(exported.contains("| 1 | 1 | 6 | 10 | 0 | 10 | 2 |"));
 }

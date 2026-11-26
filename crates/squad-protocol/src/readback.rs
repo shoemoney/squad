@@ -4,8 +4,7 @@ use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-// Enable after the integrator lands shared judge dispatch and D75 repair fixes.
-pub const ENABLED: bool = false;
+pub const ENABLED: bool = true;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ReadbackStatus {

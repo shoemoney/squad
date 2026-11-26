@@ -261,6 +261,12 @@ pub fn prepare(
         .iter()
         .flat_map(|a| [a.nick.to_string(), a.model.clone(), a.persona.clone()])
         .chain(std::iter::once(config.judge.model.clone()))
+        .chain(
+            setup
+                .models
+                .values()
+                .map(|binding| binding.model.to_string()),
+        )
         .collect::<Vec<_>>();
     squad_store::contest_steps::private_map(
         tx,
@@ -910,7 +916,14 @@ fn allocate(
             ),
             ("nick".into(), target.to_string()),
             ("model_slug".into(), binding.model.to_string()),
-            ("judge_model_slug".into(), binding.model.to_string()),
+            (
+                "judge_model_slug".into(),
+                if kind == WorkKind::ReadbackDiff {
+                    "anonymous judge".into()
+                } else {
+                    binding.model.to_string()
+                },
+            ),
             ("room_word_limit".into(), words.to_string()),
             (
                 "member_nicks_json".into(),
@@ -953,7 +966,13 @@ fn allocate(
                 &values,
             )
         };
-        let bundle = serde_json::json!({"repairTemplate":frozen["repairTemplate"],"round":s.round,"data":data,"wordLimit":words,"model":model,"rendered":{"system":render("system")?,"user":render("user")?,"provider_user_name":"squad"}});
+        let system = render("system")?;
+        let system = if kind == WorkKind::ReadbackDiff {
+            script::blind(&system, &tokens).0
+        } else {
+            system
+        };
+        let bundle = serde_json::json!({"repairTemplate":frozen["repairTemplate"],"round":s.round,"data":data,"wordLimit":words,"model":model,"rendered":{"system":system,"user":render("user")?,"provider_user_name":"squad"}});
         let item = Work {
             work_id: WorkId::new(),
             message_id: MessageId::new(),

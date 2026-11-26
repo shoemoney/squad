@@ -337,7 +337,6 @@ fn disabled_modes_are_rejected_before_admission_or_spend() {
         "decide",
         "negotiate",
         "blow_it_up",
-        "readback",
         "debug",
         "trace",
         "rank",

@@ -74,3 +74,41 @@ fn rewrite_pairs_are_human_visible_and_replay_deduplicates() {
     view.apply(EventId::new(), &EnvelopePayload::ContestArtifact(artifact));
     assert_eq!(view.artifacts.len(), 1);
 }
+
+#[test]
+fn enabled_readback_is_listed_once_and_its_rotating_tip_parses() {
+    use squad_tui::{actions, typeahead};
+    assert!(typeahead::enabled("$readback"));
+    assert_eq!(
+        typeahead::MODES
+            .iter()
+            .filter(|(mode, _)| *mode == "$readback")
+            .count(),
+        1
+    );
+    let ctx = parser::ParseContext {
+        roster: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
+        ..Default::default()
+    };
+    let examples = typeahead::examples(&ctx);
+    let readback = examples
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.contains("$readback"))
+        .collect::<Vec<_>>();
+    assert_eq!(readback.len(), 1);
+    let (index, example) = readback[0];
+    assert!(matches!(
+        parse(example, &Default::default(), &ctx).unwrap(),
+        ParsedInput::Readback { .. }
+    ));
+    assert!(typeahead::tip(&ctx, index as u64 * 8).contains("$readback"));
+    assert_eq!(
+        actions::help_lines()
+            .iter()
+            .filter(|line| line.contains("$readback"))
+            .count(),
+        1
+    );
+    assert!(actions::EXPORT_SCOPES.contains(&ExportScope::Readback));
+}
