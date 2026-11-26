@@ -210,6 +210,31 @@ async fn captured_turns_hide_scores_until_both_debaters_receive_the_verdict() {
         f.scalar("SELECT COUNT(*) FROM events WHERE kind='verdict'"),
         1
     );
+    let db = f.db();
+    let plan: String = db
+        .query_row("SELECT plan_json FROM contests", [], |r| r.get(0))
+        .unwrap();
+    let plan: Value = serde_json::from_str(&plan).unwrap();
+    let raw: String = db
+        .query_row("SELECT state_json FROM cases", [], |r| r.get(0))
+        .unwrap();
+    let case: Value = serde_json::from_str(&raw).unwrap();
+    let invocations = case["promptProvenance"]["invocations"].as_object().unwrap();
+    assert_eq!(invocations.len(), 3);
+    for (id, invocation) in invocations {
+        assert_eq!(plan["promptProvenance"]["invocations"][id], *invocation);
+        assert!(invocation["authorizedInputProjection"]["hash"].is_string());
+        if invocation["kind"] == "judge.round" {
+            assert_eq!(invocation["schemaIdentity"], "RoundJudgeResponse");
+            assert_eq!(
+                invocation["schemaHash"],
+                squad_store::commit::digest(&validation::schema::<RoundJudgeResponse>()).unwrap()
+            );
+            assert_eq!(invocation["promptRef"]["templateId"], "judge.round.md");
+        }
+    }
+    assert_eq!(case["promptProvenance"]["settings"], plan["promptSettings"]);
+    drop(db);
     let bodies = f.fake.captured_bodies().await;
     assert_eq!(
         bodies
@@ -483,6 +508,19 @@ async fn restart_keeps_frozen_word_limits_and_final_composition_provenance() {
         )
         .unwrap();
     let frozen: squad_core::orchestrator::types::DebatePlan = serde_json::from_str(&raw).unwrap();
+    let canonical: String = f
+        .db()
+        .query_row("SELECT plan_json FROM contests", [], |r| r.get(0))
+        .unwrap();
+    let canonical: Value = serde_json::from_str(&canonical).unwrap();
+    assert_eq!(
+        canonical["promptSettings"],
+        serde_json::to_value(&frozen.prompts).unwrap()
+    );
+    assert_eq!(
+        canonical["resolvedModels"]["members"],
+        serde_json::to_value(&frozen.members).unwrap()
+    );
     let pack = squad_core::prompts::PromptPack::embedded().unwrap();
     for id in [
         "debate.round0",

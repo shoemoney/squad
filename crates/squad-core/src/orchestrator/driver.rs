@@ -471,7 +471,9 @@ impl Router {
             let judge_bound=plan.sources.topic.len() as u64+8192;
             preflight::freeze(&mut plan,preflight::ContextBounds{members:bounds,judge:judge_bound},f64::MAX,config.budget.debate_confirm_usd,chrono::Utc::now()).map_err(policy)?;
             let tx=db.transaction()?;
-            tx.execute("INSERT INTO contest_private_maps VALUES (?,'engine.plan',?) ON CONFLICT(contest_id,scope_key) DO UPDATE SET map_json=excluded.map_json",rusqlite::params![id.to_string(),serde_json::to_string(&plan)?])?;
+            let mut encoded_plan = serde_json::to_value(&plan)?;
+            encoded_plan["overrideHashes"] = serde_json::to_value(pack.overrides().iter().map(|(id, text)| Ok((id.clone(), squad_store::commit::digest(text)?))).collect::<Result<BTreeMap<_,_>>>()?)?;
+            tx.execute("INSERT INTO contest_private_maps VALUES (?,'engine.plan',?) ON CONFLICT(contest_id,scope_key) DO UPDATE SET map_json=excluded.map_json",rusqlite::params![id.to_string(),encoded_plan.to_string()])?;
             tx.commit()?;Ok(plan)
         })
     }
