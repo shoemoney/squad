@@ -2,7 +2,6 @@
 use std::{
     path::{Path, PathBuf},
     process::{Command, Output, Stdio},
-    sync::OnceLock,
 };
 
 #[path = "../../squad-agents/tests/support/fake_openrouter.rs"]
@@ -18,24 +17,91 @@ fn workspace() -> PathBuf {
         .unwrap()
 }
 
-/// The optimized binary users actually receive, built once per test process.
-fn release_binary() -> &'static Path {
-    static BINARY: OnceLock<PathBuf> = OnceLock::new();
-    BINARY.get_or_init(|| {
-        let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
-        let status = Command::new(cargo)
-            .args(["build", "--release", "--locked", "-p", "squad-cli"])
-            .current_dir(workspace())
-            .status()
-            .unwrap();
-        assert!(status.success(), "release build failed");
-        let target = std::env::var_os("CARGO_TARGET_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| workspace().join("target"));
-        let binary = target.join("release/squad");
-        assert!(binary.is_file(), "missing {}", binary.display());
+/// The optimized binary users actually receive, built once per test thread.
+fn release_binary() -> PathBuf {
+    thread_local! {
+        // A thread-local owner drops the snapshot when the test thread exits;
+        // a static OnceLock<TempDir> would leak a binary per Nextest process.
+        static BINARY: std::cell::OnceCell<(tempfile::TempDir, PathBuf)> = const {
+            std::cell::OnceCell::new()
+        };
+    }
+    BINARY.with(|binary| {
         binary
+            .get_or_init(|| {
+                let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
+                // Ask Cargo so config-file and relative target directories work too.
+                let metadata = Command::new(&cargo)
+                    .args([
+                        "metadata",
+                        "--no-deps",
+                        "--format-version",
+                        "1",
+                        "--offline",
+                    ])
+                    .current_dir(workspace())
+                    .output()
+                    .unwrap();
+                assert!(metadata.status.success(), "{}", stderr(&metadata));
+                let metadata: serde_json::Value = serde_json::from_slice(&metadata.stdout).unwrap();
+                let target = PathBuf::from(metadata["target_directory"].as_str().unwrap());
+                std::fs::create_dir_all(&target).unwrap();
+
+                // Nextest runs each test in its own process: a local cache does not
+                // serialize these builds. On macOS Cargo unlinks and copies even a
+                // fresh target/release/squad (rather than hard-linking). Lock the copy,
+                // then execute only the private snapshot, never Cargo's mutable path.
+                let lock = std::fs::File::options()
+                    .create(true)
+                    .truncate(false)
+                    .read(true)
+                    .write(true)
+                    .open(target.join(".squad-release-test.lock"))
+                    .unwrap();
+                lock.lock().unwrap();
+                let status = Command::new(&cargo)
+                    .args(["build", "--release", "--locked", "-p", "squad-cli"])
+                    .current_dir(workspace())
+                    .status()
+                    .unwrap();
+                assert!(status.success(), "release build failed");
+                snapshot_binary(&target.join("release/squad"))
+            })
+            .1
+            .clone()
     })
+}
+
+fn snapshot_binary(source: &Path) -> (tempfile::TempDir, PathBuf) {
+    let directory = tempfile::tempdir().unwrap();
+    let binary = directory.path().join("squad");
+    // Copy, rather than hard-link, so later writes cannot change our executable.
+    std::fs::copy(source, &binary).unwrap();
+    (directory, binary)
+}
+
+#[test]
+fn release_binary_snapshot_survives_source_replacement_and_removal() {
+    let source = tempfile::tempdir().unwrap();
+    let executable = source.path().join("squad");
+    std::fs::copy(release_binary(), &executable).unwrap();
+    let (_snapshot, binary) = snapshot_binary(&executable);
+    std::fs::write(&executable, b"replaced by another build").unwrap();
+    source.close().unwrap();
+
+    let root = tempfile::tempdir().unwrap();
+    let output = Command::new(&binary)
+        .arg("--version")
+        .env_clear()
+        .env("HOME", root.path())
+        .current_dir(root.path())
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        text(&output).trim(),
+        format!("squad {}", env!("CARGO_PKG_VERSION"))
+    );
 }
 
 fn squad(root: &Path) -> Command {
