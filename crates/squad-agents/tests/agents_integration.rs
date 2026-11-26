@@ -818,3 +818,6 @@ async fn long_streamed_reply_with_repeated_chunk_metadata_submits_constant_accou
         "a 1500-chunk reply submitted {accounts} accounting records"
     );
 }
+
+#[path = "support/attempt_tracing_audit.rs"]
+mod attempt_tracing_audit;

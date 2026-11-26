@@ -72,10 +72,14 @@ pub async fn stream_attempt(
         WorkKind::JudgeRound => DeadlineClass::RoundJudge,
     });
     request.model = grant.binding.model.to_string();
-    request.reasoning_effort = if matches!(
-        grant.work.kind,
-        WorkKind::SurveyExtract | WorkKind::SurveyReport
-    ) {
+    let new_mode_judge = grant.work.kind.census_judge()
+        || grant.work.kind.is_crosscheck_judge()
+        || matches!(
+            grant.work.kind,
+            WorkKind::SurveyExtract | WorkKind::SurveyReport | WorkKind::ProbeReport
+        );
+    request.reasoning_effort = if new_mode_judge {
+        request.visible_ceiling = squad_protocol::constants::NEW_MODE_JUDGE_VISIBLE_TOKENS;
         squad_protocol::constants::NEW_MODE_JUDGE_REASONING_EFFORT
     } else if grant.work.kind == WorkKind::JudgeRound {
         ReasoningEffort::Low
@@ -87,6 +91,19 @@ pub async fn stream_attempt(
         chrono::Utc::now(),
         chrono::Local::now().format("%Y-%m-%d").to_string(),
     );
+    if grant.work.contest_id.is_some() {
+        let pass = if grant.work.kind.census_composition().is_some() {
+            context
+                .work
+                .prompt_values_for_work(grant.work.work_id)
+                .await?
+                .get("census_pass")
+                .and_then(|value| value.parse::<u32>().ok())
+        } else {
+            None
+        };
+        account.attribution(grant, pass);
+    }
     account.submit(context.submit.as_ref()).await?;
     let authorized_deadline = grant.deadline.map(|deadline| {
         tokio::time::Instant::now() + (deadline - chrono::Utc::now()).to_std().unwrap_or_default()

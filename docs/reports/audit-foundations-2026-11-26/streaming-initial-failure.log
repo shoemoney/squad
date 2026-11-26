@@ -1,0 +1,15 @@
+
+running 1 test
+test six_and_twelve_agent_streaming_for_thirty_minutes has been running for over 60 seconds
+
+thread 'six_and_twelve_agent_streaming_for_thirty_minutes' (4153657) panicked at crates/squad-cli/tests/../../squad-core/tests/support/m6_room.rs:85:10:
+M6 condition timed out: Elapsed(())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test six_and_twelve_agent_streaming_for_thirty_minutes ... FAILED
+
+failures:
+
+failures:
+    six_and_twelve_agent_streaming_for_thirty_minutes
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 91.56s

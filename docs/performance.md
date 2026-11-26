@@ -1,5 +1,31 @@
 # M6 performance measurements
 
+## Scoped memory audit on dev2 — 2026-11-26
+
+Host: shared dev2, Linux x86_64, kernel 7.0.0-43-generic, AMD Ryzen 9 8945HX (32 logical CPUs), Rust 1.99.1. Debug test binaries, built with `CARGO_BUILD_JOBS=4`. These measurements use library/runtime test processes and do not certify the isolated four-core/8-GB reference-machine profile or an integrated physical-terminal/full-effects run. No live provider or real credential is used.
+
+| Workload | Whole test-process memory | Limit | Result |
+|---|---:|---:|---|
+| TUI transcript: 500 messages, no generation | 109,084 KiB RSS | 262,144 KiB | PASS |
+| Combined six- and twelve-agent streaming rooms | 155,588 KiB kernel high-water RSS | 524,288 KiB | PASS, 1805 s |
+
+The TUI fixture uses 500 complete 900-byte Markdown messages, a 140×42 viewport, and visits every viewport to populate layout/render caches before reading `/proc/self/status`. Its isolated process includes the TUI library and test harness; it does not launch the shipped CLI. Source: `crates/squad-tui/tests/memory_audit.rs::five_hundred_displayed_messages_process_rss`.
+
+The completed streaming run lasted 1,805.88 seconds and accepted 156 waves (2,808 member answers), with no failures.
+
+The streaming fixture runs the real `RoomHandle`, router, SQLite writer and agent executors in two concurrent rooms (six and twelve configurable fixture members). Each wave sends `@all` to both, accepts a 3,712-byte answer in eight SSE deltas per member after a 100-ms fake-provider delay, waits for all durable finals, and pauses ten seconds before the next wave. All application history is retained. It reads kernel `VmHWM` so allocations between wave samples count; the 512-MiB assertion covers the combined runtime/fake-provider process. There is no TUI consumer in this process, and the 100-ms delay is configured rather than a streaming-overhead measurement. Source: `crates/squad-cli/tests/streaming_memory_audit.rs::six_and_twelve_agent_streaming_for_thirty_minutes`.
+
+Two preliminary runs are retained. The character-at-a-time SSE fixture timed out during concurrent compilation. The next run revealed test-fixture retention: Wiremock keeps matching request clones in each mounted mock even with global recording disabled. The final harness resets and remounts the mock between completed waves, freeing those captured prompts while retaining application histories. Neither preliminary run is a product pass or a proven application leak.
+
+Commands:
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p squad-tui --test memory_audit -- --ignored --nocapture
+CARGO_BUILD_JOBS=4 cargo test -p squad-cli --test streaming_memory_audit -- --ignored --nocapture
+```
+
+[Raw memory evidence and audit validation](reports/audit-foundations-2026-11-26/).
+
 ## Release rerun on dev3 — 2026-11-25
 
 All summary cells below are **min / median / max across three runs**; each latency
@@ -156,6 +182,6 @@ At the historical debug measurement, the test was explicitly ignored as a manual
 - Acceptance latency is not equivalent to six-mailbox fan-out latency.
 - Replay measures a 100-event target, expanding to complete commit groups; it does not specifically seed 100 final messages.
 - RSS samples are whole test-process resident memory, including wiremock and captured requests. They are not continuous peak RSS, allocator usage, or an isolated shipped `squad` process.
-- There is no 30-minute sustained-stream result or dedicated 500-displayed-message TUI memory result. The release full-effects TestBackend workload is measured above; it does not cover the entire M6 acceptance scope. `M6.P2.L1.T8` is now recorded: three optimized runs per viewport with `SQUAD_FX=full`, in the release rerun above. `M6.P2.L1.T7` remains unchecked.
+- The scoped debug audit above records a 30-minute runtime streaming soak and a dedicated 500-displayed-message TUI fixture. These library/runtime measurements do not replace an integrated physical-terminal/full-effects memory run on the four-core/8-GB reference host. The release full-effects TestBackend workload is measured separately above. `M6.P2.L1.T8` records three optimized runs per viewport with `SQUAD_FX=full`; `M6.P2.L1.T7` records the qualified memory results above.
 - TUI governor shedding and idle disarming are deterministic functional checks in `crates/squad-tui/tests/m6_effects.rs`; they do not substitute for the remaining performance acceptance scope.
 - Live-provider first-token objectives were not measured. No live credential is needed or used by the fixture.

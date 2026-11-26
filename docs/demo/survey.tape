@@ -1,13 +1,14 @@
 # Survey walkthrough (M7.P2.L2.T7). Record with: vhs docs/demo/survey.tape
 # Runs the PUBLISHED release binary (`squad` on PATH from the GitHub Release archive).
 # The API key is loaded from the environment off-screen; it is never typed or shown.
-# Four members keep the model wait short. Model waits are cut in the edited GIF and labelled on screen; the raw MP4 keeps them.
+# Default six-model roster; v0.1.2 release. Model waits are cut in the edited GIF and labelled on screen; the raw MP4 keeps them.
 
 
 Output "/tmp/squad-demo/survey.mp4"
 Output "/tmp/squad-demo/survey.txt"
 
 Set Shell "bash"
+Set Framerate 10
 Set FontSize 14
 Set Width 1400
 Set Height 860
@@ -17,7 +18,7 @@ Set TypingSpeed 35ms
 Set WindowBar Colorful
 
 Hide
-Type 'unset NO_COLOR; export SQUAD_DATA_DIR=/tmp/squad-demo/data-survey SQUAD_DAILY_MAX_USD=4 SQUAD_DEBATE_CONFIRM_USD=0 && source "$DEMO_ENV" && source "$DEMO_MODELS" && cd "$(mktemp -d)" && clear'
+Type 'unset NO_COLOR; export SQUAD_DATA_DIR=/tmp/squad-demo/audit2-survey SQUAD_DAILY_MAX_USD=150 SQUAD_DEBATE_CONFIRM_USD=0 && source "$DEMO_ENV" && cd "$(mktemp -d)" && clear'
 Enter
 Sleep 1s
 Show
@@ -26,10 +27,10 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 3s
+Sleep 18s
 
-# 2. One product question to four members; they answer, claims are extracted, then voted on
-Type "@luna @mini $survey Should the first release of our offline-first notes app ship with sync conflict resolution, or ship single-device and add sync in v2?"
+# 2. One product question to all six members; they answer, claims are extracted, then voted on
+Type "@all $survey Should the first release of our offline-first notes app ship with sync conflict resolution, or ship single-device and add sync in v2?"
 Sleep 500ms
 Enter
 Sleep 4s

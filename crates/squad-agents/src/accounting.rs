@@ -102,6 +102,16 @@ impl AttemptAccounting {
     pub fn attribution(&self, grant: &ExecutionGrant, pass: Option<u32>) -> AttemptAttribution {
         let attribution = AttemptAttribution::from_grant(grant, pass);
         debug_assert!(attribution.matches(&self.record));
+        tracing::debug!(
+            contest_id=?attribution.contest_id,
+            step_id=?attribution.step_id,
+            pass=?attribution.pass,
+            execution=%attribution.execution.0,
+            target=?attribution.target,
+            work_id=%attribution.work_id,
+            attempt=attribution.attempt,
+            "Provider attempt attributed"
+        );
         attribution
     }
     /// Returns true only when the identity actually changed, so a stream that

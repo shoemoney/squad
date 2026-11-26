@@ -41,6 +41,10 @@ jobs:
         run: |
           ./setup.sh --yes --no-build
           printf '%s\n' "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
+      - name: Isolate application state
+        run: |
+          mkdir -p "$RUNNER_TEMP/squad-ci/data" "$RUNNER_TEMP/squad-ci/config"
+          printf 'SQUAD_DATA_DIR=%s\nXDG_CONFIG_HOME=%s\n' "$RUNNER_TEMP/squad-ci/data" "$RUNNER_TEMP/squad-ci/config" >> "$GITHUB_ENV"
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Clippy
@@ -77,6 +81,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test installer without host changes
         run: ./scripts/test-setup.sh
+      - name: Check installer shell on both platforms
+        run: |
+          if ! command -v shellcheck >/dev/null; then
+            if command -v brew >/dev/null; then brew install shellcheck; else sudo apt-get update && sudo apt-get install -y shellcheck; fi
+          fi
+          shellcheck setup.sh scripts/*.sh
+      - name: Run full setup with fixture credential
+        env:
+          OPENROUTER_API_KEY: sk-ci-dummy
+        run: ./setup.sh --yes
 
   setup-containers:
     runs-on: ${{ fromJSON(github.event_name != 'pull_request' && vars.CI_LINUX_RUNNER || '["ubuntu-latest"]') }}

@@ -472,6 +472,8 @@ Squad is public. The repository is `github.com/shoemoney/squad`, and it has been
 
 Publishing release artifacts is a separate step. Binaries and packages go out only when the owner explicitly authorizes it, which is the M7 launch decision. Until then, build from source as shown in [Quick start](#quick-start).
 
+Development follows D63: independent coding units use separate worktrees, most go to the fast coding worker, overflow goes to the other workers, and each milestone receives one review pass before integration. D71 fixes the shared-engine script build order: debate, grill, census, crosscheck, tournament, survey, then probe. The [Contests contract](docs/prd/08-contests-debate-tournament-grill-census-crosscheck-survey-probe.md) owns the moves and scripts; [M5](docs/prd/milestones/M5-contests-seven-modes.md) tracks their phases.
+
 ## 🧪 Development checks
 
 CI runs these on macOS and Ubuntu. Trusted pushes can use the project's own Linux and ARM Mac workers; pull requests use GitHub-hosted machines. See [automatic CI and runner operations](docs/ci.md) for setup, isolation and hosted fallback. Run the commands below from the repository root with the pinned toolchain from `rust-toolchain.toml`.
@@ -491,7 +493,7 @@ shellcheck setup.sh scripts/*.sh
 
 The workspace denies `unsafe` code and treats Clippy warnings as errors.
 
-`crates/squad-cli/tests/pty.rs` runs the real `squad` binary in a pseudo-terminal against a loopback OpenRouter fixture. It covers a streamed `@all` round trip, Ctrl+C and SIGINT exits, terminal restoration (alternate screen, cursor, mouse, paste and raw mode), a hangup during a streaming reply followed by recovery on the next start, the missing-key message, the too-small terminal screen and `NO_COLOR`. It needs no network and no real key. Run it alone with `cargo test -p squad-cli --test pty`. It is Unix-only.
+`crates/squad-cli/tests/pty.rs` runs the real `squad` binary in a pseudo-terminal against a loopback OpenRouter fixture. It covers a streamed `@all` round trip, Ctrl+C and SIGINT exits, terminal restoration (alternate screen, cursor, mouse, paste and raw mode), a hangup during a streaming reply followed by recovery on the next start, the missing-key message, the too-small terminal screen and `NO_COLOR`. It needs no network and no real key. Run it alone with `cargo test -p squad-cli --test pty`. It is Unix-only. The canonical PTY audit also completes a question-first judged debate, checks commands, recipient recall, search, quote selection, regeneration and export, then stops work and recovers a hangup before verifying terminal restoration.
 
 ## 🌍 Supported platforms and terminals
 
@@ -957,6 +959,10 @@ The export has the setup (plan and goal), the inventories, the normalised items,
 
 ## 📊 Survey
 
+![Survey on the default six models, followed by the same run's offline claim-map export and limitations.](docs/media/survey.gif)
+
+[Recording details and time cuts](docs/demo.md#survey-and-probe-follow-up-2026-11-26-v012). The v0.1.2 survey card remains on “awaiting ruling”; the labelled export continuation shows the completed report.
+
 ### 🎯 What it's for
 Find what a group agrees on, what it doesn't, and what would settle the disagreements.
 
@@ -1025,6 +1031,10 @@ The export has the question and its source (new or existing answers), each answe
 ---
 
 ## 🔬 Probe
+
+![Probe on the default six models, with the decision tree and offline prediction-matrix export.](docs/media/probe.gif)
+
+[Recording details, spend and caveats](docs/demo.md#survey-and-probe-follow-up-2026-11-26-v012).
 
 ### 🎯 What it's for
 Turn a symptom into a short list of **cheap checks** that separate the possible explanations. Squad proposes the checks. **You run them yourself.** Nothing is executed.
