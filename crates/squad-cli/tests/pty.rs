@@ -546,3 +546,6 @@ async fn startup_reports_each_seat_before_the_last_probe_finishes() {
     assert!(pty.wait_exit().success());
     assert_restored(&pty);
 }
+
+#[path = "support/canonical_pty_audit.rs"]
+mod canonical_pty_audit;

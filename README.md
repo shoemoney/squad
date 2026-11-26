@@ -493,7 +493,7 @@ shellcheck setup.sh scripts/*.sh
 
 The workspace denies `unsafe` code and treats Clippy warnings as errors.
 
-`crates/squad-cli/tests/pty.rs` runs the real `squad` binary in a pseudo-terminal against a loopback OpenRouter fixture. It covers a streamed `@all` round trip, Ctrl+C and SIGINT exits, terminal restoration (alternate screen, cursor, mouse, paste and raw mode), a hangup during a streaming reply followed by recovery on the next start, the missing-key message, the too-small terminal screen and `NO_COLOR`. It needs no network and no real key. Run it alone with `cargo test -p squad-cli --test pty`. It is Unix-only.
+`crates/squad-cli/tests/pty.rs` runs the real `squad` binary in a pseudo-terminal against a loopback OpenRouter fixture. It covers a streamed `@all` round trip, Ctrl+C and SIGINT exits, terminal restoration (alternate screen, cursor, mouse, paste and raw mode), a hangup during a streaming reply followed by recovery on the next start, the missing-key message, the too-small terminal screen and `NO_COLOR`. It needs no network and no real key. Run it alone with `cargo test -p squad-cli --test pty`. It is Unix-only. The canonical PTY audit also completes a question-first judged debate, checks commands, recipient recall, search, quote selection, regeneration and export, then stops work and recovers a hangup before verifying terminal restoration.
 
 ## 🌍 Supported platforms and terminals
 

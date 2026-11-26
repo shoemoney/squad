@@ -1,6 +1,6 @@
 #[test]
 fn vendored_font_licence_and_notice_ship_with_both_embedded_fonts() {
-    let licence = include_str!("../src/banner/fonts/LICENSE-FIGlet.txt");
+    let licence = squad_core::banner::FONT_LICENSE;
     let notice = include_str!("../../../NOTICE");
     assert!(licence.contains("Redistribution and use in source and binary forms"));
     assert!(licence.contains("Glenn Chappell and Ian Chai"));
