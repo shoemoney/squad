@@ -153,6 +153,8 @@ fn leak_normalization_includes_unicode_quotes_dashes_and_short_words() {
         "‘first’ two—three four five six seven here"
     ));
     assert!(note_leaks("a b c d e f", "a\nb\tc d e f"));
+    assert!(note_leaks("(a b c d e f)", "a b c d e f"));
+    assert!(note_leaks("Quoted: “a b c d e f”", "a b c d e f"));
     assert!(note_leaks("Ａ b c d e f", "A b c d e f"));
     assert!(!note_leaks("A b c d e f", "a b c d e f"));
 }
@@ -190,5 +192,75 @@ fn cap_counts_distinguish_member_executor_and_judge_attempts() {
                 .calls,
             9 * u32::from(g) + 12
         );
+    }
+}
+#[test]
+fn admission_preserves_exact_prompt_refusals_without_reserving_spend() {
+    for (prompt, expected) in [
+        (
+            "word ".repeat(1201),
+            "$tune takes a prompt of at most 1,200 words.",
+        ),
+        (
+            "{{input}} {{input}}".into(),
+            "$tune allows {{input}} at most once in the prompt.",
+        ),
+    ] {
+        let store = squad_store::Store::open(":memory:").unwrap();
+        let id = EventId::new();
+        let result = store
+            .commit(id, "fixture".into(), "admission".into(), move |tx, g| {
+                let parsed = ParsedInput::Tune {
+                    input: parser::ConversationalInput {
+                        raw: "command".into(),
+                        quote: vec![],
+                        variable_updates: vec![],
+                    },
+                    participants: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
+                    prompt: parser::PlanSource::Pasted { text: prompt },
+                    task: "task".into(),
+                    executor: None,
+                    generations: 1,
+                };
+                let input = UserMessageInput {
+                    message_id: id.to_string().parse().unwrap(),
+                    text: Text::new("command").unwrap(),
+                    quote: None,
+                    reply_to: None,
+                };
+                squad_core::router::tune::prepare(
+                    tx,
+                    g,
+                    id,
+                    &input,
+                    &parsed,
+                    &squad_core::router::NewModeAdmission {
+                        bindings: &BTreeMap::new(),
+                        config: None,
+                        daily_max: 1_000_000,
+                        confirmation_threshold: 1.,
+                        preconfirmed: false,
+                    },
+                )
+            })
+            .unwrap();
+        let RequestResult::Rejected { error, .. } = result.result else {
+            panic!("admission accepted an invalid prompt");
+        };
+        assert_eq!(error.text.as_str(), expected);
+        store
+            .call(|db| {
+                assert_eq!(
+                    db.query_row("SELECT COUNT(*) FROM reservations", [], |r| r
+                        .get::<_, i64>(0))?,
+                    0
+                );
+                assert_eq!(
+                    db.query_row("SELECT COUNT(*) FROM contests", [], |r| r.get::<_, i64>(0))?,
+                    0
+                );
+                Ok(())
+            })
+            .unwrap();
     }
 }

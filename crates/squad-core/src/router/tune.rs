@@ -181,12 +181,12 @@ pub fn prepare(
             .clone(),
         _ => return Err(invalid()),
     };
-    validate_prompt(&prompt).map_err(|_| {
-        StoreError::Domain(
-            ErrorCode::INVALID_COMMAND,
-            "Tune prompt exceeds 1,200 words or has repeated {{input}}",
-        )
-    })?;
+    if let Err(error) = validate_prompt(&prompt) {
+        return Ok(RequestResult::Rejected {
+            request_id: id,
+            error: super::error(error.code, error.message),
+        });
+    }
     let participants: Vec<_> = participants
         .iter()
         .filter(|n| executor.as_ref() != Some(*n))
@@ -198,7 +198,10 @@ pub fn prepare(
     let executor = admission
         .bindings
         .get(executor.as_ref().map_or("judge", |n| n.as_str()))
-        .ok_or_else(invalid)?
+        .ok_or(StoreError::Domain(
+            ErrorCode::MODEL_UNAVAILABLE,
+            "Tune executor is unavailable",
+        ))?
         .clone();
     let seed = uuid::Uuid::new_v4().to_string();
     let setup = TuneSetup {
@@ -697,10 +700,10 @@ fn consume(
         let body = body_for(tx, job.work_id)?;
         if body.is_none() {
             run.skipped.push(job.work_id);
-            if let Target::Member(nick) = &work.target {
-                if !run.skipped_members.contains(nick) {
-                    run.skipped_members.push(nick.clone());
-                }
+            if let Target::Member(nick) = &work.target
+                && !run.skipped_members.contains(nick)
+            {
+                run.skipped_members.push(nick.clone());
             }
             squad_store::contest_steps::settle_if_pending(
                 tx,
@@ -923,9 +926,9 @@ fn consume(
         } else {
             s.state = TuneStatus::Freezing;
         }
-    } else if completed_state == TuneStatus::Freezing && !s.state.is_terminal() {
-        s.state = TuneStatus::Executing;
-    } else if completed_state == TuneStatus::Mutating && !s.state.is_terminal() {
+    } else if matches!(completed_state, TuneStatus::Freezing | TuneStatus::Mutating)
+        && !s.state.is_terminal()
+    {
         s.state = TuneStatus::Executing;
     }
     let seq = g.push(

@@ -145,6 +145,17 @@ pub fn report(run: &squad_store::tune::TuneRun) -> String {
             let _ = writeln!(out, "\nDropped case {}: {}", d.case_ref, d.why);
         }
     }
+    if report.reason == "holdout_unavailable"
+        && let Some(suite) = &run.suite
+    {
+        for c in &suite.holdout {
+            let _ = writeln!(
+                out,
+                "\nDropped held-out case {}: missing finalist execution",
+                c.label
+            );
+        }
+    }
     if let Some(h) = &run.holdout {
         for d in &h.dropped {
             let _ = writeln!(

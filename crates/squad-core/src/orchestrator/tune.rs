@@ -157,9 +157,11 @@ pub fn note_leaks(note: &str, source: &str) -> bool {
             .map(str::to_owned)
             .collect::<Vec<_>>()
     };
-    let a = normalize(note);
-    let b = normalize(source);
-    a.windows(6).any(|w| b.windows(6).any(|v| w == v))
+    let note = normalize(note).join(" ");
+    let source = normalize(source);
+    source
+        .windows(6)
+        .any(|words| note.contains(&words.join(" ")))
 }
 pub fn validate_output(
     input: &TuneCaseMaterial,

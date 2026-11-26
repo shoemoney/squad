@@ -467,6 +467,13 @@ async fn early_ends_and_failures_are_explicit() {
         let (f, room, id) = run(scenario).await;
         let run = squad_store::tune::load(&f.db(), id).unwrap();
         assert_eq!(run.report.as_ref().unwrap().reason, reason);
+        if scenario == Scenario::HoldoutMissing {
+            let report = squad_core::export::tune::report(&run);
+            for c in &run.suite.as_ref().unwrap().holdout {
+                assert!(report.contains(&format!("Dropped held-out case {}", c.label)));
+            }
+        }
+
         if matches!(scenario, Scenario::Perfect | Scenario::NoImprovement) {
             assert!(run.holdout.is_none());
         }
