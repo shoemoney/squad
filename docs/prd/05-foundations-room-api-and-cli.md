@@ -285,7 +285,7 @@ pub enum EffectsMode {
 | `SQUAD_JUDGE_MODEL` | `~anthropic/claude-fable-latest` | Separate summoned judge model; never creates a member; default selection is independent of custom member selections |
 | `SQUAD_USER_NAME` | `the user` | Nonempty text supplied to prompts; the human remains `me` in the interface |
 | `SQUAD_PERSONA_<NICK>` | Empty string | Persona for a configured member; appended after the shared room system prompt |
-| `SQUAD_DAILY_MAX_USD` | `20` | Positive finite number; the single daily spending max |
+| `SQUAD_DAILY_MAX_USD` | `150` | Positive finite number; the single daily spending max |
 | `SQUAD_DEBATE_CONFIRM_USD` | `2` | Nonnegative finite number |
 | `SQUAD_ROOM_WORDS` | `500` | Positive integer prompt limit |
 | `SQUAD_TURN_WORDS` | `400` | Positive integer prompt limit |
@@ -383,7 +383,7 @@ OPENROUTER_API_KEY=
 SQUAD_ROUNDS=10
 
 # Daily spending cap in US dollars. Squad stops sending new requests when today's spend reaches it.
-SQUAD_DAILY_MAX_USD=20
+SQUAD_DAILY_MAX_USD=150
 
 # Grill length: rounds per $grill (1 to 10). Change per room at runtime with $GRILL_ROUNDS=2 or /set GRILL_ROUNDS 2.
 SQUAD_GRILL_ROUNDS=2
@@ -610,7 +610,7 @@ max(0, limitUsd - spentUsd - reservedUsd)
 The TUI uses this projection for its always-visible daily spend bar, including the pending segment and `~` prefix for unknown cost. At the daily max, reject new generation with `DAILY_MAX_REACHED`; in-flight calls finish. The exact message substitutes the effective max formatted to two decimal places:
 
 ```text
-Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.
+Daily max of $150.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.
 ```
 
 A contest whose preflight estimate exceeds the remaining daily amount is refused before admission with the same code. The next local day uses that day’s ledger; raising the configured max permits admission against the new effective amount. Spend counts Squad calls only.

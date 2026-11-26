@@ -13,7 +13,7 @@
 | `SQUAD_JUDGE_MODEL` | `~anthropic/claude-fable-latest` | Separate summoned judge model; never creates a member; default selection is independent of custom member selections |
 | `SQUAD_USER_NAME` | `the user` | Nonempty text supplied to prompts; the human remains `me` in the interface |
 | `SQUAD_PERSONA_<NICK>` | Empty string | Persona for a configured member; appended after the shared room system prompt |
-| `SQUAD_DAILY_MAX_USD` | `20` | Positive finite number; the single daily spending max |
+| `SQUAD_DAILY_MAX_USD` | `150` | Positive finite number; the single daily spending max |
 | `SQUAD_DEBATE_CONFIRM_USD` | `2` | Nonnegative finite number |
 | `SQUAD_ROOM_WORDS` | `500` | Positive integer prompt limit |
 | `SQUAD_TURN_WORDS` | `400` | Positive integer prompt limit |

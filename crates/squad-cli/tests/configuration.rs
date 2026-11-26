@@ -61,7 +61,7 @@ fn doctor_loads_dotenv_defaults_without_exposing_key_and_rejects_bad_roster() {
         ]
     );
     assert!(text.contains(&format!("Configuration: PASS - {}", env_file.display())));
-    assert!(text.contains("rounds: 10; grill rounds: 2; daily max USD: 20; judge model: ~anthropic/claude-fable-latest"));
+    assert!(text.contains("rounds: 10; grill rounds: 2; daily max USD: 150; judge model: ~anthropic/claude-fable-latest"));
     assert!(text.contains("Credential presence: present"));
     for variable in [
         "SQUAD_PERSONA_<NICK>",

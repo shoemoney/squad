@@ -102,7 +102,7 @@ async fn scores_trophies_and_unknown_daily_spend_do_not_change_on_observation() 
         assert_eq!(state.daily_spend.reserved_usd, 0.75);
         assert_eq!(state.daily_spend.unknown_calls, 2);
         assert!(state.daily_spend.has_unreconciled_charges);
-        assert_eq!(state.daily_spend.limit_usd, 20.);
+        assert_eq!(state.daily_spend.limit_usd, 150.);
     }
     let old = room.state().await.daily_spend;
     accepted(

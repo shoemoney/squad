@@ -146,7 +146,7 @@ pub const MAX_QUOTES: usize = 12;
 pub const MAX_DEBATE_SOLUTIONS: usize = 2;
 
 /// Default single daily spending cap in USD.
-pub const DEFAULT_DAILY_MAX_USD: f64 = 20.0;
+pub const DEFAULT_DAILY_MAX_USD: f64 = 150.0;
 
 /// Default debate confirmation threshold in USD.
 pub const DEFAULT_DEBATE_CONFIRM_USD: f64 = 2.0;

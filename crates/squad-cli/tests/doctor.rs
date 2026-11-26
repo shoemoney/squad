@@ -124,7 +124,7 @@ fn defaults_effective_values_and_sources_are_reported_for_every_documented_varia
     for (name, effective, default) in [
         ("SQUAD_BANNERS", "on", "on"),
         ("SQUAD_FX", "full", "full"),
-        ("SQUAD_DAILY_MAX_USD", "20", "20"),
+        ("SQUAD_DAILY_MAX_USD", "150", "150"),
         ("SQUAD_GRILL_ROUNDS", "2", "2"),
         ("SQUAD_PLAN_WORDS", "1200", "1200"),
         ("SQUAD_FX_DEBUG", "unset", "unset"),

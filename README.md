@@ -523,7 +523,7 @@ Every variable below is optional, except `OPENROUTER_API_KEY`. Run `squad doctor
 | `SQUAD_ROUNDS` | `10` | Seeds the stored `ROUNDS` (1 to 20) when none is stored. |
 | `SQUAD_GRILL_ROUNDS` | `2` | Seeds the stored `GRILL_ROUNDS` (1 to 10) when none is stored. |
 | `SQUAD_CENSUS_PASSES` | `2` | Seeds the stored `CENSUS_PASSES` (1 to 5) when none is stored. |
-| `SQUAD_DAILY_MAX_USD` | `20` | Daily spending cap in US dollars. Must be a positive number. |
+| `SQUAD_DAILY_MAX_USD` | `150` | Daily spending cap in US dollars. Must be a positive number. |
 | `SQUAD_DEBATE_CONFIRM_USD` | `2` | Estimated cost above which Squad asks you to confirm. `0` or more. |
 | `SQUAD_ALIAS_CACHE_TTL_SECONDS` | `86400` | How long alias resolutions are reused, in seconds. `0` forces a refresh. |
 | `SQUAD_ROOM_WORDS` | `500` | Word limit for the room prompt. Must be a positive integer. |
@@ -1298,7 +1298,7 @@ For each call:
 
 ## 🚧 The daily cap and `DAILY_MAX_REACHED`
 
-`SQUAD_DAILY_MAX_USD` sets the daily cap. The default is `$20`.
+`SQUAD_DAILY_MAX_USD` sets the daily cap. The default is `$150`.
 
 Squad refuses new spending when either of these is true:
 

@@ -49,7 +49,7 @@ The workspace has six crates: `squad-protocol`, `squad-store`, `squad-agents`, `
 | Judge call | 3 attempts including schema-repair attempts, except `judge.round` |
 | Per-agent queue | 20 items, then `AGENT_QUEUE_FULL` |
 | User message size | 1 to 32,768 UTF-8 bytes |
-| Daily spending | `SQUAD_DAILY_MAX_USD` = 20; debate confirmation threshold `SQUAD_DEBATE_CONFIRM_USD` = 2 |
+| Daily spending | `SQUAD_DAILY_MAX_USD` = 150; debate confirmation threshold `SQUAD_DEBATE_CONFIRM_USD` = 2 |
 | Quotes per message | Max 12 |
 | Round judge call | 2 attempts including schema-repair attempts; then record the round as unscored |
 | Round scores | Integer 1 to 10 per debater; reason at most 200 characters; equal round scores allowed |
@@ -1431,7 +1431,7 @@ The model error-code names remain part of the shared enum; they do not introduce
 
 `reasonCode` on a forfeit remains the separate `"timeout" | "error"` category used by the forfeit prompt. Detailed execution failures use `ErrorCode`.
 
-`DAILY_MAX_REACHED` uses `Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.` with the configured max formatted to two decimal places. It rejects new generation and contest admission without cancelling in-flight provider calls.
+`DAILY_MAX_REACHED` uses `Daily max of $150.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.` with the configured max formatted to two decimal places. It rejects new generation and contest admission without cancelling in-flight provider calls.
 
 Contest admission uses the parser-owned strings `$tournament needs at least three entrants.` and `@{nick} has no plan to grill yet. Ask it something first.` where applicable.
 

@@ -6,6 +6,14 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
+### Changed
+
+- The default `SQUAD_DAILY_MAX_USD` is now `150` (was `20`). Worst-case up-front
+  reservations with the default Opus-class roster sit far above real spend (a
+  plain `@all` question reserves about $39.60 for about $0.17 actual; survey and
+  tournament reserve about $110), so at $20 nearly every mode was refused on its
+  first message. The reservation math is unchanged; only the default cap moved.
+
 ## [0.1.1] - 2026-11-25
 
 Test-coverage and keyboard-reachability release: six gap branches merged on top
@@ -137,7 +145,7 @@ are attached to the GitHub Release with SHA-256 checksums.
 - Ordinary dispatch reservations are sized from the prompt actually assembled
   for the request (plus the output ceiling and reasoning budget) instead of the
   model's whole context window, so an Opus-class reply no longer exceeds the
-  default `$20` cap with nothing spent. Retries re-price the attempts that
+  default cap with nothing spent. Retries re-price the attempts that
   remain, and the attempt limits come from one shared table.
 - Calls that fail or are stopped before OpenRouter returns a generation id
   release their reservation immediately instead of holding it until midnight;

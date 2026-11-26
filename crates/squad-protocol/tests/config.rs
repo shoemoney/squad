@@ -95,7 +95,7 @@ fn defaults() {
     assert_eq!((c.defaults.rounds, c.defaults.grill_rounds), (10, 2));
     assert_eq!(
         (c.budget.daily_max_usd, c.budget.debate_confirm_usd),
-        (20.0, 2.0)
+        (150.0, 2.0)
     );
     assert_eq!(c.user.name, "the user");
     assert_eq!(c.prompts.directory, None);
@@ -684,7 +684,7 @@ OPENROUTER_API_KEY=
 SQUAD_ROUNDS=10
 
 # Daily spending cap in US dollars. Squad stops sending new requests when today's spend reaches it.
-SQUAD_DAILY_MAX_USD=20
+SQUAD_DAILY_MAX_USD=150
 
 # Grill length: rounds per $grill (1 to 10). Change per room at runtime with $GRILL_ROUNDS=2 or /set GRILL_ROUNDS 2.
 SQUAD_GRILL_ROUNDS=2

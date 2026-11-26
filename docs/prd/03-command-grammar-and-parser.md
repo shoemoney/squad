@@ -772,7 +772,7 @@ Invalid `/accept` cell syntax uses `INVALID_COMMAND` with `Invalid cellId: {valu
 
 For invalid slash identifiers, `{argument}` is exactly `debateId`, `messageId`, `cellId`, or `id`, as applicable.
 
-For the occupied-room error, `{kind}` is the active contest’s lowercase kind: `debate`, `tournament`, `grill`, `census`, `crosscheck`, `survey`, or `probe`. For the daily-max error, `{max}` is formatted with two decimal places; the default produces `Daily max of $20.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.`
+For the occupied-room error, `{kind}` is the active contest’s lowercase kind: `debate`, `tournament`, `grill`, `census`, `crosscheck`, `survey`, or `probe`. For the daily-max error, `{max}` is formatted with two decimal places; the default produces `Daily max of $150.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow.`
 
 Missing recipients use `RECIPIENT_REQUIRED`; unknown recipients use `UNKNOWN_RECIPIENT`. Reserved future commands use `COMMAND_NOT_IMPLEMENTED`. Shared-topic failures use `DEBATE_TOPIC_MISMATCH`; daily-max failures use `DAILY_MAX_REACHED`. Occupied-room, contest-admission, and pick failures use the canonical code assignments in **Message protocol and bus**.
 

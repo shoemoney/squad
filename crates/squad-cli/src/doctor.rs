@@ -154,7 +154,7 @@ pub fn run(
     if let Ok(path) = &resolved_data_dir {
         let limit = config
             .as_ref()
-            .map_or(20.0, |config| config.budget.daily_max_usd);
+            .map_or(150.0, |config| config.budget.daily_max_usd);
         let day = chrono::Local::now().format("%Y-%m-%d").to_string();
         for check in [
             squad_cli::diagnostics::accounting(path, &day, limit),
@@ -319,7 +319,7 @@ fn environment_lines(config: &SquadConfig, effective: &EffectiveEnvironment) -> 
         (
             "SQUAD_DAILY_MAX_USD",
             config.budget.daily_max_usd.to_string(),
-            "20",
+            "150",
             "positive finite number",
         ),
         (

@@ -1,0 +1,3 @@
+{"run_id":"1795659521-606094798","line":14,"new":{"module_name":"doctor","snapshot_name":"unknown_charges_keep_reservations_and_are_never_reported_as_zero_cost","metadata":{"source":"crates/squad-cli/tests/doctor.rs","assertion_line":14,"expression":"output"},"snapshot":"Daily accounting: 2026-11-24; actual $1.23; reserved $2.50; effective max $20.00; unknown-cost calls: 2; unreconciled charges (~)"},"old":{"module_name":"doctor","metadata":{},"snapshot":"    Daily accounting: 2026-11-24; actual $1.23; reserved $2.50; effective max $150.00; unknown-cost calls: 2; unreconciled charges (~)"}}
+{"run_id":"1795659533-6981942","line":14,"new":null,"old":null}
+{"run_id":"1795659761-259541366","line":14,"new":null,"old":null}
