@@ -1,1 +1,5 @@
--- Reserved for rank; filled by its mode implementation.
+CREATE TABLE rank_runs (
+  contest_id TEXT PRIMARY KEY REFERENCES contests(contest_id),
+  setup_json TEXT NOT NULL CHECK(json_valid(setup_json)),
+  run_json TEXT NOT NULL CHECK(json_valid(run_json))
+);
