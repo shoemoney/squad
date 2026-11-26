@@ -75,3 +75,12 @@ All commands used `CARGO_BUILD_JOBS=4` on dev2, with builds run sequentially.
 - `cargo test --workspace --no-fail-fast`: **not green**. Cargo summaries totaled 1,340 passed, 13 failed and six ignored, including the existing repeated WAL subprocess summary. Four failures were an owned store-fixture history metadata error, corrected and verified by all four passing store tests. Eight failures are shared disabled-mode/help/export/menu assertions that must be updated for enablement. The remaining failure is the shared tournament audit's stale event-page race described above; its fresh-snapshot guard passes. The shared tests were left untouched as required by ownership.
 
 M8.P6 has eleven tasks checked with evidence. L4.T2 remains open for shared severity-style/details wiring; L5.T1 remains open for the complete RoomHandle integration and full workspace gate; L5.T3 remains open for final integration sign-off and the TIP example. `ENABLED = true` on the worker branch permits parser/typeahead/help and smoke verification, and must not be read as a green integration gate. No main push, tag, PR, shared source edit, delegate, or extra live mode run was made.
+
+### Resume audit on `mode-blow-it-up-r2`
+
+The resumed branch retains `ENABLED = true`; the mode still requires the shared integration fixes above before release. Two additional acceptance tests pass:
+
+- `nick_source_freezes_latest_reply_and_attacks_with_the_whole_roster` starts an ordinary member reply through RoomHandle, selects it with `@member0 $blow_it_up`, verifies the frozen target and source event, and checks all six attack assignments before stopping.
+- `report_replay_preserves_severity_and_collapses_killed_evidence` replays a completed report twice, verifies critical severity styling, and checks that toggling the killed appendix reveals and hides its counts, defeating quote and judge note.
+
+Explicitly running the two ignored completion workflows with `--include-ignored` reproduces the judge-dispatch blocker: six workflows pass and the two full-report workflows time out in `RULING`, with ruling work running at attempt one. This is not a passing completion gate. No additional paid smoke was started while that route remains broken. The earlier 209.411-second partial run, its $0.458827 known cost and its unresolved reservations remain the live evidence; the shared-file ownership restriction in the task brief prevents repairing that route within the mode-owned files.

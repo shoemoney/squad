@@ -213,6 +213,9 @@ Owns only the `blow_it_up` module files listed in **New modes → Files each mod
 
 **Final worker verification (2026-11-26).** All 28 owned checks pass, with two full-report RoomHandle cases explicitly ignored for the shared judge route. Release build, workspace Clippy (`-D warnings`) and fmt pass. Full workspace execution remains red on shared disabled-mode/count expectations and the tournament audit's stale snapshot race; the four initial owned store-fixture failures were corrected and pass on rerun. An owned fresh-terminal-snapshot tournament guard passes. One default-six live send reached RULING in 209.411 s: $0.458827 known spend versus $20.539587 reserved; three unresolved attempts remain, so no complete provider-total claim is made. Five attack sets, four challenge ballots, twenty pooled vectors and tallies are durable; offline partial export succeeds. No completed live ruling/report exists because of shared dispatch. Exact blockers, workaround removal and raw evidence paths are in `docs/modes/blow_it_up.md`.
 
+
+**Resume evidence (`mode-blow-it-up-r2`, 2026-11-26).** Added passing RoomHandle coverage for selecting a real member reply with `@nick`, freezing its text/event ID and allocating all six attack slots; added passing report replay coverage for severity styling and collapsed/expanded killed evidence. Explicitly running the two ignored completion tests reproduces both `RULING` timeouts (six other workflows pass). The three integration tasks remain open under the brief's shared-file ownership restriction. No new paid run was started against the confirmed broken judge route.
+
 ## Phase M8.P7 — Readback
 
 Owns only the `readback` module files listed in **New modes → Files each mode worker owns**, migration `0015_readback.sql` and `docs/modes/readback.md`.
