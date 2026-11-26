@@ -34,7 +34,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned toolchain and development tools
-        run: ./setup.sh --yes --no-build
+        run: |
+          ./setup.sh --yes --no-build
+          printf '%s\n' "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Clippy
