@@ -1,5 +1,32 @@
 use squad_protocol::*;
 use squad_tui::widgets::forecast::*;
+#[test]
+fn enabled_forecast_is_discoverable_in_completion_help_and_rotating_tips() {
+    use squad_tui::typeahead;
+    assert!(typeahead::enabled("$forecast"));
+    assert!(
+        typeahead::MODES
+            .iter()
+            .any(|(token, _)| *token == "$forecast")
+    );
+    assert_eq!(typeahead::rank("$forecast", "$fore"), Some(0));
+    assert!(typeahead::describe("$forecast", &[]).contains("pooled probability"));
+    let context = parser::ParseContext {
+        roster: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
+        ..Default::default()
+    };
+    let examples = typeahead::examples(&context);
+    let (index, example) = examples
+        .iter()
+        .enumerate()
+        .find(|(_, s)| s.contains("$forecast"))
+        .unwrap();
+    assert!(matches!(
+        parse(example, &parser::SubmissionMeta::default(), &context).unwrap(),
+        ParsedInput::Forecast { .. }
+    ));
+    assert!(typeahead::tip(&context, index as u64 * 8).contains("$forecast"));
+}
 fn state() -> ForecastState {
     ForecastState {
         contest_id: ContestId::new(),

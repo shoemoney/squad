@@ -159,9 +159,11 @@ impl WorkExecutor for ForecastExecutor {
                         .await,
                 );
             }
-            // Shared failure classification currently recognizes this invalid-output
-            // code for all new-mode work, including member repair. Keep one repair.
-            let code = ErrorCode::JUDGE_INVALID_MODE_OUTPUT;
+            let code = if kind.new_mode_judge() {
+                ErrorCode::JUDGE_INVALID_MODE_OUTPUT
+            } else {
+                ErrorCode::MODE_INVALID_OUTPUT
+            };
             let repair = (grant.work.attempt < if kind.new_mode_judge() { 3 } else { 2 }
                 && !repaired)
                 .then(|| JudgeRepairData {

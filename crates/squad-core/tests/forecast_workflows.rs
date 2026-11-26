@@ -63,76 +63,13 @@ impl Fixture {
             "main",
             mode,
             OpenRouterClient::new(&self.fake.base_url(), "fake-key").unwrap(),
-            &ForecastLauncher(self.store.clone()),
+            &DefaultForecastLauncher(self.store.clone()),
         )
         .await
         .unwrap()
     }
-    async fn start(&self, text: &str) -> RequestResult {
-        let store = self.store.lock().unwrap().clone().unwrap();
-        let config = self.config.clone();
-        let raw = text.to_owned();
-        let id = EventId::new();
-        store
-            .commit(
-                id,
-                "forecast-fixture".into(),
-                id.to_string(),
-                move |tx, g| {
-                    let participants = config.agents.iter().map(|a| a.nick.clone()).collect();
-                    let parsed = ParsedInput::Forecast {
-                        input: parser::ConversationalInput {
-                            raw: raw.clone(),
-                            quote: vec![],
-                            variable_updates: vec![],
-                        },
-                        participants,
-                        question: raw.split("$forecast ").nth(1).unwrap().into(),
-                        background: None,
-                    };
-                    let bindings = config
-                        .agents
-                        .iter()
-                        .map(|a| {
-                            (
-                                a.nick.to_string(),
-                                ExecutorBinding {
-                                    model: Text::new(a.model.clone()).unwrap(),
-                                    effort: ReasoningEffort::Low,
-                                },
-                            )
-                        })
-                        .chain(std::iter::once((
-                            "judge".into(),
-                            ExecutorBinding {
-                                model: Text::new(config.judge.model.clone()).unwrap(),
-                                effort: constants::NEW_MODE_JUDGE_REASONING_EFFORT,
-                            },
-                        )))
-                        .collect();
-                    squad_core::router::forecast::prepare(
-                        tx,
-                        g,
-                        id,
-                        &UserMessageInput {
-                            message_id: MessageId::new(),
-                            text: Text::new(raw).unwrap(),
-                            quote: None,
-                            reply_to: None,
-                        },
-                        &parsed,
-                        &squad_core::router::NewModeAdmission {
-                            bindings: &bindings,
-                            config: Some(&config),
-                            daily_max: 200_000_000,
-                            confirmation_threshold: 100.0,
-                            preconfirmed: true,
-                        },
-                    )
-                },
-            )
-            .unwrap()
-            .result
+    async fn start(&self, room: &RoomHandle, text: &str) -> RequestResult {
+        room.submit(request(&self.config, text)).await
     }
     fn db(&self) -> rusqlite::Connection {
         rusqlite::Connection::open(self.config.data_dir.join("squad.db")).unwrap()
@@ -285,7 +222,10 @@ async fn six_members_fourteen_calls_reserves_thirty_and_exports_blind_bundles() 
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
     let result = f
-        .start("@all $forecast Will the launch happen by 2027-12-31?")
+        .start(
+            &room,
+            "@all $forecast Will the launch happen by 2027-12-31?",
+        )
         .await;
     assert!(
         matches!(result, RequestResult::Accepted { .. }),
@@ -381,7 +321,7 @@ async fn six_members_fourteen_calls_reserves_thirty_and_exports_blind_bundles() 
 async fn unforecastable_stops_before_members_and_releases_reservations() {
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
-    f.start("@all $forecast NOT_FORECASTABLE What is beautiful?")
+    f.start(&room, "@all $forecast NOT_FORECASTABLE What is beautiful?")
         .await;
     f.wait(|| state(&f).state.is_terminal()).await;
     assert_eq!(
@@ -411,16 +351,12 @@ async fn unforecastable_stops_before_members_and_releases_reservations() {
     f.assert_ledger();
     room.shutdown().await.unwrap();
 }
-// The production legacy judge gate omits new_mode_judge(). Exercise the owned
-// executor through the public runtime seam until the integrator fixes that gate.
+// Every workflow uses the production launcher and public parser/room ingress.
 use squad_core::{
     bus::InProcessBus,
-    prompts::PromptPack,
-    room::{RoomError, RoomFuture, RoomRuntime, RuntimeLauncher},
+    room::{RoomError, RoomRuntime, RuntimeLauncher},
 };
 use std::sync::Arc;
-use tokio_util::sync::CancellationToken;
-struct ForecastLauncher(Arc<std::sync::Mutex<Option<squad_store::Store>>>);
 // Capture only the store handle; all execution and recovery use production code.
 struct DefaultForecastLauncher(Arc<std::sync::Mutex<Option<squad_store::Store>>>);
 impl RuntimeLauncher for DefaultForecastLauncher {
@@ -448,7 +384,6 @@ impl RuntimeLauncher for DefaultForecastLauncher {
 }
 
 #[tokio::test]
-#[ignore = "requires integrator-owned runtime/judge.rs structured dispatch fix"]
 async fn default_launcher_completes_forecast_and_repairs_invalid_member_output() {
     let f = Fixture::new().await;
     let room = RoomHandle::open_with_launcher(
@@ -461,33 +396,11 @@ async fn default_launcher_completes_forecast_and_repairs_invalid_member_output()
     .await
     .unwrap();
     let text = "@all $forecast INVALID_FIRST Will the launch happen by 2027-12-31?";
-    let result = if forecast::ENABLED {
-        room.submit(request(&f.config, text)).await
-    } else {
-        f.start(text).await
-    };
+    let result = room.submit(request(&f.config, text)).await;
     assert!(
         matches!(result, RequestResult::Accepted { .. }),
         "{result:?}"
     );
-    // The shared driver intentionally skips disabled modes. Advance admission
-    // into its first work item so this regression can expose judge dispatch
-    // before enablement; enabled runs use only the normal room engine.
-    if !forecast::ENABLED {
-        for _ in 0..3 {
-            let store = f.store.lock().unwrap().clone().unwrap();
-            let current = state(&f);
-            let id = EventId::new();
-            store
-                .commit(
-                    id,
-                    "forecast-default-fixture".into(),
-                    id.to_string(),
-                    move |tx, g| squad_core::router::forecast::drive_move(tx, g, id, current),
-                )
-                .unwrap();
-        }
-    }
     f.wait(|| state(&f).state.is_terminal()).await;
     assert_eq!(state(&f).state, ForecastStatus::Complete);
     let calls = f.fake.captured_bodies().await;
@@ -508,164 +421,15 @@ async fn default_launcher_completes_forecast_and_repairs_invalid_member_output()
     room.shutdown().await.unwrap();
 }
 
-struct OwnedExecutor {
-    client: OpenRouterClient,
-    config: SquadConfig,
-    pack: PromptPack,
-}
-impl squad_agents::worker::WorkExecutor for OwnedExecutor {
-    fn execute<'a>(
-        &'a self,
-        context: &'a AgentContext,
-        grant: ExecutionGrant,
-        cancel: CancellationToken,
-    ) -> squad_agents::worker::ExecutionFuture<'a> {
-        Box::pin(async move {
-            squad_core::runtime::forecast::execute(
-                context,
-                &grant,
-                &self.client,
-                &self.pack,
-                &self.config,
-                cancel,
-            )
-            .await
-            .map_err(|_| ReaderError::NotRunnable)
-        })
-    }
-}
-struct OwnedRuntime {
-    cancel: CancellationToken,
-    task: tokio::task::JoinHandle<()>,
-}
-impl RoomRuntime for OwnedRuntime {
-    fn ready(&mut self) -> RoomFuture<'_, ()> {
-        Box::pin(async { Ok(()) })
-    }
-    fn wake(&self, _: &[WorkId]) {}
-    fn shutdown(self: Box<Self>) -> RoomFuture<'static, ()> {
-        Box::pin(async move {
-            self.cancel.cancel();
-            self.task.await.unwrap();
-            Ok(())
-        })
-    }
-}
-impl RuntimeLauncher for ForecastLauncher {
-    fn recover_on_open_mode(
-        &self,
-        store: &squad_store::Store,
-        mode: OpenMode,
-        now: DateTime,
-    ) -> Result<(), RoomError> {
-        squad_core::router::recovery::recover_on_open_mode(store, mode, now)
-            .map(|_| ())
-            .map_err(Into::into)
-    }
-    fn start_with_mode(
-        &self,
-        config: &SquadConfig,
-        store: squad_store::Store,
-        bus: InProcessBus,
-        client: OpenRouterClient,
-        _: squad_agents::resolver::ResolutionSnapshot,
-        _: OpenMode,
-    ) -> Result<Box<dyn RoomRuntime>, RoomError> {
-        *self.0.lock().unwrap() = Some(store.clone());
-        let cancel = CancellationToken::new();
-        let child = cancel.clone();
-        let config = config.clone();
-        let task = tokio::spawn(async move {
-            let bindings = config
-                .agents
-                .iter()
-                .map(|a| {
-                    (
-                        a.nick.to_string(),
-                        ExecutorBinding {
-                            model: Text::new(a.model.clone()).unwrap(),
-                            effort: ReasoningEffort::Low,
-                        },
-                    )
-                })
-                .chain(std::iter::once((
-                    "judge".into(),
-                    ExecutorBinding {
-                        model: Text::new(config.judge.model.clone()).unwrap(),
-                        effort: constants::NEW_MODE_JUDGE_REASONING_EFFORT,
-                    },
-                )))
-                .collect();
-            let mut driver = squad_core::router::Router::new(
-                store.clone(),
-                config.agents.iter().map(|a| a.nick.clone()).collect(),
-                bindings,
-                200_000_000,
-            )
-            .unwrap();
-            let pack = PromptPack::embedded().unwrap();
-            let executor = Arc::new(OwnedExecutor {
-                client,
-                config: config.clone(),
-                pack: pack.clone(),
-            });
-            let mut tasks = std::collections::BTreeMap::<
-                String,
-                tokio::task::JoinHandle<Result<(), ReaderError>>,
-            >::new();
-            loop {
-                squad_core::orchestrator::forecast::drive(&mut driver).unwrap();
-                for a in &config.agents {
-                    bus.wake_mailbox(&ExecutorKey::Member(a.nick.clone()));
-                }
-                let finished = tasks
-                    .iter()
-                    .filter(|(_, t)| t.is_finished())
-                    .map(|(k, _)| k.clone())
-                    .collect::<Vec<_>>();
-                for key in finished {
-                    tasks.remove(&key).unwrap().await.unwrap().unwrap();
-                }
-                let keys=store.call(|db|{let mut q=db.prepare("SELECT DISTINCT case_id FROM work WHERE case_id IS NOT NULL AND status IN ('queued','running')")?;Ok(q.query_map([],|r|r.get::<_,String>(0))?.collect::<rusqlite::Result<Vec<_>>>()?)}).unwrap();
-                let mut keys = keys
-                    .into_iter()
-                    .map(|k| ExecutorKey::Case(k.parse().unwrap()))
-                    .collect::<Vec<_>>();
-                keys.extend(
-                    config
-                        .agents
-                        .iter()
-                        .map(|a| ExecutorKey::Member(a.nick.clone())),
-                );
-                for key in keys {
-                    let owner = serde_json::to_string(&key).unwrap();
-                    if let std::collections::btree_map::Entry::Vacant(entry) = tasks.entry(owner) {
-                        let context = squad_core::runtime::contexts::agent_context(
-                            store.clone(),
-                            &bus,
-                            key,
-                            1,
-                            Arc::new(pack.clone()),
-                            child.child_token(),
-                        );
-                        entry.insert(squad_agents::worker::spawn(context, executor.clone()));
-                    }
-                }
-                tokio::select! {_=child.cancelled()=>break,_=tokio::time::sleep(Duration::from_millis(10))=>{}}
-            }
-            for (_, t) in tasks {
-                t.await.unwrap().unwrap();
-            }
-        });
-        Ok(Box::new(OwnedRuntime { cancel, task }))
-    }
-}
 #[tokio::test]
 async fn member_endpoint_repairs_once_and_missing_revision_is_not_unchanged() {
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
-    f.start("@all $forecast INVALID_FIRST MISS_REVISION Will it ship by 2027-12-31?")
-        .await;
+    f.start(
+        &room,
+        "@all $forecast INVALID_FIRST MISS_REVISION Will it ship by 2027-12-31?",
+    )
+    .await;
     f.wait(|| state(&f).state.is_terminal()).await;
     assert_eq!(state(&f).state, ForecastStatus::Complete);
     let db = f.db();
@@ -703,9 +467,10 @@ async fn insufficient_quorum_and_failed_crux_keep_only_accepted_evidence() {
     ] {
         let f = Fixture::new().await;
         let room = f.open(OpenMode::Interactive).await;
-        f.start(&format!(
-            "@all $forecast {marker} Will it ship by 2027-12-31?"
-        ))
+        f.start(
+            &room,
+            &format!("@all $forecast {marker} Will it ship by 2027-12-31?"),
+        )
         .await;
         f.wait(|| state(&f).state.is_terminal()).await;
         assert_eq!(state(&f).terminal_reason.unwrap().as_str(), reason);
@@ -727,8 +492,11 @@ async fn insufficient_quorum_and_failed_crux_keep_only_accepted_evidence() {
 async fn global_stop_fences_inflight_work_and_restart_keeps_the_frame() {
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
-    f.start("@all $forecast SLOW_FRAME Will it ship by 2027-12-31?")
-        .await;
+    f.start(
+        &room,
+        "@all $forecast SLOW_FRAME Will it ship by 2027-12-31?",
+    )
+    .await;
     f.wait(|| {
         f.db()
             .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get::<_, i64>(0))
@@ -757,8 +525,11 @@ async fn global_stop_fences_inflight_work_and_restart_keeps_the_frame() {
 async fn restart_reuses_frozen_frame_labels_and_delivered_bundles() {
     let f = Fixture::new().await;
     let room = f.open(OpenMode::Interactive).await;
-    f.start("@all $forecast SLOW_REVISION Will it ship by 2027-12-31?")
-        .await;
+    f.start(
+        &room,
+        "@all $forecast SLOW_REVISION Will it ship by 2027-12-31?",
+    )
+    .await;
     f.wait(|| {
         state(&f).state == ForecastStatus::Revising
             && f.db()
