@@ -55,3 +55,9 @@ pub enum BlowItUpCaseMaterial {}
 pub fn validate_artifact(_kind: &str, _body: &serde_json::Value) -> ValidationResult {
     ensure(false, "blow_it_up is disabled")
 }
+
+/// Mode-owned generated schema used by shared invocation provenance.
+/// Filled alongside the mode's output types; disabled modes have no output schema.
+pub fn output_schema(_kind: &WorkKind) -> Option<serde_json::Value> {
+    None
+}

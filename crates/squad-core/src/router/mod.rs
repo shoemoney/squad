@@ -953,13 +953,24 @@ fn trace_outcome(request_id: EventId, outcome: &CommitOutcome) {
             }
             _ => None,
         };
-        tracing::debug!(%request_id,event_id=%event.base.id,correlation_id=%event.base.correlation_id,causation_id=?event.base.causation_id,?work_id,cursor=%event.commit.seq.get(),"Router commit accepted");
+        let (contest_id, step_id) = match &event.content {
+            EnvelopePayload::ContestArtifact(v) => (Some(v.contest_id), Some(v.step_id)),
+            EnvelopePayload::ContestReport(v) => (Some(v.contest_id), Some(v.step_id)),
+            EnvelopePayload::WorkState(v) => (v.contest_id, None),
+            EnvelopePayload::UsageRecord(v) => (v.contest_id, None),
+            EnvelopePayload::CensusReport(v) => (Some(v.contest_id), None),
+            EnvelopePayload::CrosscheckReport(v) => (Some(v.contest_id), None),
+            EnvelopePayload::SurveyReport(v) => (Some(v.contest_id), None),
+            EnvelopePayload::ProbeReport(v) => (Some(v.contest_id), Some(v.step_id)),
+            _ => (None, None),
+        };
+        tracing::debug!(%request_id,?contest_id,?step_id,event_id=%event.base.id,correlation_id=%event.base.correlation_id,causation_id=?event.base.causation_id,?work_id,cursor=%event.commit.seq.get(),"Router commit accepted");
     }
     if let RequestResult::Internal(
         InternalResult::Claimed(grant) | InternalResult::Started(grant),
     ) = &outcome.result
     {
-        tracing::debug!(%request_id,work_id=%grant.work.work_id,correlation_id=%grant.work.trigger_event_id,causation_id=%grant.work.trigger_event_id,attempt=grant.work.attempt,fence=grant.fence,epoch=grant.epoch,"Executor grant acknowledged");
+        tracing::debug!(%request_id,work_id=%grant.work.work_id,correlation_id=%grant.work.trigger_event_id,causation_id=%grant.work.trigger_event_id,attempt=grant.work.attempt,contest_id=?grant.work.contest_id,step_id=?grant.work.step_id,work_kind=?grant.work.kind,fence=grant.fence,epoch=grant.epoch,"Executor grant acknowledged");
     }
 }
 
@@ -1414,3 +1425,5 @@ pub struct NewModeAdmission<'a> {
 pub mod tune;
 
 pub mod bass_ackwards_prd;
+#[cfg(test)]
+mod observability_tests;

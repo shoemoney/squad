@@ -303,3 +303,55 @@ settings. Deterministic scene checks also render every phase at 80x24, 140x40
 and 200x60. The expanded invariant suite covers all families' protected glyphs,
 final/off equivalence, replay of 1,000 events, replacement, duplicate artifacts,
 dropped cues, viewport-bounded allocation, and partial-report settlement.
+
+## Offline milestone audit (2026-11-26)
+
+From the repository root, `./setup.sh` installs the Foundations dependencies,
+preserves an existing `.env`, builds the release binary and prints the next
+command, `./target/release/squad`. For an offline rehearsal without credentials,
+use `cargo run -p squad-tui --example demo`. The built-binary startup, streamed
+reply, Ctrl+C/SIGINT, hangup recovery and mode restoration checks live in
+`crates/squad-cli/tests/pty.rs`; installer preservation is covered by
+`crates/squad-cli/tests/m6_setup.rs` and `scripts/test-setup.sh`.
+
+`tests/m4b_conversation_audit.rs` opens temporary SQLite rooms with the M5 loopback
+catalogue fixture and checks actual census, both crosscheck extraction paths,
+new-answer/existing-answer survey, and adjusted probe preflight values at both
+viewports. `tests/m4b_tournament_runtime_audit.rs` and `tests/grill_runtime.rs` run the
+production room against canned provider responses, replay its committed output
+into the static TUI, and check exports. These tests never read local credentials
+or contact OpenRouter. Survey collection is a boolean in M5 settings; grill
+rounds and the selected plan live under `settings.setup`.
+
+`tests/m4b_pty_e2e_audit.rs` uses Python 3's standard-library PTY driver on Unix. It runs the
+real terminal guard and crossterm decoder against the FakeRoom script, checking
+literal bracketed paste, Ctrl+J/Alt+Enter, streaming, Ctrl+F, Ctrl+Y initiation,
+preflight confirmation, 120×40 → 80×24 resize, alternate-screen/paste/cursor
+cleanup and exact termios restoration. The ignored `pty_child` test is its
+subprocess entry point and is exercised by the ordinary parent test.
+
+`tests/m4b_fx_input_audit.rs` checks input and Escape during all 18 effect families;
+`tests/m4b_fx_integration_audit.rs` checks that the four new effects do not gate shared moves
+or barriers, submit delivery requests, or alter exported Markdown. Destination
+writes and flush failures for every export scope are checked in `tests/m4b_export_audit.rs`.
+
+`tests/m4b_debate_audit.rs` checks exact threshold boundaries, expiry/cancellation,
+equal and late authoritative scores, F7 reasons and retained anchors/records.
+`tests/m4b_recovery_audit.rs` and `tests/m4b_session_audit.rs` check draft/quote
+preservation, acknowledged resets, duplicate scoreboards, restored probe roles,
+crosscheck audit samples and explicit risk acceptances.
+
+The audit does not close the physical-terminal capability matrix or the macOS
+arm64 full-effects performance gate. Linux headless measurements above retain
+their original qualification. Report source search/copy and complete large-report
+navigation still depend on the earlier M4.P2.L8 implementation; the combined
+seven-mode completed-result integration gate also remains open. M4 must not exit
+while its two-platform gates remain open.
+
+Final-source validation on dev3/Linux x64 with Rust 1.99.1 and four Cargo build
+jobs passed `cargo test --workspace --no-fail-fast` with `RUST_TEST_THREADS=1`:
+1,254 passed, zero failed, two ignored. The ignored entries are the existing
+manual release performance gate and the PTY child entry point invoked by its
+passing parent test. All nine `m4b_*_audit.rs` integration binaries ran. Formatting
+passed `cargo fmt --check`; all-target Clippy passed
+`cargo clippy --workspace --all-targets -- -D warnings`.

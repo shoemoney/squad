@@ -16,6 +16,7 @@ pub mod events;
 pub mod export;
 pub mod history;
 pub mod judge_repairs;
+mod prompt_provenance;
 pub mod readers;
 pub mod room_lock;
 pub mod round_scores;

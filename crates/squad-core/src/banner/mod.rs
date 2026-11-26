@@ -7,6 +7,9 @@ use figlet_rs::FIGlet;
 pub use squad_protocol::config::BannerMode;
 use unicode_width::UnicodeWidthStr;
 
+/// Licence text for the embedded FIGlet assets, available without filesystem reads.
+pub const FONT_LICENSE: &str = include_str!("fonts/LICENSE-FIGlet.txt");
+
 static DEFAULT: LazyLock<FIGlet> = LazyLock::new(|| {
     FIGlet::from_content(include_str!("fonts/standard.flf")).expect("vendored Standard font")
 });

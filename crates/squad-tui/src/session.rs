@@ -268,7 +268,29 @@ impl Session {
                 &mut queue,
             );
         }
+        let reports = self
+            .snapshot
+            .context
+            .records
+            .iter()
+            .filter(|record| record.kind.as_str().ends_with(".report"))
+            .cloned()
+            .collect::<Vec<_>>();
         self.snapshot.context = authoritative.context;
+        for record in reports {
+            if let Some(existing) = self
+                .snapshot
+                .context
+                .records
+                .iter_mut()
+                .find(|existing| existing.event_id == record.event_id)
+            {
+                existing.content = record.content;
+                existing.contest_id = record.contest_id;
+            } else {
+                self.snapshot.context.records.push(record);
+            }
+        }
         self.snapshot.cursor = authoritative.cursor;
         self.snapshot.participants = authoritative.participants;
         self.snapshot.preflights = authoritative.preflights;
@@ -1397,14 +1419,6 @@ impl Session {
                     .or_default()
                     .reports
                     .push(r.clone());
-                self.record(
-                    base,
-                    committed,
-                    "census.report",
-                    None,
-                    None,
-                    squad_core::export::census::report_text(r),
-                );
                 cue = Some(FxCue::CensusEstimateReady {
                     contest_id: r.contest_id.to_string().parse().expect("UUID"),
                     pass: u32::from(r.pass),
@@ -1458,7 +1472,36 @@ impl Session {
             );
         }
         if let FeedItem::Committed(e) = item {
+            let report = match &e.content {
+                EnvelopePayload::CensusReport(r) => {
+                    Some((r.contest_id, ExportScope::Census, "census.report"))
+                }
+                EnvelopePayload::CrosscheckReport(r) => {
+                    Some((r.contest_id, ExportScope::Crosscheck, "crosscheck.report"))
+                }
+                EnvelopePayload::SurveyReport(r) => {
+                    Some((r.contest_id, ExportScope::Survey, "survey.report"))
+                }
+                EnvelopePayload::ProbeReport(r) => {
+                    Some((r.contest_id, ExportScope::Probe, "probe.report"))
+                }
+                _ => None,
+            };
+            let report =
+                report.map(|(id, scope, kind)| (id, scope, kind, e.base.clone(), e.commit.clone()));
             self.snapshot.events.push(e);
+            if let Some((id, scope, kind, base, commit)) = report {
+                let source = squad_core::export::ExportSnapshot {
+                    events: self.snapshot.events.clone(),
+                    ..Default::default()
+                };
+                if let Ok(text) = squad_core::export::render(&source, scope, Some(id)) {
+                    self.record(&base, Some(&commit), kind, None, None, text);
+                    if let Some(record) = self.snapshot.context.records.last_mut() {
+                        record.contest_id = Some(id);
+                    }
+                }
+            }
         }
         immediate
     }

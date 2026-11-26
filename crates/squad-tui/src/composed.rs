@@ -73,6 +73,7 @@ fn rows(buffer: &Buffer, height: usize) -> Vec<Line<'static>> {
 }
 impl Composed {
     pub fn invalidate_artifacts(&mut self) {
+        self.signature = None;
         self.artifact_signature = None;
     }
     pub fn toggle_verdict(&mut self) {
@@ -244,6 +245,9 @@ impl Composed {
             for (index, (id, source)) in session.debates.iter().enumerate() {
                 let mut view = source.clone();
                 view.number = index + 1;
+                view.rounds
+                    .iter_mut()
+                    .for_each(|round| round.reasons_expanded = expanded);
                 view.topic = session.snapshot.events.iter().rev().find_map(|event| {
                     if let EnvelopePayload::DebateOpening(opening) = &event.content {
                         (opening.debate_id == *id).then(|| opening.topic_text.to_string())
@@ -600,6 +604,41 @@ impl Composed {
                 model.widget_rows = rows(&scratch, height);
                 model.presentation.pick_revision = revision + pick.request.eligible.len() as u64;
                 models.push(model);
+            }
+        }
+        // Shared script progress belongs inside the same anchored, cached card.
+        for model in &mut models {
+            let id: ContestId = model.id.to_string().parse().expect("protocol UUID");
+            if let Some(contest) = session.contests.get(&id)
+                && (!contest.steps.is_empty() || !contest.work.is_empty())
+                && matches!(
+                    model.author.as_str(),
+                    "CENSUS" | "CROSSCHECK" | "SURVEY" | "PROBE"
+                )
+            {
+                let mut progress = vec![Line::from(crate::markdown::sanitize(
+                    &contest.report_header(),
+                ))];
+                if let Some(step) = contest.steps.values().next_back() {
+                    progress.push(Line::from(widgets::contest_status::step_label(step)));
+                    let kind = match model.author.as_str() {
+                        "CENSUS" => ContestKind::Census,
+                        "CROSSCHECK" => ContestKind::Crosscheck,
+                        "SURVEY" => ContestKind::Survey,
+                        _ => ContestKind::Probe,
+                    };
+                    if let Some(label) = widgets::contest_status::visibility_label(kind, step) {
+                        progress.push(Line::from(label));
+                    }
+                }
+                progress.extend(
+                    contest
+                        .work
+                        .values()
+                        .map(|work| Line::from(crate::markdown::sanitize(&work.line()))),
+                );
+                // Append below the report so effect geometry remains relative to its static rows.
+                model.widget_rows.extend(progress);
             }
         }
         models.sort_by_key(|m| (m.author == "PICK", m.id));

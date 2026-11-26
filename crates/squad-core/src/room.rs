@@ -1,6 +1,22 @@
 //! Single room API for human clients. Subscribe before loading the initial page.
 //! On broadcast lag, replay committed events with `events_after(last_seen, limit)`;
 //! provisional token text is never reconstructed from SQLite.
+//!
+//! Submit census, crosscheck, survey and probe with the shared parser and
+//! `Request::from_parsed_with_context`, then pass the resulting request to
+//! `RoomHandle::submit`. Selected inputs stay in submission metadata; the router
+//! freezes and delivers each script's permitted inputs. A pending preflight
+//! reports script-derived call estimates and must be confirmed with its contest
+//! and plan IDs. Confirmation never accepts crosscheck residual risks: those
+//! require an explicit `Request::CrosscheckAccept` with the current grid and cells.
+//! Census plan revisions use `Request::CensusContinue`; persisted `CENSUS_PASSES`
+//! takes precedence over the environment seed, which applies only to a new value.
+//!
+//! Read committed steps, artifacts, reports and skipped-member disclosures through
+//! the feed or durable paging. Export with `RoomHandle::export` and the matching
+//! `ExportScope::{Census,Crosscheck,Survey,Probe}` plus contest ID, or use
+//! `export_offline` for the same Markdown without opening a room. These human
+//! projections never grant executors access to another member's context.
 use crate::{
     bus::InProcessBus,
     router::Router,

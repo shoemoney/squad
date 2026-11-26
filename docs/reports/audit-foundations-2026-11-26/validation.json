@@ -1,0 +1,44 @@
+{
+  "workspace_tests": {
+    "command": "CARGO_BUILD_JOBS=4 RUST_TEST_THREADS=1 cargo test --workspace --no-fail-fast",
+    "exit_code": 0,
+    "passed": 1248,
+    "failed": 0,
+    "ignored": 3
+  },
+  "clippy": {
+    "command": "CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings",
+    "exit_code": 0
+  },
+  "format": {
+    "command": "cargo fmt --check",
+    "exit_code": 0
+  },
+  "shellcheck": {
+    "command": "shellcheck setup.sh scripts/*.sh",
+    "exit_code": 0
+  },
+  "setup_fixture": {
+    "command": "./scripts/test-setup.sh",
+    "exit_code": 0
+  },
+  "source_head": "c87cf51c3c046c7b2380ce4d97ad1348474d4bf3",
+  "streaming_memory": {
+    "exit_code": 0,
+    "elapsed_seconds": 1805.88,
+    "rosters": [
+      6,
+      12
+    ],
+    "waves": 156,
+    "answers": 2808,
+    "combined_peak_rss_kib": 155588,
+    "limit_kib": 524288
+  },
+  "transcript_memory": {
+    "exit_code": 0,
+    "messages": 500,
+    "process_rss_kib": 109084,
+    "limit_kib": 262144
+  }
+}

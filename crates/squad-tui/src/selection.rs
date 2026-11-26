@@ -91,11 +91,10 @@ impl SelectionState {
 #[derive(Clone, Debug)]
 pub struct MessagePreview {
     pub id: MessageId,
+    /// Committed source event; message identity is not a submission reference.
+    pub event_id: squad_protocol::EventId,
     pub author: String,
     pub text: String,
-}
-fn event_id(id: MessageId) -> squad_protocol::EventId {
-    id.to_string().parse().expect("message ids are UUIDv7")
 }
 fn clip(text: &str, max: usize) -> String {
     let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -115,6 +114,7 @@ pub enum SolutionGap {
 }
 #[derive(Clone, Debug)]
 pub struct SolutionPreview {
+    pub event_id: squad_protocol::EventId,
     pub author: String,
     pub text: String,
     pub id: MessageId,
@@ -140,6 +140,7 @@ impl DebateSolutionSelection {
         for id in &ids {
             match previews.iter().find(|p| p.id == *id) {
                 Some(p) => solutions.push(SolutionPreview {
+                    event_id: p.event_id,
                     author: p.author.clone(),
                     text: clip(&p.text, 160),
                     id: *id,
@@ -170,7 +171,7 @@ impl DebateSolutionSelection {
         self.ready()
             .then(|| squad_protocol::parser::SubmissionMeta {
                 quote: vec![],
-                reply_to: self.solutions.iter().map(|s| event_id(s.id)).collect(),
+                reply_to: self.solutions.iter().map(|s| s.event_id).collect(),
             })
     }
     pub fn preview_lines(&self) -> Vec<String> {
@@ -222,6 +223,7 @@ impl GrillPlanSelection {
                     .iter()
                     .find(|p| p.id == *one)
                     .map(|p| SolutionPreview {
+                        event_id: p.event_id,
                         author: p.author.clone(),
                         text: clip(&p.text, 160),
                         id: *one,
@@ -242,7 +244,7 @@ impl GrillPlanSelection {
         self.source
             .as_ref()
             .map(|s| squad_protocol::parser::SubmissionMeta {
-                quote: vec![event_id(s.id)],
+                quote: vec![s.event_id],
                 reply_to: vec![],
             })
     }

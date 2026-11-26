@@ -207,7 +207,13 @@ impl PromptPack {
                         .round_scoring
                         .round_scores
                         .iter()
-                        .any(|s| s.debate_id != debate || s.case_id != case_id)
+                        // Final/manual case bundles retain the original case
+                        // references on accepted scores. The router validates
+                        // those against the debate's case_ids before projection.
+                        .any(|s| {
+                            s.debate_id != debate
+                                || (work.kind == WorkKind::JudgeRound && s.case_id != case_id)
+                        })
                 {
                     return Err(error("foreign debate material"));
                 }

@@ -196,7 +196,7 @@
   - [x] M1.P3.L7.T8 — Authorize generic artifact producers against work, step, assignment and case identity, leaving typed coverage checks to mode M5 validators, in `crates/squad-core/src/router/authorization.rs`.
   - [x] M1.P3.L7.T9 — Persist skipped-member outcomes and recoverable next-step allocations atomically with barriers, work completion and accounting in crate `squad-store`, file `crates/squad-store/src/contest_steps.rs`.
   - [x] M1.P3.L7.T10 — Revalidate parsed AST snapshots, staged `CENSUS_PASSES` and generic source references without duplicating grammar; reject runtime admission of unbuilt modes in `crates/squad-core/tests/router_validation.rs`.
-  - [ ] M1.P3.L7.T11 — Expose consistent generic artifact/report reads without raw private maps for M3 export and M4 rendering in `crates/squad-store/src/export.rs`; typed readers land in M5.
+  - [x] M1.P3.L7.T11 — Expose consistent generic artifact/report reads without raw private maps for M3 export and M4 rendering in `crates/squad-store/src/export.rs`; typed readers land in M5. (covered by crates/squad-store/tests/contest_boundaries.rs::export_readers_return_consistent_boundaries_without_private_material)
 
 ## Phase M1.P4 — Recovery, replay and storage
 

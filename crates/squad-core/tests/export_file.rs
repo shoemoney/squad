@@ -45,3 +45,21 @@ fn unwritable_destination_and_invalid_names_preserve_existing_files() {
         assert!(write_export_file(root.path(), filename, b"data").is_err());
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn read_only_export_directory_returns_an_error_without_replacing_the_prd() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let root = tempfile::tempdir().unwrap();
+    let path = write_export_file(root.path(), "prd.md", b"original").unwrap();
+    let dir = path.parent().unwrap();
+    // Root bypasses Unix write permissions; the invalid-destination fixture still tests its error path.
+    if std::fs::metadata(dir).unwrap().uid() == 0 {
+        return;
+    }
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+    let result = write_export_file(root.path(), "prd.md", b"replacement");
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(result.is_err());
+    assert_eq!(std::fs::read(path).unwrap(), b"original");
+}

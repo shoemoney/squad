@@ -1,0 +1,28 @@
+---
+source: crates/squad-tui/tests/m4a_audit.rs
+expression: "draw(&mut app, width, height)"
+---
+ SQUAD   /   main   ·   six minds, one room
+$0.00 ???????? $0.00 · pending $0.00 · remaining $0.00
+alpha
+idle W0 L0
+beta
+idle W0 L0
+gamma                            ____   ___  _   _   _    ____
+idle W0 L0                      / ___| / _ \| | | | / \  |  _ \
+                                \___ \| | | | | | |/ _ \ | | | |
+                                 ___) | |_| | |_| / ___ \| |_| |
+                                |____/ \__\_\\___/_/   \_\____/
+
+
+
+
+─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
+                                                                      more above
+  line 6
+  line 7
+  line 8
+  line 9
+  line 10
+
+F6 Focus · Tab Complete · Esc Stop · F7 Scores · F8 Models · Ctrl+C Quit

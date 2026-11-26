@@ -6,7 +6,7 @@ The lists below are exact owned paths, including tests and user documentation th
 
 ## Shared scaffold interfaces
 
-- Protocol modules own their status, state, transition, case material, artifact validation and `ENABLED` switch.
+- Protocol modules own their status, state, transition, case material, artifact validation, `output_schema(&WorkKind)` provenance callback and `ENABLED` switch.
 - Router modules own `prepare`, `resolve`, `transition`, `produce`, `barrier`, `accepted_work`, `human_answer`, `stop`, `recover`, and `load_state`. Admission receives the frozen bindings, configuration, budget, confirmation threshold and preconfirmation in `NewModeAdmission`.
 - Orchestrator modules own `prepare` and `drive(&mut Router)`, plus script and pure tally functions. Runtime modules own `execute`; prompt adapters own `inputs`; export modules own `render`; widgets own `View::apply` and `render`; fx modules own their effects hook.
 - The existing `ContestArtifact` has additive optional new-mode headers so earlier modes retain their exact serialized records. New modes must supply `kind`, `round`, `actor`, `audience`, and an object `body`; `validate_header` checks these before the mode validator. Legacy `data`, `workId` and `sourceRefs` remain available. New mode artifacts use `contest_artifacts`; reads require a frozen work assignment plus audience authorization.
@@ -16,7 +16,7 @@ The lists below are exact owned paths, including tests and user documentation th
 
 ## Registry files confirmed beyond the original table
 
-`ContestTransition` already lives in `squad-protocol/src/contest.rs`, not envelopes.rs. `ContestArtifact` and its existing envelope kind already existed; changing their old fields would break shipped records. Store dispatch is implemented in `src/leases.rs` and re-exported as `dispatch`, not a physical dispatch.rs. Its SQL attempt lists and per-attempt deadlines also need registration. Other required shared sites are agents `registry.rs`, core `state.rs`, `room.rs`, `router/authorization.rs`, `router/contests.rs`, `orchestrator/driver.rs`, runtime `member.rs` and `judge.rs`, store `clear.rs`, `judge_repairs.rs`, `work.rs`, TUI `actions.rs`, `composed.rs`, `room_adapter.rs` and `widgets/case.rs`. These are integrator-owned.
+`ContestTransition` already lives in `squad-protocol/src/contest.rs`, not envelopes.rs. `ContestArtifact` and its existing envelope kind already existed; changing their old fields would break shipped records. Store dispatch is implemented in `src/leases.rs` and re-exported as `dispatch`, not a physical dispatch.rs. Its SQL attempt lists and per-attempt deadlines also need registration. Other required shared sites are agents `registry.rs`, core `state.rs`, `room.rs`, `router/authorization.rs`, `router/contests.rs`, `orchestrator/driver.rs`, runtime `member.rs` and `judge.rs`, store `clear.rs`, `judge_repairs.rs`, `work.rs`, `prompt_provenance.rs`, TUI `actions.rs`, `composed.rs`, `room_adapter.rs` and `widgets/case.rs`. These are integrator-owned.
 
 The original 166 parser rows and snapshot are retained. Additional rows use a test-local enable override, reset after every fixture. Public typeahead and help derive their mode lists from the switches. Optional environment seeds are absent from `.env.example`.
 

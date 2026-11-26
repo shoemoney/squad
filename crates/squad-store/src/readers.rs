@@ -1,5 +1,6 @@
 //! Executor capabilities bind ownership and the room epoch, never a caller-selected context.
 use crate::{Store, StoreError};
+use rusqlite::OptionalExtension;
 use squad_protocol::*;
 #[derive(Clone)]
 pub struct ScopedReaders {
@@ -128,6 +129,32 @@ impl HistoryReader for ScopedReaders {
                 let work = record.executable.ok_or(ReaderError::NotRunnable)?;
                 let mut history = crate::history::read(db, &work.context_id, work.history_through)
                     .map_err(map_error)?;
+                if work.kind == WorkKind::DebateTurn {
+                    let setup = history.iter().rev().find_map(|entry| {
+                        let HistoryMetadata::Attributed { projection_key, .. } = &entry.meta else {
+                            return None;
+                        };
+                        if projection_key.as_str() != "debate.setup" {
+                            return None;
+                        }
+                        serde_json::from_str::<DebateSetup>(&entry.content)
+                            .ok()
+                            .filter(|setup| Some(setup.debate_id) == work.debate_id)
+                    });
+                    if let Some(setup) = setup {
+                        // Setup carries both frozen solutions. Suppress their
+                        // original projections only for this work, retaining
+                        // ordinary replies in the member's durable history.
+                        let mut query = db.prepare("SELECT id FROM events WHERE kind IN ('message.final','debate.turn') AND json_extract(payload,'$.messageId') IN (?,?)").map_err(|error| map_error(error.into()))?;
+                        let sources = query.query_map(
+                            [setup.solutions[0].message_id.to_string(), setup.solutions[1].message_id.to_string()],
+                            |row| row.get::<_, String>(0),
+                        ).map_err(|error| map_error(error.into()))?.collect::<Result<std::collections::HashSet<_>, _>>().map_err(|error| map_error(error.into()))?;
+                        history.retain(|entry| !matches!(&entry.meta,
+                            HistoryMetadata::Attributed { origin_event_id, .. }
+                            if sources.contains(&origin_event_id.to_string())));
+                    }
+                }
                 if work.kind == WorkKind::Reply && work.round.is_some() {
                     history.retain(|entry| {
                         let HistoryMetadata::Attributed {
@@ -259,6 +286,10 @@ impl WorkReader for ScopedReaders {
                 if let Target::Member(nick) = &work.target {
                     values.insert("nick".into(), nick.to_string());
                     values.insert("round_data_json".into(), serde_json::json!({"debate_id":debate,"round":work.round,"rounds":state.total_rounds,"self":nick,"opponent":values.get("opponent"),"closing_required":work.round.is_some_and(|r|r>0 && r==state.total_rounds)}).to_string());
+                }
+                if work.kind == WorkKind::DebateTurn {
+                    let limit: Option<u32> = db.query_row("SELECT json_extract(map_json, CASE WHEN ?>0 AND ?=? THEN '$.prompts.final_turn_words' ELSE '$.prompts.turn_words' END) FROM contest_private_maps WHERE contest_id=? AND scope_key='engine.plan'", rusqlite::params![work.round,work.round,state.total_rounds,debate.to_string()], |r| r.get(0)).optional().map_err(|_| ReaderError::NotRunnable)?.flatten();
+                    if let Some(limit) = limit { values.insert("turn_word_limit".into(), limit.to_string()); }
                 }
                 values.insert("rounds".into(), state.total_rounds.to_string());
                 if let Some(round) = work.round { values.insert("round".into(), round.to_string()); }
