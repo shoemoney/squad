@@ -543,8 +543,15 @@ impl Direct {
             .unwrap()
     }
     async fn pump(&self, f: &Fixture) {
+        self.pump_until(f, None).await;
+    }
+    async fn pump_until(&self, f: &Fixture, before_call: Option<ReadbackStatus>) {
         for _ in 0..30 {
             squad_core::orchestrator::readback::drive(&mut self.router.lock().unwrap()).unwrap();
+            let state = self.state();
+            if before_call == Some(state.state) && state.step_id.is_some() {
+                return;
+            }
             let records = self
                 .store
                 .call(|db| squad_store::leases::eligible(db))
@@ -897,4 +904,96 @@ async fn direct_ledger_cap_keeps_impact_order_and_reports_cut_entries() {
     assert_eq!(entries[9].entry_id, "entry9");
     let exported = squad_core::export::export(&d.store, ExportScope::Readback, Some(id)).unwrap();
     assert!(exported.contains("| 1 | 1 | 6 | 10 | 0 | 10 | 2 |"));
+}
+
+#[tokio::test]
+async fn stop_emits_work_cancellations_releases_holds_and_fences_claimed_calls_in_each_phase() {
+    for phase in [
+        ReadbackStatus::Interpreting,
+        ReadbackStatus::Diffing,
+        ReadbackStatus::Rewriting,
+    ] {
+        let f = Fixture::new().await;
+        let d = Direct::new(&f);
+        d.send(&f, &format!("@all $readback {SPEC}"));
+        if phase == ReadbackStatus::Rewriting {
+            d.pump(&f).await;
+            d.send(&f, "1a");
+            d.send(&f, "/continue");
+        }
+        d.pump_until(&f, Some(phase)).await;
+        let records = d
+            .store
+            .call(|db| squad_store::leases::eligible(db))
+            .unwrap();
+        let active = records
+            .iter()
+            .filter(|w| w.status == WorkStatus::Queued)
+            .count();
+        assert!(active > 0);
+        let work_id = records
+            .iter()
+            .find(|w| w.status == WorkStatus::Queued)
+            .unwrap()
+            .work_id;
+        let work = d
+            .store
+            .call(move |db| Ok(squad_store::work::template(db, work_id)?.unwrap().0))
+            .unwrap();
+        let owner = if let Some(case) = work.case_id {
+            ExecutorKey::Case(case)
+        } else {
+            let Target::Member(nick) = &work.target else {
+                panic!()
+            };
+            ExecutorKey::Member(nick.clone())
+        };
+        let key = owner.clone();
+        let grant = d
+            .store
+            .call(move |db| squad_store::leases::claim(db, work_id, &key, chrono::Utc::now(), None))
+            .unwrap()
+            .unwrap();
+        let calls = f.fake.captured_bodies().await.len();
+        d.send(&f, "/stop");
+        assert_eq!(d.state().state, ReadbackStatus::Stopped);
+        let (cancelled, reserved) = d.store.call(|db| Ok((
+            db.query_row("SELECT COUNT(*) FROM events WHERE kind='work.state' AND json_extract(payload,'$.status')='cancelled'", [], |r| r.get::<_, i64>(0))?,
+            db.query_row("SELECT COALESCE(SUM(reserved_micros),0) FROM spend_daily", [], |r| r.get::<_, i64>(0))?,
+        ))).unwrap();
+        assert_eq!(cancelled, active as i64, "phase {phase:?}");
+        assert_eq!(reserved, 0, "phase {phase:?}");
+        let result = d.router.lock().unwrap().process(
+            Request::Internal(InternalRequest::Executor(ExecutorRequest::Failed {
+                work_id,
+                attempt: grant.work.attempt,
+                fence: grant.fence,
+                epoch: grant.epoch,
+                repair: None,
+                error: ErrorPayload {
+                    code: ErrorCode::PROVIDER_ERROR,
+                    text: "late failure".parse().unwrap(),
+                    retryable: false,
+                    related_event_id: None,
+                    work_id: Some(work_id),
+                    debate_id: None,
+                    case_id: grant.work.case_id,
+                    earliest_cursor: None,
+                    retry_action: None,
+                    contest_id: grant.work.contest_id,
+                    provider_status: None,
+                    provider_message: None,
+                },
+            })),
+            Some(owner),
+        );
+        assert!(matches!(
+            result,
+            Err(squad_store::StoreError::Domain(
+                ErrorCode::STALE_WORK_ATTEMPT,
+                _
+            ))
+        ));
+        assert_eq!(f.fake.captured_bodies().await.len(), calls);
+    }
 }

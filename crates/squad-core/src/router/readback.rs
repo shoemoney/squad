@@ -80,7 +80,12 @@ pub fn save(
             "UPDATE contest_human_steps SET closed=1 WHERE contest_id=?",
             [s.contest_id.to_string()],
         )?;
-        tx.execute("UPDATE work SET status='cancelled',runnable=0,lease_fence=lease_fence+1 WHERE contest_id=? AND status IN ('queued','running')",[s.contest_id.to_string()])?;
+        // /stop's shared transaction emits WorkState cancellations and releases
+        // each unstarted work reservation. Keep those rows runnable until that
+        // handler sees them; pre-cancelling here would bypass both operations.
+        if s.state != ReadbackStatus::Stopped {
+            tx.execute("UPDATE work SET status='cancelled',runnable=0,lease_fence=lease_fence+1 WHERE contest_id=? AND status IN ('queued','running')",[s.contest_id.to_string()])?;
+        }
         squad_store::history::release(tx, s.contest_id)?;
         let rows = {
             let mut q=tx.prepare("SELECT reservation_id,day,amount_micros FROM reservations WHERE contest_id=? AND work_id IS NULL AND unresolved=0")?;
