@@ -28,9 +28,19 @@ pub async fn execute(
         }
     };
     let parsed = serde_json::from_str::<serde_json::Value>(&output.content);
-    let valid = parsed
-        .as_ref()
-        .is_ok_and(|v| input.validate_output(&grant.work.kind, v).is_ok());
+    let valid = match &parsed {
+        Err(e) => {
+            tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, bytes = output.content.len(), error = %e, "probe response is not JSON");
+            false
+        }
+        Ok(v) => match input.validate_output(&grant.work.kind, v) {
+            Ok(()) => true,
+            Err(e) => {
+                tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, reason = %e.message, "probe response failed validation");
+                false
+            }
+        },
+    };
     if !valid {
         let repair_used = if grant.work.kind == WorkKind::ProbeReport {
             context

@@ -1084,6 +1084,52 @@ async fn prose_budget_failures_use_member_plain_retry_and_one_private_judge_repa
     }
 }
 
+/// Live regression (2026-11-25): a rater whose rating misses ledger entries fails
+/// twice while a slower rater is still running. The engine settles the failed
+/// member, returns early, and used to meet the settled assignment on its next
+/// pass ("Assignment already settled"), which failed the whole census.
+#[derive(Clone)]
+struct RatingTrouble;
+impl Respond for RatingTrouble {
+    fn respond(&self, r: &HttpRequest) -> ResponseTemplate {
+        let body: serde_json::Value = serde_json::from_slice(&r.body).unwrap();
+        let text = body["messages"][1]["content"].as_str().unwrap_or_default();
+        if !text.contains("Independently rate") {
+            return Answers.respond(r);
+        }
+        match body["model"].as_str().unwrap() {
+            "fixture/member0" => streaming(r#"{"ratings":[],"additions":[]}"#, "stop"),
+            _ => Answers.respond(r).set_delay(Duration::from_millis(1500)),
+        }
+    }
+}
+#[tokio::test]
+async fn failed_rater_beside_a_slow_rater_does_not_fail_the_census() {
+    let f = Fixture::new().await;
+    for model in ["fixture/member0", "fixture/member1"] {
+        Mock::given(method("POST"))
+            .and(path("/api/v1/chat/completions"))
+            .and(wiremock::matchers::body_partial_json(
+                serde_json::json!({"model":model}),
+            ))
+            .respond_with(RatingTrouble)
+            .with_priority(1)
+            .mount(&f.fake.server)
+            .await;
+    }
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(request(&f.config, "@all $census Build a database service."))
+        .await;
+    f.wait(|| f.count("census.report") == 1).await;
+    let report = f.report();
+    assert!(
+        report.missing.iter().any(|m| m.member == nick("member0")),
+        "{:?}",
+        report.missing
+    );
+    room.shutdown().await.unwrap();
+}
+
 fn assert_provider_failure(db: &rusqlite::Connection, status: i64, message: Option<&str>) {
     let rows: Vec<String> = db
         .prepare("SELECT error_json FROM work WHERE json_extract(error_json,'$.providerStatus')=?")

@@ -36,9 +36,19 @@ impl WorkExecutor for CrosscheckExecutor {
                 }
             };
             let data = serde_json::from_str::<serde_json::Value>(&output.content).ok();
-            let valid = data
-                .as_ref()
-                .is_some_and(|data| validate_response(&self.material, data.clone()).is_ok());
+            let valid = match &data {
+                None => {
+                    tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, bytes = output.content.len(), "crosscheck response is not JSON");
+                    false
+                }
+                Some(data) => match validate_response(&self.material, data.clone()) {
+                    Ok(()) => true,
+                    Err(e) => {
+                        tracing::warn!(work_id = %grant.work.work_id, kind = ?grant.work.kind, reason = %e.message, "crosscheck response failed validation");
+                        false
+                    }
+                },
+            };
             if !valid {
                 let mut error = ErrorPayload {
                     code: ErrorCode::JUDGE_INVALID_MODE_OUTPUT,

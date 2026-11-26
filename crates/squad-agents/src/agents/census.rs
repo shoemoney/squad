@@ -88,13 +88,24 @@ impl WorkExecutor for CensusExecutor {
                     return failed_with(context, &grant, ErrorCode::PROVIDER_ERROR, Some(&e)).await;
                 }
             };
-            let result = serde_json::from_str::<Value>(&output.content)
-                .ok()
-                .filter(|v| {
-                    validate(kind, &data, v).is_ok()
-                        && census_prose_words(v)
-                            <= values["step_word_limit"].parse::<usize>().unwrap_or(0)
-                });
+            let word_limit = values["step_word_limit"].parse::<usize>().unwrap_or(0);
+            let result = match serde_json::from_str::<Value>(&output.content) {
+                Err(e) => {
+                    tracing::warn!(work_id = %grant.work.work_id, kind = ?kind, bytes = output.content.len(), error = %e, "census response is not a JSON object");
+                    None
+                }
+                Ok(v) => match validate(kind, &data, &v) {
+                    Err(e) => {
+                        tracing::warn!(work_id = %grant.work.work_id, kind = ?kind, reason = %e.message, "census response failed validation");
+                        None
+                    }
+                    Ok(()) if census_prose_words(&v) > word_limit => {
+                        tracing::warn!(work_id = %grant.work.work_id, kind = ?kind, words = census_prose_words(&v), word_limit, "census response exceeds the prose budget");
+                        None
+                    }
+                    Ok(()) => Some(v),
+                },
+            };
             if let Some(data) = result {
                 return acknowledged(
                     context

@@ -26,6 +26,11 @@ limitations must acknowledge shared model blind spots and any missing
 answers, votes, or revotes. Do not declare a winning member or answer.
 
 Keep generated prose within {{step_word_limit}} words.
+That limit covers every prose field of the whole object together, so
+budget it: divide it by the number of claims and write one or two short
+sentences per explanation. settlingQuestion is needed only for contested
+claims; use an empty string for it in every other band. A report over the
+limit is rejected, so stay well under it.
 Required schema:
 {{mode_schema_json}}
 
