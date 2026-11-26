@@ -18,6 +18,13 @@ _The room above is the scripted rehearsal that ships with the repository, so it 
 
 All seven contest modes (debate, tournament, grill, census, crosscheck, survey, probe) run end to end against OpenRouter. The workspace test suite passes, and the first live run resolved all six default seats. Release v0.1.0 is published with Linux x64 and macOS arm64 binaries and a Homebrew formula.
 
+Features in 0.1.2:
+
+- Composer typeahead for `@` members, `$` modes and `/` commands, with Tab starter menus.
+- Rotating idle TIP examples and keyboard hints (`SQUAD_TIPS=off` to disable).
+- An immediate startup checklist and parallel roster resolution.
+- A built-in MCP server for tournament tools over stdio or authenticated HTTP.
+
 ## 🗺️ Contents
 
 - [🚀 Quick start](#quick-start)

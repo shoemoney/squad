@@ -6,14 +6,25 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-26
+
 ### Added
 
 - Built-in MCP server: local stdio and authenticated Streamable HTTP for Claude,
   Codex, ChatGPT and API clients. Tournament tools share the room's durable
   receipts, roster and budget; remote OAuth uses an external authorization server.
 - MCP client setup and a Supabase product planning tournament example.
+- Composer typeahead for `@` members, `$` contest modes and `/` commands, Tab
+  starter menus, and a rotating idle TIP line controlled by `SQUAD_TIPS`.
+- An immediate startup checklist screen while the room resolves its roster.
 
-### Fixed
+### Changed
+
+- Resolve startup aliases and identity probes in parallel. In the measured
+  12-seat fresh startup, first frame improved from 5.26 s to 0.008 s and room
+  readiness from 5.26 s to 2.23 s.
+
+### Security
 
 - MCP spend approval requires explicit server opt-in (`--allow-self-confirm`);
   bearer tokens require at least 32 bytes. OAuth supports rate-limited early
