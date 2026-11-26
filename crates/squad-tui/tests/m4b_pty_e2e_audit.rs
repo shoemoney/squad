@@ -4,7 +4,7 @@
 fn fake_room_terminal_input_and_restoration() {
     let result = std::process::Command::new("python3")
         .arg("-c")
-        .arg(include_str!("pty_support/drive.py"))
+        .arg(include_str!("m4b_pty_support/drive.py"))
         .arg(std::env::current_exe().unwrap())
         .output()
         .unwrap();
