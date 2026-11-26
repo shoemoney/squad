@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 pub struct Backend {
     config: Result<SquadConfig, String>,
+    allow_self_confirm: bool,
     room: Mutex<RoomSlot>,
 }
 
@@ -68,11 +69,22 @@ impl BackendError {
 }
 
 impl Backend {
-    pub fn new(config: Result<SquadConfig, String>) -> Self {
+    pub fn new(config: Result<SquadConfig, String>, allow_self_confirm: bool) -> Self {
         Self {
             config,
+            allow_self_confirm,
             room: Mutex::new(RoomSlot::Unopened),
         }
+    }
+
+    fn check_confirmation(&self, confirm: bool) -> Result<(), BackendError> {
+        if confirm && !self.allow_self_confirm {
+            return Err(BackendError::new(
+                ErrorCode::INVALID_COMMAND,
+                "MCP self-confirmation is disabled. A human must confirm in the TUI, or restart the server with --allow-self-confirm.",
+            ));
+        }
+        Ok(())
     }
 
     async fn room(&self) -> Result<MutexGuard<'_, RoomSlot>, BackendError> {
@@ -119,7 +131,7 @@ impl Backend {
 
     pub async fn list_runs(&self) -> Result<Value, BackendError> {
         let slot = self.room().await?;
-        let state = read_state(slot.handle()).await?;
+        let state = read_snapshot(slot.handle()).await?;
         let mut runs: Vec<_> = project_runs(&state.events).into_values().collect();
         runs.sort_unstable_by_key(|run| std::cmp::Reverse(run.started_at));
         let mut summaries = Vec::with_capacity(runs.len());
@@ -130,6 +142,7 @@ impl Backend {
     }
 
     pub async fn start_tournament(&self, args: StartArgs) -> Result<Value, BackendError> {
+        self.check_confirmation(args.confirm)?;
         let raw = tournament_command(&args)?;
         let id = match args.request_id.as_deref() {
             Some(key) => request_id(key)?,
@@ -137,7 +150,7 @@ impl Backend {
         };
         let slot = self.room().await?;
         let room = slot.handle();
-        let state = read_state(room).await?;
+        let state = expire_and_read_state(room).await?;
         let runs = project_runs(&state.events);
 
         if let Some(run) = runs.values().find(|run| run.id == id) {
@@ -161,10 +174,11 @@ impl Backend {
     }
 
     pub async fn confirm(&self, args: ConfirmArgs) -> Result<Value, BackendError> {
+        self.check_confirmation(args.confirm)?;
         let id = run_id(&args.run_id)?;
         let slot = self.room().await?;
         let room = slot.handle();
-        let state = read_state(room).await?;
+        let state = expire_and_read_state(room).await?;
         let runs = project_runs(&state.events);
         let run = find_run(&runs, id)?;
         let confirmation = match submit_confirmation(room, run, args.confirm).await {
@@ -183,7 +197,7 @@ impl Backend {
         let id = run_id(&args.run_id)?;
         let slot = self.room().await?;
         let room = slot.handle();
-        let state = read_state(room).await?;
+        let state = expire_and_read_state(room).await?;
         let runs = project_runs(&state.events);
         let run = find_run(&runs, id)?;
         let cancellation = match run.status() {
@@ -205,7 +219,7 @@ impl Backend {
                     ErrorCode::NOTHING_TO_STOP | ErrorCode::INVALID_STATE_TRANSITION
                 ) =>
             {
-                let state = read_state(room).await?;
+                let state = read_snapshot(room).await?;
                 let runs = project_runs(&state.events);
                 let current = find_run(&runs, id)?;
                 if current.state.state.is_terminal() {
@@ -227,7 +241,7 @@ impl Backend {
         let id = run_id(&args.run_id)?;
         let slot = self.room().await?;
         let room = slot.handle();
-        let state = read_state(room).await?;
+        let state = read_snapshot(room).await?;
         let runs = project_runs(&state.events);
         let run = find_run(&runs, id)?;
         if matches!(run.status(), "running" | "pending_confirmation") {
@@ -394,7 +408,7 @@ fn start_request(
         .map_err(|error| BackendError::new(error.code, "Invalid tournament request."))
 }
 
-async fn read_state(room: &RoomHandle) -> Result<State, BackendError> {
+async fn expire_and_read_state(room: &RoomHandle) -> Result<State, BackendError> {
     let state = read_snapshot(room).await?;
     let Some(ContestState::Tournament(active)) = &state.room.active_contest else {
         return Ok(state);
@@ -479,7 +493,7 @@ async fn submit_confirmation(
 }
 
 async fn summary_for(room: &RoomHandle, id: EventId) -> Result<Value, BackendError> {
-    let state = read_state(room).await?;
+    let state = read_snapshot(room).await?;
     let runs = project_runs(&state.events);
     summarize(room, find_run(&runs, id)?).await
 }

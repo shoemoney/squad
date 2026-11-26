@@ -2,6 +2,8 @@
 
 `squad mcp` gives an MCP client access to the tournament workflow in one persistent Squad room. The server uses the room's existing roster, judge, OpenRouter credentials, and daily budget. Clients can initialize and discover tools before the room opens or makes provider requests.
 
+By default, MCP clients cannot approve spend: `confirm: true` on start or confirmation returns a fixed error. A human must confirm pending estimates in the TUI (stop the MCP server first to release the room lock), or restart `squad mcp` with `--allow-self-confirm`. This flag lets the calling model approve its own paid runs without human intervention; enable it only if that risk is acceptable. Runs below the normal confirmation threshold still start automatically, and declines remain available. The daily cap always applies.
+
 ## Local clients over stdio
 
 Use absolute paths for the binary, env file, and room directory so the client can launch Squad from any working directory. The env file holds `OPENROUTER_API_KEY` and any roster or budget overrides. Keep the file private. See [Squad's environment variables](../crates/squad-cli/src/env-help.md).
@@ -24,7 +26,11 @@ Each registration starts a Squad subprocess. Keep a stdio server running while i
 
 ## Streamable HTTP and the OpenAI Responses API
 
-On Unix, start a server on loopback with a regular file containing one bearer token. Set the file's permissions to `0600`.
+On Unix, start a server on loopback with a regular file containing one bearer token. Use at least 32 bytes and set the file's permissions to `0600`:
+
+```sh
+umask 077; openssl rand -hex 32 > squad-mcp.token
+```
 
 ```sh
 squad --env-file /path/to/squad.env --data-dir /path/to/squad-room mcp \
@@ -78,14 +84,14 @@ Configure the provider for the authorization-code flow with S256 PKCE, OAuth dis
 | --- | --- | --- |
 | `squad_roster` | `{}` | Configured roster to use when selecting entrants. |
 | `squad_tournament_start` | `prompt`, optional `participants`, `request_id`, and `confirm` | Starts or prepares a tournament. Returns `runId`, `contestId`, status and cost estimates. |
-| `squad_contest_confirm` | `run_id`, `confirm` | Approves (`true`) or declines (`false`) a pending estimate. |
+| `squad_contest_confirm` | `run_id`, `confirm` | Approves (`true`, requires `--allow-self-confirm`) or declines (`false`) a pending estimate. |
 | `squad_contest_status` | `run_id` | Current status, phase, work, and usage. |
 | `squad_contest_result` | `run_id` | Champion, winning plan, rankings, placements, and Markdown for a completed tournament. |
 | `squad_contest_cancel` | `run_id` | Cancels the specified run. Provider requests already started can still incur charges. |
 | `squad_contests_list` | `{}` | Run summaries in this room. |
 
 1. Start with a brief and optionally a list of roster nicknames. Omit `participants` to use the full roster. Supply a client-generated UUID as `request_id` and reuse it with the same arguments, including `confirm`, if the start response is lost. Conflicting retries return `IDEMPOTENCY_CONFLICT`. Repeating the same confirmation decision is safe after reconnecting or restarting the server.
-2. If the response status is `pending_confirmation`, show `estimatedUsd` and `reservedUsd` to the operator. Send `squad_contest_confirm` with the returned `runId` as `run_id` and the operator's decision as `confirm`. Start with `confirm: true` only when the operator has already authorized the spend. Squad still applies the daily cap.
+2. If the response status is `pending_confirmation`, show `estimatedUsd` and `reservedUsd` to the operator. With `--allow-self-confirm` enabled, send `squad_contest_confirm` with the returned `runId` as `run_id` and the operator's decision as `confirm`. Start with `confirm: true` only when the operator has already authorized the spend. Squad still applies the daily cap.
 3. When status is `running`, poll `squad_contest_status` every few seconds. The room advances the tournament while the server stays running. Stop polling at `complete`, `cancelled`, `expired`, or `failed`. For `complete`, call `squad_contest_result` with the same `run_id`.
 
 Status reports work and provider attempts from durable rows, including in-flight calls with unresolved charges. `usage.costUsd` is the known ledger charge; `usage.unknownCalls` counts attempts whose charge is still unresolved. `reservedUsd` retains the original worst-case preflight estimate and is not the remaining reservation. An expired confirmation is released durably, so another tournament can start in the same server process.

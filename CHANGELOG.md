@@ -13,6 +13,13 @@ All notable changes to Squad will be documented in this file, following
   receipts, roster and budget; remote OAuth uses an external authorization server.
 - MCP client setup and a Supabase product planning tournament example.
 
+### Fixed
+
+- MCP spend approval requires explicit server opt-in (`--allow-self-confirm`);
+  bearer tokens require at least 32 bytes. OAuth supports rate-limited early
+  signing-key rotation refreshes without blocking cached-key reads and allows
+  30 seconds of clock skew. Read-only tournament tools no longer submit expiry.
+
 ## [0.1.1] - 2026-11-26
 
 ### Changed

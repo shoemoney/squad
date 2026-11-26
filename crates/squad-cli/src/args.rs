@@ -50,6 +50,9 @@ pub enum Command {
 
 #[derive(Debug, Args)]
 pub struct Mcp {
+    /// Allow MCP clients to approve paid runs without human confirmation in the TUI
+    #[arg(long)]
+    pub allow_self_confirm: bool,
     /// Listen on a loopback address for Streamable HTTP; otherwise use stdio
     #[arg(long, value_name = "ADDR")]
     pub http: Option<std::net::SocketAddr>,

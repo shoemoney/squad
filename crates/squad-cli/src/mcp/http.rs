@@ -304,7 +304,7 @@ fn bearer(headers: &HeaderMap) -> Option<&str> {
 fn valid_token(token: &str) -> bool {
     let value = token.trim_end_matches('=');
     !value.is_empty()
-        && token.len() <= MAX_TOKEN_BYTES
+        && (32..=MAX_TOKEN_BYTES).contains(&token.len())
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || b"-._~+/".contains(&byte))
@@ -337,7 +337,10 @@ fn read_token_file(path: &Path) -> Result<Vec<u8>, String> {
         .or_else(|| contents.strip_suffix('\n'))
         .unwrap_or(&contents);
     if !valid_token(token) {
-        return Err("MCP bearer token file must contain one valid bearer token".to_owned());
+        return Err(
+            "MCP bearer token file must contain one valid bearer token of at least 32 bytes"
+                .to_owned(),
+        );
     }
     Ok(token.as_bytes().to_vec())
 }
@@ -371,9 +374,9 @@ mod tests {
         assert!(bearer(&headers).is_none());
         headers.insert(
             header::AUTHORIZATION,
-            HeaderValue::from_static("bEaReR  candidate"),
+            HeaderValue::from_static("bEaReR  0123456789abcdef0123456789abcdef"),
         );
-        assert_eq!(bearer(&headers), Some("candidate"));
+        assert_eq!(bearer(&headers), Some("0123456789abcdef0123456789abcdef"));
         headers.append(
             header::AUTHORIZATION,
             HeaderValue::from_static("Bearer other"),
@@ -384,6 +387,27 @@ mod tests {
             HeaderValue::from_static("Bearer first second"),
         );
         assert!(bearer(&headers).is_none());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn bearer_token_requires_at_least_32_bytes() {
+        use std::{fs, os::unix::fs::PermissionsExt};
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("token");
+        for length in [1, 31, 32, 64] {
+            fs::write(&path, "a".repeat(length)).unwrap();
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+            assert_eq!(valid_token(&"a".repeat(length)), length >= 32);
+            if length < 32 {
+                assert_eq!(
+                    read_token_file(&path).unwrap_err(),
+                    "MCP bearer token file must contain one valid bearer token of at least 32 bytes"
+                );
+            } else {
+                assert_eq!(read_token_file(&path).unwrap().len(), length);
+            }
+        }
     }
 
     #[test]
@@ -418,11 +442,14 @@ mod tests {
 
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("token");
-        fs::write(&path, b"candidate\n").unwrap();
+        fs::write(&path, b"0123456789abcdef0123456789abcdef\n").unwrap();
         fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
         assert!(read_token_file(&path).is_err());
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
-        assert_eq!(read_token_file(&path).unwrap(), b"candidate");
+        assert_eq!(
+            read_token_file(&path).unwrap(),
+            b"0123456789abcdef0123456789abcdef"
+        );
         let link = directory.path().join("link");
         symlink(path, &link).unwrap();
         assert!(read_token_file(&link).is_err());

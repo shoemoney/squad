@@ -49,7 +49,7 @@ impl SquadMcp {
     }
 
     #[tool(
-        description = "Start a multi-model elimination tournament for a brief, such as selecting the best comprehensive product/build plan. Omit participants for @all. Returns a runId immediately; poll status and retrieve result separately. Set confirm=true only when authorized to approve the displayed reservation; the configured daily cap always applies. Supply a stable request_id UUID when retrying to avoid duplicate runs.",
+        description = "Start a multi-model elimination tournament for a brief, such as selecting the best comprehensive product/build plan. Omit participants for @all. Returns a runId immediately; poll status and retrieve result separately. confirm=true requires the server flag --allow-self-confirm; the configured daily cap always applies. Supply a stable request_id UUID when retrying to avoid duplicate runs.",
         annotations(
             read_only_hint = false,
             destructive_hint = false,
@@ -65,7 +65,7 @@ impl SquadMcp {
     }
 
     #[tool(
-        description = "Approve or decline the cost preview of a pending tournament. Use its runId and confirm=true to begin paid model calls, or false to decline.",
+        description = "Approve or decline the cost preview of a pending tournament. Use its runId and confirm=true to begin paid model calls (requires --allow-self-confirm), or false to decline.",
         annotations(
             read_only_hint = false,
             destructive_hint = false,
@@ -130,7 +130,7 @@ pub async fn run(
     config: Result<SquadConfig, String>,
     args: crate::args::Mcp,
 ) -> Result<(), String> {
-    let backend = Arc::new(Backend::new(config));
+    let backend = Arc::new(Backend::new(config, args.allow_self_confirm));
     let server = SquadMcp::new(backend.clone());
     let serving = if let Some(listen) = args.http {
         let public_url = match args.public_url {

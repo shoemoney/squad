@@ -10,7 +10,7 @@ pub struct StartArgs {
     pub participants: Option<Vec<String>>,
     /// Optional UUID used to retry the same start operation.
     pub request_id: Option<String>,
-    /// Bypass the usual cost confirmation threshold.
+    /// Bypass the usual cost confirmation threshold; requires server --allow-self-confirm.
     #[serde(default)]
     pub confirm: bool,
 }

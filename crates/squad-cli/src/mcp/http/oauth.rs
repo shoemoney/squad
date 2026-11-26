@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use jsonwebtoken::{
-    Algorithm, DecodingKey, Validation, decode, decode_header, get_current_timestamp,
+    Algorithm, DecodingKey, Validation, decode, decode_header,
     jwk::{AlgorithmParameters, EllipticCurve, Jwk, KeyAlgorithm, KeyOperations, PublicKeyUse},
 };
 use reqwest::{Client, StatusCode, Url};
@@ -20,6 +20,7 @@ pub(super) struct Verifier {
     client: Client,
     jwks_url: Url,
     keys: Mutex<Cache>,
+    refresh: Mutex<()>,
     rs256: Validation,
     es256: Validation,
 }
@@ -27,6 +28,7 @@ pub(super) struct Verifier {
 struct Cache {
     // Access fails closed if a refresh fails after the previous keys expire.
     retry_at: Instant,
+    early_refresh_at: Instant,
     keys: Option<Arc<Vec<SigningKey>>>,
 }
 
@@ -50,7 +52,6 @@ struct KeySet {
 #[derive(Deserialize)]
 struct AccessClaims {
     iss: String,
-    exp: u64,
 }
 
 impl Verifier {
@@ -92,8 +93,10 @@ impl Verifier {
             jwks_url,
             keys: Mutex::new(Cache {
                 retry_at: Instant::now() + KEY_LIFETIME,
+                early_refresh_at: Instant::now(),
                 keys: Some(Arc::new(keys)),
             }),
+            refresh: Mutex::new(()),
             rs256,
             es256,
         })
@@ -121,7 +124,7 @@ impl Verifier {
         {
             return false;
         }
-        let Some(keys) = self.current_keys().await else {
+        let Some(keys) = self.current_keys(header.kid.as_deref(), header.alg).await else {
             return false;
         };
         let mut matches = keys.iter().filter(|key| {
@@ -133,23 +136,50 @@ impl Verifier {
         });
         matches.next().is_some_and(|key| {
             matches.next().is_none()
-                && decode::<AccessClaims>(token, &key.key, validation).is_ok_and(|verified| {
-                    verified.claims.iss == self.issuer
-                        && verified.claims.exp > get_current_timestamp()
-                })
+                && decode::<AccessClaims>(token, &key.key, validation)
+                    .is_ok_and(|verified| verified.claims.iss == self.issuer)
         })
     }
 
-    async fn current_keys(&self) -> Option<Arc<Vec<SigningKey>>> {
+    async fn current_keys(
+        &self,
+        kid: Option<&str>,
+        algorithm: Algorithm,
+    ) -> Option<Arc<Vec<SigningKey>>> {
         let mut cache = self.keys.lock().await;
-        if Instant::now() >= cache.retry_at {
-            // Invalidate expired keys before awaiting a potentially cancelled fetch.
+        let now = Instant::now();
+        let expired = now >= cache.retry_at;
+        let unknown = kid.is_some_and(|kid| {
+            cache.keys.as_ref().is_some_and(|keys| {
+                !keys
+                    .iter()
+                    .any(|key| key.kid.as_deref() == Some(kid) && key.algorithm == algorithm)
+            })
+        });
+        let should_refresh = expired || (unknown && now >= cache.early_refresh_at);
+        if !should_refresh {
+            return cache.keys.clone();
+        }
+        if expired {
             cache.keys = None;
-            cache.retry_at = Instant::now() + RETRY_DELAY;
-            if let Ok(keys) = fetch_keys(&self.client, &self.jwks_url).await {
-                cache.keys = Some(Arc::new(keys));
-                cache.retry_at = Instant::now() + KEY_LIFETIME;
-            }
+        }
+        // A separate, nonblocking refresh guard coalesces fetches. Known keys
+        // remain readable while a rotation fetch is in flight; cancellation
+        // releases this guard without stranding the cache.
+        let Ok(_refresh) = self.refresh.try_lock() else {
+            return cache.keys.clone();
+        };
+        if expired {
+            cache.retry_at = now + RETRY_DELAY;
+        }
+        cache.early_refresh_at = now + RETRY_DELAY;
+        drop(cache);
+
+        let fetched = fetch_keys(&self.client, &self.jwks_url).await;
+        let mut cache = self.keys.lock().await;
+        if let Ok(keys) = fetched {
+            cache.keys = Some(Arc::new(keys));
+            cache.retry_at = Instant::now() + KEY_LIFETIME;
         }
         cache.keys.clone()
     }
@@ -162,7 +192,7 @@ fn validation(algorithm: Algorithm, issuer: &str, options: &OAuthOptions) -> Val
     validation.set_audience(&[&options.audience]);
     validation.sub = Some(options.owner_subject.clone());
     validation.validate_nbf = true;
-    validation.leeway = 0;
+    validation.leeway = 30;
     validation
 }
 
@@ -269,14 +299,102 @@ async fn read_document<D: DeserializeOwned>(mut response: reqwest::Response) -> 
 
 #[cfg(test)]
 mod tests {
-    use jsonwebtoken::{EncodingKey, Header, encode};
+    use jsonwebtoken::{EncodingKey, Header, encode, get_current_timestamp};
     use p256::{SecretKey, elliptic_curve::rand_core::OsRng, pkcs8::EncodePrivateKey};
     use serde_json::json;
 
     use super::*;
 
     #[tokio::test]
-    async fn accepts_only_owner_access_tokens_for_this_resource() {
+    async fn unknown_kid_refreshes_early_without_blocking_known_keys_and_is_rate_limited() {
+        use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
+        let server = MockServer::start().await;
+        let encoding = EncodingKey::from_ec_der(
+            SecretKey::random(&mut OsRng)
+                .to_pkcs8_der()
+                .unwrap()
+                .as_bytes(),
+        );
+        let mut jwk = Jwk::from_encoding_key(&encoding, Algorithm::ES256).unwrap();
+        jwk.common.key_id = Some("old".into());
+        let old = signing_key(serde_json::to_value(&jwk).unwrap()).unwrap();
+        jwk.common.key_id = Some("rotated".into());
+        Mock::given(method("GET"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(json!({"keys": [jwk]}))
+                    .set_delay(Duration::from_millis(200)),
+            )
+            .mount(&server)
+            .await;
+        let options = OAuthOptions {
+            issuer: Url::parse("https://issuer.example").unwrap(),
+            audience: "squad".into(),
+            owner_subject: "owner".into(),
+        };
+        let verifier = Arc::new(Verifier {
+            issuer: "https://issuer.example".into(),
+            client: Client::new(),
+            jwks_url: Url::parse(&server.uri()).unwrap(),
+            keys: Mutex::new(Cache {
+                retry_at: Instant::now() + KEY_LIFETIME,
+                early_refresh_at: Instant::now(),
+                keys: Some(Arc::new(vec![old])),
+            }),
+            refresh: Mutex::new(()),
+            rs256: validation(Algorithm::RS256, "https://issuer.example", &options),
+            es256: validation(Algorithm::ES256, "https://issuer.example", &options),
+        });
+        let token = |kid: &str| {
+            let mut header = Header::new(Algorithm::ES256);
+            header.kid = Some(kid.into());
+            encode(&header, &json!({"iss": "https://issuer.example", "aud": "squad", "sub": "owner", "exp": get_current_timestamp() + 300}), &encoding).unwrap()
+        };
+        let refresh = {
+            let verifier = verifier.clone();
+            let rotated = token("rotated");
+            tokio::spawn(async move { verifier.accepts(&rotated).await })
+        };
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while server.received_requests().await.unwrap().is_empty() {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .unwrap();
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), verifier.accepts(&token("old")))
+                .await
+                .expect("known keys must not wait for the fetch")
+        );
+        assert!(
+            refresh.await.unwrap(),
+            "rotated key must be accepted immediately"
+        );
+        for _ in 0..3 {
+            assert!(!verifier.accepts(&token("unknown")).await);
+        }
+        assert_eq!(server.received_requests().await.unwrap().len(), 1);
+        verifier.keys.lock().await.early_refresh_at = Instant::now();
+        assert!(!verifier.accepts(&token("unknown")).await);
+        assert_eq!(server.received_requests().await.unwrap().len(), 2);
+
+        server.reset().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&server)
+            .await;
+        verifier.keys.lock().await.retry_at = Instant::now();
+        assert!(
+            !verifier.accepts(&token("rotated")).await,
+            "expired keys fail closed after fetch failure"
+        );
+        assert!(!verifier.accepts(&token("rotated")).await);
+        assert_eq!(server.received_requests().await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn accepts_only_owner_access_tokens_for_this_resource_with_30_second_skew() {
         let options = OAuthOptions {
             issuer: Url::parse("https://issuer.example").unwrap(),
             audience: "https://squad.example/mcp".to_owned(),
@@ -295,8 +413,10 @@ mod tests {
             jwks_url: Url::parse("https://issuer.example/jwks").unwrap(),
             keys: Mutex::new(Cache {
                 retry_at: Instant::now() + KEY_LIFETIME,
+                early_refresh_at: Instant::now(),
                 keys: Some(Arc::new(vec![key])),
             }),
+            refresh: Mutex::new(()),
             rs256: validation(Algorithm::RS256, issuer, &options),
             es256: validation(Algorithm::ES256, issuer, &options),
         };
@@ -316,12 +436,21 @@ mod tests {
                 .accepts(&encode(&header, &claims, &encoding).unwrap())
                 .await
         );
+        for (name, value) in [("exp", json!(now - 10)), ("nbf", json!(now + 10))] {
+            let mut skewed = claims.clone();
+            skewed[name] = value;
+            assert!(
+                verifier
+                    .accepts(&encode(&header, &skewed, &encoding).unwrap())
+                    .await
+            );
+        }
         for (name, value) in [
             ("iss", json!("https://other-issuer.example")),
             ("iss", json!([issuer])),
             ("aud", json!("oidc-client-id")),
             ("sub", json!("different-user")),
-            ("exp", json!(now - 1)),
+            ("exp", json!(now - 60)),
             ("nbf", json!(now + 300)),
         ] {
             let mut changed = claims.clone();
@@ -341,6 +470,7 @@ mod tests {
                 .accepts(&encode(&header, &claims, &unrelated).unwrap())
                 .await
         );
+        verifier.keys.lock().await.early_refresh_at = Instant::now() + RETRY_DELAY;
         header.kid = Some("unpublished-key".to_owned());
         header.jku = Some("https://untrusted.example/jwks".to_owned());
         assert!(
@@ -352,7 +482,7 @@ mod tests {
         // injected locally; discovery itself remains HTTPS-only in production.
         use super::super::{Auth, AuthOptions, HttpOptions, authenticated_router};
         use crate::mcp::{SquadMcp, backend::Backend};
-        let server = SquadMcp::new(Arc::new(Backend::new(Err("unconfigured".into()))));
+        let server = SquadMcp::new(Arc::new(Backend::new(Err("unconfigured".into()), false)));
         let options_http = HttpOptions {
             listen: "127.0.0.1:0".parse().unwrap(),
             public_url: Url::parse("https://squad.example/mcp").unwrap(),

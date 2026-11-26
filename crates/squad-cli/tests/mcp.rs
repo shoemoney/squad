@@ -176,6 +176,12 @@ impl StdioMcp {
         result["structuredContent"].clone()
     }
 
+    async fn tool_error(&mut self, name: &str, arguments: Value) -> Value {
+        let result = self.tool_response(name, arguments).await;
+        assert_eq!(result["isError"], true, "{name}: {result}");
+        result["structuredContent"].clone()
+    }
+
     async fn assert_tool_error(&mut self, name: &str, arguments: Value, code: &str) {
         let result = self.tool_response(name, arguments).await;
         assert_eq!(result["isError"], true, "{name}: {result}");
@@ -283,7 +289,14 @@ fn tournament_answer(request: &Request) -> ResponseTemplate {
 }
 
 fn configured_squad(root: &Path, provider: &FakeOpenRouter) -> Command {
+    configured_squad_with_policy(root, provider, true)
+}
+
+fn configured_squad_with_policy(root: &Path, provider: &FakeOpenRouter, allow: bool) -> Command {
     let mut command = squad(root, provider);
+    if allow {
+        command.arg("--allow-self-confirm");
+    }
     command.envs([
         ("OPENROUTER_API_KEY", "loopback-fixture"),
         ("SQUAD_MODEL_A", MODEL),
@@ -298,6 +311,60 @@ fn configured_squad(root: &Path, provider: &FakeOpenRouter) -> Command {
 fn run_args(start: &Value) -> Value {
     let run_id = start["runId"].as_str().expect("start must return a runId");
     json!({"run_id": run_id})
+}
+
+#[tokio::test]
+async fn stdio_requires_server_opt_in_for_self_confirmation() {
+    let root = tempfile::tempdir().unwrap();
+    let provider = tournament_provider().await;
+    let mut session = StdioMcp::start(&mut configured_squad_with_policy(
+        root.path(),
+        &provider,
+        false,
+    ))
+    .await;
+    let denied = session
+        .tool_error(
+            "squad_tournament_start",
+            json!({"prompt": "Plan", "confirm": true}),
+        )
+        .await;
+    assert_eq!(denied["code"], "INVALID_COMMAND");
+    assert_eq!(
+        denied["message"],
+        "MCP self-confirmation is disabled. A human must confirm in the TUI, or restart the server with --allow-self-confirm."
+    );
+    let pending = session
+        .tool("squad_tournament_start", json!({"prompt": "Plan"}))
+        .await;
+    assert_eq!(pending["status"], "pending_confirmation");
+    let denied_confirm = session
+        .tool_error(
+            "squad_contest_confirm",
+            json!({"run_id": pending["runId"], "confirm": true}),
+        )
+        .await;
+    assert_eq!(denied_confirm, denied);
+    let declined = session
+        .tool(
+            "squad_contest_confirm",
+            json!({"run_id": pending["runId"], "confirm": false}),
+        )
+        .await;
+    assert_eq!(declined["status"], "cancelled");
+    assert!(provider.captured_bodies().await.is_empty());
+    session.finish().await;
+
+    let root = tempfile::tempdir().unwrap();
+    let mut command = configured_squad_with_policy(root.path(), &provider, false);
+    command.env("SQUAD_DEBATE_CONFIRM_USD", "100000");
+    let mut session = StdioMcp::start(&mut command).await;
+    let start = session
+        .tool("squad_tournament_start", json!({"prompt": "Plan"}))
+        .await;
+    assert_eq!(start["status"], "running", "{start}");
+    session.tool("squad_contest_cancel", run_args(&start)).await;
+    session.finish().await;
 }
 
 #[tokio::test]
@@ -484,7 +551,7 @@ async fn stdio_cancels_pending_tournament_without_provider_calls() {
 }
 
 #[tokio::test]
-async fn stdio_expires_preflight_before_admitting_a_new_tournament_in_the_same_room() {
+async fn stdio_read_tools_preserve_expired_preflight_until_next_start() {
     let root = tempfile::tempdir().unwrap();
     let provider = tournament_provider().await;
     let mut session = StdioMcp::start(&mut configured_squad(root.path(), &provider)).await;
@@ -522,6 +589,31 @@ async fn stdio_expires_preflight_before_admitting_a_new_tournament_in_the_same_r
         1
     );
     tx.commit().unwrap();
+
+    let events_before: i64 = db
+        .query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))
+        .unwrap();
+    let status = session.tool("squad_contest_status", run.clone()).await;
+    assert_eq!(status["status"], "pending_confirmation");
+    session
+        .assert_tool_error("squad_contest_result", run.clone(), "NOT_READY")
+        .await;
+    session.tool("squad_contests_list", json!({})).await;
+    let events_after: i64 = db
+        .query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(
+        events_after, events_before,
+        "read-only tools must not expire preflights"
+    );
+    let active: bool = db
+        .query_row(
+            "SELECT active FROM contests WHERE contest_id=?",
+            [contest_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(active);
 
     let fresh = session
         .tool(
@@ -595,7 +687,7 @@ async fn streamable_http_requires_bearer_for_discovery_and_calls() {
 
     let root = tempfile::tempdir().unwrap();
     let provider = tournament_provider().await;
-    let token = "squad-mcp-test-token";
+    let token = "squad-mcp-test-token-0123456789abcdef";
     let token_file = root.path().join("mcp-token");
     let mut file = std::fs::OpenOptions::new()
         .write(true)
