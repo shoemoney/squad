@@ -40,3 +40,27 @@ fn severity_palette_is_distinct() {
         }
     }
 }
+
+#[test]
+fn enabled_mode_appears_in_typeahead_and_help() {
+    let ctx = parser::ParseContext {
+        roster: ["alpha", "beta", "gamma"]
+            .map(|n| n.parse().unwrap())
+            .to_vec(),
+        ..Default::default()
+    };
+    assert!(squad_tui::typeahead::enabled("$blow_it_up"));
+    let raw = "@all $bl";
+    let c = squad_tui::widgets::completion::CompletionState::at(
+        raw,
+        raw.len(),
+        &ctx,
+        &Default::default(),
+    );
+    assert!(c.items.iter().any(|i| i == "$blow_it_up"));
+    let example = squad_protocol::parser::help_examples()
+        .into_iter()
+        .find(|s| s.contains("$blow_it_up"))
+        .unwrap();
+    assert!(parse(example, &Default::default(), &ctx).is_ok());
+}

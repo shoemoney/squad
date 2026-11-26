@@ -19,6 +19,7 @@ enum Scenario {
     Happy,
     Repair,
     InvalidAttacks,
+    TwoAttackSets,
     NoAttacks,
     SkipOne,
     JudgeFailure,
@@ -61,6 +62,10 @@ impl Respond for Answers {
         let count = *count;
         drop(counts);
         if matches!(self.scenario, Scenario::NoAttacks)
+            || (matches!(self.scenario, Scenario::TwoAttackSets)
+                && model
+                    .strip_prefix("fixture/member")
+                    .is_some_and(|i| i.parse::<usize>().is_ok_and(|i| i >= 2)))
             || (matches!(self.scenario, Scenario::SkipOne) && model == "fixture/member0")
         {
             return ResponseTemplate::new(500)
@@ -378,7 +383,7 @@ async fn stop_fences_late_results() {
             .is_some_and(|s| s.state == BlowItUpStatus::Stopped)
     })
     .await;
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(2200)).await;
     assert_eq!(f.state().unwrap().state, BlowItUpStatus::Stopped);
     room.shutdown().await.unwrap();
 }
@@ -650,6 +655,7 @@ async fn owned_engine_repairs_skips_and_fails_without_inventing_votes() {
     for scenario in [
         Scenario::Repair,
         Scenario::InvalidAttacks,
+        Scenario::TwoAttackSets,
         Scenario::SkipOne,
         Scenario::NoAttacks,
         Scenario::JudgeFailure,
@@ -666,6 +672,32 @@ async fn owned_engine_repairs_skips_and_fails_without_inventing_votes() {
                 BlowItUpStatus::Complete
             }
         );
+        if matches!(scenario, Scenario::TwoAttackSets) {
+            let tally = squad_store::blow_it_up::tally(&f.db(), id).unwrap();
+            assert_eq!(tally.vectors.len(), 4);
+            assert!(tally.vectors.iter().all(|t| t.accepted == 1
+                && t.status == squad_protocol::blow_it_up::VectorStatus::Unchallenged));
+        }
+        if matches!(scenario, Scenario::SkipOne) {
+            let raw: String = f
+                .db()
+                .query_row(
+                    "SELECT body FROM contest_artifacts WHERE artifact_kind='blow_it_up.report'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            let report: squad_protocol::blow_it_up::BlowItUpReport =
+                serde_json::from_str(&raw).unwrap();
+            assert_eq!(report.skipped.len(), 2);
+            assert!(
+                squad_store::blow_it_up::tally(&f.db(), id)
+                    .unwrap()
+                    .vectors
+                    .iter()
+                    .all(|v| v.accepted == 4)
+            );
+        }
         if matches!(scenario, Scenario::Repair) {
             assert_eq!(f.fake.captured_bodies().await.len(), 19);
             assert_eq!(

@@ -90,6 +90,7 @@ pub fn render(
     let mut out = String::new();
     let mut evidence = String::new();
     let mut found = false;
+    let mut status = None;
     for e in &snapshot.events {
         match &e.content {
             EnvelopePayload::BlowItUpSetup(s) if s.contest_id == id => {
@@ -107,6 +108,14 @@ pub fn render(
             }
             EnvelopePayload::BlowItUpState(s) if s.contest_id == id => {
                 found = true;
+                status = Some(format!(
+                    "Status: {:?}{}\n\n",
+                    s.state,
+                    s.terminal_reason
+                        .as_ref()
+                        .map(|r| format!(" · {r}"))
+                        .unwrap_or_default()
+                ));
             }
             EnvelopePayload::ContestArtifact(a)
                 if a.contest_id == id && a.kind == Some(ContestKind::BlowItUp) =>
@@ -139,6 +148,9 @@ pub fn render(
     }
     if out.is_empty() {
         out.push_str("# BLOW IT UP\n\nPartial evidence; the contest has no completed report.\n\n");
+    }
+    if let Some(status) = status {
+        out.push_str(&status);
     }
     out.push_str(&evidence);
     Ok(out)
