@@ -818,3 +818,109 @@ async fn long_streamed_reply_with_repeated_chunk_metadata_submits_constant_accou
         "a 1500-chunk reply submitted {accounts} accounting records"
     );
 }
+
+#[tokio::test]
+async fn billed_empty_answer_retries_with_durable_failed_usage() {
+    let server = fake::FakeOpenRouter::start().await;
+    server
+        .completions(vec![
+            fake::streaming("", "length"),
+            fake::streaming("recovered", "stop"),
+        ])
+        .await;
+    let f = Fixture::new("alice", "current");
+    let (ctx, _tx) = f.context();
+    let cancel = ctx.cancel.clone();
+    let task = worker::spawn(ctx, executor(&server));
+    wait_completed(&f).await;
+    cancel.cancel();
+    task.await.unwrap().unwrap();
+    let requests = f.requests.lock().unwrap().clone();
+    let starts: Vec<_> = requests
+        .iter()
+        .filter_map(|r| {
+            if let ExecutorRequest::StartAttempt { attempt, .. } = r {
+                Some(*attempt)
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(starts, vec![1, 2]);
+    assert!(
+        requests
+            .iter()
+            .any(|r| matches!(r, ExecutorRequest::Account { record, .. }
+        if record.attempt == 1 && record.outcome == UsageOutcome::Failed
+        && record.usage.as_ref().is_some_and(|usage| usage.cost_usd == Some(0.000045))))
+    );
+    assert!(
+        !requests
+            .iter()
+            .any(|r| matches!(r, ExecutorRequest::Result { attempt: 1, .. }))
+    );
+    assert!(requests.iter().any(|r| matches!(r, ExecutorRequest::Result { attempt: 2, output: EnvelopePayload::AgentReply(reply), .. } if reply.content == "recovered")));
+
+    let attempts: std::collections::BTreeSet<_> = requests
+        .iter()
+        .filter_map(|r| {
+            if let ExecutorRequest::Account { record, .. } = r {
+                Some(record.attempt)
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(attempts, std::collections::BTreeSet::from([1, 2]));
+    assert!(
+        requests
+            .iter()
+            .any(|r| matches!(r, ExecutorRequest::Result { attempt: 2, .. }))
+    );
+    drop(requests);
+    assert_eq!(server.captured_bodies().await.len(), 2);
+}
+
+#[tokio::test]
+async fn exhausted_empty_answers_surface_reason_and_retain_both_charges() {
+    let server = fake::FakeOpenRouter::start().await;
+    server
+        .completions(vec![
+            fake::streaming("", "length"),
+            fake::streaming("", "length"),
+        ])
+        .await;
+    let f = Fixture::new("alice", "current");
+    let (ctx, _tx) = f.context();
+    let cancel = ctx.cancel.clone();
+    let task = worker::spawn(ctx, executor(&server));
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            if *f.status.lock().unwrap() == WorkStatus::Failed {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    cancel.cancel();
+    task.await.unwrap().unwrap();
+    assert_eq!(server.captured_bodies().await.len(), 2);
+    let requests = f.requests.lock().unwrap().clone();
+    assert!(requests.iter().any(|r| matches!(r, ExecutorRequest::Failed { error, .. } if error.code == ErrorCode::PROVIDER_ERROR && error.retry_action.is_some() && error.text.as_str().contains("exhausted its output limit on reasoning without a visible answer"))));
+    for attempt in [1, 2] {
+        assert!(
+            requests
+                .iter()
+                .any(|r| matches!(r, ExecutorRequest::Account { record, .. }
+            if record.attempt == attempt && record.outcome == UsageOutcome::Failed
+            && record.usage.as_ref().is_some_and(|usage| usage.cost_usd == Some(0.000045))))
+        );
+    }
+    assert!(
+        !requests
+            .iter()
+            .any(|r| matches!(r, ExecutorRequest::Result { .. }))
+    );
+}

@@ -247,6 +247,7 @@ pub async fn failed_with(
         Some(TransportError::HttpMessage { status, message }) => {
             (Some(*status), Some(message.clone()))
         }
+        Some(error @ TransportError::EmptyResponse(_)) => (None, Some(error.to_string())),
         Some(TransportError::Http(status)) => (Some(*status), None),
         Some(TransportError::Provider(Some(status))) => (Some(*status), None),
         _ => (None, None),
@@ -254,6 +255,7 @@ pub async fn failed_with(
     let text = match (provider_status, &provider_message) {
         (Some(status), Some(message)) => format!("{code:?} (HTTP {status}): {message}"),
         (Some(status), None) => format!("{code:?} (HTTP {status})"),
+        (None, Some(message)) => format!("{code:?}: {message}"),
         _ => format!("{code:?}"),
     };
     acknowledged(
