@@ -234,6 +234,15 @@ impl RoomApi for RoomHandle {
                         }
                     }
                 }
+                EnvelopePayload::ContestHumanAnswered(answer) if answer.complete => {
+                    // The answer commits before the driver schedules its next step.
+                    // Keep the invocation alive across that gap, including /continue
+                    // with no choices, which still needs to produce a final report.
+                    scripted.insert(
+                        answer.contest_id,
+                        squad_tui::widgets::contest_status::RunOutcome::Running,
+                    );
+                }
                 EnvelopePayload::TournamentState(t) => {
                     failed |= matches!(
                         t.state,
@@ -799,6 +808,38 @@ mod tests {
             2,
             request,
             EnvelopePayload::CrosscheckState(crosscheck),
+        ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
+    }
+    #[test]
+    fn completed_human_answer_waits_for_the_next_script_transition() {
+        let request = EventId::new();
+        let contest = ContestId::new();
+        let mut state = state();
+        state.events.push(event(
+            1,
+            request,
+            EnvelopePayload::ContestHumanAnswered(ContestHumanAnswered {
+                contest_id: contest,
+                step_id: StepId::new(),
+                expected_state_version: 2,
+                text: None,
+                complete: true,
+            }),
+        ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Running);
+        state.events.push(event(
+            2,
+            request,
+            EnvelopePayload::ReadbackState(ReadbackState {
+                contest_id: contest,
+                state_version: 4,
+                state: ReadbackStatus::Complete,
+                step_id: None,
+                round: 1,
+                artifact_event_ids: vec![],
+                terminal_reason: Some("no_readings_chosen".parse().unwrap()),
+            }),
         ));
         assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
     }

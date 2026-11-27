@@ -181,6 +181,9 @@ impl Router {
             && let Some(scope) = &mut self.engine_scope
         {
             for event in &outcome.events {
+                if let EnvelopePayload::ContestHumanAnswered(answer) = &event.content {
+                    scope.insert(answer.contest_id);
+                }
                 if let EnvelopePayload::TuneState(s) = &event.content {
                     scope.insert(s.contest_id);
                 }
