@@ -11,7 +11,7 @@ Set Width 1200
 Set Height 760
 Set Padding 14
 Set Theme "Catppuccin Mocha"
-Set TypingSpeed 8ms
+Set TypingSpeed 15ms
 Set WindowBar Colorful
 
 Hide
@@ -41,7 +41,7 @@ Sleep 500ms
 Type "squad --version"
 Enter
 Sleep 2s
-Type "OPENROUTER_API_KEY=sk-or-v1-your-key-here squad doctor | grep -E '^(Config|Cred|Data dir|Overall)' | cut -c1-100"
+Type "OPENROUTER_API_KEY=your-key-here squad doctor | grep -E '^(Config|Cred|Data dir|Overall)' | cut -c1-100"
 Enter
 Sleep 2s
 Screenshot docs/media/doctor-pass.png
