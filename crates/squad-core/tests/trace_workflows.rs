@@ -297,26 +297,25 @@ async fn owned_run(fault: Fault) -> (Fixture, squad_store::Store, ContestId) {
         if state.state.is_terminal() {
             return (f, store, c);
         }
-        if state.state == TraceStatus::Verifying && state.step_id.is_some() {
-            if fault == Fault::Stop {
-                let result = router
-                    .lock()
-                    .unwrap()
-                    .process(
-                        Request::Stop {
-                            request_id: EventId::new(),
-                            target: None,
-                        },
-                        None,
-                    )
-                    .unwrap()
-                    .result;
-                assert!(
-                    matches!(result, RequestResult::Accepted { .. }),
-                    "{result:?}"
-                );
-                return (f, store, c);
-            }
+        if state.state == TraceStatus::Verifying && state.step_id.is_some() && fault == Fault::Stop
+        {
+            let result = router
+                .lock()
+                .unwrap()
+                .process(
+                    Request::Stop {
+                        request_id: EventId::new(),
+                        target: None,
+                    },
+                    None,
+                )
+                .unwrap()
+                .result;
+            assert!(
+                matches!(result, RequestResult::Accepted { .. }),
+                "{result:?}"
+            );
+            return (f, store, c);
         }
         if fault == Fault::Exhausted
             && state.state == TraceStatus::Verifying
