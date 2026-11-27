@@ -86,7 +86,6 @@ fn disabled_scaffold_modes_are_absent_from_completion_and_help() {
     };
     let examples = squad_tui::typeahead::examples(&ctx);
     for mode in [
-        "forge",
         "forecast",
         "decide",
         "negotiate",

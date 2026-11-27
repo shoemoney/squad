@@ -1757,7 +1757,6 @@
     {
       "id": "forge.judge",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1765,7 +1764,15 @@
       ],
       "provider_user_name": "squad",
       "step": "forge.judge",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "forecast.frame",

@@ -72,7 +72,7 @@ async fn fake_provider_tournament_reaches_the_static_tui_and_exports_the_same_ch
             let events = support::page_all(&room, 256).await;
             if events
                 .iter()
-                .any(|e| matches!(e.content, EnvelopePayload::TournamentResult(_)))
+                .any(|e| matches!(e.content, EnvelopePayload::TournamentChampion(_)))
                 && room.state().await.active_contest.is_none()
             {
                 break events;

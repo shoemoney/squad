@@ -69,6 +69,15 @@ fn new_mode_examples_and_refusals() {
         let ctx = context(case);
         let raw = case["input"].as_str().unwrap();
         let run = || super::parser::parse_snapshot(raw, &ctx);
+        if case["condition"] == "disabled" {
+            let token = raw.split_whitespace().find(|s| s.starts_with('$')).unwrap();
+            let kind: ContestKind =
+                serde_json::from_value(Value::String(token[1..].into())).unwrap();
+            if kind.is_built() {
+                assert!(run().is_ok(), "enabled mode refused: {raw}");
+                continue;
+            }
+        }
         let result = if case["condition"] == "disabled" {
             run()
         } else {
@@ -100,12 +109,7 @@ fn override_resets_after_fixture() {
         ..Default::default()
     };
     assert!(with_new_modes(|| super::parser::parse_snapshot("@all $forge brief", &ctx)).is_ok());
-    assert_eq!(
-        super::parser::parse_snapshot("@all $forge brief", &ctx)
-            .unwrap_err()
-            .code,
-        ErrorCode::COMMAND_NOT_IMPLEMENTED
-    );
+    assert!(!ENABLE_NEW_MODES.with(|enabled| enabled.get()));
 }
 
 #[test]
