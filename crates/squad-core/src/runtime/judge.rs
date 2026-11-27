@@ -28,6 +28,7 @@ impl squad_agents::worker::WorkExecutor for Executor {
         if grant.work.kind.new_mode_kind().is_some()
             || grant.work.kind == WorkKind::ProbeReport
             || grant.work.kind.census_judge()
+            || grant.work.kind.new_mode_kind().is_some()
             || matches!(
                 grant.work.kind,
                 WorkKind::SurveyExtract | WorkKind::SurveyReport
