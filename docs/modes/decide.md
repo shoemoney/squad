@@ -30,21 +30,37 @@ The report contains options, the frozen rubric, scores, totals and margin, conte
 
 ## Example run
 
-On 2026-11-26, one activation-enabled release smoke used the default six-model roster, `SQUAD_DAILY_MAX_USD=150`, `--env-file /dev/null`, and a fresh private data directory. This earlier attempt preceded the shared dispatcher fix.
+On 2026-11-26, one recovery smoke used the release binary, default six-member roster (`claude`, `fable`, `openai`, `gemini`, `grok`, `muse`), `SQUAD_DAILY_MAX_USD=150`, `--env-file /dev/null`, and a fresh private data directory. It compared SQLite with daily file backups against managed PostgreSQL for a five-person internal issue tracker on one Linux VM, with no dedicated DBA.
 
-The decision compared SQLite with daily file backups against managed PostgreSQL for a five-person internal issue tracker. All six criteria calls returned accepted output on their first attempt. The run then stalled at `FREEZING` because the outer shared judge dispatcher rejected the work before the owned judge executor ran. A 150-second watchdog ended the process (exit 137). No decision report or winner was produced.
+The run exited **0** in **236.24 seconds**, including startup, and reached **COMPLETE**. All six criteria lists and all six score sheets were accepted. Grok's first scoring attempt timed out after 90 seconds; its plain retry succeeded. There were **15 contest provider attempts** against **14 planned calls / 30 reserved attempts**, plus four startup alias probes, no schema repairs and no skipped members.
 
-- Wall time: **150.01 seconds**, including startup.
-- Preflight: **14 calls**, **30 reserved attempts**, estimated **$3.328140**, reserved **$16.358688**.
-- Recorded actual spend: **$0.084077**, including startup alias probes. The ledger retains one unresolved judge attempt with no provider request ID, so this is recorded known spend rather than a claim that every accounting entry settled.
-- Remaining reservation at shutdown: **$14.003520**. The private smoke database is retained for reconciliation; no later run or manual ledger edit was performed.
-- Local evidence: `/tmp/squad-decide-live-Yz1Yfl/` on dev2 (`events.jsonl`, timing and SQLite ledger). No credentials are in those artifacts.
+- Preflight estimate: **$3.335259**; initial reservation: **$16.385052**.
+- Verified provider cost: **$0.621906**, including **$0.001556** for startup probes and **$0.014226** for the cancelled Grok attempt. Contest-only cost was **$0.620350**.
+- Room ledger at exit: **$0.607680** recorded spend, **$0.583480** remaining reservation and **one unresolved attempt**. The runtime's immediate reconciliation did not settle the cancelled generation; a subsequent authenticated, read-only generation lookup verified its $0.014226 charge. No manual ledger edit was performed. The provider total above includes that charge; the retained reservation still awaits canonical ledger reconciliation.
+- Evidence on dev2: `/tmp/squad-decide-r2-live-te2wydaj/` contains `events.jsonl`, `timing.json`, the private SQLite ledger, the offline `report.md` export and `generation-costs.json`. No credentials are in these artifacts.
 
-Accepted criteria excerpt:
+The application ranked managed PostgreSQL (`o2`) above SQLite (`o1`), but marked the result fragile. Report excerpt:
 
-> Low maintenance burden — weight 30: Effort required for setup, upgrades, monitoring, patching, and routine administration on a single server.
->
-> Backup reliability and recoverability — weight 30: How reliably data can be backed up, verified, and restored to a recent consistent state after failure or corruption.
+```text
+Winner: o2
+fragile · margin 0.2773 · 4 members rank the leader first
+
+| Option | Total |
+|---|---:|
+| o2 | 7.9227 |
+| o1 | 7.6455 |
+
+| Removed criterion | Ranking |
+| backup_reliability | o1 (8.1290) > o2 (7.7258) |
+| backup_and_recovery_combined | o1 (7.9462) > o2 (7.9086) |
+
+| Criterion | Rival | Overtakes when weight |
+| total_cost | o1 | above 10.4220% |
+```
+
+The report also flags overlapping backup/recovery criteria and missing provider-specific backup guarantees as evidence gaps. The explanation did not choose the winner or calculate totals.
+
+An earlier, pre-fix attempt stopped at the shared judge dispatcher after six criteria calls. Its separate database `/tmp/squad-decide-live-Yz1Yfl/` retains $0.084077 known spend and $14.003520 reservation with one unresolved judge slot after a 150.01-second watchdog stop. It produced no final decision report and was not modified or used as the recovery smoke room.
 
 ## Runtime and controls
 
@@ -57,3 +73,7 @@ The shared judge dispatcher now routes new-mode judge work through its structure
 The supplied-option and generated-option RoomHandle workflows exercise six members, exact 14/21 call counts and 30/45 attempt reservations, hidden weights, distinct option orders, persisted 4,096-token scoring allowances and restart without duplicate calls. The member repair regression uses RoomHandle and verifies one diagnostic repair per member, 20 total calls and reconciled accounting. Additional fixtures cover skips, quorum failures, judge exhaustion with exportable arithmetic, stop fencing, startup recovery, rubric provenance, medians, close calls and sensitivity arithmetic.
 
 Protocol fixtures reject blank shortlist names and descriptions. The TUI tests exercise F7 through the app input handler and verify completion, help, TIP discovery and a public parser example. The two integration regressions inherited from the original worker are now normal tests.
+
+The original 166 parser fixture rows and their snapshot remain unchanged. A test-only activation override freezes that legacy grammar while separate tests verify enabled Decide parsing and export discovery.
+
+Final gates on dev2 with `CARGO_BUILD_JOBS=4`: `cargo test --workspace --no-fail-fast` passed with **1,347 passing test executions, zero failures and four inherited ignores**. All **21 Decide tests** pass with none ignored. `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check` and the explicit release build passed. Offline export of the live report succeeded without another provider call.

@@ -163,6 +163,10 @@ Decide implementation evidence (`mode-decide-r2`, 2026-11-26):
 - Owner-authorized shared integration: the outer structured judge dispatcher accepts new-mode judge work, invalid mode output enters repair classification, DecideScore has the canonical 4,096 ceiling in both protocol sites, and the F7 handler toggles Decide views. The composer example rotation includes Decide; activation-related scaffold fixtures are updated. No shared implementation requests remain.
 - Activation and documentation: `ENABLED = true`; `docs/modes/decide.md` describes syntax, steps, cost, report/export and controls. The 25 focused workflow/TUI/typeahead checks pass without ignored tests.
 
+Final Decide gates (dev2, `CARGO_BUILD_JOBS=4`): workspace tests **1,347 passed / 0 failed / 4 inherited ignores**, all **21 Decide tests** active and passing; all-target Clippy with `-D warnings`, format checking and the release build passed. The original 166 parser fixture rows and snapshot are unchanged through a test-only legacy activation override.
+
+Live smoke: one default-six-roster release send reached **COMPLETE**, exit 0, **236.24 s**. All six criteria lists and score sheets were accepted; Grok succeeded on its scoring retry (15 contest attempts against 14 calls / 30 reserved). Initial reservation **$16.385052**, verified provider spend **$0.621906** including startup and one cancelled-attempt charge. The exit ledger records **$0.607680** and retains **$0.583480** for that cancelled attempt; a later free generation lookup verified its **$0.014226** cost, without manually editing the ledger. Full accounting caveat, real report excerpt and offline export evidence are in `docs/modes/decide.md`. No shared implementation requests remain.
+
 ## Phase M8.P5 — Negotiate
 
 Owns only the `negotiate` module files listed in **New modes → Files each mode worker owns**, migration `0013_negotiate.sql` and `docs/modes/negotiate.md`.
