@@ -1,5 +1,5 @@
 use squad_core::{orchestrator::negotiate::*, router::negotiate::steps};
-use squad_protocol::{negotiate::*, *};
+use squad_protocol::negotiate::*;
 fn table(outcome: NegotiateOutcome, rounds_used: u32) -> NegotiateTable {
     NegotiateTable {
         table: 1,

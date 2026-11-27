@@ -171,3 +171,31 @@ fn ready<T>(mut future: ReaderFuture<'_, T>) -> Result<T, ReaderError> {
         std::task::Poll::Pending => panic!("store reader must be ready"),
     }
 }
+
+#[test]
+fn invocation_is_bound_to_assignment_not_caller_selected_recipient() {
+    let (store, work, _) = visibility_fixture();
+    let w = work.clone();
+    store.call(move |db| {
+        db.execute("INSERT INTO negotiate_inputs VALUES (?,?)",params![w.work_id.to_string(),serde_json::json!({"data":{"publicScenario":"Public","hiddenBrief":{"persona":"ONE_RECIPIENT_ONLY"}}}).to_string()])?;
+        assert_eq!(negotiate::invocation_for(db,&w)?["data"]["hiddenBrief"]["persona"],"ONE_RECIPIENT_ONLY");
+        let mut forged=w.clone();forged.target=Target::Member("b".parse().unwrap());
+        assert!(negotiate::invocation_for(db,&forged).is_err());
+        forged=w.clone();forged.context_id=ContextId("ordinary:a".into());assert!(negotiate::invocation_for(db,&forged).is_err());
+        forged=w.clone();forged.step_id=Some(StepId::new());assert!(negotiate::invocation_for(db,&forged).is_err());
+        Ok(())
+    }).unwrap();
+}
+
+#[test]
+fn private_table_journal_round_trips_and_clear_removes_it() {
+    let store = Store::open(":memory:").unwrap();
+    let c = ContestId::new();
+    store.call(move|db|{
+        db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES (?,'negotiate',1,1,'{}',0)",[c.to_string()])?;
+        let value=serde_json::json!([{"table":2,"round":3,"counterpart":"private","outcome":"no_deal"}]);
+        negotiate::journal(db,c,"tables",&value)?;assert_eq!(negotiate::read_journal(db,c,"tables")?,value);
+        let tx=db.transaction()?;squad_store::clear::content(&tx)?;tx.commit()?;
+        assert!(negotiate::read_journal(db,c,"tables").is_err());Ok(())
+    }).unwrap();
+}

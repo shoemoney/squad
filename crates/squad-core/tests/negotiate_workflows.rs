@@ -96,6 +96,11 @@ fn nick(s: &str) -> MemberNick {
 #[derive(Clone, Copy)]
 enum Scenario {
     Happy,
+    Deal,
+    MoveAbandon,
+    TransportRetry,
+    PartialMaps,
+    BriefRepair,
     WalkAway,
     Abandon,
     MapQuorum,
@@ -146,6 +151,31 @@ impl Respond for Answers {
         } else {
             "map"
         };
+        if matches!(self.scenario, Scenario::TransportRetry)
+            && stage == "counter"
+            && self
+                .report_calls
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                == 0
+        {
+            return ResponseTemplate::new(503);
+        }
+        if matches!(self.scenario, Scenario::BriefRepair)
+            && stage == "brief"
+            && self
+                .report_calls
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                == 0
+        {
+            return streaming("{}", "stop");
+        }
+        if (matches!(self.scenario, Scenario::MoveAbandon) && stage == "move")
+            || (matches!(self.scenario, Scenario::PartialMaps)
+                && stage == "map"
+                && !body["model"].as_str().unwrap().ends_with(['0', '1']))
+        {
+            return streaming("{}", "stop");
+        }
         if (matches!(self.scenario, Scenario::MapQuorum)
             && stage == "map"
             && !body["model"].as_str().unwrap().ends_with('0'))
@@ -179,7 +209,7 @@ impl Respond for Answers {
                 serde_json::json!({"message":format!("TABLE_{}_ONLY round {}",d["table"],d["round"]),"offer":"100 on delivery"})
             }
             "counter" => {
-                serde_json::json!({"message":"Discuss delivery","response":if matches!(self.scenario,Scenario::WalkAway){"walk_away"}else{"counter"},"counterOffer":"110 on delivery","violatedInterest":null})
+                serde_json::json!({"message":"Discuss delivery","response":if matches!(self.scenario,Scenario::WalkAway){"walk_away"}else if matches!(self.scenario,Scenario::Deal){"accept"}else{"counter"},"counterOffer":"110 on delivery","violatedInterest":null})
             }
             "playbook" => playbook(d["tableCount"].as_u64().unwrap() as usize),
             _ => unreachable!(),
@@ -481,6 +511,18 @@ async fn six_members_twenty_nine_calls_sixty_attempts_and_private_requests() {
     assert_eq!(r.counts["unfinished"], 3);
     assert!(!r.no_rehearsal_evidence);
     let db = f.db();
+    let cases: i64 = db
+        .query_row("SELECT COUNT(*) FROM cases", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(cases, 1);
+    let reports: i64 = db
+        .query_row(
+            "SELECT COUNT(*) FROM contest_artifacts WHERE artifact_kind='negotiate.report'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(reports, 1);
     let n: i64 = db
         .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get(0))
         .unwrap();
@@ -530,25 +572,6 @@ async fn six_members_twenty_nine_calls_sixty_attempts_and_private_requests() {
     }
     let c = r.setup.tables.clone();
     assert_eq!(c.len(), 3);
-    let snapshot = squad_core::export::ExportSnapshot {
-        events: squad_store::negotiate::events(
-            &db,
-            r.setup
-                .tables
-                .first()
-                .map(|_| {
-                    db.query_row("SELECT contest_id FROM contests", [], |r| {
-                        r.get::<_, String>(0)
-                    })
-                    .unwrap()
-                    .parse()
-                    .unwrap()
-                })
-                .unwrap(),
-        )
-        .unwrap(),
-        ..Default::default()
-    };
     let id: ContestId = db
         .query_row("SELECT contest_id FROM contests", [], |r| {
             r.get::<_, String>(0)
@@ -556,6 +579,10 @@ async fn six_members_twenty_nine_calls_sixty_attempts_and_private_requests() {
         .unwrap()
         .parse()
         .unwrap();
+    let snapshot = squad_core::export::ExportSnapshot {
+        events: squad_store::negotiate::events(&db, id).unwrap(),
+        ..Default::default()
+    };
     let export = squad_core::export::negotiate::render(&snapshot, id).unwrap();
     assert!(export.contains("Hypothetical counterpart, not a fact"));
     assert!(export.contains("TABLE 3"));
@@ -683,4 +710,72 @@ async fn interrupted_final_member_and_judge_attempts_terminate() {
         let f = controlled_run_count(s, None, false, 6).await;
         assert!(terminal(&f));
     }
+}
+
+#[tokio::test]
+async fn acceptance_is_an_early_deal_not_a_timeout() {
+    let f = run(Scenario::Deal).await;
+    let r = report(&f);
+    assert_eq!(r.counts["deal"], 3);
+    assert!(r.tables.iter().all(|t| t.rounds_used == 1));
+    let n: i64 = f
+        .db()
+        .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(n, 17);
+}
+#[tokio::test]
+async fn failed_negotiator_never_schedules_a_counterpart() {
+    let f = run(Scenario::MoveAbandon).await;
+    let r = report(&f);
+    assert_eq!(r.counts["abandoned"], 3);
+    assert!(r.tables.iter().all(|t| t.turns.is_empty()));
+    let n: i64 = f
+        .db()
+        .query_row(
+            "SELECT COUNT(*) FROM work WHERE kind='negotiate.counter'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(n, 0);
+    let n: i64 = f
+        .db()
+        .query_row(
+            "SELECT COALESCE(SUM(amount_micros),0) FROM reservations",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(n, 0);
+}
+#[tokio::test]
+async fn transport_failure_is_plain_retry_and_judge_schema_failure_is_one_repair() {
+    let f = run(Scenario::TransportRetry).await;
+    assert!(report(&f).playbook.is_some());
+    let n: i64 = f
+        .db()
+        .query_row("SELECT COUNT(*) FROM mode_repairs", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(n, 0);
+    let n: i64 = f
+        .db()
+        .query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(n, 30);
+    let f = run(Scenario::BriefRepair).await;
+    assert!(report(&f).playbook.is_some());
+    let n: i64 = f
+        .db()
+        .query_row("SELECT COUNT(*) FROM mode_repairs", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(n, 1);
+}
+#[tokio::test]
+async fn exactly_two_maps_satisfy_quorum_and_skips_are_attributed() {
+    let f = run(Scenario::PartialMaps).await;
+    let r = report(&f);
+    assert_eq!(r.maps.len(), 2);
+    assert_eq!(r.skipped.len(), 4);
+    assert!(r.playbook.is_some());
 }
