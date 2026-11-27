@@ -20,7 +20,7 @@ Set WindowBar Colorful
 Hide
 Type 'unset NO_COLOR; export TERM=xterm-256color HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear'
 Enter
-Type '(until tmux -L demo capture-pane -p -t r 2>/dev/null | grep -q "Complete ·"; do sleep 1; done; sleep 9; tmux -L demo send-keys -t r F7) >/dev/null 2>&1 &'
+Type '(sleep 330; tmux -L demo send-keys -t r F7) >/dev/null 2>&1 &'
 Enter
 Type "tmux -L demo -f /dev/null new-session -s r squad ';' set status off"
 Enter
@@ -37,7 +37,8 @@ Wait+Screen@180s /Confirm/
 Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@1200s /Complete ·/
+# Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
+Sleep 300s
 
 # 2. Ranked findings on screen; the watcher presses F7 after 9 s to expand the killed appendix
 Sleep 20s

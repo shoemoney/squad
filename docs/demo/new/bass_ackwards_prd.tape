@@ -52,7 +52,8 @@ Sleep 2s
 Type "/continue"
 Sleep 500ms
 Enter
-Wait+Screen@1200s /Complete ·/
+# Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
+Sleep 150s
 # 4. Hold on the saved-file line and coverage summary
 Sleep 10s
 

@@ -46,7 +46,8 @@ Wait+Screen@180s /Confirm/
 Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@1200s /Complete ·/
+# Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
+Sleep 120s
 # 3. Hold on the audited brief and its source spans
 Sleep 10s
 

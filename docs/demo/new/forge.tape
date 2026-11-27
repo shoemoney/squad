@@ -38,7 +38,7 @@ Wait+Screen@180s /Confirm/
 Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@1200s /Complete ·/
+Wait+Screen@1200s /Complete · [a-z]/
 # 3. Hold on the winning artifact
 Sleep 10s
 

@@ -57,7 +57,8 @@ Sleep 2s
 Type "/continue"
 Sleep 500ms
 Enter
-Wait+Screen@1200s /Complete ·/
+# Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
+Sleep 300s
 Sleep 10s
 
 # Done: leave the room
