@@ -1898,7 +1898,7 @@ Logs are written to `<data directory>/logs/squad.jsonl`. The file is created wit
 
 > ✅ **Shipped in v0.2.0** (2026-11-27). Together with the seven modes above, Squad has **eighteen** contest modes. Every clip was recorded live on the v0.2.0 release binary with the default six-model roster; costs are the measured per-run figures in [docs/costs.md](docs/costs.md). Each mode has its own guide in [docs/modes](docs/modes/).
 
-Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`), one starter command and its measured cost.
+Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`), one starter command and its measured cost. Nine of the eleven clips are finished runs; `$tune` and `$blow_it_up` are marked below.
 
 - 🔨 **`$forge`**: One finished artifact that is better than any single draft.
 
@@ -1934,7 +1934,7 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 💣 **`$blow_it_up`**: An adversarial attack on a plan, spec, prompt, config or diff.
 
-  ![Attack vectors, blind challenge and severity-ranked findings. Recorded on v0.2.0.](docs/media/blow_it_up.gif)
+  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished run to show. The measured result and a worked example are in the [guide](docs/modes/blow_it_up.md)._
 
   Starter command: `@all $blow_it_up <paste a plan here>`
 
@@ -1974,7 +1974,7 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 🎛️ **`$tune`**: A prompt that measurably behaves better, checked on cases its authors never saw.
 
-  ![Hidden cases, mutated prompts and a held-out winner. Recorded on v0.2.0.](docs/media/tune.gif)
+  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished run to show. The measured result and a worked example are in the [guide](docs/modes/tune.md)._
 
   Starter command: `@all $tune Answer clearly and concisely. (then `--` and the goal on the next line)`
 
