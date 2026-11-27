@@ -425,3 +425,102 @@ fn eighteen_kinds_share_exactly_one_active_claim() {
   }Ok(())
  }).unwrap();
 }
+
+#[test]
+fn new_mode_admission_names_each_active_kind_without_starting_work() {
+    let (store, router) = fixture();
+    let starts = [
+        ("forge", "@all $forge Write a short launch post"),
+        (
+            "forecast",
+            "@all $forecast Will the project ship this year?",
+        ),
+        (
+            "decide",
+            "@all $decide Choose storage\n--\nSQLite\nPostgreSQL",
+        ),
+        ("negotiate", "@all $negotiate Agree a support contract"),
+        (
+            "blow_it_up",
+            "@all $blow_it_up Deploy without a rollback plan",
+        ),
+        ("readback", "@all $readback Keep records for thirty days"),
+        ("debug", "@all $debug Requests stall\n--\nInspect logs only"),
+        (
+            "trace",
+            "@all $trace When does it run?\n--\nIt runs on Mondays.",
+        ),
+        (
+            "rank",
+            "@all $rank Prioritize features\n--\nExport\nRecovery\nSearch",
+        ),
+        (
+            "tune",
+            "@all $tune Be concise\n--\nReturn one correct label",
+        ),
+        (
+            "bass_ackwards_prd",
+            "@all $bass_ackwards_prd A reliable status page",
+        ),
+    ];
+    for active in [
+        "debate",
+        "tournament",
+        "grill",
+        "census",
+        "crosscheck",
+        "survey",
+        "probe",
+        "forge",
+        "forecast",
+        "decide",
+        "negotiate",
+        "blow_it_up",
+        "readback",
+        "debug",
+        "trace",
+        "rank",
+        "tune",
+        "bass_ackwards_prd",
+    ] {
+        let contest = ContestId::new();
+        let state = if starts.iter().any(|(kind, _)| *kind == active) {
+            serde_json::json!({"contestId":contest,"stateVersion":1,"state":"PREFLIGHT",
+                "stepId":null,"round":0,"artifactEventIds":[],"terminalReason":null})
+            .to_string()
+        } else {
+            serde_json::to_string(&ContestSelectionState {
+                contest_id: contest,
+                kind: serde_json::from_value(serde_json::json!(active)).unwrap(),
+                state: ContestSelectionStatus::CollectingAnswers,
+                state_version: 1,
+                question_message_id: MessageId::new(),
+                addressed: vec![nick("alice"), nick("bob"), nick("carol")],
+                answers: vec![],
+                required_picks: 1,
+            })
+            .unwrap()
+        };
+        store.call(move |db| {
+            db.execute("DELETE FROM contests", [])?;
+            db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES(?,?,1,1,?,1)",rusqlite::params![contest.to_string(),active,state])?;
+            Ok(())
+        }).unwrap();
+        for (kind, command) in starts {
+            let mode: ContestKind = serde_json::from_value(serde_json::json!(kind)).unwrap();
+            if !mode.is_built() {
+                continue;
+            }
+            let context = router.parse_context().unwrap();
+            let error = parse(command, &parser::SubmissionMeta::default(), &context)
+                .expect_err("an active contest must refuse a new mode");
+            assert_eq!(error.code, ErrorCode::CONTEST_BUSY, "{kind} vs {active}");
+            assert_eq!(
+                error.message,
+                format!("A {active} is already running. Stop it before starting another.")
+            );
+        }
+        assert_eq!(scalar(&store, "SELECT COUNT(*) FROM contests"), 1);
+        assert_eq!(scalar(&store, "SELECT COUNT(*) FROM work"), 0);
+    }
+}
