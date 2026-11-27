@@ -222,14 +222,7 @@ pub fn validate_output(
         WorkKind::TraceExtract => {
             let e = decode::<TraceExtraction>(output)?;
             let sources = decode::<Vec<trace::TraceSource>>(&data["sources"])?;
-            for c in e.claims {
-                for q in c.quotes.iter().chain(&c.counter_quotes) {
-                    ensure(
-                        sources.iter().any(|s| s.source_id == q.source_id),
-                        "unknown source ID",
-                    )?;
-                }
-            }
+            e.validate_sources(&sources)?;
             // Existence is deliberately NOT an output validation/repair criterion (D85).
             Ok(())
         }

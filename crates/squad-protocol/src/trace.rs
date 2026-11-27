@@ -275,6 +275,17 @@ impl TraceSetup {
     }
 }
 impl TraceExtraction {
+    pub fn validate_sources(&self, sources: &[TraceSource]) -> ValidationResult {
+        self.validate()?;
+        ensure(
+            self.claims
+                .iter()
+                .flat_map(|c| c.quotes.iter().chain(&c.counter_quotes))
+                .all(|q| sources.iter().any(|s| s.source_id == q.source_id)),
+            "unknown source ID",
+        )
+    }
+
     pub fn validate(&self) -> ValidationResult {
         ensure(
             self.claims.len() <= 10
@@ -364,7 +375,7 @@ pub fn validate_artifact(kind: &str, body: &serde_json::Value) -> ValidationResu
         "trace.verify" => validation::decode::<TraceVerification>(body)?.validate(),
         "trace.assemble" => validation::decode::<TraceBrief>(body)?.validate(),
         "trace.quote_checks" => {
-            validation::decode::<Vec<TraceQuoteCheck>>(body)?;
+            validation::decode::<Vec<TraceQuoteCheck>>(&body["checks"])?;
             Ok(())
         }
         "trace.ledger" => {

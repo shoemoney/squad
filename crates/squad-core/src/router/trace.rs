@@ -741,7 +741,7 @@ pub(crate) fn drive_move(
                 id,
                 &s,
                 "trace.quote_checks",
-                serde_json::to_value(&run.quote_checks)?,
+                serde_json::json!({"checks":run.quote_checks}),
             )?;
             if run.extractions.len() < 2 {
                 finish(tx, g, id, &mut s, "insufficient_extractions", true)?;
