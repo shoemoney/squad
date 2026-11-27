@@ -21,66 +21,50 @@ The single-member mention selects that member's latest reply as the target; the 
 5. A blind judge deduplicates surviving evidence, assigns severity and likelihood, and writes mitigations, rebuttal status and residual risk. It cannot invent findings or reinstate killed vectors. Contested evidence requires a weakened finding or an explanation for rejecting the challenges.
 6. Squad ranks by severity × likelihood, then distinct blind attackers, then judge order. Critical/high/medium/low weigh 4/3/2/1 and likely/possible/unlikely weigh 3/2/1. A surviving finding from one blind attacker is highlighted as a lone finding. Challenge additions carry no finder count.
 
-The report contains ranked findings, lone discoveries, additions, skipped members, unchallenged vectors, and a killed appendix with counts, defeating quotes and judge notes. Export includes the target snapshot, lens draw, all accepted attack sets, pool/provenance, ballots and app tallies. Stopped and failed contests retain their accepted evidence for export. No report establishes that a target is safe.
+The TUI uses severity colours; press F7 to expand or collapse the killed appendix. The report contains ranked findings, lone discoveries, additions, skipped members, unchallenged vectors, and a killed appendix with counts, defeating quotes and judge notes. Export includes the target snapshot, lens draw, all accepted attack sets, pool/provenance, ballots and app tallies. Stopped and failed contests retain their accepted evidence for export. No report establishes that a target is safe.
 
 A normal six-member run makes 13 calls and reserves 27 attempts (`2m + 1` calls, `4m + 3` attempts). Member deadlines are 180 seconds with two attempts; judge deadlines are 300 seconds with three attempts and at most one schema repair. Attack prose is capped at 700 words, challenges and the ruling at configured `planWords`. Provider cost depends on the frozen models and target size. Admission shows the normal estimate and the conservative reservation; actual usage replaces started reservations and unstarted reservations release on completion or stop.
 
 ### Example run
 
-On 2026-11-26, one real release `squad send` used the default six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh private data directory, `--env-file /dev/null`, and `--yes`. The target was a public unauthenticated upload/download service running as root, with client-selected absolute paths and permanent raw-content logs. The API key was fetched off-screen from the credential helper; scanning 18 local evidence/source files found zero credential matches.
+One real release `squad send` completed on 2026-11-26 America/Chicago (started **2026-11-27 00:09:11 UTC**) using the default six-member roster, `SQUAD_DAILY_MAX_USD=150`, `--env-file /dev/null`, `--yes`, and a fresh private data directory. Its target was an unauthenticated upload/download service with root writes, caller-selected absolute paths and permanent public logs. The credential was fetched directly into the process environment.
 
-The run lasted **209.411 seconds** and recorded **$0.458827** known spend, including **$0.001468** startup resolution. Preflight estimated **$4.525920**, reserved **$20.539587**, and declared **13 calls / 27 attempts**. At shutdown **$12.458302** remained reserved locally and **three attempts were unresolved** (two challenge attempts and the judge's pre-dispatch start). The known spend is not a verified final provider total; unresolved costs were not invented or reported as zero.
+The run reached **COMPLETE**, exited **0**, and produced its ranked report in **170.052 seconds**. Preflight declared **13 normal calls / 27 reserved attempts**, estimated **$4.505912**, and reserved **$20.460108**. Recorded actual spend was **$1.449895**, including **$0.001538** for startup resolution (**$1.448357** for the mode). At completion the ledger had **$0 reserved**, **zero unknown-cost calls**, and **zero unresolved attempts**. All twenty recorded provider starts settled: sixteen mode attempts plus four startup probes.
 
-Five attack sets and four challenge ballots were accepted. Grok's attack refused without a visible answer, Gemini's challenge returned HTTP 403, and Grok's challenge failed after retries. The app committed 20 pooled vectors and tallies: 11 standing, one contested, and eight unchallenged challenge additions. The run reached `RULING` and was interrupted at the confirmed shared outer judge-dispatch blocker (exit 130). It produced **no completed ruling or ranked report**. Offline export succeeded without credentials or further provider calls.
+Five attack sets were accepted, including two that needed private repair. Grok's attack refused twice and was disclosed as skipped; it still supplied an accepted challenge ballot. All six challenge ballots and the first ruling were accepted. The report has **13 ranked findings**, including **three lone findings**, **nine challenge additions**, and **nine unchallenged additions**; no vector was killed. Missing attacks did not become votes or finder credit.
 
-Short excerpt from that real partial export:
+Short excerpt from the real completed export:
 
 ```text
-# BLOW IT UP
-
-Partial evidence; the contest has no completed report.
-
-Status: Ruling
+BLOW IT UP
+WHAT SURVIVED
+### Critical / Likely · Unauthenticated root arbitrary file write enables host takeover · score 12
+Mitigation: Require authentication and authorization. Run the service unprivileged, ignore caller absolute paths, and confine writes to a canonicalized dedicated upload directory with server-generated names.
+Rebuttal: Survived. Residual: Exact execution route and timing depend on host configuration; single-request persistence is not established.
+Blind finders: 5
 ```
 
-Accepted, still-unruled attack titles included “Unauthenticated root write to an arbitrary path” and “Insider harvests permanent logs of all uploads.” These are model findings pending adjudication, not verified exploits.
+Offline `/export blow_it_up` also exited 0 without credentials or additional provider calls. Local raw evidence is under `/tmp/squad-blow-it-up-r2-live-s6k0tsps/`: `result.json`, `report.md`, stdout/stderr, the private SQLite ledger and `credential-scan.json`. Nine evidence files were scanned with **zero credential matches**. These temporary artifacts are not committed.
 
-Local raw evidence is under `/tmp/squad-blow-it-up-live-10z4wyli/` (`result.json`, `report.md`, stdout/stderr and the private SQLite ledger). This directory is temporary and is not committed. The complete credential-free Wiremock workflow separately verifies the final report, ranking, accounting and export with 13 calls; the live run is partial evidence only.
+The earlier worker's separate 209.411-second run stopped at the old judge-dispatch bug. Its $0.458827 known spend and three unresolved attempts remain historical partial evidence in `/tmp/squad-blow-it-up-live-10z4wyli/`; they are not included in the completed run's totals above.
 
-### Integration handoff
+### Integration and verification
 
-Only mode-owned paths were changed. Shared fixes still required:
+The resumed `mode-blow-it-up-r2` branch includes the required shared integration fixes, authorized on 2026-11-26:
 
-- `crates/squad-core/src/runtime/judge.rs`: the outer `Executor::execute` must route `grant.work.kind.new_mode_judge()` to `self.crosscheck.execute(...)` alongside probe/census/survey. The inner Runner already dispatches new modes; the outer fallback currently sends them to `JudgeExecutor`, which rejects them. Two complete-report RoomHandle workflow tests are explicitly ignored with this reason; direct owned-callback workflow tests remain executable.
-- `crates/squad-protocol/src/work.rs`: add `BlowItUpChallenge` to both 4,096-token ceiling matches (`Work::validate` and `WorkKind::new_mode_visible_tokens`). Until then the owned allocator leaves that optional Work ceiling unset and freezes the correct 4,096 limit in its authorized input; bounds and the actual request both use 4,096.
-- `crates/squad-core/src/router/executor.rs`: include `MODE_INVALID_OUTPUT` in invalid-output classification. Until then the mode adapter uses `JUDGE_INVALID_MODE_OUTPUT` for invalid member outputs as well, enabling the required private D75 repair through the existing mode-repair path.
-- `crates/squad-protocol/src/envelopes.rs`: replace the unconditional rejection of `CaseMaterial::BlowItUp` with typed case validation. The owned allocator currently stores the typed case against a human-only `blow_it_up.case` artifact instead of emitting the rejected `CaseOpened` envelope.
-- `crates/squad-tui/src/composed.rs`: compose `widgets::blow_it_up::styled_lines` instead of joining plain strings, and connect the mode's `View::toggle_killed` to the details interaction. The widget supplies severity colors and a collapsed appendix; the shared renderer currently strips styles and has no toggle wiring for these modes.
-- `crates/squad-core/src/prompts/render.rs`: allow `blow_it_up` in the `mode_step` whitelist. The mode currently freezes its literal composition name into the repair suffix to keep D75 repair functional without changing this shared file.
-- `crates/squad-tui/src/typeahead.rs`: add a parser-valid `$blow_it_up` example to `examples()` so the TIP rotation includes this mode; its command list and help already derive enablement from the switch.
-- Shared disabled-mode tests must track built modes: `crates/squad-core/tests/router_validation.rs`, `crates/squad-protocol/src/parser/{new_modes_tests,parser_tests}.rs`, `crates/squad-protocol/tests/contests.rs`, and `crates/squad-tui/tests/{actions_shell,contest_actions}.rs` currently assert that this implemented mode stays disabled. Update their expectations or add a scoped force-disabled test override. Public typeahead snapshots may also need updates when the mode list grows.
+- New-mode judge work reaches the structured mode runtime. Both complete-report RoomHandle tests are enabled; all nine mode workflows pass, including the real latest-member-reply source form, repairs, own-vector exclusion, skipped members, stop fencing and recovery.
+- Challenge work declares its 4,096-token ceiling. Invalid member outputs use `MODE_INVALID_OUTPUT` and receive the private D75 repair path. Repair templates accept the mode's `mode_step` value.
+- Rulings emit validated typed `CaseOpened` envelopes. Frozen prompts, bindings and stage projections remain persisted per assignment.
+- The transcript preserves severity styles and wraps findings at the available width. **F7** expands or collapses the killed appendix, which is collapsed by default. A completed-report replay test exercises this shared composition path, including its styles and details control.
+- Public completion, help and the parser-checked TIP rotation include the enabled mode. Shared scaffold assertions follow built modes; original parser fixtures retain a scoped disabled override. The tournament audit takes a fresh terminal event page before restoring its view.
 
-- `crates/squad-tui/tests/m4b_tournament_runtime_audit.rs`: re-page events after observing the terminal room state before restoring the TUI. The current test captures events first, then observes a newer terminal state and can omit the champion event. It failed twice at the champion assertion. The owned `enabled_mode_preserves_tournament_champion_with_a_fresh_terminal_snapshot` test uses the same fixture with a fresh terminal event page and passes, preserving the champion and export with this mode enabled.
+Mode-owned acceptance coverage includes protocol/schema validation, private storage and visibility, the provider adapter, direct router/executor workflows, full RoomHandle completion, hand-computed tally/ranking fixtures, export, and TUI report replay. The two full-report workflows are no longer ignored. The completed live run above verifies the default six-model path through the real judge and offline export.
 
-New ordinary replies are held by the owned engine before dispatch and released at terminal states. Stage contexts always receive frozen authorized projections. Prompt source and catalog capabilities are frozen per assignment, so restarts do not redraw lenses or re-read changed prompt overrides.
+Final gates on dev2, with `CARGO_BUILD_JOBS=4` and sequential builds:
 
-### Verification handoff
+- `cargo test --workspace --no-fail-fast`: passed; Cargo summaries total **1,358 passed, zero failed, four ignored**, including the repeated passing WAL child summary. The ignored entries are three existing manual performance/memory measurements and a PTY child entry exercised by its parent. All **32 mode-owned checks pass**, with no ignored mode cases.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passed.
+- `cargo build --release -p squad-cli`: passed; the smoke used a private copy of this binary.
+- `cargo fmt --all -- --check` and `git diff --check`: passed.
 
-All commands used `CARGO_BUILD_JOBS=4` on dev2, with builds run sequentially.
-
-- Owned protocol/store/agents/core/TUI suites and blinding unit tests: **28 passed, zero failed, two ignored**. The two ignored full-report RoomHandle tests name the missing shared judge route. Direct owned-callback workflows still execute the actual scoped readers, provider streaming, retries, private repairs, accounting, barriers, report and export, including 13 calls / 27 reserved attempts, two-set quorum, insufficient attacks, skipped ballots, judge failure, own-vector exclusion, stop and persisted recovery.
-- `cargo build --release -p squad-cli`: passed; the real smoke used a private copy of the built release binary.
-- `cargo clippy --workspace --all-targets -- -D warnings`: passed, including a final rerun after fixture and view-test corrections.
-- `cargo fmt --all -- --check`: passed, including the final source state.
-- `cargo test --workspace --no-fail-fast`: **not green**. Cargo summaries totaled 1,340 passed, 13 failed and six ignored, including the existing repeated WAL subprocess summary. Four failures were an owned store-fixture history metadata error, corrected and verified by all four passing store tests. Eight failures are shared disabled-mode/help/export/menu assertions that must be updated for enablement. The remaining failure is the shared tournament audit's stale event-page race described above; its fresh-snapshot guard passes. The shared tests were left untouched as required by ownership.
-
-M8.P6 has eleven tasks checked with evidence. L4.T2 remains open for shared severity-style/details wiring; L5.T1 remains open for the complete RoomHandle integration and full workspace gate; L5.T3 remains open for final integration sign-off and the TIP example. `ENABLED = true` on the worker branch permits parser/typeahead/help and smoke verification, and must not be read as a green integration gate. No main push, tag, PR, shared source edit, delegate, or extra live mode run was made.
-
-### Resume audit on `mode-blow-it-up-r2`
-
-The resumed branch retains `ENABLED = true`; the mode still requires the shared integration fixes above before release. Two additional acceptance tests pass:
-
-- `nick_source_freezes_latest_reply_and_attacks_with_the_whole_roster` starts an ordinary member reply through RoomHandle, selects it with `@member0 $blow_it_up`, verifies the frozen target and source event, and checks all six attack assignments before stopping.
-- `report_replay_preserves_severity_and_collapses_killed_evidence` replays a completed report twice, verifies critical severity styling, and checks that toggling the killed appendix reveals and hides its counts, defeating quote and judge note.
-
-Explicitly running the two ignored completion workflows with `--include-ignored` reproduces the judge-dispatch blocker: six workflows pass and the two full-report workflows time out in `RULING`, with ruling work running at attempt one. This is not a passing completion gate. No additional paid smoke was started while that route remains broken. The earlier 209.411-second partial run, its $0.458827 known cost and its unresolved reservations remain the live evidence; the shared-file ownership restriction in the task brief prevents repairing that route within the mode-owned files.
+All fourteen M8.P6 tasks are checked. Required shared changes are included; no integration fix remains deferred. No main push, tag or PR was made.
