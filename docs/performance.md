@@ -38,9 +38,45 @@ incremental fence parser/highlighter state.
 
 [Raw before/after logs](reports/perf-dirty-cards-2026-11-27/) include startup,
 frame/delta counts, load, inclusive percentiles, resize stalls and RSS.
-The first macOS dispatch is [run 45927912562](https://github.com/shoemoney/squad/actions/runs/45927912562),
-head `06ceab74eed4e1fdaaf95612d914bc53d8e679c2`; it is queued behind unrelated CI.
-Mac acceptance and subsequent resize work remain pending.
+### Conditional anchor/reflow follow-up
+
+A 30-second-per-viewport smoke on hueb (Apple M3 Ultra, 28 logical CPUs, 96 GiB,
+macOS 27.2.1, Rust 1.99.1, four Cargo jobs) confirmed the remaining failure after
+dirty preparation: draw p95 5.050/4.342/5.670 ms, key p95
+341.814/341.260/345.524 ms, CPU 21.484/18.827/27.666%, and maximum resize
+stalls 636.398/644.792/646.991 ms. This triggered the conditional rank-4 work.
+
+Anchor preparation now uses the already parsed block's actual row count and caches
+its source-grapheme count. Its lightweight source-row mapping preserves the existing
+Unicode/tab/control wrapping policy without allocating display cells or starting a
+second Markdown renderer/highlighter. Width changes reuse wrapped blocks when all
+styled lines fit both old and new widths, with a conservative tab-width bound.
+Narrowing still performs real wrapping; there is no viewport-specific shortcut or
+alternate renderer. Retry, completion, reference reconciliation and width changes
+keep the canonical source anchors.
+
+The subsequent Mac smoke passed at all three viewports:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Maximum resize frame ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 2.593 / 3.153 | 18.256 | 10.807 | 72.756 |
+| 80x24 | 1.541 / 1.812 | 18.155 | 8.263 | 133.793 |
+| 200x60 | 3.780 / 5.146 | 19.700 | 14.098 | 75.313 |
+
+These Mac measurements ran manually under the runner's `squad-ci` account in an
+isolated source/build directory with a clone of its compiled dependency cache.
+The unrelated CI job remained untouched and idle in its stalled PTY test.
+[Environment](reports/perf-dirty-cards-2026-11-27/mac-environment.txt) and raw logs
+identify this shared-host qualification. They are separate from workflow acceptance.
+
+[Run 45927912562](https://github.com/shoemoney/squad/actions/runs/45927912562)
+was the initial dirty-only dispatch and was cancelled while queued after the
+conditional fix. Its replacement, [run 45928957488](https://github.com/shoemoney/squad/actions/runs/45928957488),
+uses product head `659700128025546c20e3e2d5024ccaa678cbc3cb` and remains queued
+behind unrelated CI, which the user requested be left running. A manual
+300-second-per-viewport run of the final product is in progress; workflow acceptance
+remains pending. Original supplied macOS draw p95 was 10.8–11.6 ms in
+[run 45912463641](https://github.com/shoemoney/squad/actions/runs/45912463641).
 
 ## Scoped memory audit on dev2 — 2026-11-26
 

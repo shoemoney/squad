@@ -1,0 +1,7 @@
+Product: 659700128025546c20e3e2d5024ccaa678cbc3cb
+Benchmark-only Clippy spelling: 7970c22
+CARGO_BUILD_JOBS=4 cargo test --workspace --no-fail-fast: PASS (exit 0), 1302 passed, 4 ignored
+CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings: PASS (exit 0)
+cargo fmt --all -- --check: PASS
+git diff --check: PASS
+All existing insta snapshots unchanged.
