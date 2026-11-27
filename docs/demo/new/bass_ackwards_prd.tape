@@ -42,7 +42,7 @@ Sleep 1s
 # Preflight card: confirm
 Type "y"
 # 3. Human step: add one note at LAST LOOK, then continue to saving
-Wait+Screen@1200s /LAST LOOK/
+Wait+Screen@1200s /continue to save/
 Sleep 6s
 Type "/answer Add an explicit rollback step for the alerting rollout."
 Sleep 800ms

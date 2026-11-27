@@ -15,7 +15,7 @@ Set TypingSpeed 45ms
 Set WindowBar Colorful
 
 Hide
-Type 'unset NO_COLOR; export HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear'
+Type 'unset NO_COLOR; export HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_JUDGE_REASONING_EFFORT=medium SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear'
 Enter
 Sleep 1s
 Show

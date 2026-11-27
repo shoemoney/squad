@@ -17,7 +17,7 @@ Set TypingSpeed 45ms
 Set WindowBar Colorful
 
 Hide
-Type 'unset NO_COLOR; export TERM=xterm-256color HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear'
+Type 'unset NO_COLOR; export TERM=xterm-256color HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_JUDGE_REASONING_EFFORT=medium SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear'
 Enter
 Type '(sleep 800; tmux -L demo send-keys -t r F7) >/dev/null 2>&1 &'
 Enter
