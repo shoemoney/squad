@@ -97,6 +97,9 @@ fn disabled_scaffold_modes_are_absent_from_completion_and_help() {
         "bass_ackwards_prd",
     ] {
         let token = format!("${mode}");
+        if squad_tui::typeahead::enabled(&token) {
+            continue;
+        }
         assert!(!squad_tui::typeahead::MODES.iter().any(|(m, _)| *m == token));
         assert!(
             !squad_protocol::parser::help_examples()

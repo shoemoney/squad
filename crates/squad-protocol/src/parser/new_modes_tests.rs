@@ -79,7 +79,7 @@ fn new_mode_examples_and_refusals() {
             }
         }
         let result = if case["condition"] == "disabled" {
-            run()
+            with_mode_enablement(false, run)
         } else {
             with_new_modes(run)
         };
