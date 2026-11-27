@@ -112,6 +112,10 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
         .completed
         .generation
         .message_id;
+    let verdict_key = squad_tui::fx::FxKey::Catalogue {
+        effect: CatalogueEffect::Verdict,
+        target: contest.to_string(),
+    };
     for i in 1..=10_000u128 {
         let id = format!("00000000-0000-7000-8000-{i:012x}").parse().unwrap();
         app.session.transcript.complete(id,Actor::Member(Nick::new("claude").unwrap()),1,"A cached historical answer with **evidence**, 世界 and a grapheme-safe reply.\n\n```rust\nfn answer() -> u32 { 42 }\n```".into());
@@ -288,7 +292,10 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
                     app.composed.top,
                     app.composed.viewport,
                 );
-                if !visible.is_empty() && elapsed.as_secs() % 8 == 0 {
+                if !visible.is_empty()
+                    && app.fx.contains(&verdict_key)
+                    && elapsed.as_secs() % 8 == 0
+                {
                     visible_verdict_frames += 1;
                 }
             }
