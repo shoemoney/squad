@@ -1,5 +1,38 @@
 # M6 performance measurements
 
+## v0.2.0 integration check on dev2 — 2026-11-26
+
+Source `7753b71ff5928188e5b07d3643f9fdd847b52c4c` integrates dirty-card rendering
+and nine enabled new modes (sixteen total). With four build jobs, both benchmark
+targets finished building before sampling. Each viewport ran for thirty seconds,
+with all original hard thresholds enforced and historical mode off. These short
+integrated checks passed; the longer hueb acceptance evidence follows below.
+
+Full-effects composed streams, 10,000 retained history cards and twelve streams:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Resize frame max ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 0.808 / 1.084 | 16.268 | 3.696 | 40.029 |
+| 80x24 | 0.488 / 0.633 | 16.298 | 3.915 | 137.342 |
+| 200x60 | 1.109 / 1.460 | 16.387 | 4.695 | 32.014 |
+
+Each viewport includes six real resize frames and 240 frames with a visible verdict.
+Resize stalls remain in the inclusive timing records; the maximum observed
+composed RSS was 200,960 KiB.
+
+The separate twelve-stream fixture, with effects off:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core |
+|---|---:|---:|---:|
+| 120x36 | 0.176 / 0.206 | 15.861 | 0.867 |
+| 80x24 | 0.108 / 0.128 | 15.814 | 0.533 |
+
+[Raw logs, environment and source](reports/v0.2.0-integration-step5/) and
+[machine-readable summary](reports/v0.2.0-integration-step5/summary.json).
+Trace and Debug remain pending enablement; the final all-mode integration review
+will follow their merge notice.
+
+
 ## Dirty-card preparation — 2026-11-27
 
 Corrected-fixture gates pass on dev3 (30 seconds per viewport) and hueb

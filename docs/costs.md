@@ -151,6 +151,7 @@ are recorded in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md).
 | Readback | AWAITING_HUMAN, choices required | $0.428807 | 57.114 s | 8 / 12 | $10.961076 | $10.961076 | $6.724861 / 0 |
 | Tune | COMPLETE, tuned | $0.522077 | 134.272 s | 34 / 35 | $24.970323 | $24.970323 | $0.000000 / 0 |
 | Bass Ackwards PRD | COMPLETE, saved | $2.552690 | 410.874 s | 28 / 33 | $50.711781 | $50.711781 | $0.000000 / 0 |
+| Negotiate | COMPLETE, rehearsed | $1.591324 | 274.577 s | 29 / 39 | $32.021214 | $32.021214 | $0.000000 / 0 |
 
 ### Original timeout holds reconciled
 
@@ -177,3 +178,13 @@ held-out cases. The exported task-specific held-out score improved from 0.03 to
 | Judge freeze and score | 4 | $0.221576 |
 | Startup probes | 4 | $0.001536 |
 | Total | 35 | $0.522077 |
+
+### Integrated Negotiate retries and outcomes
+
+Default six members and three rounds produced twenty-nine completed work items.
+Six first member outputs exceeded their word budgets and repaired privately: one
+map, two moves and three counterpart replies. Thirty-five mode attempts plus
+four startup probes cost $1.591324. Both judge calls passed on the first attempt.
+One table ended in a deal; two reached the round ceiling unfinished; none were
+abandoned. Final reservation and unknown calls are zero. The preflight bound is
+29 calls / 60 reserved attempts; the estimated cost was $12.431808.

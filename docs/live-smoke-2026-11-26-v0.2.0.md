@@ -6,9 +6,9 @@ with the dev1 `aigate-key openrouter` helper and captured directly into the chil
 environment. No real env file or credential is saved. Raw artifacts are scanned
 for the credential value before a summary is reported.
 
-## Tested snapshot
+## Tested snapshots
 
-The runs below use source `c7c20ff08600246606effe917e5eb7ab7adeac8c`, version
+The first eight runs use source `c7c20ff08600246606effe917e5eb7ab7adeac8c`, version
 0.2.0. The binary is snapshotted at `/tmp/squad-v020-build-c7c20ff/squad`; its SHA-256
 is recorded in `build.json` there and each run's `summary.json`. Resolved default
 members are Claude Opus 5.5, Claude Fable 5.2, GPT-6.2 Sol, Gemini 4 Neon, Grok 4.7
@@ -25,6 +25,7 @@ resolved-model cache and frozen preflight.
 | Readback | 0 / AWAITING_HUMAN, choices required | $0.428807 | 57.114 s | $10.961076 / $10.961076 | $6.724861 / 0 | `/tmp/squad-v020-readback-qpox1sy9/` |
 | Tune | 0 / COMPLETE, tuned | $0.522077 | 134.272 s | $24.970323 / $24.970323 | $0.000000 / 0 | `/tmp/squad-v020-tune-voxbepir/` |
 | Bass Ackwards PRD | 0 / COMPLETE, saved | $2.552690 | 410.874 s | $50.711781 / $50.711781 | $0.000000 / 0 | `/tmp/squad-v020-bass_ackwards_prd-rklsr3wq/` |
+| Negotiate | 0 / COMPLETE, rehearsed | $1.591324 | 274.577 s | $32.021214 / $32.021214 | $0.000000 / 0 | `/tmp/squad-v020-negotiate-iocxpej9/` |
 
 Rank used fifteen pairs, replication three and forty-five judgments. All six
 batches were accepted; Claude's first batch needed its one private validation
@@ -35,10 +36,9 @@ Forge used all fifteen normal mode calls without retries, plus four startup
 probes. It returned the best original verbatim, with no judge failure. Credential-free
 offline export passed.
 
-All eight enabled additions have had one integrated invocation. Seven reached
+Nine enabled additions have had one integrated invocation. Eight reached
 `COMPLETE`; Readback returned zero at its documented human pause. None ended
-`judge_failed`. Trace, Debug, Negotiate and the rendering-performance branch
-await the owner's merge notice.
+`judge_failed`. Trace and Debug await the owner's merge notice.
 
 ## Delayed receipt repair on the original evidence
 
@@ -77,8 +77,37 @@ The startup receipt-owner guard at `8bade6d08529e9d688141ebde576cae6cd4d57cc`
 passed all required workspace gates and an explicit release build. Its private
 binary snapshot and SHA-256 are in `/tmp/squad-v020-build-8bade6d/build.json`.
 The paid invocations above retain the earlier integrated source and binary hash.
-Total observed spend across the eight fresh smoke rooms is $6.379471.
+The first eight fresh rooms spent $6.379471. Including Negotiate, observed spend
+across nine smoke rooms is $7.970795.
 
 The saved PRD path is `/tmp/squad-v020-bass_ackwards_prd-rklsr3wq/data/exports/prd-self-hosted-status-page-with-outage-alerts-01a21b55-edfa-73da-8505-e8c9ef373546.md` (mode 0600,
 SHA-256 `6c36d8f59f9ed41eea72ef0ed9e3443ce5264a179c4608ddac93c9bde0c0360e`). Its content occurs verbatim in the full evidence
 export. File metadata is retained in the run's `saved-path.json`.
+
+## Negotiate on the later integrated snapshot
+
+Negotiate uses source `7753b71ff5928188e5b07d3643f9fdd847b52c4c`, snapshot
+`/tmp/squad-v020-build-7753b71/squad`, with SHA-256
+`e66f4c126c012f17d257aa28bbbe7506cf196c06444e4e4c10652c733ed443c7`.
+The default six-member roster rehearsed all three default rounds at three tables.
+All twenty-nine work items completed: one table ended in a deal and two were
+unfinished at the round ceiling, with none abandoned. Six first member answers
+exceeded their word budgets and received their one private validation repair
+(one map, two moves and three counters). Both judge stages passed first try.
+Thirty-five mode attempts plus four startup probes settled to $1.591324 in
+274.577 seconds. Preflight estimated $12.431808 and reserved sixty attempts;
+initial reservation was $32.021214. Final reservation and unknown calls are zero.
+The credential-free offline export passed.
+
+Excerpt from the actual role/outcome table:
+
+| Table | Negotiator | Counterpart | Outcome | Rounds |
+|---|---|---|---|---:|
+| 1 | @grok | @muse | deal | 3 |
+| 2 | @openai | @fable | unfinished | 3 |
+| 3 | @claude | @gemini | unfinished | 3 |
+
+Raw run evidence is `/tmp/squad-v020-negotiate-iocxpej9/`, including the frozen
+plan, ledger, resolved roster, provider-call summaries and `report.md`. Integrated
+composed and twelve-stream performance checks also pass at this source; their
+logs are committed under `docs/reports/v0.2.0-integration-step5/`.

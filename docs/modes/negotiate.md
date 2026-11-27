@@ -89,8 +89,7 @@ The report contains roles, supplied/inferred interests, BATNAs, ZOPA, packages,
 table transcripts and outcomes, playbook, assumptions and skipped work. The human
 sees all briefs with the hypothetical warning. Outcome counts are application
 computed. Breach flags come from the judge's `unrealisticConcessions`, not a claim
-about the actual counterpart. Narrow layouts stack tables; the owned
-`render_width` supports side-by-side wide layouts.
+about the actual counterpart. Wide layouts show tables side by side; narrow layouts stack them.
 
 ```text
 /export negotiate
@@ -105,7 +104,9 @@ members and committed table outcomes even when no playbook was completed.
 
 ## Example run
 
-The integrated release smoke is pending the current workspace gates.
+The integrated release smoke completed on source `7753b71`: one deal and two
+unfinished tables after three rounds, with no abandoned tables or judge failure.
+Measured cost and reservation details are recorded below.
 
 The credential-free six-member R=3 wiremock workflow completes 29 calls, reserves
 60 attempts and finishes three tables as `unfinished`. Separate workflows verify
@@ -180,3 +181,31 @@ and compositor width call are listed above. M8.P5 has eleven tasks complete and
 two open: the production wide-layout binding and public enable/live verification.
 No real provider call was made; live cost, wall time, reserved versus actual and
 a real report excerpt remain pending.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `7753b71` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `COMPLETE`, `rehearsed`; 29 planned mode calls and
+39 total provider attempts including startup. Spend was $1.591324, observed
+wall time 274.577 seconds, and initial/sample-peak reservation
+$32.021214/$32.021214. Final reserved funds were $0.000000 and unknown
+calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-negotiate-iocxpej9/`;
+see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).
+
+All twenty-nine work items completed. Six first member outputs exceeded their
+word budgets and received one private repair each: one map, two moves and three
+counterpart replies. Both judge stages passed first try. The full run used
+thirty-five mode attempts plus four startup probes. The initial preflight
+estimate was $12.431808, with sixty reserved attempts; all unknown calls and
+reservations settled to zero. One table reached a deal and two ended unfinished
+at the three-round ceiling. The exported role/outcome table and full build
+provenance are in the integration record.
+
+## Integrated validation
+
+All thirty-seven Negotiate checks pass, including the public OneShot production
+launcher and composed wide–narrow–wide viewport test. The full group passes fmt,
+all-target Clippy, 1,631 Cargo passing executions (one repeated WAL child),
+1,630 unique Nextest tests with four inherited skips in 190.567 seconds, doc
+tests and the explicit release build. The claim fixture uses four members so
+Negotiate's grammar participates in all 162 enabled-mode/active-kind cases.

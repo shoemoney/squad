@@ -1347,8 +1347,7 @@ The report contains roles, supplied/inferred interests, BATNAs, ZOPA, packages,
 table transcripts and outcomes, playbook, assumptions and skipped work. The human
 sees all briefs with the hypothetical warning. Outcome counts are application
 computed. Breach flags come from the judge's `unrealisticConcessions`, not a claim
-about the actual counterpart. Narrow layouts stack tables; the owned
-`render_width` supports side-by-side wide layouts.
+about the actual counterpart. Wide layouts show tables side by side; narrow layouts stack them.
 
 ```text
 /export negotiate

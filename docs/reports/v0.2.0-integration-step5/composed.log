@@ -1,0 +1,14 @@
+    Finished `bench` profile [optimized] target(s) in 0.11s
+     Running benches/composed_streams.rs (target/release/deps/composed_streams-a726aafd3cfaccd7)
+140x42 startup_ms=533.824
+140x42: resize_count=6 resize_call_p95_ms=0.024 resize_frame_p95_ms=40.029 resize_frame_max_ms=40.029 visible_verdict_frames=240 historical=false
+140x42: elapsed=30.029s frames=1793 deltas=14412 draw_p95_ms=0.808 draw_p99_ms=1.084 key_p95_ms=16.268 cpu_one_core_pct=3.696 VmHWM:	  195652 kB, VmRSS:	  195652 kB gate=PASS
+140x42: reducer_plus_draw_p95_ms=0.822 reducer_plus_draw_p99_ms=1.101 load_start=4.76 5.20 6.46 1/1856 1023308 load_end=3.61 4.88 6.31 1/1896 1025837
+80x24 startup_ms=498.416
+80x24: resize_count=6 resize_call_p95_ms=0.019 resize_frame_p95_ms=137.342 resize_frame_max_ms=137.342 visible_verdict_frames=240 historical=false
+80x24: elapsed=30.137s frames=1769 deltas=14412 draw_p95_ms=0.488 draw_p99_ms=0.633 key_p95_ms=16.298 cpu_one_core_pct=3.915 VmHWM:	  194352 kB, VmRSS:	  190372 kB gate=PASS
+80x24: reducer_plus_draw_p95_ms=0.508 reducer_plus_draw_p99_ms=0.663 load_start=3.61 4.88 6.31 3/1911 1025975 load_end=2.65 4.52 6.15 1/1852 1028583
+200x60 startup_ms=530.001
+200x60: resize_count=6 resize_call_p95_ms=0.047 resize_frame_p95_ms=32.014 resize_frame_max_ms=32.014 visible_verdict_frames=240 historical=false
+200x60: elapsed=30.032s frames=1796 deltas=14412 draw_p95_ms=1.109 draw_p99_ms=1.460 key_p95_ms=16.387 cpu_one_core_pct=4.695 VmHWM:	  200960 kB, VmRSS:	  200960 kB gate=PASS
+200x60: reducer_plus_draw_p95_ms=1.129 reducer_plus_draw_p99_ms=1.470 load_start=2.65 4.52 6.15 1/1852 1028616 load_end=2.30 4.26 6.01 2/1854 1031187

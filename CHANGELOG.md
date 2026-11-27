@@ -12,8 +12,8 @@ All notable changes to Squad will be documented in this file, following
 
 - Forge, Forecast, Decide, Negotiate, Blow It Up, Readback, Rank, Tune and Bass Ackwards PRD
   modes, including reports, export, recovery, cost previews and private repairs.
-- Eight integrated default six-member smoke invocations, with measured cost,
-  time and reservations in [cost evidence](docs/costs.md). Seven completed;
+- Nine integrated default six-member smoke invocations, with measured cost,
+  time and reservations in [cost evidence](docs/costs.md). Eight completed;
   Readback returned at its documented human pause. No run ended `judge_failed`.
 - Public preflight regressions for script-derived call and reservation counts,
   including Tune executors and optional PRD human review.
