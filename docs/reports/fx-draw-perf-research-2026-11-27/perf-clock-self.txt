@@ -1,0 +1,38 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 2K of event 'cpu-clock:u'
+# Event count (approx.): 2889889887
+#
+# Overhead  Symbol  IPC  [IPC Coverage]
+# ........  ............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................  ....................
+#
+  34.50%  [.] <alloc::collections::btree::map::BTreeMap<squad_protocol::identities::MessageId, alloc::collections::btree::set_val::SetValZST>>::insert  -  -
+  16.14%  [.] <squad_tui::composed::Composed>::prepare  -  -
+  8.87%  [.] <squad_tui::transcript::Transcript>::state_of  -  -
+  7.41%  [.] <squad_tui::transcript::Transcript>::sync_activity  -  -
+  4.68%  [.] __memcmp_evex_movbe  -  -
+  2.81%  [.] <unicode_segmentation::grapheme::Graphemes as core::iter::traits::iterator::Iterator>::next  -  -
+  1.91%  [.] <&ratatui_core::text::span::Span as ratatui_core::widgets::widget::Widget>::render  -  -
+  1.73%  [.] __memmove_avx512_unaligned_erms  -  -
+  1.63%  [.] <core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write  -  -
+  1.59%  [.] <squad_tui::app::App>::fx_context  -  -
+  1.35%  [.] <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&squad_protocol::identities::MessageId>  -  -
+  1.28%  [.] _int_free_merge_chunk  -  -
+  1.14%  [.] cfree@GLIBC_2.2.5  -  -
+  1.11%  [.] _int_malloc  -  -
+  1.04%  [.] <ratatui_core::buffer::cell::Cell>::reset  -  -
+  1.00%  [.] <str as ratatui_core::buffer::cell_width::CellWidth>::cell_width  -  -
+  0.97%  [.] <squad_tui::transcript::Transcript>::flush  -  -
+  0.66%  [.] unlink_chunk.isra.0  -  -
+  0.62%  [.] <unicode_segmentation::grapheme::GraphemeCursor>::grapheme_category  -  -
+  0.62%  [.] malloc  -  -
+  0.59%  [.] <ratatui_core::buffer::cell::Cell as core::cmp::PartialEq>::eq  -  -
+  0.59%  [.] <ratatui_core::buffer::cell::Cell>::set_symbol  -  -
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

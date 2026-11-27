@@ -1,0 +1,4 @@
+140x42 startup_ms=1135.334
+startup VmHWM:	  254228 kB, VmRSS:	  252280 kB
+140x42: elapsed=30.004s frames=1801 deltas=14412 draw_p95_ms=1.895 draw_p99_ms=2.509 key_p95_ms=17.706 cpu_one_core_pct=11.165 VmHWM:	  255932 kB, VmRSS:	  255932 kB gate=PASS
+140x42: reducer_plus_draw_p95_ms=2.965 reducer_plus_draw_p99_ms=4.300 load_start=0.47 0.84 0.88 1/1240 3754151 load_end=0.45 0.81 0.87 2/1250 3755886

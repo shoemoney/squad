@@ -1,0 +1,7 @@
+Events disabled
+140x42 startup_ms=1154.297
+Events enabled
+140x42: elapsed=20.002s frames=1201 deltas=9612 draw_p95_ms=2.944 draw_p99_ms=4.633 key_p95_ms=18.066 cpu_one_core_pct=14.748 VmHWM:	  254948 kB, VmRSS:	  254948 kB gate=PASS
+140x42: reducer_plus_draw_p95_ms=3.796 reducer_plus_draw_p99_ms=6.214 load_start=0.26 0.65 0.80 1/1246 3760803 load_end=0.19 0.61 0.79 2/1247 3761939
+[ perf record: Woken up 718 times to write data ]
+[ perf record: Captured and wrote 180.607 MB /tmp/fx-composed-clock.data (2887 samples) ]

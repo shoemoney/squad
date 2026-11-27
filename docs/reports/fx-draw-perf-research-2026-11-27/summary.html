@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{font-family:var(--font-sans);color:var(--foreground);margin:0}h3{font-size:17px;margin:8px 0}p{font-size:12px;color:var(--muted-foreground);margin:7px 0 16px}.row{display:grid;grid-template-columns:155px 1fr 65px;gap:10px;align-items:center;margin:13px 0;font-size:13px}.track{height:19px;background:var(--secondary);border-radius:4px}.bar{height:100%;border-radius:4px;background:var(--chart-1)}.value{font-family:var(--font-mono);text-align:right}.axis{display:flex;justify-content:space-between;margin-left:165px;margin-right:75px;font-size:11px;color:var(--muted-foreground)}.stack{display:flex;height:26px;border-radius:4px;overflow:hidden;margin-top:15px}.stack span{display:block}.legend{display:flex;gap:10px 18px;flex-wrap:wrap;font-size:12px;line-height:1.6;margin-top:12px}.dot{display:inline-block;width:9px;height:9px;margin-right:5px;border-radius:2px}.note{border-top:1px solid var(--border);padding-top:12px;margin-top:18px}@media(max-width:500px){.row{grid-template-columns:118px 1fr 54px;gap:6px;font-size:12px}.axis{margin-left:124px;margin-right:60px}}
+</style></head><body>
+<h3>History bookkeeping drives the slow draws</h3>
+<p>dev3 Linux · real composed renderer · 140×42 · 30 seconds per probe</p>
+<div class="row"><span>Full FX control</span><div class="track"><div class="bar" style="width:77.65%"></div></div><span class="value">3.106 ms</span></div>
+<div class="row"><span>Same renderer, FX off</span><div class="track"><div class="bar" style="width:72.775%;background:var(--chart-2)"></div></div><span class="value">2.911 ms</span></div>
+<div class="row"><span>History + activity probes</span><div class="track"><div class="bar" style="width:37.375%;background:var(--success)"></div></div><span class="value">1.495 ms</span></div>
+<div class="axis"><span>0</span><span>1</span><span>2</span><span>3</span><span>4 ms p95</span></div>
+<p>Bench-specific shortcuts show a 52% p95 reduction; product correctness fixes remain to be implemented.</p>
+<h3>Mean draw-time breakdown</h3>
+<div class="stack" role="img" aria-label="History checks 45.8%, activity scan 23.5%, source anchors 5.5%, static widgets 14.3%, other 10.9%"><span style="width:45.8%;background:var(--chart-1)"></span><span style="width:23.5%;background:var(--chart-2)"></span><span style="width:5.5%;background:var(--chart-3)"></span><span style="width:14.3%;background:var(--chart-4)"></span><span style="width:10.9%;background:var(--chart-5)"></span></div>
+<div class="legend"><span><i class="dot" style="background:var(--chart-1)"></i>History checks 45.8%</span><span><i class="dot" style="background:var(--chart-2)"></i>Activity scan 23.5%</span><span><i class="dot" style="background:var(--chart-3)"></i>Source anchors 5.5%</span><span><i class="dot" style="background:var(--chart-4)"></i>Static widgets 14.3%</span><span><i class="dot" style="background:var(--chart-5)"></i>Other 10.9%</span></div>
+<p class="note">Supplied Mac p95: 10.8–11.6 ms against an 8 ms gate. Mac improvements are estimates until measured on hueb. The gate also needs real backend resize and visible-verdict coverage.</p>
+</body></html>

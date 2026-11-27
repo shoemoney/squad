@@ -1,0 +1,36 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 4K of event 'cpu/cycles/P'
+# Event count (approx.): 14701497770
+#
+# Overhead  Symbol  IPC  [IPC Coverage]
+# ........  ............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................  ....................
+#
+  36.73%  [.] <alloc::collections::btree::map::BTreeMap<squad_protocol::identities::MessageId, alloc::collections::btree::set_val::SetValZST>>::insert  -  -
+  26.68%  [.] <squad_tui::transcript::Transcript>::state_of  -  -
+  3.24%  [.] <unicode_segmentation::grapheme::Graphemes as core::iter::traits::iterator::Iterator>::next  -  -
+  3.05%  [.] <squad_tui::composed::Composed>::prepare  -  -
+  2.54%  [.] _int_malloc  -  -
+  2.09%  [.] <squad_tui::transcript::Transcript>::sync_activity  -  -
+  1.67%  [.] <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&squad_protocol::identities::MessageId>  -  -
+  1.53%  [.] <squad_tui::app::App>::fx_context  -  -
+  1.45%  [.] <&ratatui_core::text::span::Span as ratatui_core::widgets::widget::Widget>::render  -  -
+  1.33%  [.] _int_free_merge_chunk  -  -
+  1.26%  [.] <core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write  -  -
+  1.26%  [.] __memcmp_evex_movbe  -  -
+  1.20%  [.] <squad_tui::transcript::Transcript>::flush  -  -
+  0.82%  [.] <ratatui_core::buffer::diff::BufferDiff as core::iter::traits::iterator::Iterator>::next  -  -
+  0.73%  [.] <ratatui_core::buffer::buffer::Buffer>::index_of  -  -
+  0.73%  [.] <ratatui_widgets::clear::Clear as ratatui_core::widgets::widget::Widget>::render  -  -
+  0.71%  [.] <ratatui_core::buffer::cell::Cell as core::cmp::PartialEq>::eq  -  -
+  0.60%  [.] cfree@GLIBC_2.2.5  -  -
+  0.57%  [.] <alloc::vec::Vec<ratatui_core::text::span::Span> as core::clone::Clone>::clone  -  -
+  0.54%  [.] <str as ratatui_core::buffer::cell_width::CellWidth>::cell_width  -  -
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#
