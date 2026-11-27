@@ -65,6 +65,25 @@ fn selecting_marker_shows_only_its_quoted_evidence() {
     assert!(v.inspect().iter().any(|s| s.contains("S1 bytes 0..32")));
     v.select_claim("[C2]");
     assert!(v.inspect().is_empty());
+    let mut app = squad_tui::app::App::new(
+        squad_tui::fx::TerminalCaps::resolve(|_| None, false, ratatui::layout::Size::new(100, 30))
+            .unwrap(),
+    );
+    app.session.contests.entry(c).or_default().trace = v;
+    use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+    app.handle(
+        Event::Key(KeyEvent::new(KeyCode::F(9), KeyModifiers::NONE)),
+        std::time::Duration::ZERO,
+    );
+    let view = &app.session.contests[&c].trace;
+    assert_eq!(view.selected_claim.as_deref(), Some("C1"));
+    assert!(
+        view.inspect()
+            .iter()
+            .any(|line| line.contains("S1 bytes 0..32"))
+    );
+    assert!(!app.select_trace_claim("[C2]"));
+    assert!(app.pending.is_none());
 }
 #[test]
 fn discovery_and_tip_rotation_follow_activation() {

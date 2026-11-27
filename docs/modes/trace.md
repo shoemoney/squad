@@ -22,7 +22,7 @@ room participates. The packet and all later bounded steps must fit every
 assigned model's context; an oversized request returns `CONTEXT_TOO_LARGE`
 before any contest call.
 
-After integration and activation, a headless invocation is:
+A headless invocation is:
 
 ```sh
 squad send '@all $trace What is the retention period?
@@ -91,8 +91,7 @@ custom twelve-seat roster requires twelve `SQUAD_MODEL_<NICK>` settings.
 The report contains `[C1]`-style markers, claim statuses, support and counter-quotes
 with source numbers and byte spans, independent-source and contributor counts,
 verifier notes, qualifier quotes, flagged claims, missing quotes and skipped
-members. The owned view exposes claim-marker inspection through
-`View::select_claim`; shared input wiring is listed below.
+members. Press F9 to select the next claim marker and inspect its quotes and source numbers.
 
 ```text
 /export trace <contest-id>
@@ -128,40 +127,13 @@ This is test evidence, not a paid live run. No live cost or wall time is claimed
 
 ## Integration status
 
-The owned implementation remains disabled until the shared runtime is integrated.
-In `crates/squad-core/src/runtime/judge.rs`, the outer `Executor::execute` direct
-runner condition must include `grant.work.kind.new_mode_judge()`. Its inner
-handler already registers Trace; the outer wrapper currently routes it to the
-ordinary judge adapter instead. This shared file is integrator-owned and was not
-edited here. Until this is fixed, the real room cannot finish the merge step, so
-paid smoke and activation are deferred.
-
-The shared TUI input handler must call `contest.trace.select_claim(...)` when a
-claim marker is selected; the trace view itself implements selection and evidence
-inspection. The shared composer example list also needs a parser-checked Trace
-example for TIP rotation. Typeahead and help already derive their lists from
-`trace::ENABLED`. On activation the integrator must update shared enabled-mode
-expectations, without changing the original parser fixtures.
-
-The full-room regression was explicitly run with temporary activation on
-2026-11-26: six extraction provider requests completed, then the room stalled at
-`MERGING` before any judge provider request. The switch was restored to false.
-`full_room_runtime_completes_trace_after_outer_dispatch_integration` is retained
-with an explicit integration-blocker ignore; run it with `--ignored` after fixing
-the dispatcher and enabling Trace. The normal owned harness invokes the same
-leased Trace executor directly and completes all fourteen calls, including both
-judge phases, with real router acceptance and accounting against Wiremock.
-
-The documented multiline start example and `/help` exposure pass the owned
-protocol test with temporary activation. Member invocations use the binding
-2,048-visible-token ceiling. Prose budgets exclude identifiers, enums and
-numbers. Private seed, reader permutation and verifier assignment snapshots are
-persisted in `contest_private_maps` before dependent work is dispatched.
-
-Verification and assembly requests include a lossless quote pool: claims reference
-quote IDs, and each verified quote and byte span appears once per request. The
-stored ledger and export retain the full claim-to-quote relationships. This avoids
-repeating long evidence passages across many canonical claims inside paid prompts.
+Enabled on `integration-v0.2.0`. The common outer dispatcher already routes all
+new-mode work to its structured executor. The previously ignored full-room
+regression now completes all fourteen provider calls through RoomHandle and is
+un-ignored. The parser-checked Trace TIP is present. F9 cycles claim markers and
+shows their source quotes and byte spans; the real App key path is covered.
+The redundant Trace-only system-header rewrite is removed in favor of the
+central blind judge manifest, preserving the complete mode system instruction.
 
 ## Validation
 

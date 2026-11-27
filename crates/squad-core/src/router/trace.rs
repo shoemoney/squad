@@ -977,11 +977,6 @@ fn allocate(
             )
         };
         let system = render("system")?;
-        let system = if kind == WorkKind::TraceMerge {
-            script::blind_system(&system)
-        } else {
-            system
-        };
         let bundle = serde_json::json!({"repairTemplate":frozen["repairTemplate"],"round":s.round,"data":data,"wordLimit":words,"model":model,"rendered":{"system":system,"user":render("user")?,"provider_user_name":"squad"}});
         let item = Work {
             work_id: WorkId::new(),

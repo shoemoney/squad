@@ -48,6 +48,31 @@ impl View {
             _ => {}
         }
     }
+    pub fn claim_ids(&self) -> Vec<String> {
+        let Some(state) = &self.state else {
+            return vec![];
+        };
+        let mut ids = std::collections::BTreeSet::new();
+        for artifact in self
+            .artifacts
+            .values()
+            .filter(|a| a.contest_id == state.contest_id)
+        {
+            if let Some(body) = &artifact.body {
+                let ledger = match artifact.artifact_kind.as_str() {
+                    "trace.report" => validation::decode::<TraceReport>(body)
+                        .ok()
+                        .map(|r| r.ledger),
+                    "trace.ledger" => validation::decode::<TraceLedger>(body).ok(),
+                    _ => None,
+                };
+                if let Some(ledger) = ledger {
+                    ids.extend(ledger.claims.into_iter().map(|claim| claim.claim_id));
+                }
+            }
+        }
+        ids.into_iter().collect()
+    }
     pub fn select_claim(&mut self, id: &str) {
         self.selected_claim = Some(id.trim_matches(['[', ']']).into());
     }

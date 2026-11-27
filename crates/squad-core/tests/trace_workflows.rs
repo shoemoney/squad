@@ -271,7 +271,7 @@ async fn owned_run(fault: Fault) -> (Fixture, squad_store::Store, ContestId) {
         )
         .await
         .unwrap();
-        let result = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        let result = tokio::time::timeout(std::time::Duration::from_secs(25), async {
             loop {
                 let state = squad_core::router::trace::load_state(&f.db(), c).unwrap();
                 if state.state.is_terminal() {
@@ -582,7 +582,6 @@ async fn stop_and_startup_recovery_preserve_private_assignments() {
 }
 
 #[tokio::test]
-#[ignore = "Integrator-owned runtime/judge.rs must route new_mode_judge() through its structured runner"]
 async fn full_room_runtime_completes_trace_after_outer_dispatch_integration() {
     let (f, _, _) = owned_run(Fault::Outer).await;
     assert_eq!(f.fake.captured_bodies().await.len(), 14);

@@ -586,6 +586,42 @@ impl App {
         .flatten()
         .min()
     }
+    /// Select a source-backed claim marker in the latest Trace projection.
+    pub fn select_trace_claim(&mut self, marker: &str) -> bool {
+        let id = marker.trim_matches(['[', ']']);
+        let Some((_, contest)) = self
+            .session
+            .contests
+            .iter_mut()
+            .rev()
+            .find(|(_, contest)| contest.trace.claim_ids().iter().any(|claim| claim == id))
+        else {
+            return false;
+        };
+        contest.trace.select_claim(marker);
+        self.composed.invalidate_artifacts();
+        self.notice = Some(format!("Trace [{id}] · F9 next claim"));
+        self.dirty = true;
+        true
+    }
+    fn next_trace_claim(&mut self) {
+        let next = self.session.contests.values().rev().find_map(|contest| {
+            let ids = contest.trace.claim_ids();
+            if ids.is_empty() {
+                return None;
+            }
+            let index = contest
+                .trace
+                .selected_claim
+                .as_ref()
+                .and_then(|selected| ids.iter().position(|id| id == selected))
+                .map_or(0, |index| (index + 1) % ids.len());
+            Some(ids[index].clone())
+        });
+        if let Some(id) = next {
+            self.select_trace_claim(&id);
+        }
+    }
     pub fn handle(&mut self, event: Event, now: Duration) {
         if let Event::Resize(_, _) = event {
             self.fx.settle();
@@ -718,6 +754,10 @@ impl App {
                 match key.code {
                     KeyCode::Esc => {
                         self.escape(now);
+                        return;
+                    }
+                    KeyCode::F(9) => {
+                        self.next_trace_claim();
                         return;
                     }
                     KeyCode::F(8) => {

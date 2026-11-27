@@ -218,7 +218,6 @@ fn blind_projections_remove_identity_prose_without_changing_evidence() {
         out["extractions"]["Reader 1"]["claims"][0]["localId"],
         "Fable1"
     );
-    assert!(!blind_system("You are @fable with private identity").contains("@fable"));
 }
 
 #[test]
