@@ -84,3 +84,7 @@ Spend was $0.345117 including startup, observed wall time 80.682 seconds, and
 initial/peak reservation $24.736836. Final reserved funds and unknown calls were
 both zero. Credential-free offline export passed. Evidence:
 `/tmp/squad-v020-forge-xtnz6pme/`; see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).
+
+## Final integrated run (2026-11-27)
+
+One `squad send` from the v0.2.0 release binary (SHA-256 `4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`, source `5afff2f`) on the built-in six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory and `--env-file /dev/null` reached **COMPLETE / original_won**, with no `judge_failed`. Wall time 80.158 s; actual cost **$0.441333** across 19 provider attempts including four startup probes; peak reservation **$24.736836**; final reservation **$0** with zero unknown-cost calls. Offline `export` succeeded. Measurements for all eleven new modes are in [docs/costs.md](../costs.md).

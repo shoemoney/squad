@@ -155,3 +155,7 @@ Validated on dev2 with `CARGO_BUILD_JOBS=4` at code head
 Only the 24 permitted repository paths changed. Eleven of fourteen Trace
 milestone tasks are checked off. `M8.P9.L4.T2`, `M8.P9.L5.T1` and
 `M8.P9.L5.T3` retain explicit integration reasons and partial evidence.
+
+## Final integrated run (2026-11-27)
+
+One `squad send` from the v0.2.0 release binary (SHA-256 `4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`, source `5afff2f`) on the built-in six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory and `--env-file /dev/null` reached **COMPLETE / complete**, with no `judge_failed`. Wall time 72.140 s; actual cost **$0.356130** across 18 provider attempts including four startup probes; peak reservation **$23.796411**; final reservation **$0** with zero unknown-cost calls. Offline `export` succeeded. Measurements for all eleven new modes are in [docs/costs.md](../costs.md).

@@ -6,20 +6,33 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-11-27
 
 ### Added
 
 - Forge, Forecast, Decide, Negotiate, Blow It Up, Readback, Debug, Trace, Rank, Tune and Bass Ackwards PRD
   modes, including reports, export, recovery, cost previews and private repairs.
-- Ten integrated default six-member smoke invocations, with measured cost,
-  time and reservations in [cost evidence](docs/costs.md). Nine completed;
-  Readback returned at its documented human pause. No run ended `judge_failed`.
+- Eleven integrated default six-member smoke invocations on one release binary
+  (`4bdcd35a…c8c613`), one per new mode, measured in [cost evidence](docs/costs.md).
+  All eleven reached `COMPLETE` with no `judge_failed`; total $10.13 and zero
+  reservations or unknown-cost calls left. Trace is enabled with structured judging
+  and claim selection.
 - Public preflight regressions for script-derived call and reservation counts,
   including Tune executors and optional PRD human review.
 
+### Performance
+
+- Composed rendering publishes only dirty transcript cards and reuses layout anchors.
+  On the hueb macOS runner (Apple M3 Ultra, 300 s per viewport, 10,000 history
+  cards, twelve 40-delta/s streams) draw p95 fell from 10.8-11.6 ms to
+  2.6 / 0.9 / 3.7 ms at 140x42 / 80x24 / 200x60, under the 6 ms target; key p95
+  is 18.8-20.0 ms and the maximum resize frame 74 / 137 / 77 ms. See
+  [performance](docs/performance.md).
+
 ### Fixed
 
+- Delayed receipts for timed-out and cancelled attempts are reconciled, so holds
+  no longer outlive their charges (every integrated run ended at $0 reserved).
 - Doctor warns when the data directory permits group/world access and prints
   a quoted `chmod 700` fix, including macOS’s shared config/data folder.
 - Publish only dirty transcript cards and account for activity on events; reuse

@@ -85,3 +85,7 @@ Another member used one private repair. The judge still completed the report
 without `judge_failed`. Both timeout receipts reconciled during the run; no
 reopen or manual ledger edit was needed. Sixteen mode attempts and four startup
 probes settled to $1.469007.
+
+## Final integrated run (2026-11-27)
+
+One `squad send` from the v0.2.0 release binary (SHA-256 `4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`, source `5afff2f`) on the built-in six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory and `--env-file /dev/null` reached **COMPLETE / reported**, with no `judge_failed`. Wall time 197.393 s; actual cost **$1.765600** across 19 provider attempts including four startup probes; peak reservation **$20.574231**; final reservation **$0** with zero unknown-cost calls. Offline `export` succeeded. Two failed attempts ($0.100000) settled and the report still completed. Measurements for all eleven new modes are in [docs/costs.md](../costs.md).

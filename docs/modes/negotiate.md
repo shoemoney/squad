@@ -209,3 +209,7 @@ all-target Clippy, 1,631 Cargo passing executions (one repeated WAL child),
 1,630 unique Nextest tests with four inherited skips in 190.567 seconds, doc
 tests and the explicit release build. The claim fixture uses four members so
 Negotiate's grammar participates in all 162 enabled-mode/active-kind cases.
+
+## Final integrated run (2026-11-27)
+
+One `squad send` from the v0.2.0 release binary (SHA-256 `4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`, source `5afff2f`) on the built-in six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory and `--env-file /dev/null` reached **COMPLETE / rehearsed**, with no `judge_failed`. Wall time 376.767 s; actual cost **$2.022003** across 41 provider attempts including four startup probes; peak reservation **$32.021214**; final reservation **$0** with zero unknown-cost calls. Offline `export` succeeded. Measurements for all eleven new modes are in [docs/costs.md](../costs.md).

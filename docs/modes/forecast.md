@@ -164,3 +164,7 @@ wall time 105.725 seconds, and initial/sample-peak reservation
 $20.188827/$20.188827. Final reserved funds were $0.000000 and unknown
 calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-forecast-7k6pluyb/`;
 see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).
+
+## Final integrated run (2026-11-27)
+
+One `squad send` from the v0.2.0 release binary (SHA-256 `4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`, source `5afff2f`) on the built-in six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory and `--env-file /dev/null` reached **COMPLETE / complete**, with no `judge_failed`. Wall time 127.760 s; actual cost **$0.471815** across 18 provider attempts including four startup probes; peak reservation **$20.188827**; final reservation **$0** with zero unknown-cost calls. Offline `export` succeeded. Measurements for all eleven new modes are in [docs/costs.md](../costs.md).

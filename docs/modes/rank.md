@@ -94,3 +94,7 @@ All-target workspace Clippy with warnings denied and formatting checks pass. No 
 ## Integration verification (2026-11-26)
 
 The public OneShot RoomHandle tests complete and export a six-member ranking with seven calls and no remaining reservation. A first invalid member batch receives exactly one private repair; the resulting run completes in eight calls. All nine workflow tests and seven tally/design tests pass, including the two-member design boundary and deterministic fitted bits. The shared blind-header regression covers all twenty-four new-mode judge compositions. Full workspace gates passed with 1,584 unique Nextest tests and four inherited skips; the paid integration smoke completed as recorded above.
+
+## Final integrated run (2026-11-27)
+
+One `squad send` from the v0.2.0 release binary (SHA-256 `4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`, source `5afff2f`) on the built-in six-member roster, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory and `--env-file /dev/null` reached **COMPLETE / ranked**, with no `judge_failed`. Wall time 33.562 s; actual cost **$0.155734** across 11 provider attempts including four startup probes; peak reservation **$18.024576**; final reservation **$0** with zero unknown-cost calls. Offline `export` succeeded. Measurements for all eleven new modes are in [docs/costs.md](../costs.md).

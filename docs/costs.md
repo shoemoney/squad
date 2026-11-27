@@ -133,27 +133,42 @@ The original seven contest modes and ordinary chat are measured in this study. T
 
 ## v0.2.0 integrated default-roster measurements
 
-These runs use release 0.2.0, the built-in **six-member** roster and judge,
-`SQUAD_DAILY_MAX_USD=150`, a fresh private data directory per mode, and
-`--env-file /dev/null`. Credentials enter the process environment off-screen.
-Each row is one paid contest start; Debug includes three `/answer` continuations
-and operator observation time. Wall time runs from process launch to
-observed exit (0.5-second polling); reservation peaks are sampled at that interval.
-Actual spend includes startup probes. Source/binary provenance and further runs
-are recorded in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md).
+Measured 2026-11-27 on dev2 with one release binary built from `5afff2f`
+(`cargo build --release --locked -p squad-cli`, SHA-256
+`4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`). All eleven
+new modes ran once, in parallel, on the built-in **six-member** roster and judge
+(no `SQUAD_MODEL_*` overrides), `SQUAD_DAILY_MAX_USD=150`, a fresh private data
+directory per mode and `--env-file /dev/null`. The OpenRouter credential entered
+each process environment directly from the vault; nothing was logged or saved,
+and every artifact was scanned for it.
 
-| Mode | Outcome | Actual | Wall | Preflight call bound / provider attempts incl. startup | Initial reserved | Sampled peak | Final reserved / unknown |
-|---|---|---:|---:|---:|---:|---:|---|
-| Rank | COMPLETE, ranked; one member repair | $0.190184 | 38.636 s | 7 / 12 | $18.024576 | $18.024576 | $0 / 0 |
-| Forge | COMPLETE, original_won | $0.345117 | 80.682 s | 15 / 19 | $24.736836 | $24.736836 | $0 / 0 |
-| Forecast | COMPLETE, complete | $0.470614 | 105.725 s | 14 / 18 | $20.188827 | $20.188827 | $0.000000 / 0 |
-| Decide | COMPLETE, complete | $0.400975 | 69.135 s | 14 / 18 | $16.400079 | $16.400080 | $0.000000 / 0 |
-| Blow It Up | COMPLETE, reported | $1.469007 | 265.024 s | 13 / 20 | $20.574231 | $20.574231 | $0.000000 / 0 |
-| Readback | AWAITING_HUMAN, choices required | $0.428807 | 57.114 s | 8 / 12 | $10.961076 | $10.961076 | $6.724861 / 0 |
-| Tune | COMPLETE, tuned | $0.522077 | 134.272 s | 34 / 35 | $24.970323 | $24.970323 | $0.000000 / 0 |
-| Bass Ackwards PRD | COMPLETE, saved | $2.552690 | 410.874 s | 28 / 33 | $50.711781 | $50.711781 | $0.000000 / 0 |
-| Negotiate | COMPLETE, rehearsed | $1.591324 | 274.577 s | 29 / 39 | $32.021214 | $32.021214 | $0.000000 / 0 |
-| Debug | COMPLETE, isolated | $1.940283 | 971.115 s | 29 / 37 | $41.175132 | $41.175132 | $0.000000 / 0 |
+Each row is one paid contest start. Readback includes its one `/answer`
+continuation and Debug its two (the round-2 answer isolated the cause), so
+their wall time is the sum of active sends and excludes human think time.
+Wall time is process launch to exit with eleven contests sharing the machine,
+and peaks are the `spend_daily` reservation sampled every 0.5 s. Actual spend
+is the ledger total including four startup probes. Every attempt was then looked
+up on OpenRouter's generation endpoint: **all 251 of 251 were found and their sum
+matched the ledger to within one microdollar per run**.
+
+| Mode | Outcome | Actual | Wall | Preflight calls / provider attempts incl. startup | Peak reserved | Final reserved / unknown |
+|---|---|---:|---:|---:|---:|---|
+| Rank | COMPLETE, ranked | $0.155734 | 33.562 s | 7 / 11 | $18.024576 | $0 / 0 |
+| Forge | COMPLETE, original_won | $0.441333 | 80.158 s | 15 / 19 | $24.736836 | $0 / 0 |
+| Forecast | COMPLETE, complete | $0.471815 | 127.760 s | 14 / 18 | $20.188827 | $0 / 0 |
+| Decide | COMPLETE, complete | $0.443567 | 94.179 s | 14 / 18 | $16.400080 | $0 / 0 |
+| Blow It Up | COMPLETE, reported (two failed attempts, $0.100000) | $1.765600 | 197.393 s | 13 / 19 | $20.574231 | $0 / 0 |
+| Readback | COMPLETE, rounds_complete (R=1, `1a` answered) | $0.420513 | 44.090 s | 8 / 13 | $10.961076 | $0 / 0 |
+| Tune | COMPLETE, tuned | $0.552148 | 114.711 s | 34 / 35 | $24.970323 | $0 / 0 |
+| Bass Ackwards PRD | COMPLETE, saved | $2.146136 | 411.352 s | 28 / 32 | $50.711781 | $0 / 0 |
+| Negotiate | COMPLETE, rehearsed | $2.022003 | 376.767 s | 29 / 41 | $32.021214 | $0 / 0 |
+| Debug | COMPLETE, isolated (round 2; two failed attempts, $0.041460) | $1.357046 | 451.384 s | 29 / 27 | $41.175132 | $0 / 0 |
+| Trace | COMPLETE, complete | $0.356130 | 72.140 s | 14 / 18 | $23.796411 | $0 / 0 |
+
+Debug isolated after two of its three allowed rounds, so it used fewer calls than
+its bound. The eleven runs cost **$10.13** in total. Earlier per-mode evidence
+(different binaries, 2026-11-26) is in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md)
+and each mode's page.
 
 ### Original timeout holds reconciled
 
