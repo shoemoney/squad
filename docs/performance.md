@@ -1,5 +1,47 @@
 # M6 performance measurements
 
+## Dirty-card preparation — 2026-11-27
+
+Measured on dev3 (AMD Ryzen 9 8945HX, Linux x86_64, Rust 1.99.1), optimized
+bench, `CARGO_BUILD_JOBS=4`, 30 seconds per viewport. Builds and measurements
+ran sequentially. Full effects, 60-Hz scheduling, real widgets, 10,000 retained
+history cards and twelve 40-delta/s streams remain enabled. No thresholds changed.
+
+The corrected fixture resizes TestBackend with Terminal and anchors at the verdict
+widget's header before emitting its live cue. It asserts verdict visibility during
+the painter window. Resize frames remain in all inclusive latency percentiles;
+the log also reports resize-call and full resize-frame stalls separately.
+`COMPOSED_HISTORICAL=1` retains the original fixture behavior as a comparator;
+older results below used that behavior and did not exercise actual width reflow.
+
+| Viewport | Before draw p95 / p99 ms | Dirty-card draw p95 / p99 ms | Before / dirty key p95 ms | Before / dirty CPU % one core | Before / dirty ending RSS KiB |
+|---|---:|---:|---:|---:|---:|
+| 140x42 | 3.173 / 5.561 | 1.375 / 1.962 | 490.049 / 419.914 | 27.868 / 17.407 | 261976 / 195084 |
+| 80x24 | 2.815 / 5.276 | 1.113 / 1.475 | 404.681 / 419.890 | 26.019 / 16.206 | 256680 / 189792 |
+| 200x60 | 3.501 / 6.000 | 1.844 / 2.512 | 454.716 / 521.957 | 29.545 / 21.229 | 270272 / 203360 |
+
+These short corrected-fixture windows **fail the key-latency gate**. Each includes
+six real width changes. Before maximum resize-frame stalls were 792.389,
+789.332 and 791.800 ms; after dirty preparation they were 835.527, 815.787 and
+835.472 ms. Removing per-frame history scans improves draw latency and CPU but
+does not fix synchronous full-history width reflow. Completed fence parser state
+release reduces ending RSS by approximately 65.3 MiB in each viewport.
+
+Dirty publication retains one revision entry per message, rather than an unbounded
+chunk journal. Completion, failure, cancellation, retry and supersession publish
+identities immediately; pending deltas publish text at the 50-ms flush. Preparation
+reads CardState directly from the borrowed card. Activity counts change on actual
+insertions and follow transitions; ticks and draws perform no history insertions.
+Restore preserves surviving unread identities while older replayed cards count as
+seen. Completed Markdown keeps source and styled/wrapped rows and releases its
+incremental fence parser/highlighter state.
+
+[Raw before/after logs](reports/perf-dirty-cards-2026-11-27/) include startup,
+frame/delta counts, load, inclusive percentiles, resize stalls and RSS.
+The first macOS dispatch is [run 45927912562](https://github.com/shoemoney/squad/actions/runs/45927912562),
+head `06ceab74eed4e1fdaaf95612d914bc53d8e679c2`; it is queued behind unrelated CI.
+Mac acceptance and subsequent resize work remain pending.
+
 ## Scoped memory audit on dev2 — 2026-11-26
 
 Host: shared dev2, Linux x86_64, kernel 7.0.0-43-generic, AMD Ryzen 9 8945HX (32 logical CPUs), Rust 1.99.1. Debug test binaries, built with `CARGO_BUILD_JOBS=4`. These measurements use library/runtime test processes and do not certify the isolated four-core/8-GB reference-machine profile or an integrated physical-terminal/full-effects run. No live provider or real credential is used.
