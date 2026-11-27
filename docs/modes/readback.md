@@ -1,6 +1,6 @@
 # Readback
 
-Status: implementation is available on `mode-readback`; the public switch remains disabled until shared runtime fixes and acceptance gates pass.
+Status: enabled on `mode-readback-r2`. All fourteen M8.P7 tasks are complete.
 
 Use `$readback` to find requirements that different readers would implement differently. It suits tickets, prompts, specifications and contract clauses. Members independently describe what they would build. A blind judge collects differences that change behaviour, and you choose the intended meanings before anything is rewritten.
 
@@ -28,27 +28,54 @@ The report includes the final spec, per-round ledgers, reader attribution, chose
 
 ## Example run
 
-A paid example is pending the shared-runtime integration fixes listed below. No live cost, timing or provider result has been fabricated.
+Measured on dev3 on 2026-11-26 with a release build, the default six-member roster, default two rounds, a fresh private data directory and `SQUAD_DAILY_MAX_USD=150`:
 
-## Integration requirements
+```text
+@all $readback The service retains records. The operator deletes backups. The client retries requests.
+```
 
-The mode worker owns only the readback paths. The following shared scaffold defects were reproduced with real `RoomHandle` plus wiremock, with no live provider calls:
+All six interpretations were accepted in each round. Round 1 found four entries. Selecting `1a` and continuing chose the first retry reading; the judge changed only that passage. Round 2 found two entries in the revised spec. Continuing without answers completed with `no_readings_chosen`, leaving those questions open. Fable's second-round reply exceeded the 500-word budget (526 words) and succeeded on its single repair.
 
-- `crates/squad-core/src/runtime/judge.rs`, `Executor::execute`: new-mode judge work falls into `self.ordinary.execute`, whose `squad-agents/src/judge.rs::JudgeExecutor::execute` allowlist rejects it before the existing new-mode dispatch in `Runner::execute`. Route `grant.work.kind.new_mode_kind().is_some()` directly to `self.crosscheck.execute(context, grant, cancel)` alongside the existing structured-mode dispatch. This is required for all new-mode judge calls.
-- `crates/squad-core/src/router/executor.rs`, `failed`: include `ErrorCode::MODE_INVALID_OUTPUT` in the `FailureClass::InvalidOutput` match. Currently member schema failures are treated as transport errors; supplying their required repair is consequently rejected. This prevents the D75 second attempt for every new-mode member.
-- `crates/squad-protocol/src/parser/new_modes_tests.rs`, `crates/squad-protocol/tests/contests.rs`, `crates/squad-core/tests/router_validation.rs`, and the disabled readback example in `parser/examples.json`: the original disabled-start fixture must be selected only while the mode is disabled, or explicitly force a disabled test context. Enabling a mode otherwise invalidates these scaffold assertions. Refresh `crates/squad-tui/tests/snapshots/typeahead__popup_commands.snap` after the integrator enables the merged modes.
-- `crates/squad-core/tests/human_step.rs`: the synthetic readback human-step fixture needs a `readback_runs` row with its ledger/setup before `/continue` or `/stop`; the implemented callbacks persists choices there. The old scaffold fixture created only a generic contest and step.
+The mode made 15 normal calls plus that repair: 16 paid mode attempts costing **$0.629796**. Four startup resolution probes cost **$0.001498**, for a total recorded provider cost of **$0.631294**. Preflight reserved **$18.955638** for 36 worst-case attempts; final reserved cost is **$0**, with **zero unknown-cost calls**. Stored attempt costs sum exactly to the daily ledger.
 
-The three end-to-end room tests reproduced these failures while enabled and are explicitly ignored until the shared fixes land and the switch can be enabled. The direct-runtime tests exercise the owned runtime, scoped readers, real wiremock transport, application validations, transactional barriers and export independently of the shared judge wrapper.
+Execution spans totalled **164.8 seconds**, including the resumed session and its manual continuation; the debugging/rebuild pause is excluded. End-to-end elapsed time was 489.4 seconds including that pause; the first start took 54.23 seconds. This run exposed a headless continuation defect: the old CLI exited before scheduling the rewrite. The fixed build recovered the same contest interactively, completed the rewrite and fresh readings, and the fixed headless `/continue` produced the terminal report. No second readback was started. The independent loopback CLI regression verifies answer → rewrite → fresh round → final report across a restart.
+
+Report excerpt:
+
+```text
+Result: no_readings_chosen
+
+## Final spec
+
+The service retains records. The operator deletes backups. The client retries only when an attempt fails, errors, or times out; successful requests are not re-sent.
+```
+
+The unchanged retention and backup sentences remain byte-identical. The exported report is `/tmp/squad-readback-r2-live-hb8c211w/report-final.md`; accounting, resolved roster, timings and work statuses are retained alongside it in `metrics-final.json`. Keys came from the vault into process memory, with `--env-file /dev/null`; no key or real environment file was recorded.
+
+Interactive `/export readback [id]` can choose the latest run. The standalone CLI requires its contest ID:
+
+```sh
+squad --data-dir /path/to/room export readback 01a21a4f-a678-740e-9b94-a64bf5f7146d
+```
+
+## Integration notes
+
+The worker branch includes the required shared fixes:
+
+- `crates/squad-core/src/runtime/judge.rs` routes new-mode judge work to the structured runner; `crates/squad-core/src/router/executor.rs` classifies `MODE_INVALID_OUTPUT` as invalid output, allowing member repair diagnostics.
+- `crates/squad-core/src/router/mod.rs` adds a human answer's contest to the one-shot engine scope. `crates/squad-cli/src/adapter.rs` waits for the successor script transition after a completed human answer. The CLI unit and real-room regression in `crates/squad-cli/tests/real_room.rs` cover the dispatch gap and restart continuation.
+- `crates/squad-core/tests/human_step.rs` seeds the mode-owned run and ledger. The protocol parser examples and export-usage snapshot, protocol contest registry test, core disabled-mode fixture, and TUI typeahead/actions/help/export fixtures account for readback being enabled. `crates/squad-tui/src/typeahead.rs` supplies its parseable TIP example.
+- `crates/squad-tui/tests/m4b_tournament_runtime_audit.rs` waits for the champion event, rather than a per-round result followed by a later state read, removing a pre-existing event/state race.
+
+Readback's owned stop callback leaves queued/running work visible to the shared stop handler, which emits cancellation events, fences grants and releases each unused work reservation atomically. Other mode switches remain unchanged. No shared changes remain outstanding for readback; the integrator can merge this branch and assemble its mode page into the global README.
 
 ## Validation evidence
 
-Checked on dev3 with `CARGO_BUILD_JOBS=4`:
+Source head `6719836`, checked on dev3 with `CARGO_BUILD_JOBS=4`:
 
-- Twenty owned tests pass across protocol (3), agents (1), store (4), core tally (4), export (1), direct-runtime workflows (5), and TUI views (2). The 12 existing protocol contract tests also pass on the targeted rerun: 32 passed, zero failed, three explicitly ignored room-level tests.
-- Direct-runtime wiremock workflows cover the one-of-three partial-choice rewrite, replacement and literal custom readings (including a single letter), unchanged open passages, convergence, no choices, skipped members, insufficient quorum, reservation release, repaired non-verbatim ledgers, judge exhaustion, round limits, stop reports, and restart with a partial answer a year later. These tests invoke the owned admission seam while the public switch remains disabled.
-- `cargo test --workspace --no-fail-fast` completed nonzero in `human_step`, `readback_workflows`, and protocol `contests`. The latter two suites passed after fixing the direct test harness and preserving round-zero preflight compatibility. The two unchanged `human_step` failures are `partial_answers_restart_continue_and_stale_versions` and `debug_answer_is_literal_and_stop_closes_pending_step`: their synthetic readback fixtures lack a mode-owned run and ledger. The full workspace gate is not claimed green.
+- `cargo test --workspace --no-fail-fast`: 1,354 unique tests pass (1,355 passing summaries include the repeated WAL subprocess), zero failures, four existing manual/PTY entries ignored. All readback tests are active.
+- Twenty-seven owned mode tests pass across protocol (3), agents (1), store (4), tally (4), export (1), workflows (11) and TUI views (3), plus two CLI continuation regressions and the existing shared contract suites.
+- Wiremock workflows cover real `RoomHandle` dispatch, fresh second-round input, blind judge messages, the stored 36-attempt reservation, partial/custom/replaced answers, a year-old pending answer, ledger cuts, invalid quote and rewrite repair, skipped members, quorum failure, judge exhaustion, exact untouched passages, round limits, convergence, no-choice completion and export. Stop coverage claims unstarted work in interpretation, diff and rewrite, verifies cancellation events and zero unused reservation, and rejects late callbacks.
 - `cargo clippy --workspace --all-targets -- -D warnings`: passed.
 - `cargo fmt --all -- --check`: passed.
-
-The public switch stays disabled. No release smoke was attempted against the known shared dispatch failure; live spend is $0, and live wall time, reserved-versus-actual cost and report excerpt remain unmeasured. Enablement and the paid smoke must follow the shared fixes and passing room-level acceptance tests.
+- `cargo build --release -p squad-cli`: passed. The single paid contest above completed and exported; no live provider calls run in tests.
