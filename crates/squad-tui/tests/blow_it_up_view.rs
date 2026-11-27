@@ -22,7 +22,7 @@ fn banner_dividers_and_terminal_state_replay_are_stable() {
         "ATTACKS",
         "CHALLENGE",
         "WHAT SURVIVED",
-        "Stopped",
+        "stopped",
     ] {
         assert!(lines.contains(expected));
     }
@@ -231,7 +231,7 @@ fn report_replay_preserves_severity_and_collapses_killed_evidence() {
     let lines = styled_lines(&view);
     let finding = lines
         .iter()
-        .find(|l| l.to_string().contains("### Critical"))
+        .find(|l| l.to_string().contains("### critical"))
         .unwrap();
     assert_eq!(finding.style.fg, Some(severity_color(Severity::Critical)));
     let collapsed = render(&view).join("\n");

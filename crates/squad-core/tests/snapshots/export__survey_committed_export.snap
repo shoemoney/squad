@@ -24,10 +24,10 @@ Origins: 01900000-0000-7000-8000-000000000047
 
 ### First ballot · @alpha
 
-- c1: Agree · confidence 4/5 · The capacity measurement matters.
+- c1: agree · confidence 4/5 · The capacity measurement matters.
 ### First ballot · @beta
 
-- c1: Disagree · confidence 4/5 · The capacity measurement matters.
+- c1: disagree · confidence 4/5 · The capacity measurement matters.
 ### Selected claims and anonymous reasons
 
 c1 · The proposal is feasible.
@@ -40,7 +40,7 @@ UNSURE:
 
 ### Second ballot · @alpha
 
-- c1: Disagree · confidence 4/5 · The capacity measurement matters.
+- c1: disagree · confidence 4/5 · The capacity measurement matters.
   Change evidence: A successful load test would change my mind.
 ## Survey claim map
 
@@ -72,9 +72,9 @@ First: AGREE 1 · DISAGREE 1 · UNSURE 0 · MISSING 0
 
 Final: AGREE 0 · DISAGREE 2 · UNSURE 0 · MISSING 0
 
-Switch @alpha: Agree → Disagree
+Switch @alpha: agree → disagree
 Not re-voted (retained first ballot): beta
 
 Limitations: Models can share blind spots. Beta did not re-vote; its first ballot remains recorded.
 
-Survey state: Complete
+Survey state: complete

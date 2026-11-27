@@ -18,11 +18,11 @@ Source: new question
 
 ### First ballot · @alpha
 
-- c1: Agree · confidence 4/5 · A reproducible observation supports this claim.
+- c1: agree · confidence 4/5 · A reproducible observation supports this claim.
 
 ### Second ballot · @alpha
 
-- c1: Agree · confidence 4/5 · A reproducible observation supports this claim.
+- c1: agree · confidence 4/5 · A reproducible observation supports this claim.
   Change evidence: A contrary measurement
 
 ## Survey claim map
@@ -55,7 +55,7 @@ First: AGREE 2 · DISAGREE 1 · UNSURE 1 · MISSING 0
 
 Final: AGREE 3 · DISAGREE 1 · UNSURE 0 · MISSING 0
 
-Switch @gamma: Unsure → Agree
+Switch @gamma: unsure → agree
 Not re-voted (retained first ballot): delta
 ### c2 · unresolved
 

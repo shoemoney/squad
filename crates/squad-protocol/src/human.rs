@@ -6,6 +6,9 @@ pub const NONE_LABEL: &str = "—";
 
 /// Turns a wire token such as `inProgress`, `IN_PROGRESS` or `in_progress` into `in progress`.
 pub fn humanize(token: &str) -> String {
+    if token.chars().count() == 1 {
+        return token.to_string();
+    }
     let mut out = String::with_capacity(token.len() + 4);
     let mut prev_lower = false;
     for ch in token.chars() {

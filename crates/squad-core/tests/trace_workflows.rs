@@ -650,6 +650,6 @@ async fn assembly_exhaustion_preserves_the_locked_ledger_and_export() {
     };
     let out = squad_core::export::trace::render(&snapshot, c).unwrap();
     assert!(out.contains("Result: judge_failed"));
-    assert!(out.contains("Status: Supported"));
+    assert!(out.contains("Status: supported"));
     assert!(out.contains("### S1"));
 }

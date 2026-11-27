@@ -38,7 +38,10 @@ fn report_separates_flagged_claims_and_exports_typed_packet_evidence() {
     let export = report_text(&r, true);
     assert!(public.contains("independent sources: 1; contributing members: 3"));
     assert!(public.contains("Flagged claims (separate from the brief)"));
-    assert!(public.contains("[C1] Unverified"));
+    assert!(public.contains("[C1] unverified"));
+    for leak in ["Some(", "Member(", "Nick("] {
+        assert!(!public.contains(leak), "export leaks {leak}: {public}");
+    }
     assert!(public.contains("Missing corroboration"));
     assert!(!public.contains("Numbered source packet"));
     assert!(export.contains("### S1"));

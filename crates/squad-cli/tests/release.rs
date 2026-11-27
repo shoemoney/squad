@@ -1384,11 +1384,11 @@ fn seeded_census_report_exports_offline_and_a_stopped_census_carries_its_caveat(
         assert!(markdown.contains("Discovery curve"));
         match reason {
             None => assert!(
-                markdown.contains("Pass 1 · plan 1 · Complete\n"),
+                markdown.contains("Pass 1 · plan 1 · complete\n"),
                 "{markdown}"
             ),
             Some(reason) => assert!(
-                markdown.contains(&format!("· Stopped · {reason}")),
+                markdown.contains(&format!("· stopped · {reason}")),
                 "{markdown}"
             ),
         }
