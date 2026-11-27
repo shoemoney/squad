@@ -52,14 +52,8 @@ Sleep 8s
 Type "/answer O2 The lookup returned the old address; the resolver still points at the retired host."
 Sleep 800ms
 Enter
-Sleep 2s
-Type "/continue"
-Sleep 500ms
-Escape
-Sleep 300ms
-Enter
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 480s
+Sleep 90s
 Sleep 10s
 
 # Done: leave the room

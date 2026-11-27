@@ -42,7 +42,7 @@ Sleep 1s
 # Preflight card: confirm
 Type "y"
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 360s
+Sleep 600s
 # 3. Hold on the winning prompt and its held-out scores
 Sleep 10s
 
