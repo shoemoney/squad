@@ -31,6 +31,8 @@ All notable changes to Squad will be documented in this file, following
 
 ### Fixed
 
+- Blind projections of Forge and Negotiate left a short provider such as `x-ai` readable and substituted `?` where every other mode writes `[redacted]`. Both now redact the provider as a whole token and use `[redacted]`.
+- Trace froze nicks, slugs and personas but not provider or family names, so a word like `openai`, `claude` or `gpt` in a member's claim reached the blind judge. Its frozen token set now includes them.
 - Delayed receipts for timed-out and cancelled attempts are reconciled, so holds
   no longer outlive their charges (every integrated run ended at $0 reserved).
 - Doctor warns when the data directory permits group/world access and prints

@@ -396,7 +396,9 @@ pub fn resolve(
 fn tokens(p: &ContestPreflight) -> Vec<String> {
     serde_json::from_value(p.settings["tokens"].clone()).unwrap_or_default()
 }
-fn blind(mut v: Value, p: &ContestPreflight) -> Value {
+/// The blind projection of attack and challenge prose; public for the isolation fixtures.
+#[doc(hidden)]
+pub fn blind(mut v: Value, p: &ContestPreflight) -> Value {
     fn visit(v: &mut Value, tokens: &[String], prose: bool) {
         match v {
             Value::String(s) if prose => *s = super::probe::redact(s, tokens),

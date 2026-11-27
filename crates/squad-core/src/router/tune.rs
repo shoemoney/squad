@@ -953,7 +953,9 @@ fn consume(
     run.jobs.clear();
     Ok(())
 }
-fn redact_value(value: &mut serde_json::Value, tokens: &[String]) {
+/// Identity scrub for every non-executor Tune input; public for the isolation fixtures.
+#[doc(hidden)]
+pub fn redact_value(value: &mut serde_json::Value, tokens: &[String]) {
     match value {
         serde_json::Value::String(s) => *s = super::probe::redact(s, tokens),
         serde_json::Value::Array(a) => {
