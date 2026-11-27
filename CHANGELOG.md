@@ -38,6 +38,29 @@ All notable changes to Squad will be documented in this file, following
 - Publish only dirty transcript cards and account for activity on events; reuse
   layout anchors and release completed syntax-fence state.
 - Negotiate tables use the actual viewport width for side-by-side layout.
+- Negotiate blindness (D81): negotiator and counterpart prompts receive only a
+  counterpart turn's `message`, `response` and `counterOffer`; the hidden
+  `violatedInterest` stays with the judge's playbook input and the human report.
+- The receipt reconciler no longer ends the room: a bad row or transient store
+  error is logged and skipped, only cancellation stops it, and each unresolved
+  attempt backs off exponentially (10 s doubling to 5 min, 12 tries) instead of being
+  polled every 5 s forever; the conservative hold stays when it gives up.
+- Work that fails before its provider call (history or frozen-JSON read, decode,
+  render) now fails and releases its hold at zero cost instead of leaking a
+  reservation and an unknown call against the daily cap. A store outage inside a
+  new-mode executor stops the worker like every other path.
+- Plan pricing refuses a catalog row without a price (`COST_UNKNOWN`) instead of
+  treating it as free.
+- `$tune` executor calls on reasoning models carry a separate reasoning allowance
+  and reserve for it, so hidden reasoning cannot consume the 1,024 visible tokens.
+- Bass Ackwards PRD closes its human step through the versioned state save.
+- Trace counts only verified supporting quotes toward claim status and independent
+  sources (counter-quotes stay in the ledger for contradictions), and the final
+  judge's ledger carries anonymous verdicts instead of member-nick keys.
+- Bass Ackwards PRD contribution labels (A, T, R, H) come from a persisted seeded
+  permutation, not roster order.
+- Offline Readback export of a contest without a terminal report says
+  `contest has no terminal report yet` instead of `contest not found`.
 - Debug eliminated rows retain grey styling in the actual compositor.
 - Tournament and Blow It Up fixtures observe stable completion state.
 - Shared new-mode judge dispatch and member validation repairs.

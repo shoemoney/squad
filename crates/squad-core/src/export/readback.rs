@@ -129,7 +129,8 @@ pub fn render(
             }
             _ => None,
         })
-        .ok_or(super::ExportError::ContestNotFound)?;
+        // The caller already verified that the contest exists and is a Readback.
+        .ok_or(super::ExportError::ReportNotReady)?;
     let report = validation::decode::<ReadbackReport>(report)
         .map_err(|_| super::ExportError::InvalidSnapshot)?;
     Ok(report_text(&report, true))

@@ -393,11 +393,15 @@ pub mod tune;
 pub mod bass_ackwards_prd;
 
 /// A frozen executor request has no prompt-pack, persona, history or redaction inputs.
+/// `supports_reasoning` is the resolved model's capability: a reasoning model gets a
+/// separate reasoning allowance on top of the 1,024 visible tokens (D90), so hidden
+/// reasoning can never consume the visible budget.
 pub fn bare_executor_request(
     grant: &ExecutionGrant,
     prompt: &str,
     input: &str,
     published_output_limit: u32,
+    supports_reasoning: bool,
 ) -> Result<ChatRequest, TransportError> {
     if !grant.work.kind.is_executor()
         || grant.work.validate().is_err()
@@ -424,8 +428,8 @@ pub fn bare_executor_request(
         messages,
         visible_ceiling: constants::TUNE_EXEC_VISIBLE_TOKENS,
         published_output_limit,
-        supports_reasoning: false,
-        reasoning_effort: grant.binding.effort,
+        supports_reasoning,
+        reasoning_effort: constants::effective_effort(&grant.work.kind, grant.binding.effort),
         reasoning_explicit: false,
         response_format: None,
         policy: ExecutionPolicy::SingleAttempt(DeadlineClass::Executor),
@@ -457,9 +461,16 @@ pub async fn execute_bare(
     prompt: &str,
     input: &str,
     published_output_limit: u32,
+    supports_reasoning: bool,
     cancel: CancellationToken,
 ) -> Result<ExecutorOutput, ExecutionError> {
-    let request = bare_executor_request(grant, prompt, input, published_output_limit)
-        .map_err(ExecutionError::Transport)?;
+    let request = bare_executor_request(
+        grant,
+        prompt,
+        input,
+        published_output_limit,
+        supports_reasoning,
+    )
+    .map_err(ExecutionError::Transport)?;
     executor_output(stream_attempt(context, grant, client, request, cancel, false).await?)
 }

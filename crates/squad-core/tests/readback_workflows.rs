@@ -267,6 +267,20 @@ impl Fixture {
                 &format!("@all $readback {SPEC} {marker}"),
             ))
             .await;
+        let r = if let RequestResult::PendingConfirmation {
+            preflight: PendingPreflight::Contest(p),
+            ..
+        } = &r
+        {
+            room.submit(Request::ContestConfirm {
+                request_id: EventId::new(),
+                contest_id: p.contest_id,
+                plan_id: p.plan_id,
+            })
+            .await
+        } else {
+            r
+        };
         assert!(matches!(r, RequestResult::Accepted { .. }), "{r:?}");
     }
 }
@@ -996,4 +1010,50 @@ async fn stop_emits_work_cancellations_releases_holds_and_fences_claimed_calls_i
         ));
         assert_eq!(f.fake.captured_bodies().await.len(), calls);
     }
+}
+
+/// The CLI opens a fresh one-shot room for every invocation: one submits the
+/// contest and exits at the human pause, a later one answers it. The continuation
+/// work released by the answer has to run in that second process and reach a
+/// terminal report that the offline export can read.
+#[tokio::test]
+async fn one_shot_human_continuation_in_a_reopened_room_reaches_the_terminal_report_and_exports() {
+    let f = Fixture::new().await;
+    let room = f.open(OpenMode::OneShot).await;
+    f.start(&room, "").await;
+    f.wait(|| f.state().state == ReadbackStatus::AwaitingHuman)
+        .await;
+    let id = f.state().contest_id;
+    let early = squad_core::room::export_offline(
+        &f.config.data_dir,
+        "main",
+        ExportScope::Readback,
+        Some(id),
+    )
+    .map_err(|e| e.message);
+    // An existing contest that has no terminal report yet is never "not found".
+    assert!(
+        early.as_ref().is_ok_and(|text| !text.is_empty())
+            || early
+                .as_ref()
+                .is_err_and(|m| !m.to_lowercase().contains("not found")),
+        "{early:?}"
+    );
+    room.shutdown().await.unwrap();
+    let room = f.open(OpenMode::OneShot).await;
+    // Choosing readings makes the continuation do real work: a rewrite and a fresh
+    // round of interpretations that this second process has to dispatch itself.
+    f.answer(&room, Some("1b")).await;
+    f.answer(&room, Some("1a")).await;
+    f.answer(&room, None).await;
+    f.wait(|| f.state().state.is_terminal()).await;
+    let text = squad_core::room::export_offline(
+        &f.config.data_dir,
+        "main",
+        ExportScope::Readback,
+        Some(id),
+    )
+    .unwrap();
+    assert!(!text.is_empty());
+    room.shutdown().await.unwrap();
 }

@@ -409,7 +409,9 @@ async fn complete_blind_tune_reuses_outputs_and_balances_ledger() {
             .starts_with("PROMPT")
         {
             assert_eq!(b["messages"].as_array().unwrap().len(), 2);
-            assert_eq!(b["max_tokens"], 1024);
+            // 1,024 visible tokens plus the judge binding's High reasoning allowance
+            // (the fixture models support reasoning).
+            assert_eq!(b["max_tokens"], 1024 + 8192);
             assert!(b.get("response_format").is_none());
             // Cases may have equal input text; the durable pair key, not input
             // text, is what must never repeat.

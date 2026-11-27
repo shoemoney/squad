@@ -94,11 +94,31 @@ pub async fn start_attempt_sized(
 struct PresenceObserver {
     inner: Arc<dyn ExecutorSubmit>,
     status: Arc<std::sync::Mutex<PresenceStatus>>,
+    /// Attempts for which an accounting record was submitted. An executor submits
+    /// one immediately before it reaches the provider, so an attempt absent here
+    /// never made a provider call.
+    accounted: std::sync::Mutex<BTreeSet<(WorkId, u32)>>,
+}
+impl PresenceObserver {
+    fn reached_provider(&self, id: WorkId, attempt: u32) -> bool {
+        self.accounted
+            .lock()
+            .expect("accounted lock")
+            .range((id, attempt)..)
+            .next()
+            .is_some_and(|(work, _)| *work == id)
+    }
 }
 impl ExecutorSubmit for PresenceObserver {
     fn submit(&self, request: ExecutorRequest) -> SubmitFuture<'_> {
         if let ExecutorRequest::Presence(presence) = &request {
             *self.status.lock().expect("presence lock") = presence.status.clone();
+        }
+        if let ExecutorRequest::Account { record, .. } = &request {
+            self.accounted
+                .lock()
+                .expect("accounted lock")
+                .insert((record.work_id, record.attempt));
         }
         self.inner.submit(request)
     }
@@ -108,10 +128,12 @@ pub async fn run(
     executor: Arc<dyn WorkExecutor>,
 ) -> Result<(), ReaderError> {
     let status = Arc::new(std::sync::Mutex::new(PresenceStatus::Idle));
-    context.submit = Arc::new(PresenceObserver {
+    let observer = Arc::new(PresenceObserver {
         inner: context.submit.clone(),
         status: status.clone(),
+        accounted: std::sync::Mutex::new(BTreeSet::new()),
     });
+    context.submit = observer.clone();
     let mut completed = BTreeSet::new();
     let mut heartbeat = tokio::time::interval(Duration::from_secs(5));
     heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -222,6 +244,24 @@ pub async fn run(
                 }
             };
             completed.insert((id, attempt));
+            // StartAttempt already moved a reservation share into a hold and counted
+            // an unknown call. When the executor stopped before any provider call
+            // (validation, history, rendering, a stop), nothing will ever settle
+            // that attempt, so fail the work and release the hold at zero cost.
+            if !observer.reached_provider(id, grant.work.attempt)
+                && !matches!(result, Err(ReaderError::StoreUnavailable { .. }))
+            {
+                if result.is_err()
+                    && matches!(
+                        context.work.get(id).await,
+                        Ok(Some(current)) if current.status == WorkStatus::Running
+                    )
+                {
+                    let _ =
+                        crate::agents::failed(&context, &grant, ErrorCode::INTERNAL_ERROR).await;
+                }
+                crate::agents::abandon(&context, &grant).await;
+            }
             presence(
                 &context,
                 if result.is_ok() {

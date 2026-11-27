@@ -156,26 +156,37 @@ pub fn price(
                 ErrorCode::MODEL_UNAVAILABLE,
                 "Missing contest model",
             ))?;
-            let (length, pricing): (i64, String) = tx.query_row(
-                "SELECT context_length,pricing_json FROM catalog WHERE slug=?",
+            let (length, pricing, supported): (i64, String, String) = tx.query_row(
+                "SELECT context_length,pricing_json,supported_params_json FROM catalog WHERE slug=?",
                 [binding.model.as_str()],
-                |r| Ok((r.get(0)?, r.get(1)?)),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
             )?;
+            let reasoning_model = serde_json::from_str::<Vec<String>>(&supported)?
+                .iter()
+                .any(|p| p == "reasoning");
             let pricing: serde_json::Value = serde_json::from_str(&pricing)?;
+            // A missing or unparseable price is unknown, never free: refuse with the
+            // same COST_UNKNOWN that dispatch uses so plan reservations and the daily
+            // cap can never be bypassed by a catalog row without pricing.
             let price = |key: &str| -> Result<f64> {
-                let value = pricing[key]
+                pricing[key]
                     .as_str()
                     .and_then(|s| s.parse::<f64>().ok())
                     .or_else(|| pricing[key].as_f64())
-                    .unwrap_or(0.0);
-                if value.is_finite() && value >= 0.0 {
-                    Ok(value)
-                } else {
-                    Err(invalid("Contest pricing is invalid"))
-                }
+                    .filter(|p| p.is_finite() && *p >= 0.0)
+                    .ok_or(StoreError::Domain(
+                        ErrorCode::COST_UNKNOWN,
+                        "Resolved model pricing is unavailable",
+                    ))
             };
+            // An executor call reserves the same reasoning allowance as its request
+            // (visible tokens stay V1), and only when the model reasons.
             let reasoning = if step.kind.is_executor() {
-                0
+                if reasoning_model {
+                    reasoning_budget(constants::effective_effort(&step.kind, binding.effort))
+                } else {
+                    0
+                }
             } else if target == "judge" {
                 reasoning_budget(binding.effort)
                     .max(reasoning_budget(constants::NEW_MODE_JUDGE_REASONING_EFFORT))

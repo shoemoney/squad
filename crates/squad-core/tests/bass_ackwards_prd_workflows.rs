@@ -670,6 +670,33 @@ async fn owned_engine_and_handlers_complete_28_calls_and_persist_file() {
             .unwrap()
             .contains("## Dependency order")
     );
+    // Contribution labels come from a persisted seeded permutation, never roster
+    // order: the stored label maps equal the digest order of the persisted seed.
+    let contest = s.contest_id;
+    let (seed, done, trees): (String, BTreeMap<String, String>, BTreeMap<String, String>) = h
+        .store
+        .call(move |db| {
+            Ok((
+                squad_store::bass_ackwards_prd::get(db, contest, "label_seed")?,
+                squad_store::bass_ackwards_prd::get(db, contest, "done_authors")?,
+                squad_store::bass_ackwards_prd::get(db, contest, "tree_authors")?,
+            ))
+        })
+        .unwrap();
+    let roster: Vec<String> = f.config.agents.iter().map(|a| a.nick.to_string()).collect();
+    let mut differs = false;
+    for (stage, authors) in [("DefiningDone", &done), ("BuildingTrees", &trees)] {
+        let mut expected = roster.clone();
+        expected.sort_by_cached_key(|n| {
+            squad_store::commit::digest(&("prd.labels", &seed, stage, n.clone())).unwrap()
+        });
+        let mut by_label: Vec<_> = authors.iter().collect();
+        by_label.sort_by_key(|(l, _)| l[1..].parse::<u32>().unwrap());
+        let actual: Vec<String> = by_label.into_iter().map(|(_, n)| n.clone()).collect();
+        assert_eq!(actual, expected, "{stage}");
+        differs |= actual != roster;
+    }
+    assert!(differs, "labels must not follow roster order");
     f.assert_ledger();
 }
 
@@ -685,6 +712,49 @@ async fn optional_human_notes_resume_and_conflicts_are_saved() {
     h.send("/answer Include the operations team's deployment constraints");
     assert_eq!(h.state().state, BassAckwardsPrdStatus::AwaitingHuman);
     h.send("/continue");
+    // Closing the human step is a versioned save: the first state event after the
+    // completed answer is the one that clears the step, so the stored change is
+    // never a silent state_json edit that no event or version accounts for.
+    let (event, stored): (String, String) = h
+        .store
+        .call(|db| {
+            Ok((
+                db.query_row(
+                    "SELECT payload FROM events WHERE kind='bass_ackwards_prd.state' AND seq > (SELECT MAX(seq) FROM events WHERE kind='contest.human_answered') ORDER BY seq LIMIT 1",
+                    [],
+                    |r| r.get(0),
+                )?,
+                db.query_row(
+                    "SELECT state_json FROM contests ORDER BY rowid DESC LIMIT 1",
+                    [],
+                    |r| r.get(0),
+                )?,
+            ))
+        })
+        .unwrap();
+    let (event, stored): (Value, Value) = (
+        serde_json::from_str(&event).unwrap(),
+        serde_json::from_str(&stored).unwrap(),
+    );
+    assert!(
+        event["stepId"].is_null(),
+        "step cleared by an event: {:?}",
+        event["stepId"]
+    );
+    assert!(event["stateVersion"].as_u64() <= stored["stateVersion"].as_u64());
+    let versions: Vec<i64> = h
+        .store
+        .call(|db| {
+            let mut q = db.prepare("SELECT json_extract(payload,'$.stateVersion') FROM events WHERE kind='bass_ackwards_prd.state' AND seq > (SELECT MAX(seq) FROM events WHERE kind='contest.human_answered') ORDER BY seq")?;
+            Ok(q.query_map([], |r| r.get::<_, i64>(0))?.collect::<Result<_, _>>()?)
+        })
+        .unwrap();
+    // Closing the step emits its own consecutive version ahead of the events the
+    // resumed drive saves (the old direct edit emitted nothing: [23, 24]).
+    assert!(
+        versions.len() >= 3 && versions.windows(2).all(|w| w[1] == w[0] + 1),
+        "{versions:?}"
+    );
     h.pump().await;
     assert_eq!(h.state().state, BassAckwardsPrdStatus::Complete);
     assert_eq!(f.fake.captured_bodies().await.len(), 29);

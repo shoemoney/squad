@@ -73,6 +73,8 @@ pub enum ExportError {
     RoomIdForbidden,
     ContestIdRequired,
     ContestNotFound,
+    /// The contest exists but has not produced its terminal report yet.
+    ReportNotReady,
     ScopeMismatch,
     UnsupportedScope,
     InvalidSnapshot,
@@ -84,6 +86,7 @@ impl fmt::Display for ExportError {
             Self::RoomIdForbidden => "room export does not accept an ID",
             Self::ContestIdRequired => "contest export requires an ID",
             Self::ContestNotFound => "contest not found",
+            Self::ReportNotReady => "contest has no terminal report yet",
             Self::ScopeMismatch => "contest does not match export scope",
             Self::UnsupportedScope => "export scope is not implemented",
             Self::InvalidSnapshot => "invalid committed export snapshot",

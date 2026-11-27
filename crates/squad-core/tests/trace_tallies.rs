@@ -221,7 +221,7 @@ fn blind_projections_remove_identity_prose_without_changing_evidence() {
 }
 
 #[test]
-fn ledger_counts_support_and_counter_sources_independently() {
+fn ledger_counts_only_supporting_sources_and_keeps_counter_quotes() {
     let sources = vec![
         trace::TraceSource {
             source_id: "S1".into(),
@@ -260,7 +260,8 @@ fn ledger_counts_support_and_counter_sources_independently() {
         }],
     };
     let result = ledger(&claims, &checks, &BTreeMap::new());
-    assert_eq!(result.claims[0].independent_sources, 2);
+    // The S2 counter-quote is evidence against the claim, not independent support.
+    assert_eq!(result.claims[0].independent_sources, 1);
     assert_eq!(result.claims[0].status, TraceClaimStatus::Unverified);
     assert!(result.claims[0].quotes.iter().any(|q| q.counter));
     claims.claims[0].shared_origin = vec![vec!["S1".into(), "S2".into()]];

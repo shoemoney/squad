@@ -554,6 +554,30 @@ fn projection(
     script::blind(&mut data, setup);
     Ok(data)
 }
+/// Contribution labels (A, T, R, H) must never follow roster order. The order is a
+/// permutation seeded by private randomness drawn once and persisted with the contest,
+/// so a barrier replayed after a restart reproduces exactly the same labels.
+fn order_labels<T>(
+    tx: &Transaction<'_>,
+    contest: ContestId,
+    state: BassAckwardsPrdStatus,
+    accepted: &mut [(Work, Value, T)],
+) -> Result<()> {
+    let seed: String = match store::optional(tx, contest, "label_seed")? {
+        Some(seed) => seed,
+        None => {
+            let seed = CellId::new().to_string();
+            store::put(tx, contest, "label_seed", &seed)?;
+            seed
+        }
+    };
+    let stage = format!("{state:?}");
+    accepted.sort_by_cached_key(|(w, _, _)| {
+        squad_store::commit::digest(&("prd.labels", &seed, &stage, w.target.to_string()))
+            .expect("label digest")
+    });
+    Ok(())
+}
 fn allocate(
     tx: &Transaction<'_>,
     g: &mut CommitGroup,
@@ -947,7 +971,7 @@ pub fn drive_move(
         return Ok(g.accepted(id));
     }
     if accepted.len() > 1 {
-        accepted.sort_by_cached_key(|_| CellId::new().to_string());
+        order_labels(tx, s.contest_id, s.state, &mut accepted)?;
     }
     let next = match s.state {
         DefiningDone => {
@@ -1220,9 +1244,22 @@ pub fn human_answer(tx: &Connection, p: &parser::PendingHuman, complete: bool) -
         if notes.is_empty() {
             release_skipped(tx, p.contest_id, &WorkKind::BassAckwardsPrdApply)?;
         }
-        tx.execute("UPDATE contests SET state_json=json_set(state_json,'$.stepId',NULL) WHERE contest_id=?",[p.contest_id.to_string()])?;
     }
     Ok(())
+}
+/// The completed human step closes its barrier step. That is a state change, so it
+/// goes through the versioned save: the version bumps and a state event is emitted.
+pub fn human_answered(
+    tx: &Transaction<'_>,
+    g: &mut CommitGroup,
+    id: EventId,
+    p: &parser::PendingHuman,
+) -> Result<()> {
+    let mut s = store::state(tx, p.contest_id)?;
+    let version = s.state_version;
+    s.step_id = None;
+    s.state_version += 1;
+    save(tx, g, id, &s, Some(version))
 }
 pub fn stop(
     tx: &Transaction<'_>,

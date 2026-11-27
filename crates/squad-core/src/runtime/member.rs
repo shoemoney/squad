@@ -129,7 +129,7 @@ impl squad_agents::worker::WorkExecutor for Executor {
                     cancel,
                 )
                 .await
-                .map_err(|_| ReaderError::NotRunnable);
+                .map_err(super::new_mode_error);
             }
             if grant.work.kind.is_probe() {
                 let pack = PromptPack::from_override_dir(self.config.prompts.directory.as_deref())

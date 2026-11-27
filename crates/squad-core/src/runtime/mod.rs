@@ -363,6 +363,15 @@ pub mod trace;
 
 pub mod rank;
 
+/// A store outage inside a new-mode executor must stop the worker like every other
+/// path; any other failure is a work-level `NotRunnable`.
+fn new_mode_error(error: squad_agents::agents::ExecutionError) -> ReaderError {
+    match error {
+        squad_agents::agents::ExecutionError::Reader(e @ ReaderError::StoreUnavailable { .. }) => e,
+        _ => ReaderError::NotRunnable,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn execute_new_mode(
     kind: ContestKind,
