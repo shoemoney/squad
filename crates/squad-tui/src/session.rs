@@ -228,6 +228,7 @@ impl Session {
         self.presentation_epoch = self.presentation_epoch.wrapping_add(1);
         let anchor = self.transcript.anchor;
         let follow = self.transcript.follow;
+        let unread = self.transcript.unread_ids();
         let events = std::mem::take(&mut snapshot.events);
         self.snapshot = snapshot;
         self.seen.clear();
@@ -294,6 +295,9 @@ impl Session {
         }
         self.transcript.anchor = anchor.filter(|(id, _)| self.transcript.cards.contains_key(id));
         self.transcript.follow = follow;
+        if !follow {
+            self.transcript.restore_unread(unread);
+        }
     }
     /// Add an older durable page while preserving newer authoritative state,
     /// reading anchor and the caller-owned pending request/draft.
@@ -505,6 +509,7 @@ impl Session {
             EnvelopePayload::Delta(d) => {
                 use std::collections::btree_map::Entry;
                 // Durable terminal outcomes always win over delayed/repeated deltas.
+                let inserted = !self.transcript.cards.contains_key(&d.generation.message_id);
                 let idx = self.transcript.cards.entry(d.generation.message_id);
                 let card = match idx {
                     Entry::Vacant(v) => v.insert(crate::transcript::ReplyCard {
@@ -525,7 +530,8 @@ impl Session {
                 {
                     return false;
                 }
-                if d.generation.attempt > card.attempt {
+                let replaced = d.generation.attempt > card.attempt;
+                if replaced {
                     card.attempt = d.generation.attempt;
                     card.work_id = Some(d.generation.work_id);
                     card.terminal = None;
@@ -565,9 +571,10 @@ impl Session {
                     self.debate_messages.insert(card.id);
                     self.debate_streams.insert(card.id, d.clone());
                 }
-                self.transcript.revision = self.transcript.revision.wrapping_add(1);
                 card.next_chunk = d.chunk_index + 1;
                 card.pending_text.push_str(&d.text);
+                self.transcript
+                    .pending_delta(d.generation.message_id, inserted, replaced);
                 self.transcript
                     .batch_deadline
                     .get_or_insert(now + Duration::from_millis(50));
@@ -616,6 +623,7 @@ impl Session {
             EnvelopePayload::WorkState(w)
                 if matches!(w.status, WorkStatus::Failed | WorkStatus::Cancelled) =>
             {
+                let mut changed = Vec::new();
                 for card in self
                     .transcript
                     .cards
@@ -626,6 +634,10 @@ impl Session {
                     card.complete = true;
                     card.terminal = Some(w.status.clone());
                     cue = Some(FxCue::BubbleFailed { id: card.id });
+                    changed.push(card.id);
+                }
+                for id in changed {
+                    self.transcript.finish(id);
                 }
                 if let Some(error) = &w.error {
                     self.last_error = Some(error.text.to_string());
@@ -675,6 +687,7 @@ impl Session {
                 self.debate_messages.insert(e.generation.message_id);
                 if let Some(card) = self.transcript.cards.get_mut(&e.generation.message_id) {
                     card.complete = true;
+                    self.transcript.finish(e.generation.message_id);
                 }
                 self.tournaments
                     .entry(e.contest_id)
@@ -1224,6 +1237,10 @@ impl Session {
             EnvelopePayload::ContestPreflightResult(p) => self.snapshot.preflights.retain(
                 |old| !matches!(old, PendingPreflight::Contest(x) if x.plan_id == p.plan_id),
             ),
+            EnvelopePayload::MessageSuperseded(s) => {
+                self.transcript
+                    .supersede(s.superseded_message_id, s.replacement_message_id);
+            }
             EnvelopePayload::Error(e) => self.last_error = Some(e.text.to_string()),
             EnvelopePayload::RoomCleared(_) => {
                 self.presentation_epoch = self.presentation_epoch.wrapping_add(1);

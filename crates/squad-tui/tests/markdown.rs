@@ -300,3 +300,28 @@ fn soft_wrap_consumes_prose_delimiters_but_preserves_code_indentation() {
         .collect::<String>();
     assert!(text.contains("      "));
 }
+
+#[test]
+fn completed_fences_reuse_rows_on_resize_and_rebuild_on_replacement() {
+    let source =
+        "```rust\n/* multi\nline */ let x = 42;\n```\n\n[link][ref]\n\n[ref]: https://example.com";
+    let mut renderer = MarkdownRenderer::new();
+    renderer.update("one", source, false, 80);
+    renderer.update("one", source, true, 80);
+    let stats = renderer.stats();
+    renderer.update("one", source, true, 24);
+    assert_eq!(renderer.stats().parse_passes, stats.parse_passes);
+    assert_eq!(renderer.stats().highlighted_lines, stats.highlighted_lines);
+    let mut fresh = MarkdownRenderer::new();
+    fresh.update("one", source, true, 24);
+    assert_eq!(
+        renderer.visible_rows(0..usize::MAX),
+        fresh.visible_rows(0..usize::MAX)
+    );
+    renderer.update("two", "```rust\nlet x = 7;\n```", true, 24);
+    fresh.update("two", "```rust\nlet x = 7;\n```", true, 24);
+    assert_eq!(
+        renderer.visible_rows(0..usize::MAX),
+        fresh.visible_rows(0..usize::MAX)
+    );
+}

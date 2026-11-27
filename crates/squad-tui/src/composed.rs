@@ -22,6 +22,9 @@ pub struct Composed {
     pub banners: widgets::banner::BannerCache,
     pub graphics: BTreeMap<MessageId, Graphics>,
     signature: Option<(usize, usize, usize, u16)>,
+    /// Number of reply cards inspected, independent of widget/anchor work.
+    pub prepared_cards: usize,
+    card_revision: u64,
     pub started: bool,
     pub verdict_expanded: bool,
     pub active_cues: Vec<crate::fx::TimedCue>,
@@ -33,6 +36,7 @@ pub struct Composed {
     pub logo: Rect,
     pick_id: Option<MessageId>,
     epoch: u64,
+    transcript_epoch: u64,
     artifact_signature: Option<(usize, usize, u16)>,
 }
 #[derive(Clone, Default)]
@@ -107,13 +111,16 @@ impl Composed {
         top >= bottom
     }
     pub fn prepare(&mut self, session: &Session, width: u16, palette: &Palette) {
-        if self.epoch != session.presentation_epoch {
+        if self.epoch != session.presentation_epoch
+            || self.transcript_epoch != session.transcript.epoch
+        {
             self.transcript = TranscriptView::new(width);
             self.graphics.clear();
             self.signature = None;
             self.artifact_signature = None;
             self.pick_id = None;
             self.epoch = session.presentation_epoch;
+            self.transcript_epoch = session.transcript.epoch;
         }
         let signature = (
             session.snapshot.events.len(),
@@ -124,7 +131,8 @@ impl Composed {
         if self.signature == Some(signature) {
             return;
         }
-        if self.signature.is_none_or(|old| old.1 > signature.1) {
+        let full = self.signature.is_none_or(|old| old.1 > signature.1);
+        if full {
             let mut retained = std::collections::BTreeSet::new();
             retained.extend(
                 session
@@ -157,33 +165,28 @@ impl Composed {
         self.transcript.resize(width);
         let body_width = width.saturating_sub(1);
         let mut models = Vec::new();
-        let mut superseded = session.transcript.superseded.clone();
-        for event in &session.snapshot.events {
-            if let EnvelopePayload::MessageSuperseded(s) = &event.content {
-                superseded.insert(s.superseded_message_id, s.replacement_message_id);
-            }
-        }
-        for card in session.transcript.cards.values() {
-            if session.debate_messages.contains(&card.id) {
+        let ids = if full {
+            session.transcript.cards.keys().copied().collect::<Vec<_>>()
+        } else {
+            session
+                .transcript
+                .changed_since(self.card_revision)
+                .collect::<Vec<_>>()
+        };
+        self.card_revision = session.transcript.revision;
+        for id in ids {
+            self.prepared_cards += 1;
+            let Some(card) = session.transcript.cards.get(&id) else {
                 continue;
-            }
-            let replacement = superseded.get(&card.id).copied();
-            let state = if replacement.is_some() {
-                crate::transcript::CardState::Superseded
-            } else {
-                session
-                    .transcript
-                    .state_of(card.id)
-                    .unwrap_or(crate::transcript::CardState::Complete)
             };
-            if self.transcript.message(card.id).is_some_and(|m| {
-                m.source == card.text
-                    && m.complete == card.complete
-                    && m.attempt == card.attempt
-                    && m.status == state.label()
-            }) {
+            if session.debate_messages.contains(&card.id) {
+                if self.transcript.message(card.id).is_some() {
+                    self.transcript.retain(|id| id != card.id);
+                }
                 continue;
             }
+            let replacement = session.transcript.superseded.get(&card.id).copied();
+            let state = card.state(replacement.is_some());
             let author = match &card.author {
                 Actor::Member(n) => n.to_string(),
                 Actor::Me => "me".into(),

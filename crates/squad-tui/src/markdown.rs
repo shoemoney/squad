@@ -148,6 +148,11 @@ impl MarkdownRenderer {
             }
         }
         self.stats.highlighted_lines = self.fence.highlighted_lines();
+        if complete {
+            // Durable rows own their styles. Incremental parser state is only
+            // needed while appending; replacements start a fresh parser.
+            self.fence.clear();
+        }
     }
 
     /// Perform CPU work on Tokio's blocking pool. Spawn this future from the
