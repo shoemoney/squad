@@ -58,13 +58,39 @@ fn enabled_parser_example() {
             .collect(),
         ..Default::default()
     };
-    assert!(matches!(
-        parse(
-            "@all $debug Requests fail -- read-only tests only",
-            &Default::default(),
-            &ctx
-        )
-        .unwrap(),
-        ParsedInput::Debugging { .. }
-    ));
+    let ParsedInput::Debugging { limits, rounds, .. } = parse(
+        "@all $debug Requests fail\n--\nread-only tests only",
+        &Default::default(),
+        &ctx,
+    )
+    .unwrap() else {
+        panic!("expected debug")
+    };
+    assert_eq!(limits.as_deref(), Some("read-only tests only"));
+    assert_eq!(rounds, 3);
+}
+#[test]
+fn selection_refs_safety_split_and_patch_permission() {
+    let p: DebuggingTestProposal = serde_json::from_value(proposal()).unwrap();
+    let mut tests = std::collections::BTreeMap::from([("P:T1".into(), p.tests[0].clone())]);
+    let live = vec!["H1".to_string(), "H2".to_string()];
+    let valid:DebuggingSelection=serde_json::from_value(json!({"testRef":"P:T1","instruction":"Read resolver output","outcomes":[{"label":"O1","description":"Failure"},{"label":"O2","description":"Success"}],"predictions":[{"hypothesisId":"H1","outcome":"O1"},{"hypothesisId":"H2","outcome":"O2"}],"addedHypotheses":[],"notSelected":[]})).unwrap();
+    valid.validate_against(&tests, &live).unwrap();
+    let mut invalid = valid.clone();
+    invalid.test_ref = Some("invented".into());
+    assert!(invalid.validate_against(&tests, &live).is_err());
+    invalid = valid.clone();
+    invalid.predictions[1].outcome = "O1".into();
+    assert!(invalid.validate_against(&tests, &live).is_err());
+    tests.get_mut("P:T1").unwrap().safety = DebuggingSafety::Risky;
+    assert!(valid.validate_against(&tests, &live).is_err());
+    let report = DebuggingSummary {
+        summary: "A cause".into(),
+        next_test: None,
+        patch: Some("Change configuration".into()),
+        patch_rationale: "Addresses DNS".into(),
+        risks: vec![],
+    };
+    assert!(report.validate_patch(false).is_err());
+    report.validate_patch(true).unwrap();
 }

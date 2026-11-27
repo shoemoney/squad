@@ -504,3 +504,64 @@ pub fn prose_words(v: &serde_json::Value) -> usize {
         _ => 0,
     }
 }
+
+impl DebuggingSelection {
+    /// Frozen proposal references and the application's current live IDs are authoritative.
+    pub fn validate_against(
+        &self,
+        tests: &std::collections::BTreeMap<String, DebuggingTest>,
+        live_ids: &[String],
+    ) -> ValidationResult {
+        use std::collections::BTreeSet;
+        self.validate()?;
+        let Some(reference) = &self.test_ref else {
+            return ensure(
+                !tests.values().any(|t| {
+                    t.safety != DebuggingSafety::Risky
+                        && t.predictions
+                            .iter()
+                            .filter(|p| live_ids.contains(&p.hypothesis_id))
+                            .filter_map(|p| p.outcome.as_ref())
+                            .collect::<BTreeSet<_>>()
+                            .len()
+                            >= 2
+                }),
+                "a discriminating safe test exists",
+            );
+        };
+        let test = tests
+            .get(reference)
+            .ok_or_else(|| validation::ValidationError {
+                message: "unproposed test".into(),
+            })?;
+        ensure(
+            test.safety != DebuggingSafety::Risky,
+            "risky test cannot be selected",
+        )?;
+        ensure(
+            self.predictions
+                .iter()
+                .filter(|p| live_ids.contains(&p.hypothesis_id))
+                .filter(|p| self.outcomes.iter().any(|o| o.label == p.outcome))
+                .map(|p| &p.outcome)
+                .collect::<BTreeSet<_>>()
+                .len()
+                >= 2,
+            "test must split two live hypotheses",
+        )
+    }
+}
+impl DebuggingSummary {
+    pub fn validate_patch(&self, allowed: bool) -> ValidationResult {
+        self.validate()?;
+        ensure(
+            self.patch.is_none() || allowed,
+            "patch is not allowed by evidence",
+        )?;
+        ensure(
+            allowed
+                || self.patch_rationale == "No patch: the evidence does not yet isolate a cause.",
+            "missing no-patch explanation",
+        )
+    }
+}

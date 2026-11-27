@@ -44,17 +44,16 @@ pub fn eliminate(
                 .predictions
                 .iter()
                 .find(|p| p.hypothesis_id == h.hypothesis.hypothesis_id)
+                && selection.outcomes.iter().any(|o| o.label == p.outcome)
             {
-                if selection.outcomes.iter().any(|o| o.label == p.outcome) {
-                    if p.outcome == result.outcome {
-                        h.consistent_results += 1;
-                    } else {
-                        h.status = DebuggingHypothesisStatus::Eliminated;
-                        h.failed_prediction = Some(format!(
-                            "round {} predicted {}, observed {}",
-                            result.round, p.outcome, result.outcome
-                        ));
-                    }
+                if p.outcome == result.outcome {
+                    h.consistent_results += 1;
+                } else {
+                    h.status = DebuggingHypothesisStatus::Eliminated;
+                    h.failed_prediction = Some(format!(
+                        "round {} predicted {}, observed {}",
+                        result.round, p.outcome, result.outcome
+                    ));
                 }
             }
         }
@@ -277,6 +276,15 @@ pub fn validate_output(
             let p = proposals(data)?;
             let ts = tests(&p);
             let rows = live(data)?;
+            s.validate_against(
+                &ts,
+                &rows
+                    .iter()
+                    .filter(|h| h.status == DebuggingHypothesisStatus::Live)
+                    .map(|h| h.hypothesis.hypothesis_id.clone())
+                    .collect::<Vec<_>>(),
+            )?;
+
             let Some(reference) = &s.test_ref else {
                 ensure(
                     s.not_selected
@@ -428,6 +436,8 @@ pub fn validate_output(
         }
         WorkKind::DebuggingReport => {
             let s: DebuggingSummary = decode(output)?;
+            s.validate_patch(data["patchAllowed"] == true && patch_allowed(&live(data)?))?;
+
             ensure(
                 s.patch.is_none() || (data["patchAllowed"] == true && patch_allowed(&live(data)?)),
                 "patch is not allowed by evidence",
