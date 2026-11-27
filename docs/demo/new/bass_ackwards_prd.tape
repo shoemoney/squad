@@ -54,7 +54,7 @@ Escape
 Sleep 300ms
 Enter
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 150s
+Sleep 420s
 # 4. Hold on the saved-file line and coverage summary
 Sleep 10s
 

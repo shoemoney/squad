@@ -42,7 +42,7 @@ Sleep 1s
 # Preflight card: confirm
 Type "y"
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 300s
+Sleep 450s
 # 3. Hold on the census report and estimate
 Sleep 10s
 

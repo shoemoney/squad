@@ -38,7 +38,7 @@ Sleep 1s
 # Preflight card: confirm
 Type "y"
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 200s
+Sleep 360s
 # 3. Hold on the pooled probability, spread and signposts
 Sleep 10s
 

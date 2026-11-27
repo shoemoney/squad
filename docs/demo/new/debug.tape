@@ -59,7 +59,7 @@ Escape
 Sleep 300ms
 Enter
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 300s
+Sleep 480s
 Sleep 10s
 
 # Done: leave the room
