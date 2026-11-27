@@ -2,10 +2,31 @@
 
 ## Dirty-card preparation — 2026-11-27
 
+Corrected-fixture manual gates pass on dev3 (30 seconds per viewport) and hueb
+(300 seconds per viewport), with the requested Mac workflow still queued.
 Measured on dev3 (AMD Ryzen 9 8945HX, Linux x86_64, Rust 1.99.1), optimized
 bench, `CARGO_BUILD_JOBS=4`, 30 seconds per viewport. Builds and measurements
 ran sequentially. Full effects, 60-Hz scheduling, real widgets, 10,000 retained
 history cards and twelve 40-delta/s streams remain enabled. No thresholds changed.
+
+Final Linux results (30 seconds each, all corrected-fixture gates pass):
+
+| Viewport | Before → final draw p95 ms | Final draw p99 ms | Final key p95 ms | Final CPU % one core | Final maximum resize frame ms | Final ending RSS KiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 140x42 | 3.173 → 0.765 | 0.991 | 16.201 | 3.397 | 40.733 | 194440 |
+| 80x24 | 2.815 → 0.472 | 0.563 | 16.236 | 3.488 | 104.629 | 189148 |
+| 200x60 | 3.501 → 1.219 | 1.719 | 16.324 | 5.126 | 43.478 | 199596 |
+
+The full final workspace suite passed: **1,302 tests, zero failures, four ignored**.
+The four ignored entries are the manual release latency gate, 30-minute streaming
+RSS soak, parent-driven PTY child entry point, and manual 500-message RSS audit.
+Workspace/all-target Clippy with `-D warnings`, formatting and whitespace checks
+pass. All existing insta snapshots remain unchanged. Seven new regressions cover
+terminal/retry/supersession publication, pending versus displayed text, no per-frame
+history lookups/inserts, follow/unread transitions, clear/restore, replay/paging,
+width/anchor stability, fence completion/replacement, and Unicode/tab source rows.
+A six-second-per-viewport historical-mode smoke also passed; it only verifies the
+preserved comparator switch and is not a sustained acceptance run.
 
 The corrected fixture resizes TestBackend with Terminal and anchors at the verdict
 widget's header before emitting its live cue. It asserts verdict visibility during
@@ -73,10 +94,43 @@ identify this shared-host qualification. They are separate from workflow accepta
 was the initial dirty-only dispatch and was cancelled while queued after the
 conditional fix. Its replacement, [run 45928957488](https://github.com/shoemoney/squad/actions/runs/45928957488),
 uses product head `659700128025546c20e3e2d5024ccaa678cbc3cb` and remains queued
-behind unrelated CI, which the user requested be left running. A manual
-300-second-per-viewport run of the final product is in progress; workflow acceptance
-remains pending. Original supplied macOS draw p95 was 10.8–11.6 ms in
+behind unrelated CI, which the user requested be left running. The final manual
+300-second-per-viewport run passes at all sizes; workflow acceptance remains
+pending. Original supplied macOS draw p95 was 10.8–11.6 ms in
 [run 45912463641](https://github.com/shoemoney/squad/actions/runs/45912463641).
+
+### Final manual macOS gate — 300 seconds per viewport
+
+All three corrected-fixture windows pass, with draw p95 below the 6-ms target.
+The 60 real width changes per viewport remain in inclusive draw, work and key
+latency samples; dedicated resize p95/max still expose the synchronous tails.
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Resize frame p95 / max ms | Frames / deltas | Ending RSS KiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 140x42 | 2.376 / 3.058 | 18.638 | 9.708 | 73.723 / 74.991 | 17765 / 144012 | 179216 |
+| 80x24 | 1.564 / 1.809 | 19.851 | 8.343 | 135.834 / 136.529 | 17535 / 144012 | 220128 |
+| 200x60 | 3.514 / 4.196 | 19.474 | 14.487 | 74.436 / 75.318 | 17765 / 144012 | 233568 |
+
+Product source is `659700128025546c20e3e2d5024ccaa678cbc3cb`.
+[Source hashes](reports/perf-dirty-cards-2026-11-27/source-sha256.txt) were checked
+against dev3. Linux's later benchmark-only Clippy spelling uses
+`is_multiple_of(8)` instead of `% 8 == 0`; production code and workload are identical.
+[Raw sustained Mac log](reports/perf-dirty-cards-2026-11-27/mac-final-300s.log),
+[machine-readable summary](reports/perf-dirty-cards-2026-11-27/summary.json) and
+[Linux comparison chart](reports/perf-dirty-cards-2026-11-27/draw-p95.html)
+retain the measurements. Shared-host manual results are separate from the queued
+workflow's acceptance status. The workflow still needs to run on the dedicated
+runner; its stalled unrelated CI job was left untouched as requested.
+
+Reproduction from the product checkout (builds finish before benchmark sampling):
+
+```sh
+CARGO_BUILD_JOBS=4 COMPOSED_SECS=30 cargo bench -p squad-tui --locked --bench composed_streams
+CARGO_BUILD_JOBS=4 COMPOSED_SECS=300 cargo bench -p squad-tui --locked --bench composed_streams
+CARGO_BUILD_JOBS=4 cargo test --workspace --no-fail-fast
+CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all -- --check
+```
 
 ## Scoped memory audit on dev2 — 2026-11-26
 

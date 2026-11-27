@@ -5,3 +5,8 @@ CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings: PASS (
 cargo fmt --all -- --check: PASS
 git diff --check: PASS
 All existing insta snapshots unchanged.
+CARGO_BUILD_JOBS=4 COMPOSED_SECS=30 COMPOSED_ENFORCE=0 cargo bench -p squad-tui --bench composed_streams: 3/3 gate=PASS, 0 FAIL (inclusive resize)
+COMPOSED_HISTORICAL=1 COMPOSED_SECS=6 composed_streams: 3/3 gate=PASS
+Manual hueb CARGO_BUILD_JOBS=4 COMPOSED_SECS=300 COMPOSED_ENFORCE=0 composed_streams: 3/3 gate=PASS, all draw p95 <=6 ms; no threshold changes.
+Mac focused release library/Markdown/transcript/composed/dirty-card tests: PASS; snapshots unchanged.
+Required mac-perf.yml dispatch 45928957488: QUEUED behind CI left untouched by user instruction; not a workflow acceptance claim.
