@@ -88,6 +88,9 @@ pub fn answer(
         // Hold new ordinary inputs while already queued work drains; the mode resumes at the barrier.
         tx.execute("UPDATE work SET held_by_contest_id=?,runnable=0 WHERE kind='reply' AND status='queued' AND trigger_event_seq>? AND target IN (SELECT target FROM contest_assignments WHERE step_id=?)",params![contest.to_string(),seq.get(),pending.step_id.to_string()])?;
         super::new_mode_human_answer(pending.kind, tx, &pending, true)?;
+        if pending.kind == ContestKind::BassAckwardsPrd {
+            super::bass_ackwards_prd::human_answered(tx, group, id, &pending)?;
+        }
     }
     Ok(())
 }

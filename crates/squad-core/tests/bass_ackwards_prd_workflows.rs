@@ -685,6 +685,49 @@ async fn optional_human_notes_resume_and_conflicts_are_saved() {
     h.send("/answer Include the operations team's deployment constraints");
     assert_eq!(h.state().state, BassAckwardsPrdStatus::AwaitingHuman);
     h.send("/continue");
+    // Closing the human step is a versioned save: the first state event after the
+    // completed answer is the one that clears the step, so the stored change is
+    // never a silent state_json edit that no event or version accounts for.
+    let (event, stored): (String, String) = h
+        .store
+        .call(|db| {
+            Ok((
+                db.query_row(
+                    "SELECT payload FROM events WHERE kind='bass_ackwards_prd.state' AND seq > (SELECT MAX(seq) FROM events WHERE kind='contest.human_answered') ORDER BY seq LIMIT 1",
+                    [],
+                    |r| r.get(0),
+                )?,
+                db.query_row(
+                    "SELECT state_json FROM contests ORDER BY rowid DESC LIMIT 1",
+                    [],
+                    |r| r.get(0),
+                )?,
+            ))
+        })
+        .unwrap();
+    let (event, stored): (Value, Value) = (
+        serde_json::from_str(&event).unwrap(),
+        serde_json::from_str(&stored).unwrap(),
+    );
+    assert!(
+        event["stepId"].is_null(),
+        "step cleared by an event: {:?}",
+        event["stepId"]
+    );
+    assert!(event["stateVersion"].as_u64() <= stored["stateVersion"].as_u64());
+    let versions: Vec<i64> = h
+        .store
+        .call(|db| {
+            let mut q = db.prepare("SELECT json_extract(payload,'$.stateVersion') FROM events WHERE kind='bass_ackwards_prd.state' AND seq > (SELECT MAX(seq) FROM events WHERE kind='contest.human_answered') ORDER BY seq")?;
+            Ok(q.query_map([], |r| r.get::<_, i64>(0))?.collect::<Result<_, _>>()?)
+        })
+        .unwrap();
+    // Closing the step emits its own consecutive version ahead of the events the
+    // resumed drive saves (the old direct edit emitted nothing: [23, 24]).
+    assert!(
+        versions.len() >= 3 && versions.windows(2).all(|w| w[1] == w[0] + 1),
+        "{versions:?}"
+    );
     h.pump().await;
     assert_eq!(h.state().state, BassAckwardsPrdStatus::Complete);
     assert_eq!(f.fake.captured_bodies().await.len(), 29);

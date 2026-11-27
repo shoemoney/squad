@@ -139,7 +139,7 @@ pub fn projection(
                         .map(|p| redacted(p, setup))
                         .collect::<Vec<_>>()
                 );
-                data["tables"]=json!(tables.iter().map(|t|json!({"table":t.table,"outcome":t.outcome,"roundsUsed":t.rounds_used,"transcript":transcript(t,setup)})).collect::<Vec<_>>());
+                data["tables"]=json!(tables.iter().map(|t|json!({"table":t.table,"outcome":t.outcome,"roundsUsed":t.rounds_used,"transcript":transcript(t,setup,true)})).collect::<Vec<_>>());
                 data["hasInferredInterests"] = json!(maps.values().any(|m| {
                     m.counterpart_interests
                         .iter()
@@ -168,7 +168,7 @@ pub fn projection(
                     .find(|t| &t.negotiator == n && t.outcome.is_none())
                     .ok_or(ReaderError::Forbidden)?;
                 data["table"] = json!(table.table);
-                data["transcript"] = json!(transcript(table, setup));
+                data["transcript"] = json!(transcript(table, setup, false));
                 data["package"] = json!(packages.get(n));
                 data["fallback"] = json!(if packages.contains_key(n) {
                     "Use your package"
@@ -194,17 +194,38 @@ pub fn projection(
                     .get(table.table as usize - 1)
                     .ok_or(ReaderError::NotRunnable)?
             );
-            data["transcript"] = json!(transcript(table, setup));
+            data["transcript"] = json!(transcript(table, setup, false));
         }
         _ => return Err(ReaderError::Forbidden),
     }
     Ok(data)
 }
+/// Table transcript for a prompt. `judge` keeps counterpart-side diagnostics such as
+/// `violatedInterest`; negotiators and counterparts only ever see the public move
+/// fields so a hidden interest cannot leak across the table (D81).
 fn transcript(
     table: &negotiate::NegotiateTable,
     setup: &negotiate::NegotiateSetup,
+    judge: bool,
 ) -> Vec<serde_json::Value> {
-    table.turns.iter().map(|t|serde_json::json!({"round":t.round,"side":if t.counterpart{"counterpart"}else{"negotiator"},"body":redacted(&t.body,setup)})).collect()
+    table
+        .turns
+        .iter()
+        .map(|t| {
+            let body = if t.counterpart && !judge {
+                let mut public = serde_json::Map::new();
+                for key in ["message", "response", "counterOffer"] {
+                    if let Some(v) = t.body.get(key) {
+                        public.insert(key.into(), v.clone());
+                    }
+                }
+                redacted(&serde_json::Value::Object(public), setup)
+            } else {
+                redacted(&t.body, setup)
+            };
+            serde_json::json!({"round":t.round,"side":if t.counterpart{"counterpart"}else{"negotiator"},"body":body})
+        })
+        .collect()
 }
 fn redacted<T: serde::Serialize>(v: &T, setup: &negotiate::NegotiateSetup) -> serde_json::Value {
     fn scrub(v: &mut serde_json::Value, s: &negotiate::NegotiateSetup) {
@@ -224,4 +245,104 @@ fn redacted<T: serde::Serialize>(v: &T, setup: &negotiate::NegotiateSetup) -> se
     let mut v = serde_json::to_value(v).expect("protocol serialization");
     scrub(&mut v, setup);
     v
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::collections::BTreeMap;
+
+    const LEAK: &str = "HIDDEN_INTEREST_LEAK";
+
+    fn fixture() -> (negotiate::NegotiateSetup, Vec<negotiate::NegotiateTable>) {
+        let neg = MemberNick::new("alpha").unwrap();
+        let cp = MemberNick::new("bravo").unwrap();
+        let mut table = negotiate::NegotiateTable {
+            table: 1,
+            negotiator: neg.clone(),
+            counterpart: cp.clone(),
+            rounds_used: 1,
+            outcome: None,
+            turns: vec![],
+        };
+        table.turns.push(negotiate::NegotiateTurn {
+            table: 1,
+            round: 1,
+            actor: neg.clone(),
+            counterpart: false,
+            body: json!({"message":"open","offer":"ten"}),
+        });
+        table.turns.push(negotiate::NegotiateTurn {
+            table: 1,
+            round: 1,
+            actor: cp.clone(),
+            counterpart: true,
+            body: json!({"message":"no","response":"counter","counterOffer":"twelve","violatedInterest":LEAK}),
+        });
+        let setup = negotiate::NegotiateSetup {
+            pack_version: "t".into(),
+            our_side: "buyer".into(),
+            counterpart: "seller".into(),
+            participants: vec![neg, cp],
+            models: BTreeMap::new(),
+            prompts: json!({}),
+            rounds: 3,
+            tables: vec![table.clone()],
+            room_words: 100,
+            plan_words: 100,
+            redaction_tokens: vec![],
+        };
+        (setup, vec![table])
+    }
+
+    fn project(kind: WorkKind, target: &Target) -> String {
+        let (setup, tables) = fixture();
+        let brief = negotiate::NegotiateBrief {
+            strategy_sheet: "s".into(),
+            public_scenario: "p".into(),
+            counterpart_briefs: vec![negotiate::NegotiateCounterpartBrief {
+                persona: "x".into(),
+                priorities: vec![],
+                reservations: vec![],
+                hidden_constraint: "h".into(),
+                walk_away_rule: "w".into(),
+            }],
+            assumptions_to_confirm: vec![],
+        };
+        projection(
+            &setup,
+            NegotiateStatus::Rehearsing,
+            1,
+            target,
+            &kind,
+            &BTreeMap::new(),
+            Some(&brief),
+            &BTreeMap::new(),
+            &tables,
+        )
+        .unwrap()
+        .to_string()
+    }
+
+    #[test]
+    fn negotiator_and_counterpart_prompts_never_carry_violated_interest() {
+        let neg = Target::Member(MemberNick::new("alpha").unwrap());
+        let cp = Target::Member(MemberNick::new("bravo").unwrap());
+        let negotiator = project(WorkKind::NegotiateMove, &neg);
+        assert!(
+            negotiator.contains("twelve"),
+            "public counter stays visible"
+        );
+        assert!(!negotiator.contains(LEAK) && !negotiator.contains("violatedInterest"));
+        let counterpart = project(WorkKind::NegotiateCounter, &cp);
+        assert!(!counterpart.contains(LEAK) && !counterpart.contains("violatedInterest"));
+    }
+
+    #[test]
+    fn playbook_judge_still_sees_violated_interest() {
+        let (setup, tables) = fixture();
+        let t = transcript(&tables[0], &setup, true).to_vec();
+        assert!(serde_json::to_string(&t).unwrap().contains(LEAK));
+    }
 }

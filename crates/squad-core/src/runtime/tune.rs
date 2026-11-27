@@ -25,8 +25,14 @@ pub async fn execute(
     let model: squad_agents::resolver::Model = serde_json::from_value(invocation["model"].clone())
         .map_err(|_| ReaderError::NotRunnable)?;
     let request = if let TuneCaseMaterial::Execute { prompt, input } = &input {
-        crate::router::executor::executor_call(grant, prompt, input, model.output_limit)
-            .map_err(ExecutionError::Transport)?
+        crate::router::executor::executor_call(
+            grant,
+            prompt,
+            input,
+            model.output_limit,
+            model.supported_parameters.iter().any(|p| p == "reasoning"),
+        )
+        .map_err(ExecutionError::Transport)?
     } else {
         let repair = context
             .work

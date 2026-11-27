@@ -1220,9 +1220,22 @@ pub fn human_answer(tx: &Connection, p: &parser::PendingHuman, complete: bool) -
         if notes.is_empty() {
             release_skipped(tx, p.contest_id, &WorkKind::BassAckwardsPrdApply)?;
         }
-        tx.execute("UPDATE contests SET state_json=json_set(state_json,'$.stepId',NULL) WHERE contest_id=?",[p.contest_id.to_string()])?;
     }
     Ok(())
+}
+/// The completed human step closes its barrier step. That is a state change, so it
+/// goes through the versioned save: the version bumps and a state event is emitted.
+pub fn human_answered(
+    tx: &Transaction<'_>,
+    g: &mut CommitGroup,
+    id: EventId,
+    p: &parser::PendingHuman,
+) -> Result<()> {
+    let mut s = store::state(tx, p.contest_id)?;
+    let version = s.state_version;
+    s.step_id = None;
+    s.state_version += 1;
+    save(tx, g, id, &s, Some(version))
 }
 pub fn stop(
     tx: &Transaction<'_>,

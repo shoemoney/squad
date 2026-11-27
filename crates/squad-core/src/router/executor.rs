@@ -261,11 +261,18 @@ pub fn executor_call(
     prompt: &str,
     input: &str,
     published_output_limit: u32,
+    supports_reasoning: bool,
 ) -> std::result::Result<
     squad_agents::openrouter::ChatRequest,
     squad_agents::openrouter::TransportError,
 > {
-    squad_agents::agents::bare_executor_request(grant, prompt, input, published_output_limit)
+    squad_agents::agents::bare_executor_request(
+        grant,
+        prompt,
+        input,
+        published_output_limit,
+        supports_reasoning,
+    )
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExecutorCallFailure {
