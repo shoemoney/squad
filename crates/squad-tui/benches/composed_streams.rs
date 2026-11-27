@@ -294,7 +294,7 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
                 );
                 if !visible.is_empty()
                     && app.fx.contains(&verdict_key)
-                    && elapsed.as_secs() % 8 == 0
+                    && elapsed.as_secs().is_multiple_of(8)
                 {
                     visible_verdict_frames += 1;
                 }
