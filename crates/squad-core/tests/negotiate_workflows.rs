@@ -435,6 +435,45 @@ async fn controlled_run_count(
                     .unwrap();
                 continue;
             }
+            if grant.work.kind == WorkKind::NegotiatePlaybook
+                && matches!(s, Scenario::WalkAway | Scenario::MoveAbandon)
+            {
+                let db = f.db();
+                let raw: String = db
+                    .query_row("SELECT plan_json FROM contests", [], |r| r.get(0))
+                    .unwrap();
+                let plan: ContestPreflight = serde_json::from_str(&raw).unwrap();
+                let initial =
+                    squad_store::accounting::reservation_micros(plan.estimate.reserved_usd)
+                        .unwrap();
+                let split:i64=db.query_row("SELECT COALESCE(SUM(json_extract(w.scheduling_meta,'$.attemptReservationMicros')),0) FROM attempts a JOIN work w USING(work_id)",[],|r|r.get(0)).unwrap();
+                let (moves, counters) = if matches!(s, Scenario::MoveAbandon) {
+                    (6, 9)
+                } else {
+                    (6, 6)
+                };
+                let released = 2
+                    * (moves
+                        * plan.settings["attemptShares"]["negotiate.move"]
+                            .as_i64()
+                            .unwrap()
+                        + counters
+                            * plan.settings["attemptShares"]["negotiate.counter"]
+                                .as_i64()
+                                .unwrap());
+                let remaining: i64 = db
+                    .query_row(
+                        "SELECT amount_micros FROM reservations WHERE work_id IS NULL",
+                        [],
+                        |r| r.get(0),
+                    )
+                    .unwrap();
+                assert_eq!(
+                    remaining,
+                    initial - split - released,
+                    "future turns must be released before the playbook call"
+                );
+            }
             if stop.as_ref() == Some(&grant.work.kind) {
                 let result = router
                     .lock()
@@ -670,6 +709,14 @@ async fn quorum_and_judge_failures_keep_evidence() {
             )
             .unwrap();
         assert_eq!(r, reason);
+        let partial = report(&f);
+        assert!(partial.playbook.is_none());
+        if matches!(s, Scenario::PlaybookFail) {
+            assert!(partial.tables.iter().all(|t| t.outcome.is_some()));
+        }
+        if matches!(s, Scenario::MapQuorum) {
+            assert_eq!(partial.skipped.len(), 5);
+        }
     }
 }
 #[tokio::test]
@@ -702,6 +749,8 @@ async fn stop_fences_every_phase() {
             )
             .unwrap();
         assert_eq!(reason, "stopped");
+        let partial = report(&f);
+        assert!(partial.playbook.is_none());
     }
 }
 #[tokio::test]

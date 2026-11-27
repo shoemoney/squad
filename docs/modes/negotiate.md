@@ -99,7 +99,9 @@ about the actual counterpart. Narrow layouts stack tables; the owned
 
 Markdown adds every accepted map, briefing, package and turn with round/table
 information. Failed/stopped partial contests stay exportable without new calls.
-Exports exclude frozen prompt sources and model configuration.
+Exports exclude frozen prompt sources and model configuration. A failure or stop
+after work has begun also commits an assembled partial report, retaining skipped
+members and committed table outcomes even when no playbook was completed.
 
 ## Example run
 
@@ -120,8 +122,15 @@ walk-away, all-abandoned, repair, stop and restart. These are test results only.
   `self.crosscheck.execute(...)`. Its `Runner` already dispatches new modes to
   the owned runtime. This is the production blocker.
 - `crates/squad-tui/src/composed.rs`: pass the measured contest cell width to
-  `widgets::negotiate::render_width` instead of `render`. The existing call uses
+  `widgets::negotiate::render_width(&contest.negotiate, usize::from(body_width))`
+  instead of `render`. The existing call uses
   the narrow fallback, so wide layout remains an integration task.
+- `crates/squad-tui/src/typeahead.rs`, `examples`: add
+  `"@all $negotiate renew our supplier contract -- Supplier wants faster payment"`
+  to the example candidates. The existing parser filter suppresses it when the
+  mode is disabled or the roster is too small. The temporary-enable probe passes
+  parser, mode completion and help assertions, but fails the TIP-example assertion
+  in `negotiate_view.rs:93` because no negotiate example is registered.
 - `crates/squad-core/src/router/executor.rs`: recognize `MODE_INVALID_OUTPUT` as
   `FailureClass::InvalidOutput`. Until then, the owned executor uses the already
   recognized `JUDGE_INVALID_MODE_OUTPUT` for member repairs as well.
@@ -132,3 +141,43 @@ walk-away, all-abandoned, repair, stop and restart. These are test results only.
   process memory without printing them and record the ledger and report here.
 
 Only ownership-map files and the mode's M8.P5 task entries are changed.
+
+## Worker verification (2026-11-26)
+
+There are 35 owned tests: five protocol, seven store, one agents validator,
+fourteen core workflow, three tally, two export and three TUI view tests.
+The workflow harness uses the actual scoped readers, owned runtime, fake
+OpenRouter transport and acknowledged router/accounting boundary. It bypasses
+the shared outer judge executor; it is not proof of production launcher dispatch.
+
+The disabled-branch full workspace gate passes 1,360 unique tests, zero failures
+and four existing ignored tests (1,361 passing summary entries include the WAL
+subprocess repeated inside its parent test). The release CLI build and its
+behavior/package checks pass. All-target workspace Clippy with warnings denied
+and formatting pass. Commands on dev3:
+
+```sh
+export CARGO_BUILD_JOBS=4 RUST_TEST_THREADS=1
+export CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0
+cargo test --workspace --no-fail-fast
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all -- --check
+```
+
+Serial fixture execution avoids overlapping expensive test builds; disabling
+debug information and incremental compilation keeps the shared box's memory
+use lower. The original debug-profile run was interrupted with exit 143, without
+a reported assertion failure. The completed serial run is the gate evidence.
+
+A separate temporary-enable probe passes all five protocol tests, including a
+public parser example and the three-member rejection. In the view target, two
+tests pass and the registration test passes mode-menu/help assertions before
+failing the absent TIP candidate at `negotiate_view.rs:93`. The public switch is
+restored to false. This failure is intentionally reported as an integration gap,
+not hidden by weakening the future enable test.
+
+The shared repair classifier workaround, production judge blocker, TIP example
+and compositor width call are listed above. M8.P5 has eleven tasks complete and
+two open: the production wide-layout binding and public enable/live verification.
+No real provider call was made; live cost, wall time, reserved versus actual and
+a real report excerpt remain pending.

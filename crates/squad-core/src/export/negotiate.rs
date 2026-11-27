@@ -9,6 +9,15 @@ fn section(out: &mut String, title: &str, value: &impl serde::Serialize) {
         serde_json::to_string_pretty(value).expect("protocol serialization")
     );
 }
+pub fn outcome_label(outcome: Option<NegotiateOutcome>) -> &'static str {
+    match outcome {
+        Some(NegotiateOutcome::Deal) => "deal",
+        Some(NegotiateOutcome::NoDeal) => "no_deal",
+        Some(NegotiateOutcome::Unfinished) => "unfinished",
+        Some(NegotiateOutcome::Abandoned) => "abandoned",
+        None => "pending",
+    }
+}
 pub fn report(r: &NegotiateReport) -> String {
     let mut out = String::from(
         "# NEGOTIATE\n\nRehearsal with modelled counterparts. Hypothetical counterpart, not a fact.\n",
@@ -22,13 +31,17 @@ pub fn report(r: &NegotiateReport) -> String {
     for t in &r.tables {
         let _ = writeln!(
             out,
-            "| {} | @{} | @{} | {:?} | {} |",
-            t.table, t.negotiator, t.counterpart, t.outcome, t.rounds_used
+            "| {} | @{} | @{} | {} | {} |",
+            t.table,
+            t.negotiator,
+            t.counterpart,
+            outcome_label(t.outcome),
+            t.rounds_used
         );
     }
     section(&mut out, "Outcome counts", &r.counts);
     if r.no_rehearsal_evidence {
-        out.push_str("\nNo rehearsal evidence: every table was abandoned. The playbook is based on preparation only.\n");
+        out.push_str("\nNo rehearsal evidence.\n");
     }
     section(
         &mut out,
@@ -56,7 +69,12 @@ pub fn report(r: &NegotiateReport) -> String {
     }
     section(&mut out, "Packages", &r.packages);
     for t in &r.tables {
-        let _ = writeln!(out, "\n## TABLE {} — {:?}\n", t.table, t.outcome);
+        let _ = writeln!(
+            out,
+            "\n## TABLE {} — {}\n",
+            t.table,
+            outcome_label(t.outcome)
+        );
         for turn in &t.turns {
             let _ = writeln!(
                 out,

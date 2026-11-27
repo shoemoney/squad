@@ -116,7 +116,11 @@ pub fn render_width(v: &View, width: usize) -> Vec<String> {
                 .tables
                 .iter()
                 .map(|t| {
-                    let mut lines = vec![format!("TABLE {} · {:?}", t.table, t.outcome)];
+                    let mut lines = vec![format!(
+                        "TABLE {} · {}",
+                        t.table,
+                        squad_core::export::negotiate::outcome_label(t.outcome)
+                    )];
                     for turn in &t.turns {
                         lines.push(format!(
                             "R{} {}: {}",
@@ -135,7 +139,7 @@ pub fn render_width(v: &View, width: usize) -> Vec<String> {
             out.extend(layout(columns, width));
             out.push("PLAYBOOK".into());
             if r.no_rehearsal_evidence {
-                out.push("No rehearsal evidence: all tables abandoned".into());
+                out.push("No rehearsal evidence".into());
             }
             if let Some(p) = r.playbook {
                 out.push(format!("Opening: {}", p.opening));

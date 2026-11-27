@@ -432,6 +432,9 @@ pub fn stop(tx: &Transaction<'_>, g: &mut CommitGroup, id: EventId, c: ContestId
         return Ok(());
     }
     let v = s.state_version;
+    if s.step_id.is_some() {
+        report(tx, g, id, &s)?;
+    }
     s.state = NegotiateStatus::Stopped;
     s.state_version += 1;
     s.terminal_reason = Some("stopped".parse().expect("literal"));
@@ -510,6 +513,7 @@ fn finish(
     s: &mut NegotiateState,
     reason: &str,
 ) -> Result<()> {
+    report(tx, g, id, s)?;
     s.state = NegotiateStatus::Failed;
     s.terminal_reason = Some(reason.parse().map_err(|_| invalid())?);
     let old = s.state_version;
@@ -993,7 +997,7 @@ fn report(
         counts: policy::tally(&ts),
         no_rehearsal_evidence: ts
             .iter()
-            .all(|t| t.outcome == Some(NegotiateOutcome::Abandoned)),
+            .all(|t| t.outcome == Some(NegotiateOutcome::Abandoned) || t.turns.is_empty()),
         tables: ts,
         playbook: judge_output(tx, c, "negotiate.playbook")?,
         skipped,
