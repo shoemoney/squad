@@ -12,6 +12,9 @@ All notable changes to Squad will be documented in this file, following
 
 - Forge, Forecast, Decide, Blow It Up, Readback, Rank, Tune and Bass Ackwards PRD
   modes, including reports, export, recovery, cost previews and private repairs.
+- Eight integrated default six-member smoke invocations, with measured cost,
+  time and reservations in [cost evidence](docs/costs.md). Seven completed;
+  Readback returned at its documented human pause. No run ended `judge_failed`.
 - Public preflight regressions for script-derived call and reservation counts,
   including Tune executors and optional PRD human review.
 
@@ -22,6 +25,7 @@ All notable changes to Squad will be documented in this file, following
 - Delayed timeout/cancellation receipts reconcile while a room is open, after
   restart and clear, and through a bounded shutdown pass. Unknown receipts retain
   their holds; known receipts update their original billing day once.
+- Keep startup identity-probe receipts with their separate accounting owner.
 - Inline `PRD_HUMAN_REVIEW=1` freezes the requested review and reserves its call.
 - Startup probe concurrency is checked through observed dispatch rather than an
   ambient wall-clock threshold.

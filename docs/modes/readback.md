@@ -79,3 +79,19 @@ Source head `6719836`, checked on dev3 with `CARGO_BUILD_JOBS=4`:
 - `cargo clippy --workspace --all-targets -- -D warnings`: passed.
 - `cargo fmt --all -- --check`: passed.
 - `cargo build --release -p squad-cli`: passed. The single paid contest above completed and exported; no live provider calls run in tests.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `c7c20ff` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `AWAITING_HUMAN`, choices required; 8 planned mode calls and
+12 total provider attempts including startup. Spend was $0.428807, observed
+wall time 57.114 seconds, and initial/sample-peak reservation
+$10.961076/$10.961076. Final reserved funds were $6.724861 and unknown
+calls 0. The report-only offline export is not available before the human continuation;
+it currently reports `contest not found` at this pause. Evidence: `/tmp/squad-v020-readback-qpox1sy9/`;
+see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).
+
+The reservation is for unstarted continuation work, not an unknown charge.
+The human choices are intentionally left open; this invocation tests the documented
+headless pause. One interpretation required private repair. Six interpretations
+and the diff were accepted. No judge failure occurred.

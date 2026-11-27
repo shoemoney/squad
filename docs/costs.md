@@ -1,6 +1,6 @@
 # 💸 What a Squad run costs
 
-**Status: all eight modes measured.** Part 1 (2026-11-25) was cut short by OpenRouter's $250 weekly workspace budget. Part 2 (2026-11-26) measured ordinary, debate, survey and tournament on `cost-study-2`. Part 3 (2026-11-26 UTC) measured grill twice, census twice, crosscheck twice and a second successful probe on release build `e4e4bdc` of `release-v0.1.1`, after merging `fix-live-invalid-output` (`18c890d`). All seven part 3 runs completed; three judge outputs needed a paid repair. The default daily cap was $150.
+**Status: the original eight workflows are measured; v0.2.0 integration measurements follow below.** Part 1 (2026-11-25) was cut short by OpenRouter's $250 weekly workspace budget. Part 2 (2026-11-26) measured ordinary, debate, survey and tournament on `cost-study-2`. Part 3 (2026-11-26 UTC) measured grill twice, census twice, crosscheck twice and a second successful probe on release build `e4e4bdc` of `release-v0.1.1`, after merging `fix-live-invalid-output` (`18c890d`). All seven part 3 runs completed; three judge outputs needed a paid repair. The default daily cap was $150.
 
 ## Method
 
@@ -129,4 +129,51 @@ Cost and wall time cover completed, budget-clean runs across all three parts; hi
 - All seven part 3 runs completed. Crosscheck still produced two truncated first rulings (`JUDGE_INVALID_MODE_OUTPUT`), and probe one invalid first report (`JUDGE_INVALID_VERDICT`); automatic judge repairs recovered all three and are included in the cost. The four grill/census runs had no validation repairs.
 - Reservation size depends on plan bounds and model roles. Part 3's probe reserved $10.61 versus $26.18 in part 1; its random role split and brief differ, so the smaller reservation is not a controlled before/after comparison.
 
-All requested modes are now measured; broader prompts and more samples would establish a stronger range.
+The original seven contest modes and ordinary chat are measured in this study. The v0.2.0 additions are recorded separately below.
+
+## v0.2.0 integrated default-roster measurements
+
+These runs use release 0.2.0, the built-in **six-member** roster and judge,
+`SQUAD_DAILY_MAX_USD=150`, a fresh private data directory per mode, and
+`--env-file /dev/null`. Credentials enter the process environment off-screen.
+Each row is one paid mode invocation. Wall time runs from process launch to
+observed exit (0.5-second polling); reservation peaks are sampled at that interval.
+Actual spend includes startup probes. Source/binary provenance and further runs
+are recorded in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md).
+
+| Mode | Outcome | Actual | Wall | Preflight call bound / provider attempts incl. startup | Initial reserved | Sampled peak | Final reserved / unknown |
+|---|---|---:|---:|---:|---:|---:|---|
+| Rank | COMPLETE, ranked; one member repair | $0.190184 | 38.636 s | 7 / 12 | $18.024576 | $18.024576 | $0 / 0 |
+| Forge | COMPLETE, original_won | $0.345117 | 80.682 s | 15 / 19 | $24.736836 | $24.736836 | $0 / 0 |
+| Forecast | COMPLETE, complete | $0.470614 | 105.725 s | 14 / 18 | $20.188827 | $20.188827 | $0.000000 / 0 |
+| Decide | COMPLETE, complete | $0.400975 | 69.135 s | 14 / 18 | $16.400079 | $16.400080 | $0.000000 / 0 |
+| Blow It Up | COMPLETE, reported | $1.469007 | 265.024 s | 13 / 20 | $20.574231 | $20.574231 | $0.000000 / 0 |
+| Readback | AWAITING_HUMAN, choices required | $0.428807 | 57.114 s | 8 / 12 | $10.961076 | $10.961076 | $6.724861 / 0 |
+| Tune | COMPLETE, tuned | $0.522077 | 134.272 s | 34 / 35 | $24.970323 | $24.970323 | $0.000000 / 0 |
+| Bass Ackwards PRD | COMPLETE, saved | $2.552690 | 410.874 s | 28 / 33 | $50.711781 | $50.711781 | $0.000000 / 0 |
+
+### Original timeout holds reconciled
+
+The integrated runtime reopened the original rooms with `/who` and reconciled
+their delayed receipts through the canonical writer. Attempt counts stayed 19 in
+each room; no new provider generation or manual ledger edit occurred.
+
+| Original smoke | Spent at exit | Held at exit | Late actual charge | Settled spent | Final held / unknown |
+|---|---:|---:|---:|---:|---|
+| Forecast, dev3 | $0.493022 | $0.510112 | $0.014302 | $0.507324 | $0 / 0 |
+| Decide, dev2 | $0.607680 | $0.583480 | $0.014226 | $0.621906 | $0 / 0 |
+
+### Integrated Tune executor cost
+
+The one-generation run dispatches 31 mode calls against a 34-call preflight upper
+bound. All accepted work completed; the retained suite has three train and three
+held-out cases. The exported task-specific held-out score improved from 0.03 to
+1.00; this is a smoke result, not a general prompt-quality benchmark.
+
+| Component | Attempts | Actual |
+|---|---:|---:|
+| Bare executor (`tune.execute`) | 18 | $0.095800 |
+| Member case proposals and mutations | 9 | $0.203165 |
+| Judge freeze and score | 4 | $0.221576 |
+| Startup probes | 4 | $0.001536 |
+| Total | 35 | $0.522077 |

@@ -74,3 +74,13 @@ Source head `1721e3a` passed the final gates on dev2:
 - `CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings`: passed.
 - `cargo fmt --all -- --check`: passed.
 - The workspace gate also rebuilt and exercised the final release CLI. Its enabled-mode usage fixtures, shared visibility checks and tournament champion audit all passed. No shared integration changes remain outstanding for Forge.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `c7c20ff` completed one six-member default-roster run on
+dev2: CLI exit 0, `COMPLETE`, `original_won`. All fifteen mode calls completed
+without retries; four startup identity probes bring the total to nineteen.
+Spend was $0.345117 including startup, observed wall time 80.682 seconds, and
+initial/peak reservation $24.736836. Final reserved funds and unknown calls were
+both zero. Credential-free offline export passed. Evidence:
+`/tmp/squad-v020-forge-xtnz6pme/`; see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).

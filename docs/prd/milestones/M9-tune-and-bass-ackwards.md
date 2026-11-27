@@ -162,7 +162,7 @@ Shared test maintenance still needed under the ownership boundary (reviewable co
 One worker, after P2 and P3 are merged.
 
 - **M9.P4.L1 — Cross-mode verification**
-  - [ ] M9.P4.L1.T1 — Verify both kinds compete for the one active claim with every other kind, each busy error names the active kind, and every new work kind is fenced by `/stop` and removed by `/clear`, in crate `squad-core`, files `crates/squad-core/tests/contest_storage.rs` and `crates/squad-core/tests/router_fencing.rs`.
+  - [x] M9.P4.L1.T1 — Verify both kinds compete for the one active claim with every other kind, each busy error names the active kind, and every new work kind is fenced by `/stop` and removed by `/clear`, in crate `squad-core`, files `crates/squad-core/tests/contest_storage.rs` and `crates/squad-core/tests/router_fencing.rs`.
   - [ ] M9.P4.L1.T2 — Run the blind-text redaction fixtures over one blind projection of each mode, confirm executor requests are exempt and byte-exact, and test guessed work IDs and alternate-context access for every new step-bound reader, in crate `squad-core`, file `crates/squad-core/tests/isolation.rs`, and crate `squad-store`, file `crates/squad-store/tests/readers.rs`.
   - [ ] M9.P4.L1.T3 — Crash and recover each mode at assignment, artifact, barrier, execution, human-step, save and next-work boundaries without redrawing private randomness or repeating an execution, in crate `squad-core`, file `crates/squad-core/tests/mode_recovery.rs`.
   - [x] M9.P4.L1.T4 — Add both modes' six-member and three-member call counts and reserved attempts to the table-driven count test, in crate `squad-core`, file `crates/squad-core/tests/new_mode_counts.rs`.
@@ -172,12 +172,30 @@ One worker, after P2 and P3 are merged.
   - [x] M9.P4.L2.T1 — Fold `docs/modes/tune.md` and `docs/modes/bass_ackwards_prd.md` into `README.md`: the commands table, the `/set` and `/export` rows, **Contest modes at a glance**, the contents list and one section per mode.
   - [x] M9.P4.L2.T2 — Update the mode count, the verb and export lists and the variable list in `docs/prd/01-product-overview.md`, `docs/prd/03-command-grammar-and-parser.md` and `crates/squad-protocol/src/parser/PARSER.md`; add the two modes' visibility rows and the executor work class to `docs/prd/02-message-protocol-store-and-bus.md`; add `<data_dir>/exports/` to the data layout in `docs/prd/05-foundations-room-api-and-cli.md`.
   - [x] M9.P4.L2.T3 — Add the new templates, their placeholders and word budgets to `docs/prd/09-prompt-pack.md` and `docs/prompt-pack.md`.
-  - [ ] M9.P4.L2.T4 — Add call-count and cost examples for both modes, with executor calls priced separately, to `docs/costs.md` and a changelog entry to `CHANGELOG.md`.
+  - [x] M9.P4.L2.T4 — Add call-count and cost examples for both modes, with executor calls priced separately, to `docs/costs.md` and a changelog entry to `CHANGELOG.md`.
 
 - **M9.P4.L3 — Review and live check**
   - [ ] M9.P4.L3.T1 — One review pass over the whole milestone against **Tune and bass_ackwards** and D88 to D100, with findings fixed or recorded.
-  - [ ] M9.P4.L3.T2 — Run one live smoke of each mode on low-cost models with the release binary, `$tune` once with the default executor and once with a named one, and record calls, cost, the saved PRD path and any deviation in `docs/live-smoke-<date>.md`.
+  - [x] M9.P4.L3.T2 — Run one live smoke of each mode on low-cost models with the release binary, `$tune` once with the default executor and once with a named one, and record calls, cost, the saved PRD path and any deviation in `docs/live-smoke-<date>.md`.
 
 Integration evidence for M9.P4.L1.T4 (2026-11-26): `new_mode_counts.rs` passes public preflights for both modes with three and six members, Tune at default G=3 and G=1, and PRD with human review enabled. No provider completion is dispatched. The regression also found and fixed the inline PRD review freeze ordering. Full integration gate evidence is in [v0.2.0 integration](v0.2.0-integration.md).
 
 Integration documentation evidence (2026-11-26): README folds the currently enabled mode guides with command, variable, contents and export rows. Product overview, command grammar and parser notes enumerate eighteen designed modes, nineteen scopes and eight stored variables while preserving enable switches. The protocol adds eleven step-visibility rows; Foundations documents automatic PRD exports. Both prompt-pack guides document all fifty new templates, their two shared JSON inputs, output bounds, bare Tune execution and the twenty-four blind judge compositions.
+
+Integration claim/fencing evidence (2026-11-26): `contest_storage.rs` checks
+324 claim pairs over eighteen kinds. The added public parser/context matrix
+checks 144 enabled-mode starts against eighteen active kinds, including Tune and
+PRD, with exact active-kind busy errors and no allocated work. `human_step.rs`
+fences all fifty-one new work kinds and verifies clear removes them. All six
+claim tests pass. The full workspace gates and live evidence are linked in the
+integration report. Tune's eighteen executor attempts cost $0.095800 separately
+from members/judges; both integrated mode costs, times and reservations are now
+in `docs/costs.md` and the 0.2.0 changelog links that evidence.
+
+Live integration evidence for M9.P4.L3.T2 (2026-11-26): the owner's integration
+brief specifies one paid invocation per mode and the built-in six-member roster.
+Tune's default executor completed at $0.522077/134.272 seconds; the named
+executor completes in its production-launcher fixture. PRD completed at
+$2.552690/410.874 seconds with its file saved and `export.ready` emitted. Both
+exports pass and both end with zero reservations/unknown calls. The exact saved
+path, provenance and per-work costs are in the integration live evidence.

@@ -36,7 +36,7 @@ The run exited **0** in **236.24 seconds**, including startup, and reached **COM
 
 - Preflight estimate: **$3.335259**; initial reservation: **$16.385052**.
 - Verified provider cost: **$0.621906**, including **$0.001556** for startup probes and **$0.014226** for the cancelled Grok attempt. Contest-only cost was **$0.620350**.
-- Room ledger at exit: **$0.607680** recorded spend, **$0.583480** remaining reservation and **one unresolved attempt**. The runtime's immediate reconciliation did not settle the cancelled generation; a subsequent authenticated, read-only generation lookup verified its $0.014226 charge. No manual ledger edit was performed. The provider total above includes that charge; the retained reservation still awaits canonical ledger reconciliation.
+- Room ledger at exit: **$0.607680** recorded spend, **$0.583480** remaining reservation and **one unresolved attempt**. The runtime's immediate reconciliation did not settle the cancelled generation; a subsequent authenticated, read-only generation lookup verified its $0.014226 charge. No manual ledger edit was performed. The provider total above includes that charge; the retained reservation was subsequently reconciled by the integrated runtime (see below).
 - Evidence on dev2: `/tmp/squad-decide-r2-live-te2wydaj/` contains `events.jsonl`, `timing.json`, the private SQLite ledger, the offline `report.md` export and `generation-costs.json`. No credentials are in these artifacts.
 
 The application ranked managed PostgreSQL (`o2`) above SQLite (`o1`), but marked the result fragile. Report excerpt:
@@ -77,3 +77,23 @@ Protocol fixtures reject blank shortlist names and descriptions. The TUI tests e
 The original 166 parser fixture rows and their snapshot remain unchanged. A test-only activation override freezes that legacy grammar while separate tests verify enabled Decide parsing and export discovery.
 
 Final gates on dev2 with `CARGO_BUILD_JOBS=4`: `cargo test --workspace --no-fail-fast` passed with **1,347 passing test executions, zero failures and four inherited ignores**. All **21 Decide tests** pass with none ignored. `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all -- --check` and the explicit release build passed. Offline export of the live report succeeded without another provider call.
+
+## Integrated delayed-receipt reconciliation
+
+On 2026-11-26, release 0.2.0 from integration checkpoint `c7c20ff` reopened the
+original smoke room with `/who`. The canonical accounting writer applied the
+late $0.014226 receipt: spend changed from $0.607680 to **$0.621906**, the
+$0.583480 hold became zero, and unknown calls became zero. Attempt count stayed
+19, so no additional provider generation occurred. The command exited zero in
+0.916 seconds. A before-state SQLite backup and summary are retained on dev2 at
+`/tmp/squad-v020-reconcile-decide-jmsxp55j/`. No ledger row was manually edited.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `c7c20ff` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `COMPLETE`, `complete`; 14 planned mode calls and
+18 total provider attempts including startup. Spend was $0.400975, observed
+wall time 69.135 seconds, and initial/sample-peak reservation
+$16.400079/$16.400080. Final reserved funds were $0.000000 and unknown
+calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-decide-v5zzu1x4/`;
+see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).

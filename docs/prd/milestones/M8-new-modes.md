@@ -383,7 +383,7 @@ Owns only the `rank` module files listed in **New modes → Files each mode work
   - [x] M8.P10.L5.T2 — Verify the pure functions against hand-computed fixtures: design fixtures for n of 3, 7, 8 and 40, Bradley-Terry fixtures to 1e-9, a planted cycle and a disconnected graph, in crate `squad-core`, file `crates/squad-core/tests/rank_tallies.rs`.
   - [x] M8.P10.L5.T3 — Write the user-facing mode section in `docs/modes/rank.md` in the README mode-section format, then set `ENABLED = true` in crate `squad-protocol`, file `crates/squad-protocol/src/rank.rs`.
 
-Rank worker evidence (2026-11-26): owned protocol/store/agents/core/TUI fixtures pass, including the direct-runtime seven-call workflow, judge schema repair and transport exhaustion, member skips/quorum, preserved design on recovery, stop fencing, schema/reference validation, scoped artifact/repair readers, deterministic tally fixtures and Markdown/view projections. See `docs/modes/rank.md` for the integration gates. L5.T1 and L5.T3 remain open: the public room judge dispatch and member D75 repair classification are shared-file blockers; no enablement or paid smoke is claimed. L5.T2 is verified with seven design/tally fixtures, including independent 60-digit decimal MM goldens at the specified stopping threshold, with 1e-9 comparisons. The two-member replication corner caps v at m pending an owner/integrator decision.
+Rank worker evidence (2026-11-26): owned protocol/store/agents/core/TUI fixtures pass, including the direct-runtime seven-call workflow, judge schema repair and transport exhaustion, member skips/quorum, preserved design on recovery, stop fencing, schema/reference validation, scoped artifact/repair readers, deterministic tally fixtures and Markdown/view projections. See `docs/modes/rank.md` for the integration gates. The worker left L5.T1 and L5.T3 open because public room judge dispatch and member D75 repair classification were shared-file blockers; the integrator resolved them as recorded below. L5.T2 is verified with seven design/tally fixtures, including independent 60-digit decimal MM goldens at the specified stopping threshold, with 1e-9 comparisons. The two-member replication corner caps v at m under integrator decision D102.
 
 ## Phase M8.P11 — Integration, docs and review
 
@@ -407,6 +407,12 @@ One worker, after P2 to P10 are merged.
   - [ ] M8.P11.L3.T1 — One review pass over the whole milestone against **New modes** and D73 to D87, with findings fixed or recorded.
   - [ ] M8.P11.L3.T2 — Run one live smoke of each mode on low-cost models with the release binary and record calls, cost and any deviation in `docs/live-smoke-<date>.md`.
 
-Rank integration evidence (2026-11-26): M8.P10.L5.T1 and T3 now pass the public OneShot RoomHandle path, seven-call completion/export, private member repair, and all owned rank suites. Rank is enabled. D102 records the typed two-member replication cap; the public parser retains the three-member grammar. The integrated paid smoke is pending and will be recorded separately.
+Rank integration evidence (2026-11-26): M8.P10.L5.T1 and T3 now pass the public OneShot RoomHandle path, seven-call completion/export, private member repair, and all owned rank suites. Rank is enabled. D102 records the typed two-member replication cap; the public parser retains the three-member grammar. The integrated release smoke completed with all forty-five judgments, one private repair, $0.190184 spent and no remaining hold; see [live evidence](../../live-smoke-2026-11-26-v0.2.0.md).
 
 Integration documentation evidence (2026-11-26): README folds the currently enabled mode guides with command, variable, contents and export rows. Product overview, command grammar and parser notes enumerate eighteen designed modes, nineteen scopes and eight stored variables while preserving enable switches. The protocol adds eleven step-visibility rows; Foundations documents automatic PRD exports. Both prompt-pack guides document all fifty new templates, their two shared JSON inputs, output bounds, bare Tune execution and the twenty-four blind judge compositions.
+
+Cross-mode claim progress (2026-11-26): the integrated suites cover 324 claim
+pairs across eighteen kinds and stop/clear for all fifty-one new work kinds.
+The added public parser/context matrix verifies 144 starts with exact active-kind
+busy diagnostics for the eight enabled additions. Remaining start cases activate
+when Trace, Debug and Negotiate are enabled; L1.T1 remains open until that pass.

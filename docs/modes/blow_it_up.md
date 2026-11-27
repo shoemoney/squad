@@ -68,3 +68,20 @@ Final gates on dev2, with `CARGO_BUILD_JOBS=4` and sequential builds:
 - `cargo fmt --all -- --check` and `git diff --check`: passed.
 
 All fourteen M8.P6 tasks are checked. Required shared changes are included; no integration fix remains deferred. No main push, tag or PR was made.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `c7c20ff` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `COMPLETE`, `reported`; 13 planned mode calls and
+20 total provider attempts including startup. Spend was $1.469007, observed
+wall time 265.024 seconds, and initial/sample-peak reservation
+$20.574231/$20.574231. Final reserved funds were $0.000000 and unknown
+calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-blow_it_up-sz7xh2_2/`;
+see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).
+
+The integrated Blow It Up run retained five accepted attacks and five challenges.
+Grok's attack was refused on both attempts; its challenge timed out twice.
+Another member used one private repair. The judge still completed the report
+without `judge_failed`. Both timeout receipts reconciled during the run; no
+reopen or manual ledger edit was needed. Sixteen mode attempts and four startup
+probes settled to $1.469007.

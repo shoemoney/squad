@@ -75,7 +75,7 @@ The terminal ledger records **$0.493022** and retains **$0.510112** reserved for
 one unresolved timeout charge. A later read-only OpenRouter lookup confirmed
 that charge as **$0.014302**, making the provider-confirmed total $0.507324.
 The immediate runtime reconciliation had not resolved it; no ledger rows were
-manually changed. The remaining hold is pending reconciliation, not extra spend.
+manually changed. The hold was later reconciled by the integrated runtime, as recorded below.
 
 Excerpt from the exported report:
 
@@ -144,3 +144,23 @@ Tested code: `a2dadf969660ade4073e998c2ebdb4d76f71401b`, dev3,
 The initial default-parallel run exposed stale disabled-mode fixtures and a
 regeneration-focus timeout in the shared PTY audit. Fixtures were updated; the
 PTY audit passed in isolation and in the final complete two-thread rerun.
+
+## Integrated delayed-receipt reconciliation
+
+On 2026-11-26, the tested 0.2.0 binary from `c7c20ff` reopened the original dev3
+smoke room with `/who`. The canonical writer applied the $0.014302 receipt:
+recorded spend became **$0.507324**, reservations became zero and unknown calls
+became zero. Attempt count stayed 19. The command exited zero in 0.818 seconds,
+with no new provider generation or manual ledger edit. The before-state backup
+and summary are at `/tmp/squad-v020-reconcile-forecast-cvbelkrb/` on dev3; the
+integration has a local summary in its gate evidence directory.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `c7c20ff` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `COMPLETE`, `complete`; 14 planned mode calls and
+18 total provider attempts including startup. Spend was $0.470614, observed
+wall time 105.725 seconds, and initial/sample-peak reservation
+$20.188827/$20.188827. Final reserved funds were $0.000000 and unknown
+calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-forecast-7k6pluyb/`;
+see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).

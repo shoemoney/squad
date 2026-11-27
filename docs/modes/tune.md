@@ -76,7 +76,7 @@ The compatibility seams inherited from the original worker remain functional: sc
 
 - `crates/squad-protocol/src/envelopes.rs`: validate `CaseMaterial::Tune` instead of rejecting it, then replace the owned standalone carrier with `CaseMaterial::Tune(input)`.
 - `crates/squad-core/src/prompts/render.rs`: accept the new-mode prefixes in `mode_step`, then remove the frozen-literal repair workaround.
-- `crates/squad-core/src/router/executor.rs`: classify `MODE_INVALID_OUTPUT` as `FailureClass::InvalidOutput`, then use that diagnostic for structured member failures.
+- The integrator now classifies `MODE_INVALID_OUTPUT` as `FailureClass::InvalidOutput` alongside the existing judge diagnostic. The owned Tune compatibility diagnostic remains accepted.
 
 Authorized shared changes in this branch are `crates/squad-core/src/runtime/judge.rs`; the protocol parser fixtures `new_modes_tests.rs` and `parser_tests.rs`; and the TUI fixtures `actions_shell.rs`, `contest_actions.rs`, `typeahead.rs` and `m4b_tournament_runtime_audit.rs`.
 
@@ -92,3 +92,13 @@ On dev3, 2026-11-26, implementation/test head `4682a4ec3645f9bf1d51ca27535458ac2
 There are **35 Tune checks**, including **12 production-launcher workflows**; eight checks were added during the resume. Captures verify mutation/scoring privacy and bare executor requests; fixtures cover repairs, skipped members with failed step names, proposal quorum, failed judges/executions, partial case drops, incomplete and empty generations, perfect-baseline/no-improvement exits, named-executor completion, one-shot driving, export and ledger conservation.
 
 Restart and stop checks cover preflight, waiting for earlier ordinary replies, all seven paid phases (including both held-out phases), accepted execution pairs, immutable setup and accepted sheet maps. Reporting and completion share one transaction; reopening a completed run preserves its export and makes no new provider call. Stop releases unstarted reservations while preserving accounted holds for in-flight calls whose billing remains unknown. The failed-step journal field defaults to empty for earlier saved runs. Enabled parser, typeahead, TIP rotation and help checks pass.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `c7c20ff` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `COMPLETE`, `tuned`; 34 planned mode calls and
+35 total provider attempts including startup. Spend was $0.522077, observed
+wall time 134.272 seconds, and initial/sample-peak reservation
+$24.970323/$24.970323. Final reserved funds were $0.000000 and unknown
+calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-tune-voxbepir/`;
+see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).

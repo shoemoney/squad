@@ -118,3 +118,20 @@ The full workspace gate has 1,373 passes, seven failures and four intentional ig
 The owned engine/handler harness uses real Store, Router, scoped readers, attempt accounting and a wiremock OpenRouter endpoint. It exercises 28 calls for six members, 29 with a human note, and 26 when both decision rounds are empty. It checks invalid member output with one diagnostic repair, insufficient quorum, last-good-version saving after revision exhaustion, quote dropping, request blindness and one-lens instructions, disk failure, human-note conflicts, stop, and restart checkpoints through the committed report before writing.
 
 The production `RoomHandle` workflow passes as well: all 28 calls, automatic save, export, printed path material and restart without repeated calls. Across the seven mode-specific test targets, 54 executions pass with no failures or ignores (33 distinct test functions; shared contract fixtures run in several targets). The release build and workspace Clippy with warnings denied pass. D101 regression tests cover a 60-task PRD exceeding the former full-response budget, sparse output under 512 bytes, accepted edits reaching the saved file, invalid targets and identity changes, add-only source and placement checks, preservation of redacted fields, provider-compatible schemas and atomic last-good recovery from truncated patches. Final workspace evidence is recorded in the M9.P3 checklist.
+
+## Integrated release smoke (2026-11-26)
+
+Release 0.2.0 source `c7c20ff` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `COMPLETE`, `saved`; 28 planned mode calls and
+33 total provider attempts including startup. Spend was $2.552690, observed
+wall time 410.874 seconds, and initial/sample-peak reservation
+$50.711781/$50.711781. Final reserved funds were $0.000000 and unknown
+calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-bass_ackwards_prd-rklsr3wq/`;
+see the [integration record](../live-smoke-2026-11-26-v0.2.0.md).
+
+Bass Ackwards PRD dispatched twenty-nine mode attempts against the twenty-eight
+normal-call plan. The finalizer's first answer exceeded the 2,400-word prose
+budget; its one private validation repair passed. All other work completed on
+the first attempt. The 25,780-byte PRD was saved under the run's `data/exports/`,
+and the emitted `export.ready` path exists. Offline export passed. Final holds
+and unknown calls were zero.

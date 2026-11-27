@@ -45,7 +45,30 @@ Markdown export includes the report plus every accepted judgment with its member
 
 ## Example run
 
-No integrated paid live result is claimed yet. The shared dispatch and member-repair defects are resolved on the integration branch. The credential-free direct-runtime wiremock workflow completes six batches and one explanation: nine planned judgments for three items, seven recorded attempts, and zero remaining reservation. Fixture results are not real-provider cost or quality measurements.
+The integrated release 0.2.0 (`c7c20ff`) ran once on dev2 with the built-in
+six-member roster, a fresh private data directory, `--env-file /dev/null`,
+`--yes --json` and `SQUAD_DAILY_MAX_USD=150`. The criterion prioritized reliability
+work for a terminal chat application by user impact and implementation effort.
+
+It exited **0**, `COMPLETE/ranked`, in **38.636 seconds**, with **$0.190184**
+recorded spend. Startup probes cost $0.001454 and Rank work cost $0.188730.
+Preflight estimated $3.941561 and reserved **$18.024576** for seven normal calls
+and fifteen attempts. The sampled peak matched that reservation. All six batches
+and the explanation were accepted; Claude needed one private member repair.
+There were eight Rank attempts plus four startup probes. Final reservations and
+unknown calls were both zero. Credential-free CLI export passed.
+
+The app's top three results were:
+
+1. Recover interrupted runs without duplicate provider calls (15–0).
+2. Show actual costs and unresolved billing holds (12–3).
+3. Export completed reports to Markdown (8–7).
+
+The design used all fifteen pairs, three distinct judges per pair and forty-five
+judgments. Evidence on dev2 is `/tmp/squad-v020-rank-lzd2qyl3/`, including the
+prompt, JSON output, summary, SQLite ledger and `report.md`. Credentials were
+fetched off-screen into the process environment and the artifacts passed a
+credential-value scan.
 
 ## Integration
 
@@ -60,7 +83,7 @@ public parser retains the binding grammar's three-member minimum. The pure
 boundary fixtures cover two-member designs for 3, 7, 8 and 40 items.
 
 Public one-shot completion, private member repair, shared call-count and billing
-checks are under integration verification. The default-six live smoke is pending.
+checks are under integration verification. The default-six live smoke completed successfully as recorded above.
 
 ## Validation record (2026-11-26, dev3)
 
@@ -70,4 +93,4 @@ All-target workspace Clippy with warnings denied and formatting checks pass. No 
 
 ## Integration verification (2026-11-26)
 
-The public OneShot RoomHandle tests complete and export a six-member ranking with seven calls and no remaining reservation. A first invalid member batch receives exactly one private repair; the resulting run completes in eight calls. All nine workflow tests and seven tally/design tests pass, including the two-member design boundary and deterministic fitted bits. The shared blind-header regression covers all twenty-four new-mode judge compositions. Full workspace gates and the paid integration smoke follow.
+The public OneShot RoomHandle tests complete and export a six-member ranking with seven calls and no remaining reservation. A first invalid member batch receives exactly one private repair; the resulting run completes in eight calls. All nine workflow tests and seven tally/design tests pass, including the two-member design boundary and deterministic fitted bits. The shared blind-header regression covers all twenty-four new-mode judge compositions. Full workspace gates passed with 1,584 unique Nextest tests and four inherited skips; the paid integration smoke completed as recorded above.
