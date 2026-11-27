@@ -77,11 +77,12 @@ impl WorkExecutor for TraceExecutor {
                 rendered.user.push_str(rest);
             }
             let mut request = self.request.clone();
-            request.visible_ceiling = if kind == &WorkKind::TraceVerify {
-                2048
-            } else {
-                4096
-            };
+            request.visible_ceiling =
+                if matches!(kind, WorkKind::TraceExtract | WorkKind::TraceVerify) {
+                    2048
+                } else {
+                    4096
+                };
             request.response_format = Some(
                 json!({"type":"json_schema","json_schema":{"name":"trace_response","strict":true,"schema":schema}}),
             );

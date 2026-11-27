@@ -15,7 +15,7 @@ The service retains records for thirty days. Backups expire after seven days.
 The backup policy applies only to production accounts.
 ```
 
-Separate the question and each pasted source with a standalone `--` segment.
+Separate the question and each pasted source with a standalone `--` line.
 Supply one to twelve sources. Attached quoted messages follow pasted segments.
 Sources receive permanent numbers `S1`, `S2`, and so on in that order. The whole
 room participates. The packet and all later bounded steps must fit every
@@ -25,7 +25,9 @@ before any contest call.
 After integration and activation, a headless invocation is:
 
 ```sh
-squad send '@all $trace What is the retention period? -- Records are retained for thirty days.' --yes
+squad send '@all $trace What is the retention period?
+--
+Records are retained for thirty days.' --yes
 ```
 
 ## What happens
@@ -149,3 +151,9 @@ with an explicit integration-blocker ignore; run it with `--ignored` after fixin
 the dispatcher and enabling Trace. The normal owned harness invokes the same
 leased Trace executor directly and completes all fourteen calls, including both
 judge phases, with real router acceptance and accounting against Wiremock.
+
+The documented multiline start example and `/help` exposure pass the owned
+protocol test with temporary activation. Member invocations use the binding
+2,048-visible-token ceiling. Prose budgets exclude identifiers, enums and
+numbers. Private seed, reader permutation and verifier assignment snapshots are
+persisted in `contest_private_maps` before dependent work is dispatched.

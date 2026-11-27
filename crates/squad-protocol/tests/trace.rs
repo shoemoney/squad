@@ -83,7 +83,7 @@ fn parser_example_and_help_follow_the_activation_switch() {
         ..Default::default()
     };
     let parsed = parse(
-        "@all $trace What is retained? -- Records are retained for thirty days.",
+        "@all $trace What is retained?\n--\nRecords are retained for thirty days.",
         &parser::SubmissionMeta::default(),
         &ctx,
     );

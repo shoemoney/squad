@@ -208,7 +208,7 @@ async fn owned_run(fault: Fault) -> (Fixture, squad_store::Store, ContestId) {
         Fault::Empty => "Empty",
         _ => "",
     };
-    let text = format!("@all $trace Retention {marker} -- {SOURCE}");
+    let text = format!("@all $trace Retention {marker}\n--\n{SOURCE}");
     let parsed = ParsedInput::Trace {
         input: parser::ConversationalInput {
             raw: text.clone(),
@@ -252,7 +252,7 @@ async fn owned_run(fault: Fault) -> (Fixture, squad_store::Store, ContestId) {
         let binding = bindings[member.as_str()].clone();
         store.call(move|db|{
        let event:String=db.query_row("SELECT id FROM events WHERE kind='trace.setup' ORDER BY seq DESC LIMIT 1",[],|r|r.get(0))?;
-       let w=Work{work_id:WorkId::new(),message_id:MessageId::new(),in_reply_to_message_id:None,kind:WorkKind::Reply,target:Target::Member(member.clone()),context_id:ContextId(member.to_string()),trigger_event_id:event.parse().unwrap(),history_through:HistoryPosition::new(1).unwrap(),attempt:1,debate_id:None,round:None,replay:None,case_id:None,prompt_ref:None,max_output_tokens:None,contest_id:None,step_id:None};
+       let w=Work{work_id:WorkId::new(),message_id:MessageId::new(),in_reply_to_message_id:Some(MessageId::new()),kind:WorkKind::Reply,target:Target::Member(member.clone()),context_id:ContextId(member.to_string()),trigger_event_id:event.parse().unwrap(),history_through:HistoryPosition::new(1).unwrap(),attempt:1,debate_id:None,round:None,replay:None,case_id:None,prompt_ref:None,max_output_tokens:None,contest_id:None,step_id:None};
        squad_store::work::insert(db,&w,&binding,None)?;
        db.execute("UPDATE work SET runnable=0,scheduling_meta=json_set(scheduling_meta,'$.openModeDormant',1) WHERE work_id=?",[w.work_id.to_string()])?;Ok(())
       }).unwrap();
@@ -426,6 +426,8 @@ async fn owned_real_executors_complete_fourteen_calls_and_export() {
     let bodies = f.fake.captured_bodies().await;
     assert_eq!(bodies.len(), 14);
     let run = squad_store::trace::run(&f.db(), c).unwrap();
+    let maps:i64=f.db().query_row("SELECT COUNT(*) FROM contest_private_maps WHERE contest_id=? AND scope_key IN ('trace.seed','trace.readers','trace.verifiers')",[c.to_string()],|r|r.get(0)).unwrap();
+    assert_eq!(maps, 3);
     assert_eq!(
         run.ledger.claims[0].status,
         trace::TraceClaimStatus::Supported

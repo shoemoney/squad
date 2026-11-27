@@ -409,7 +409,23 @@ pub fn prose_words(v: &serde_json::Value) -> usize {
     match v {
         serde_json::Value::String(s) => s.split_whitespace().count(),
         serde_json::Value::Array(a) => a.iter().map(prose_words).sum(),
-        serde_json::Value::Object(o) => o.values().map(prose_words).sum(),
+        serde_json::Value::Object(o) => o
+            .iter()
+            .filter(|(key, _)| {
+                !matches!(
+                    key.as_str(),
+                    "localId"
+                        | "claimId"
+                        | "claimIds"
+                        | "sourceId"
+                        | "memberLabel"
+                        | "sharedOrigin"
+                        | "entailment"
+                        | "scope"
+                )
+            })
+            .map(|(_, v)| prose_words(v))
+            .sum(),
         _ => 0,
     }
 }

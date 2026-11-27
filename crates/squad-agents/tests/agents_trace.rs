@@ -19,3 +19,11 @@ fn verification_contract_requires_complete_typed_verdicts() {
     bad["verdicts"][0]["scope"] = json!("confirmed");
     assert!(validate_artifact("trace.verify", &bad).is_err());
 }
+
+#[test]
+fn prose_budget_excludes_identifiers_enums_and_numbers() {
+    let output = json!({"verdicts":[{"claimId":"C1","entailment":"supported","scope":"ok","qualifierQuote":null,"note":"Two words"}]});
+    assert_eq!(prose_words(&output), 2);
+    let refs = json!({"claimId":"C1","text":"Three prose words","sources":[{"memberLabel":"Reader 1","localId":"L1"}],"sharedOrigin":[["S1","S2"]]});
+    assert_eq!(prose_words(&refs), 3);
+}

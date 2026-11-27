@@ -135,7 +135,7 @@ pub fn steps(
         alternatives: vec![],
         template: templates[t],
         data,
-        visible: if t == 2 { 2048 } else { 4096 },
+        visible: if t == 0 || t == 2 { 2048 } else { 4096 },
         calls: 1,
         attempts,
     };
@@ -289,6 +289,13 @@ pub fn prepare(
     };
     save(tx, g, id, &state, None)?;
     squad_store::trace::insert(tx, contest, &setup)?;
+    let run = squad_store::trace::run(tx, contest)?;
+    squad_store::contest_steps::private_map(
+        tx,
+        contest,
+        "trace.seed",
+        &serde_json::json!({"seed":run.seed}),
+    )?;
     let tokens = config
         .agents
         .iter()
@@ -726,7 +733,13 @@ pub(crate) fn drive_move(
         TraceStatus::Extracting => {
             let mut labelled = artifacts
                 .into_iter()
-                .map(|a| (CellId::new().to_string(), a))
+                .map(|a| {
+                    (
+                        squad_store::commit::digest(&("trace.labels", &run.seed, &a.0.target))
+                            .expect("label digest"),
+                        a,
+                    )
+                })
                 .collect::<Vec<_>>();
             labelled.sort_by(|a, b| a.0.cmp(&b.0));
             for (i, (_, (w, a, _))) in labelled.into_iter().enumerate() {
@@ -754,6 +767,12 @@ pub(crate) fn drive_move(
                 finish(tx, g, id, &mut s, "insufficient_extractions", true)?;
                 return Ok(g.accepted(id));
             }
+            squad_store::contest_steps::private_map(
+                tx,
+                s.contest_id,
+                "trace.readers",
+                &serde_json::json!({"labels":run.provenance}),
+            )?;
             s.state = TraceStatus::Merging;
         }
         TraceStatus::Merging => {
@@ -772,6 +791,12 @@ pub(crate) fn drive_move(
                 &setup.participants,
                 &run.seed,
             );
+            squad_store::contest_steps::private_map(
+                tx,
+                s.contest_id,
+                "trace.verifiers",
+                &serde_json::json!({"assignments":run.assignments}),
+            )?;
             squad_store::trace::save(tx, s.contest_id, &run)?;
             if run.claims.claims.is_empty() {
                 run.brief = Some(TraceBrief {
@@ -973,11 +998,13 @@ fn allocate(
             replay: None,
             case_id: judge.then_some(run.case_id),
             prompt_ref: Some(setup.prompt_refs[name].clone()),
-            max_output_tokens: Some(if kind == WorkKind::TraceVerify {
-                2048
-            } else {
-                4096
-            }),
+            max_output_tokens: Some(
+                if matches!(kind, WorkKind::TraceExtract | WorkKind::TraceVerify) {
+                    2048
+                } else {
+                    4096
+                },
+            ),
             contest_id: Some(s.contest_id),
             step_id: Some(step_id),
         };

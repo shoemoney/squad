@@ -365,11 +365,17 @@ pub fn input(kind: &WorkKind, setup: &TraceSetup, run: &Run, target: &Target) ->
 }
 /// Identity information is excluded from the blind judge header entirely.
 pub fn blind_system(system: &str) -> String {
+    let prefix = system
+        .split_once("You are Squad's summoned judge,")
+        .map(|(prefix, _)| prefix)
+        .unwrap_or("");
     let rest = system
         .find("You cannot see what room members say")
         .map(|i| &system[i..])
         .unwrap_or("");
-    format!("You are an anonymous evidence editor. No author identities are available.\n{rest}")
+    format!(
+        "{prefix}You are an anonymous evidence editor. No author identities are available.\n{rest}"
+    )
 }
 pub fn blind_input(mut data: Value, tokens: &[String]) -> Value {
     if let Some(extractions) = data["extractions"].as_object_mut() {
