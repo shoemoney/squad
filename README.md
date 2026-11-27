@@ -107,14 +107,14 @@ brew install shoemoney/tap/squad
 squad --version
 ```
 
-Tested on 2026-11-27 in a clean `homebrew/brew` Linux container (non-root): the Linux block above installed `squad 0.1.3` (it pulls Homebrew's `xz` as its only dependency), `squad --version` printed `squad 0.1.3`, and `squad doctor` passed with a placeholder key. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
+Tested on 2026-11-27 in a clean `homebrew/brew` Linux container (non-root): the Linux block above installed `squad 0.1.3` (the latest release at the time; it pulls Homebrew's `xz` as its only dependency), `squad --version` printed `squad 0.1.3`, and `squad doctor` passed with a placeholder key. The latest release is now v0.2.0 and prints `squad 0.2.0`. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
 
 </details>
 
 <details>
 <summary><b>📦 Release archive (Linux x64 and macOS arm64)</b></summary>
 
-Each archive ships with a SHA-256 file. You need `curl` and `xz` (`xz-utils` on Debian and Ubuntu); a minimal Debian image has neither (`sudo apt-get install -y curl xz-utils ca-certificates`). This is the exact sequence recorded below, run in a throwaway home directory against the latest published release (the recording shows `squad 0.1.2`; the latest release now prints `squad 0.1.3`):
+Each archive ships with a SHA-256 file. You need `curl` and `xz` (`xz-utils` on Debian and Ubuntu); a minimal Debian image has neither (`sudo apt-get install -y curl xz-utils ca-certificates`). This is the exact sequence recorded below, run in a throwaway home directory against the latest published release (the recording shows `squad 0.2.0`):
 
 ```bash
 B=https://github.com/shoemoney/squad/releases/latest/download
@@ -205,7 +205,7 @@ squad doctor      # offline checks; add --online to test OpenRouter reachability
 squad             # open the room
 ```
 
-<p align="center"><img src="docs/media/doctor-pass.png" alt="Terminal screenshot after installing: squad --version prints squad 0.1.2 and squad doctor reports Configuration PASS, Credential presence present, a writable data directory and Overall PASS." width="760"></p>
+<p align="center"><img src="docs/media/doctor-pass.png" alt="Terminal screenshot after installing: squad --version prints squad 0.2.0 and squad doctor reports Configuration PASS, Credential presence present, a writable data directory and Overall PASS." width="760"></p>
 
 <p align="center"><sub><i>What you should see: <code>Overall: PASS</code>. Without a key, <code>doctor</code> prints <code>Configuration: FAIL - OPENROUTER_API_KEY is required</code> and exits 1; see <a href="#-troubleshooting">Troubleshooting</a>.</i></sub></p>
 
@@ -1090,9 +1090,9 @@ Squad reserves money **before** it sends any provider call, shows you a prefligh
 %%{init: {'themeVariables':{'xyChart':{'plotColorPalette':'#5b6bd6'}}}}%%
 xychart-beta
     title "Mean real cost per run, default roster (USD)"
-    x-axis ["@all", "probe", "grill", "survey", "tournament", "census", "crosscheck", "debate"]
+    x-axis ["@all", "rank", "trace", "readback", "forge", "decide", "forecast", "tune", "probe", "grill", "debug", "survey", "tournament", "blow it up", "negotiate", "bass-ackwards", "census", "crosscheck", "debate"]
     y-axis "USD" 0 --> 3
-    bar [0.09, 0.91, 0.93, 1.61, 1.75, 2.33, 2.53, 2.81]
+    bar [0.09, 0.16, 0.36, 0.42, 0.44, 0.44, 0.47, 0.55, 0.91, 0.93, 1.36, 1.61, 1.75, 1.77, 2.02, 2.15, 2.33, 2.53, 2.81]
 ```
 
 Measured on 2026-11-25 and 2026-11-26 with the default roster and settings, one fresh data directory per run. Full method, estimates, per-run numbers and failures are in [docs/costs.md](docs/costs.md). Grill includes its seed-plan call; census includes both default passes. Times reflect parallel load and sum active sends.
@@ -1107,8 +1107,19 @@ Measured on 2026-11-25 and 2026-11-26 with the default roster and settings, one 
 | Grill (2 runs) | $0.93 ($0.90–$0.97) | 279 s (259–300) | $31.69–$31.72 | 34.0× | yes |
 | Census (2 passes) (2 runs) | $2.33 ($2.24–$2.42) | 332 s (320–344) | $30.85 | 13.2× | yes |
 | Crosscheck (2 runs) | $2.53 ($2.52–$2.54) | 260 s (246–274) | $19.67 | 7.8× | yes |
+| Rank (1 run) | $0.16 | 34 s | $18.02 | 115.7× | yes |
+| Forge (1 run) | $0.44 | 80 s | $24.74 | 56.0× | yes |
+| Forecast (1 run) | $0.47 | 128 s | $20.19 | 42.8× | yes |
+| Decide (1 run) | $0.44 | 94 s | $16.40 | 37.0× | yes |
+| Blow It Up (1 run) | $1.77 | 197 s | $20.57 | 11.7× | yes |
+| Readback (1 run, one answer) | $0.42 | 44 s | $10.96 | 26.1× | yes |
+| Tune (1 run) | $0.55 | 115 s | $24.97 | 45.2× | yes |
+| Bass Ackwards PRD (1 run) | $2.15 | 411 s | $50.71 | 23.6× | yes |
+| Negotiate (1 run) | $2.02 | 377 s | $32.02 | 15.8× | yes |
+| Debug (1 run, two rounds) | $1.36 | 451 s | $41.18 | 30.3× | yes |
+| Trace (1 run) | $0.36 | 72 s | $23.80 | 66.8× | yes |
 
-All seven new grill/census/crosscheck/probe runs completed. Both crosschecks and the new probe each needed one paid judge repair; those calls are included. Probe averages one older successful run and one on the merged release build; current reservations use the latest measured build per mode.
+The eleven v0.2.0 rows are single runs from the [integrated measurement table](docs/costs.md#v020-integrated-default-roster-measurements) (2026-11-27, eleven contests in parallel), so they have no min–max. All seven grill/census/crosscheck/probe runs completed. Both crosschecks and the new probe each needed one paid judge repair; those calls are included. Probe averages one older successful run and one on the merged release build; current reservations use the latest measured build per mode.
 
 Reservations are held back while a run is in flight and are released as calls finish, so the reserved amount is far above what you are charged.
 
@@ -1885,9 +1896,9 @@ Logs are written to `<data directory>/logs/squad.jsonl`. The file is created wit
 
 ## 🆕 New modes in v0.2.0
 
-> 🚧 **In development, not released.** Squad 0.1.3 is out with the seven modes above; **v0.2.0 adds eleven more** ([nine new modes](https://github.com/shoemoney/squad/blob/31288c9cc8621e89f3bd0d47474b30872188d483/docs/prd/10-new-modes.md), [`$tune` and `$bass_ackwards_prd`](https://github.com/shoemoney/squad/blob/842e982b042478fdca0f51fc447375df192aeacd/docs/prd/12-tune-and-bass-ackwards.md)). Names are final; behaviour may still change before release. With them Squad has eighteen modes. Until v0.2.0 ships, the seven above are the only contest `$` commands.
+> ✅ **Shipped in v0.2.0** (2026-11-27). Together with the seven modes above, Squad has **eighteen** contest modes. Every clip was recorded live on the v0.2.0 release binary with the default six-model roster; costs are the measured per-run figures in [docs/costs.md](docs/costs.md). Each mode has its own guide in [docs/modes](docs/modes/).
 
-Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`) and one starter command. The recordings come from the v0.2.0 build.
+Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`), one starter command and its measured cost.
 
 - 🔨 **`$forge`**: One finished artifact that is better than any single draft.
 
@@ -1895,11 +1906,15 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
   Starter command: `@all $forge Write a launch announcement for our offline notes app`
 
+  Measured: **~$0.44** on the default roster, 80 s ([guide](docs/modes/forge.md)).
+
 - 🔮 **`$forecast`**: A dated probability with spread, cruxes and signposts.
 
   ![The pooled probability, the spread of the room and what to watch. Recorded on v0.2.0.](docs/media/forecast.gif)
 
   Starter command: `@all $forecast Will the project release version 1 by 2027-06-30?`
+
+  Measured: **~$0.47** on the default roster, 128 s ([guide](docs/modes/forecast.md)).
 
 - ⚖️ **`$decide`**: A choice among two to four options on several criteria.
 
@@ -1907,11 +1922,15 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
   Starter command: `@all $decide How should we reduce support response time with a fixed team?`
 
+  Measured: **~$0.44** on the default roster, 94 s ([guide](docs/modes/decide.md)).
+
 - 🤝 **`$negotiate`**: Preparation and rehearsal for a negotiation.
 
   ![Interest maps and rehearsal tables against a hypothetical counterpart. Recorded on v0.2.0.](docs/media/negotiate.gif)
 
   Starter command: `@all $negotiate Ask for a paid trial with no exclusivity -- Buyer has a tight launch date`
+
+  Measured: **~$2.02** on the default roster, 377 s ([guide](docs/modes/negotiate.md)).
 
 - 💣 **`$blow_it_up`**: An adversarial attack on a plan, spec, prompt, config or diff.
 
@@ -1919,11 +1938,15 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
   Starter command: `@all $blow_it_up <paste a plan here>`
 
+  Measured: **~$1.77** on the default roster, 197 s ([guide](docs/modes/blow_it_up.md)).
+
 - 📖 **`$readback`**: A spec that reads the same to every reader.
 
   ![Divergent readings, the `READ IT BACK` pause and the rewritten spec. Recorded on v0.2.0.](docs/media/readback.gif)
 
   Starter command: `@all $readback The service retains records. The operator deletes backups.`
+
+  Measured: **~$0.42** on the default roster, 44 s, plus your answer ([guide](docs/modes/readback.md)).
 
 - 🐛 **`$debug`**: A stubborn failure, narrowed by tests you actually run.
 
@@ -1931,11 +1954,15 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
   Starter command: `@all $debug Requests time out after a deploy. Health checks pass. Rolling back fixes it.`
 
+  Measured: **~$1.36** on the default roster, 451 s over two rounds ([guide](docs/modes/debug.md)).
+
 - 🔍 **`$trace`**: A brief where every claim is tied to a quoted source span.
 
   ![Numbered sources and checked claims behind each paragraph. Recorded on v0.2.0.](docs/media/trace.gif)
 
   Starter command: `@all $trace What is the retention period? (then `--` and one source per block, Ctrl+J for newlines)`
+
+  Measured: **~$0.36** on the default roster, 72 s ([guide](docs/modes/trace.md)).
 
 - 🏅 **`$rank`**: An ordered list of your own items.
 
@@ -1943,17 +1970,23 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
   Starter command: `@all $rank prioritize by customer impact relative to effort (then `--` and one item per line)`
 
+  Measured: **~$0.16** on the default roster, 34 s ([guide](docs/modes/rank.md)).
+
 - 🎛️ **`$tune`**: A prompt that measurably behaves better, checked on cases its authors never saw.
 
   ![Hidden cases, mutated prompts and a held-out winner. Recorded on v0.2.0.](docs/media/tune.gif)
 
   Starter command: `@all $tune Answer clearly and concisely. (then `--` and the goal on the next line)`
 
+  Measured: **~$0.55** on the default roster, 115 s ([guide](docs/modes/tune.md)).
+
 - 🍑 **`$bass_ackwards_prd`**: A PRD for a stated end result, derived backward from that result and saved as a file.
 
   ![Acceptance tests, backward prerequisites, a human `LAST LOOK` and the saved file. Recorded on v0.2.0.](docs/media/bass_ackwards_prd.gif)
 
   Starter command: `@all $bass_ackwards_prd a self-hosted status page for a small SaaS, live with alerts`
+
+  Measured: **~$2.15** on the default roster, 411 s ([guide](docs/modes/bass_ackwards_prd.md)).
 
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
 
@@ -1965,7 +1998,7 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 | ✅ | **v0.1.1** | Default daily cap raised to `$150`; live-failure fixes on the default roster; keyboard reachability | 2026-11-26 |
 | ✅ | **v0.1.2** | Built-in MCP server, composer typeahead, rotating TIP line, instant startup checklist, parallel roster resolution | 2026-11-26 |
 | ✅ | **v0.1.3** | Milestone audit evidence, hero and survey and probe GIFs, PTY test hardening, structured-judge fixes. Released via Homebrew (`shoemoney/tap/squad`) and GitHub Releases | 2026-11-26 |
-| 🔨 | **v0.2.0** | Eleven new modes: `$forge`, `$decide`, `$blow_it_up`, `$readback`, `$forecast`, `$tune`, `$rank`, `$bass_ackwards_prd`, `$trace`, `$debug`, `$negotiate`. Specified, in development, unreleased | next |
+| ✅ | **v0.2.0** | Eleven new modes: `$forge`, `$decide`, `$blow_it_up`, `$readback`, `$forecast`, `$tune`, `$rank`, `$bass_ackwards_prd`, `$trace`, `$debug`, `$negotiate`. Measured live on the default roster | 2026-11-27 |
 
 The full history is in [CHANGELOG.md](CHANGELOG.md).
 
