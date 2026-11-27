@@ -1048,7 +1048,7 @@ expression: snapshots
     "result": {
       "Err": {
         "code": "INVALID_COMMAND",
-        "message": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe|forge [id]",
+        "message": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
         "span": {
           "end": 7,
           "start": 0
@@ -2638,7 +2638,7 @@ expression: snapshots
     "result": {
       "Err": {
         "code": "INVALID_COMMAND",
-        "message": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe|forge [id]",
+        "message": "Usage: /export room | /export debate|grill|tournament|census|crosscheck|survey|probe [id]",
         "span": {
           "end": 49,
           "start": 0
