@@ -107,14 +107,14 @@ brew install shoemoney/tap/squad
 squad --version
 ```
 
-Tested on 2026-11-26 in a clean `homebrew/brew` Linux container: it installed `squad 0.1.2` and `squad --help` ran. On a fresh Linux Homebrew the first install also pours Homebrew's `gcc` dependency (several hundred MB), so give it a minute. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
+Tested on 2026-11-27 in a clean `homebrew/brew` Linux container (non-root): the Linux block above installed `squad 0.1.3` (it pulls Homebrew's `xz` as its only dependency), `squad --version` printed `squad 0.1.3`, and `squad doctor` passed with a placeholder key. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
 
 </details>
 
 <details>
 <summary><b>📦 Release archive (Linux x64 and macOS arm64)</b></summary>
 
-Each archive ships with a SHA-256 file. This is the exact sequence recorded below, run in a throwaway home directory against the latest published release (`squad 0.1.2` at the time of recording):
+Each archive ships with a SHA-256 file. You need `curl` and `xz` (`xz-utils` on Debian and Ubuntu); a minimal Debian image has neither (`sudo apt-get install -y curl xz-utils ca-certificates`). This is the exact sequence recorded below, run in a throwaway home directory against the latest published release (the recording shows `squad 0.1.2`; the latest release now prints `squad 0.1.3`):
 
 ```bash
 B=https://github.com/shoemoney/squad/releases/latest/download
@@ -131,7 +131,7 @@ squad --version
 
 <p align="center"><sub><i>Recorded by <a href="docs/demo/install.tape"><code>docs/demo/install.tape</code></a> with VHS on Linux x64. The key on screen is a placeholder, not a credential.</i></sub></p>
 
-The macOS archive unpacks to `squad-cli-aarch64-apple-darwin/squad` (checked by listing it); the macOS commands were not run on a Mac for this README.
+The macOS archive unpacks to `squad-cli-aarch64-apple-darwin/squad`. Checked on an Apple silicon Mac on 2026-11-27: the download, `shasum -a 256 -c` (prints `OK`, plus one harmless "1 line is improperly formatted" warning from the blank line at the end of the `.sha256` file), install and `squad --version` all worked.
 
 </details>
 

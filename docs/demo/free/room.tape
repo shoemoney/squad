@@ -9,9 +9,10 @@ Set WindowBar Colorful
 Hide
 Type "unset NO_COLOR; export TERM=xterm-256color; clear"
 Enter
-Show
 Type "target/release/examples/demo"
 Enter
+Sleep 500ms
+Show
 Sleep 100s
 Type "q"
 Sleep 1s
