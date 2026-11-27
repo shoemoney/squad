@@ -270,3 +270,41 @@ fn ledger_counts_support_and_counter_sources_independently() {
         1
     );
 }
+
+#[test]
+fn shared_quote_pools_bound_repeated_claim_evidence_without_dropping_quotes() {
+    let text = "verified_evidence_".repeat(80);
+    for kind in [WorkKind::TraceVerify, WorkKind::TraceAssemble] {
+        let quote = if kind == WorkKind::TraceVerify {
+            json!({"sourceId":"S1","quote":text,"span":{"start":0,"end":text.len()},"counter":false})
+        } else {
+            json!({"memberLabel":"Reader 1","localId":"L1","quote":{"sourceId":"S1","quote":text},"span":{"start":0,"end":text.len()},"counter":false,"status":"verified"})
+        };
+        let claims = (1..=25)
+            .map(|i| {
+                let mut q = quote.clone();
+                q["counter"] = json!(i % 2 == 0);
+                json!({"claimId":format!("C{i}"),"text":"Claim","quotes":[q]})
+            })
+            .collect::<Vec<_>>();
+        let input = if kind == WorkKind::TraceVerify {
+            json!({"claims":claims})
+        } else {
+            json!({"ledger":{"claims":claims}})
+        };
+        let projected = provider_projection(&kind, &input);
+        assert_eq!(projected["quotePool"].as_object().unwrap().len(), 1);
+        assert_eq!(projected["quotePool"]["Q1"]["quote"], text);
+        let claims = if kind == WorkKind::TraceVerify {
+            &projected["claims"]
+        } else {
+            &projected["ledger"]["claims"]
+        };
+        for (i, c) in claims.as_array().unwrap().iter().enumerate() {
+            assert!(c.get("quotes").is_none());
+            assert_eq!(c["quoteRefs"][0]["quoteId"], "Q1");
+            assert_eq!(c["quoteRefs"][0]["counter"], (i + 1) % 2 == 0);
+        }
+        assert!(projected.to_string().len() * 5 < input.to_string().len());
+    }
+}

@@ -356,6 +356,53 @@ pub fn input(kind: &WorkKind, setup: &TraceSetup, run: &Run, target: &Target) ->
         _ => return Err(invalid()),
     })
 }
+/// Deduplicate verified evidence within a provider request. Validation keeps the
+/// complete typed ledger; models receive lossless quote references and one pool.
+pub fn provider_projection(kind: &WorkKind, data: &Value) -> Value {
+    let mut out = data.clone();
+    let claims = match kind {
+        WorkKind::TraceVerify => out.get_mut("claims"),
+        WorkKind::TraceAssemble => out.get_mut("ledger").and_then(|l| l.get_mut("claims")),
+        _ => return out,
+    };
+    let Some(claims) = claims.and_then(Value::as_array_mut) else {
+        return out;
+    };
+    let mut pool = serde_json::Map::new();
+    let mut ids = BTreeMap::<String, String>::new();
+    for claim in claims {
+        let quotes = claim
+            .as_object_mut()
+            .and_then(|c| c.remove("quotes"))
+            .unwrap_or(json!([]));
+        let refs = quotes
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|q| {
+                let (source, text) = if q["quote"].is_object() {
+                    (&q["quote"]["sourceId"], &q["quote"]["quote"])
+                } else {
+                    (&q["sourceId"], &q["quote"])
+                };
+                let evidence = json!({"sourceId":source,"quote":text,"span":q["span"]});
+                let key = evidence.to_string();
+                let id = if let Some(id) = ids.get(&key) {
+                    id.clone()
+                } else {
+                    let id = format!("Q{}", ids.len() + 1);
+                    ids.insert(key, id.clone());
+                    pool.insert(id.clone(), evidence);
+                    id
+                };
+                json!({"quoteId":id,"counter":q["counter"]})
+            })
+            .collect::<Vec<_>>();
+        claim["quoteRefs"] = json!(refs);
+    }
+    out["quotePool"] = Value::Object(pool);
+    out
+}
 /// Identity information is excluded from the blind judge header entirely.
 pub fn blind_system(system: &str) -> String {
     let prefix = system

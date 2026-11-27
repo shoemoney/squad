@@ -90,6 +90,7 @@ enum Fault {
     Outer,
     Exhausted,
     Dormant,
+    Assemble,
 }
 struct Answers;
 fn extract(text: &str) -> serde_json::Value {
@@ -137,6 +138,9 @@ impl Respond for Answers {
         } else if text.contains("Review only your assigned") {
             serde_json::json!({"verdicts":data["claims"].as_array().unwrap().iter().map(|c|serde_json::json!({"claimId":c["claimId"],"entailment":"supported","scope":"ok","qualifierQuote":null,"note":"Exact scope retained"})).collect::<Vec<_>>()})
         } else {
+            if q.contains("AssembleFail") {
+                return streaming(&serde_json::json!({"sections":[{"heading":"Bad brief","paragraphs":[{"text":"Invented claim","claimIds":["C999"]}]}],"disputed":[],"gaps":[]}).to_string(),"stop");
+            }
             let supported = data["ledger"]["claims"]
                 .as_array()
                 .unwrap()
@@ -206,6 +210,7 @@ async fn owned_run(fault: Fault) -> (Fixture, squad_store::Store, ContestId) {
         Fault::Repair => "Repair",
         Fault::Judge => "Judge",
         Fault::Empty => "Empty",
+        Fault::Assemble => "AssembleFail",
         _ => "",
     };
     let text = format!("@all $trace Retention {marker}\n--\n{SOURCE}");
@@ -446,6 +451,20 @@ async fn owned_real_executors_complete_fourteen_calls_and_export() {
     assert_eq!(p.settings["reservedAttempts"], 30);
     for b in &bodies {
         let t = b["messages"][1]["content"].as_str().unwrap();
+        if t.contains("Review only your assigned") || t.contains("Write an auditable brief") {
+            let presented = extract(t);
+            let pool = presented["quotePool"].as_object().unwrap();
+            let claims = if presented["claims"].is_array() {
+                &presented["claims"]
+            } else {
+                &presented["ledger"]["claims"]
+            };
+            for c in claims.as_array().unwrap() {
+                for q in c["quoteRefs"].as_array().unwrap() {
+                    assert!(pool[q["quoteId"].as_str().unwrap()]["quote"].is_string());
+                }
+            }
+        }
         if t.contains("Review only your assigned") {
             assert!(!t.contains("memberLabel"));
             assert!(!t.contains("Reader 1"));
@@ -608,4 +627,30 @@ async fn dormant_ordinary_work_does_not_block_trace_admission() {
     );
     assert_eq!(f.fake.captured_bodies().await.len(), 14);
     assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work WHERE kind='reply' AND status='queued' AND runnable=0 AND json_extract(scheduling_meta,'$.openModeDormant')=1",[],|r|r.get::<_,i64>(0)).unwrap(),1);
+}
+
+#[tokio::test]
+async fn assembly_exhaustion_preserves_the_locked_ledger_and_export() {
+    let (f, store, c) = owned_run(Fault::Assemble).await;
+    let s = squad_core::router::trace::load_state(&f.db(), c).unwrap();
+    assert_eq!(s.state, TraceStatus::Failed);
+    assert_eq!(s.terminal_reason.unwrap().as_str(), "judge_failed");
+    let run = squad_store::trace::run(&f.db(), c).unwrap();
+    assert!(run.brief.is_none());
+    assert_eq!(
+        run.ledger.claims[0].status,
+        trace::TraceClaimStatus::Supported
+    );
+    assert_eq!(f.fake.captured_bodies().await.len(), 15);
+    let events = store
+        .call(move |db| squad_store::export::contest(db, c))
+        .unwrap();
+    let snapshot = squad_core::export::ExportSnapshot {
+        events,
+        ..Default::default()
+    };
+    let out = squad_core::export::trace::render(&snapshot, c).unwrap();
+    assert!(out.contains("Result: judge_failed"));
+    assert!(out.contains("Status: Supported"));
+    assert!(out.contains("### S1"));
 }

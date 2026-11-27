@@ -967,7 +967,7 @@ fn allocate(
         ]);
         values.insert(
             "mode_data_json".into(),
-            serde_json::json!({"input":data,"proseWordLimit":words}).to_string(),
+            serde_json::json!({"input":script::provider_projection(&kind,&data),"proseWordLimit":words}).to_string(),
         );
         let source = &frozen["compositions"][name];
         let render = |key: &str| -> Result<String> {

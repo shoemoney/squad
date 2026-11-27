@@ -12,7 +12,10 @@ pub fn inputs(
         name,
         super::Inputs::from([
             ("mode_step".into(), serde_json::json!(name)),
-            ("mode_data_json".into(), data.clone()),
+            (
+                "mode_data_json".into(),
+                crate::orchestrator::trace::provider_projection(&work.kind, data),
+            ),
             (
                 "mode_schema_json".into(),
                 trace::output_schema(&work.kind).expect("schema"),

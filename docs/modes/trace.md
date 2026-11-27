@@ -157,3 +157,8 @@ protocol test with temporary activation. Member invocations use the binding
 2,048-visible-token ceiling. Prose budgets exclude identifiers, enums and
 numbers. Private seed, reader permutation and verifier assignment snapshots are
 persisted in `contest_private_maps` before dependent work is dispatched.
+
+Verification and assembly requests include a lossless quote pool: claims reference
+quote IDs, and each verified quote and byte span appears once per request. The
+stored ledger and export retain the full claim-to-quote relationships. This avoids
+repeating long evidence passages across many canonical claims inside paid prompts.
