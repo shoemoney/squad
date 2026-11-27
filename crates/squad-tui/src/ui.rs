@@ -477,8 +477,10 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
                 .values()
                 .map(|v| {
                     format!(
-                        "Debate {} · {:?} · cases {:?}",
-                        v.state.debate_id, v.state.state, v.state.case_ids
+                        "Debate {} · {} · cases {}",
+                        v.state.debate_id,
+                        squad_protocol::human::label(&v.state.state),
+                        squad_protocol::human::label(&v.state.case_ids)
                     )
                 })
                 .collect::<Vec<_>>()

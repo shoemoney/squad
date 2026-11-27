@@ -27,7 +27,12 @@ pub fn render(payload: &EnvelopePayload) -> Option<String> {
             }
         }
         EnvelopePayload::SurveyState(s) => {
-            writeln!(out, "Survey state: {:?}\n", s.state).ok()?;
+            writeln!(
+                out,
+                "Survey state: {}\n",
+                squad_protocol::human::label(&s.state)
+            )
+            .ok()?;
             if let Some(c) = &s.completeness {
                 writeln!(out, "{}\n", c.summary()).ok()?;
             } else if let Some(reason) = &s.terminal_reason {
@@ -65,8 +70,11 @@ pub fn render(payload: &EnvelopePayload) -> Option<String> {
             for v in &s.ballot.votes {
                 writeln!(
                     out,
-                    "- {}: {:?} · confidence {}/5 · {}",
-                    v.claim_id, v.vote, v.confidence, v.reason
+                    "- {}: {} · confidence {}/5 · {}",
+                    v.claim_id,
+                    squad_protocol::human::label(&v.vote),
+                    v.confidence,
+                    v.reason
                 )
                 .ok()?;
                 if let Some(e) = &v.change_evidence {
@@ -122,7 +130,14 @@ pub fn render(payload: &EnvelopePayload) -> Option<String> {
                 let t = &m.final_tally;
                 writeln!(out,"### {}{}\n\nFirst: AGREE {} · DISAGREE {} · UNSURE {} · MISSING {}\n\nFinal: AGREE {} · DISAGREE {} · UNSURE {} · MISSING {}\n",m.claim_id,if m.bands.is_empty(){" · unresolved"}else{""},first.agree,first.disagree,first.unsure,first.missing,t.agree,t.disagree,t.unsure,t.missing).ok()?;
                 for s in &m.switches {
-                    writeln!(out, "Switch @{}: {:?} → {:?}", s.voter, s.from, s.to).ok()?;
+                    writeln!(
+                        out,
+                        "Switch @{}: {} → {}",
+                        s.voter,
+                        squad_protocol::human::label(&s.from),
+                        squad_protocol::human::label(&s.to)
+                    )
+                    .ok()?;
                 }
                 if !m.not_revoted.is_empty() {
                     writeln!(

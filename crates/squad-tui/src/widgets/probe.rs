@@ -90,7 +90,7 @@ pub fn render(view: &ProbeView, area: Rect, buf: &mut Buffer, palette: &Palette)
         }
     }
     if let Some(s) = &view.state {
-        p.line(&format!("{:?}", s.state), gold);
+        p.line(&squad_protocol::human::label(&s.state), gold);
         for n in &s.skipped_members {
             p.line(&format!("Skipped member: @{n}"), body);
         }

@@ -123,8 +123,8 @@ pub fn render(
     if let Some(s) = state {
         let _ = writeln!(
             out,
-            "\nState: {:?}{}\n",
-            s.state,
+            "\nState: {}{}\n",
+            squad_protocol::human::label(&s.state),
             s.terminal_reason
                 .as_ref()
                 .map(|r| format!(" ({r})"))
@@ -137,9 +137,9 @@ pub fn render(
         }
         let _ = writeln!(
             out,
-            "\n## {} · {:?}\n\n```json\n{}\n```",
+            "\n## {} · {}\n\n```json\n{}\n```",
             a.artifact_kind,
-            a.actor,
+            squad_protocol::human::actor_label(&a.actor),
             serde_json::to_string_pretty(&a.body)
                 .map_err(|_| super::ExportError::InvalidSnapshot)?
         );

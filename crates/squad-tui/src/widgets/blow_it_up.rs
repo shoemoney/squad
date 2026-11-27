@@ -1,7 +1,10 @@
 //! blow_it_up view projection belongs here.
 use squad_protocol::*;
 pub fn lines(state: &BlowItUpState) -> Vec<String> {
-    vec!["BLOW IT UP".into(), format!("{:?}", state.state)]
+    vec![
+        "BLOW IT UP".into(),
+        squad_protocol::human::label(&state.state),
+    ]
 }
 
 #[derive(Debug, Clone, Default)]
@@ -72,7 +75,7 @@ pub fn styled_lines(view: &View) -> Vec<ratatui::text::Line<'static>> {
                 Severity::Low,
             ]
             .into_iter()
-            .find(|s| text.starts_with(&format!("### {s:?}")));
+            .find(|s| text.starts_with(&format!("### {}", squad_protocol::human::label(s))));
             if let Some(s) = severity {
                 ratatui::text::Line::styled(
                     text,

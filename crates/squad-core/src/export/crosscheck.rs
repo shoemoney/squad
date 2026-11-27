@@ -20,8 +20,9 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
         EnvelopePayload::CrosscheckState(s) => {
             let _ = writeln!(
                 out,
-                "### Crosscheck {:?} · version {}\n",
-                s.status, s.state_version
+                "### Crosscheck {} · version {}\n",
+                squad_protocol::human::label(&s.status),
+                s.state_version
             );
         }
         EnvelopePayload::CrosscheckPreflight(p) => {
@@ -41,7 +42,12 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
             }
         }
         EnvelopePayload::CrosscheckInventory(s) => {
-            let _ = writeln!(out, "### Inventory · {} · {:?}\n", s.member, s.lens);
+            let _ = writeln!(
+                out,
+                "### Inventory · {} · {}\n",
+                s.member,
+                squad_protocol::human::label(&s.lens)
+            );
             for i in &s.response.items {
                 let _ = writeln!(out, "- {}: {} — {}", i.local_id, i.item, i.rationale);
             }
@@ -57,29 +63,38 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
             for item in &g.items {
                 let _ = writeln!(
                     out,
-                    "- Normalized {} · {:?}: {} · sources {:?}",
-                    item.id, item.lens, item.item, item.source_item_ids
+                    "- Normalized {} · {}: {} · sources {}",
+                    item.id,
+                    squad_protocol::human::label(&item.lens),
+                    item.item,
+                    item.source_item_ids
+                        .iter()
+                        .map(|s| s.local_id.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 );
             }
             for c in &g.cells {
                 let _ = writeln!(
                     out,
-                    "- {} · {} · {:?} · reviewer {} · contributors {:?}",
+                    "- {} · {} · {} · reviewer {} · contributors {}",
                     c.cell_id,
                     c.key,
-                    c.items,
+                    squad_protocol::human::list_label(&c.items),
                     c.reviewer
                         .as_ref()
                         .map(|n| n.as_str())
                         .unwrap_or("unassignable; open"),
-                    c.originators
+                    squad_protocol::human::list_label(&c.originators)
                 );
             }
             for c in &g.omitted {
                 let _ = writeln!(
                     out,
-                    "- Cap omission {} · {} · {:?}",
-                    c.cell_id, c.key, c.items
+                    "- Cap omission {} · {} · {}",
+                    c.cell_id,
+                    c.key,
+                    squad_protocol::human::list_label(&c.items)
                 );
             }
         }
@@ -99,8 +114,14 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
             for f in &a.response.audits {
                 let _ = writeln!(
                     out,
-                    "- {} · {:?}: {} · citation {:?}",
-                    f.cell_id, f.verdict, f.reason, f.citation
+                    "- {} · {}: {} · citation {}",
+                    f.cell_id,
+                    squad_protocol::human::label(&f.verdict),
+                    f.reason,
+                    f.citation.as_ref().map_or_else(
+                        || "none".to_string(),
+                        |c| format!("{}: {}", c.location, c.quote)
+                    )
                 );
             }
             let c = &a.response.missed_case;
@@ -118,8 +139,10 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
             for a in &r.ruling.additions {
                 let _ = writeln!(
                     out,
-                    "- Addition {} · {:?}: {}",
-                    a.audit_work_id, a.decision, a.reason
+                    "- Addition {} · {}: {}",
+                    a.audit_work_id,
+                    squad_protocol::human::label(&a.decision),
+                    a.reason
                 );
             }
             for risk in &r.ruling.residual_risks {
@@ -129,12 +152,12 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
         EnvelopePayload::CrosscheckAcceptance(a) => {
             let _ = writeln!(
                 out,
-                "### Explicit human risk acceptance\n\nPlan {} v{}, grid v{} · cells {:?} · residuals {:?}\n\n{}\n",
+                "### Explicit human risk acceptance\n\nPlan {} v{}, grid v{} · cells {} · residuals {}\n\n{}\n",
                 a.plan_id,
                 a.plan_version,
                 a.grid_version,
-                a.cell_ids,
-                a.residual_risk_ids,
+                squad_protocol::human::list_label(&a.cell_ids),
+                squad_protocol::human::list_label(&a.residual_risk_ids),
                 a.reason
             );
         }
@@ -143,8 +166,11 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
             for c in &r.ledger {
                 let _ = writeln!(
                     out,
-                    "- {} · {:?} · acceptance {:?}",
-                    c.cell.cell_id, c.cell.items, c.acceptance_event_id
+                    "- {} · {} · acceptance {}",
+                    c.cell.cell_id,
+                    squad_protocol::human::list_label(&c.cell.items),
+                    c.acceptance_event_id
+                        .map_or_else(|| "none".to_string(), |id| id.to_string())
                 );
                 if let Some(review) = c.ruling.as_ref().or(c.review.as_ref()) {
                     cell(&mut out, review);
@@ -159,12 +185,16 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
                     risk.id, risk.case, risk.proposed_fix
                 );
             }
-            let _ = writeln!(out, "Missing inventories: {:?}\n", r.failed_inventories);
             let _ = writeln!(
                 out,
-                "\nFailed reviewers: {:?}\n\nFailed auditors: {:?}\n\nCap omissions: {}\n\nClean audit: {}\n\nBounded stop: {}. COMPLETE means script execution finished. This is not proof of completeness.\n",
-                r.failed_reviewers,
-                r.failed_auditors,
+                "Missing inventories: {}\n",
+                squad_protocol::human::list_label(&r.failed_inventories)
+            );
+            let _ = writeln!(
+                out,
+                "\nFailed reviewers: {}\n\nFailed auditors: {}\n\nCap omissions: {}\n\nClean audit: {}\n\nBounded stop: {}. COMPLETE means script execution finished. This is not proof of completeness.\n",
+                squad_protocol::human::list_label(&r.failed_reviewers),
+                squad_protocol::human::list_label(&r.failed_auditors),
                 r.omitted.len(),
                 r.audit_clean,
                 r.bounded_stop
@@ -175,7 +205,13 @@ pub(super) fn render(payload: &EnvelopePayload) -> Option<String> {
     Some(out)
 }
 fn cell(out: &mut String, c: &CrosscheckCellReview) {
-    let _ = writeln!(out, "- {} · {:?}: {}", c.cell_id, c.status, c.reason);
+    let _ = writeln!(
+        out,
+        "- {} · {}: {}",
+        c.cell_id,
+        squad_protocol::human::label(&c.status),
+        c.reason
+    );
     if let Some(cite) = &c.citation {
         let _ = writeln!(out, "  Citation {}: {}", cite.location, cite.quote);
     }

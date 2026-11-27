@@ -52,7 +52,14 @@ impl SurveyView {
         let mut text = self
             .work
             .values()
-            .map(|w| format!("{} · {:?} · attempt {}", w.target, w.status, w.attempt))
+            .map(|w| {
+                format!(
+                    "{} · {} · attempt {}",
+                    w.target,
+                    squad_protocol::human::label(&w.status),
+                    w.attempt
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
         if !text.is_empty() {

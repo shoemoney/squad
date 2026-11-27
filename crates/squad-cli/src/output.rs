@@ -189,8 +189,10 @@ impl Output<'_> {
             if let EnvelopePayload::CensusState(state) = &event.content {
                 return writeln!(
                     self.stdout,
-                    "CENSUS · pass {} · plan {} · {:?}",
-                    state.pass, state.plan_version, state.status
+                    "CENSUS · pass {} · plan {} · {}",
+                    state.pass,
+                    state.plan_version,
+                    squad_protocol::human::label(&state.status)
                 );
             }
             if let EnvelopePayload::DebateRoundScore(score) = &event.content {

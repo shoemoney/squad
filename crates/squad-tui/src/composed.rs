@@ -597,8 +597,11 @@ impl Composed {
                     let height = (0..128)
                         .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
                         .map_or(0, |y| usize::from(y) + 1);
-                    let mut model =
-                        TranscriptMessage::new(identity(id), format!("{:?}", state.kind), "");
+                    let mut model = TranscriptMessage::new(
+                        identity(id),
+                        squad_protocol::human::label(&state.kind),
+                        "",
+                    );
                     model.widget_rows = rows(&scratch, height);
                     models.push(model);
                 }

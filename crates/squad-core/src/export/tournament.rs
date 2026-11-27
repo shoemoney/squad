@@ -45,8 +45,10 @@ pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
             heading(
                 out,
                 &format!(
-                    "Tournament {:?} · round {} · replay {}",
-                    s.state, s.round, s.replay
+                    "Tournament {} · round {} · replay {}",
+                    squad_protocol::human::label(&s.state),
+                    s.round,
+                    s.replay
                 ),
             );
             if let Some(reason) = &s.terminal_reason {

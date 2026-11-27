@@ -15,8 +15,8 @@ pub fn lines(state: &ForecastState) -> Vec<String> {
         }
         .into(),
         format!(
-            "{:?}{}",
-            state.state,
+            "{}{}",
+            squad_protocol::human::label(&state.state),
             state
                 .terminal_reason
                 .as_ref()
@@ -99,12 +99,20 @@ pub fn render(view: &View) -> Vec<String> {
                 }
                 "forecast.estimate" => {
                     if let Ok(e) = validation::decode::<ForecastEstimate>(body) {
-                        out.push(format!("{:?}: {}%", a.actor, e.probability_pct));
+                        out.push(format!(
+                            "{}: {}%",
+                            squad_protocol::human::actor_label(&a.actor),
+                            e.probability_pct
+                        ));
                     }
                 }
                 "forecast.revise" => {
                     if let Ok(r) = validation::decode::<ForecastRevision>(body) {
-                        out.push(format!("{:?}: revised {}%", a.actor, r.probability_pct));
+                        out.push(format!(
+                            "{}: revised {}%",
+                            squad_protocol::human::actor_label(&a.actor),
+                            r.probability_pct
+                        ));
                     }
                 }
                 "forecast.aggregate" => {

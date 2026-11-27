@@ -36,8 +36,12 @@ pub fn report_text(r: &TraceReport, details: bool) -> String {
     for c in &r.ledger.claims {
         let _ = writeln!(
             out,
-            "\n### [{}] {}\n\nStatus: {:?}; independent sources: {}; contributing members: {}\n",
-            c.claim_id, c.text, c.status, c.independent_sources, c.contributing_members
+            "\n### [{}] {}\n\nStatus: {}; independent sources: {}; contributing members: {}\n",
+            c.claim_id,
+            c.text,
+            squad_protocol::human::label(&c.status),
+            c.independent_sources,
+            c.contributing_members
         );
         for q in &c.quotes {
             if let Some(span) = &q.span {
@@ -53,7 +57,13 @@ pub fn report_text(r: &TraceReport, details: bool) -> String {
             }
         }
         for (n, v) in &c.verdicts {
-            let _ = writeln!(out, "- @{n}: {:?}, {:?}: {}", v.entailment, v.scope, v.note);
+            let _ = writeln!(
+                out,
+                "- @{n}: {}, {}: {}",
+                squad_protocol::human::label(&v.entailment),
+                squad_protocol::human::label(&v.scope),
+                v.note
+            );
             if let Some(q) = &v.qualifier_quote {
                 let _ = writeln!(out, "  Qualifier {}: > {}", q.source_id, q.quote);
             }
@@ -66,7 +76,13 @@ pub fn report_text(r: &TraceReport, details: bool) -> String {
         .iter()
         .filter(|c| c.status != TraceClaimStatus::Supported)
     {
-        let _ = writeln!(out, "- [{}] {:?}: {}", c.claim_id, c.status, c.text);
+        let _ = writeln!(
+            out,
+            "- [{}] {}: {}",
+            c.claim_id,
+            squad_protocol::human::label(&c.status),
+            c.text
+        );
     }
     out.push_str("\n## Quotes not found\n");
     for q in r.quote_checks.iter().filter(|q| q.span.is_none()) {

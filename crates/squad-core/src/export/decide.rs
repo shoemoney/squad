@@ -183,7 +183,12 @@ pub fn render(
             && s.contest_id == id
             && let Some(reason) = &s.terminal_reason
         {
-            writeln!(out, "Status: {:?} ({reason})\n", s.state).expect("string");
+            writeln!(
+                out,
+                "Status: {} ({reason})\n",
+                squad_protocol::human::label(&s.state)
+            )
+            .expect("string");
         }
     }
     let artifacts = events
@@ -220,9 +225,9 @@ pub fn render(
     for a in artifacts {
         writeln!(
             out,
-            "### {} · {:?}\n\n```json\n{}\n```\n",
+            "### {} · {}\n\n```json\n{}\n```\n",
             a.artifact_kind,
-            a.actor,
+            squad_protocol::human::actor_label(&a.actor),
             serde_json::to_string_pretty(
                 a.body.as_ref().ok_or(super::ExportError::InvalidSnapshot)?
             )

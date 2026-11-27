@@ -233,7 +233,10 @@ impl Session {
             } else {
                 return None;
             };
-            Some(format!("probe · {role} · {:?}", state.state))
+            Some(format!(
+                "probe · {role} · {}",
+                squad_protocol::human::label(&state.state)
+            ))
         })
     }
 
@@ -2448,7 +2451,7 @@ impl RoomPort for FakeRoom {
                 .transcript
                 .cards
                 .values()
-                .map(|c| format!("{:?}\n\n{}\n", c.author, c.text))
+                .map(|c| format!("{}\n\n{}\n", c.author, c.text))
                 .collect::<Vec<_>>()
                 .join("\n"))
         })

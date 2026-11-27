@@ -24,6 +24,16 @@ pub struct CrosscheckView {
     pub collapsed_cells: BTreeSet<CellId>,
     pub acceptances: Vec<CrosscheckAcceptance>,
 }
+fn join_display<T: std::fmt::Display>(items: &[T]) -> String {
+    if items.is_empty() {
+        return squad_protocol::human::NONE_LABEL.to_string();
+    }
+    items
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
 impl CrosscheckView {
     pub fn toggle_cell(&mut self, id: CellId) {
         if !self.collapsed_cells.remove(&id) {
@@ -34,8 +44,10 @@ impl CrosscheckView {
         let mut rows = vec![Line::from("CROSSCHECK")];
         if let Some(s) = &self.state {
             rows.push(Line::from(format!(
-                "{:?} · plan v{} · grid v{}",
-                s.status, s.plan_version, s.grid_version
+                "{} · plan v{} · grid v{}",
+                squad_protocol::human::label(&s.status),
+                s.plan_version,
+                s.grid_version
             )));
         }
         if let Some(p) = &self.preflight {
@@ -63,9 +75,9 @@ impl CrosscheckView {
         )));
         for inventory in self.inventories.values() {
             rows.push(Line::from(format!(
-                "{} · {:?} lens · {} independent cases",
+                "{} · {} lens · {} independent cases",
                 inventory.member,
-                inventory.lens,
+                squad_protocol::human::label(&inventory.lens),
                 inventory.response.items.len()
             )));
         }
@@ -77,8 +89,9 @@ impl CrosscheckView {
             )));
             for omitted in &g.omitted {
                 rows.push(Line::from(format!(
-                    "Cap omission {} · {:?}",
-                    omitted.cell_id, omitted.items
+                    "Cap omission {} · {}",
+                    omitted.cell_id,
+                    join_display(&omitted.items)
                 )));
             }
             for cell in &g.cells {
@@ -102,7 +115,7 @@ impl CrosscheckView {
                         "HUMAN ACCEPTED".into()
                     } else {
                         review
-                            .map(|r| format!("{:?}", r.status))
+                            .map(|r| squad_protocol::human::label(&r.status))
                             .unwrap_or_else(|| "OPEN".into())
                     },
                     cell.items
@@ -121,8 +134,9 @@ impl CrosscheckView {
                     && review != Some(original)
                 {
                     rows.push(Line::from(format!(
-                        "  Original review {:?}: {}",
-                        original.status, original.reason
+                        "  Original review {}: {}",
+                        squad_protocol::human::label(&original.status),
+                        original.reason
                     )));
                 }
                 if let Some(r) = review {
@@ -150,8 +164,10 @@ impl CrosscheckView {
             )));
             for f in &audit.response.audits {
                 rows.push(Line::from(format!(
-                    "  {} {:?}: {}",
-                    f.cell_id, f.verdict, f.reason
+                    "  {} {}: {}",
+                    f.cell_id,
+                    squad_protocol::human::label(&f.verdict),
+                    f.reason
                 )));
                 if let Some(citation) = &f.citation {
                     rows.push(Line::from(format!(
@@ -172,8 +188,9 @@ impl CrosscheckView {
         if let Some(ruling) = &self.ruling {
             for addition in &ruling.ruling.additions {
                 rows.push(Line::from(format!(
-                    "Addition {:?}: {}",
-                    addition.decision, addition.reason
+                    "Addition {}: {}",
+                    squad_protocol::human::label(&addition.decision),
+                    addition.reason
                 )));
             }
         }
@@ -185,14 +202,14 @@ impl CrosscheckView {
                     .is_some_and(|g| !g.cells.iter().any(|cell| cell.cell_id == c.cell.cell_id))
                 {
                     rows.push(Line::from(format!(
-                        "Audit addition {} · {} · {:?}",
+                        "Audit addition {} · {} · {}",
                         c.cell.cell_id,
                         if c.acceptance_event_id.is_some() {
                             "HUMAN ACCEPTED"
                         } else {
                             "OPEN"
                         },
-                        c.cell.items
+                        join_display(&c.cell.items)
                     )));
                 }
             }
@@ -210,8 +227,10 @@ impl CrosscheckView {
                 )));
             }
             rows.push(Line::from(format!(
-                "Missing inventories {:?} · failed reviewers {:?} · failed auditors {:?}",
-                r.failed_inventories, r.failed_reviewers, r.failed_auditors
+                "Missing inventories {} · failed reviewers {} · failed auditors {}",
+                join_display(&r.failed_inventories),
+                join_display(&r.failed_reviewers),
+                join_display(&r.failed_auditors)
             )));
             rows.push(Line::from(format!(
                 "Clean audit: {} · bounded stop: {}",
@@ -220,8 +239,12 @@ impl CrosscheckView {
         }
         for a in &self.acceptances {
             rows.push(Line::from(format!(
-                "Human acceptance · plan v{} grid v{} · cells {:?} · residuals {:?}: {}",
-                a.plan_version, a.grid_version, a.cell_ids, a.residual_risk_ids, a.reason
+                "Human acceptance · plan v{} grid v{} · cells {} · residuals {}: {}",
+                a.plan_version,
+                a.grid_version,
+                join_display(&a.cell_ids),
+                join_display(&a.residual_risk_ids),
+                a.reason
             )));
         }
         rows.push(Line::from("Stop rule: every retained cell has evidence, justified exclusion or explicit human acceptance; audit has no unresolved material finding. Bounded coverage is not proof of completeness."));

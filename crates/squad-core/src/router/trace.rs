@@ -729,7 +729,11 @@ pub(crate) fn drive_move(
     squad_store::contest_steps::barrier(tx, step, seq)?;
     s.artifact_event_ids.extend(artifacts.iter().map(|a| a.2));
     for w in skipped {
-        run.skipped.push(format!("{}: {:?}", w.target, s.state));
+        run.skipped.push(format!(
+            "{}: {}",
+            w.target,
+            squad_protocol::human::label(&s.state)
+        ));
     }
     match s.state {
         TraceStatus::Extracting => {

@@ -424,7 +424,11 @@ pub fn render(
                 if s.state.is_terminal() {
                     block(
                         &mut out,
-                        &format!("Debate {} · {:?}", s.debate_id, s.state),
+                        &format!(
+                            "Debate {} · {}",
+                            s.debate_id,
+                            squad_protocol::human::label(&s.state)
+                        ),
                         s.terminal_reason.as_deref().unwrap_or(""),
                     );
                 }
@@ -436,9 +440,13 @@ pub fn render(
                 );
                 match &s.outcome {
                     DebateTurnOutcome::Completed { content, .. } => paragraph(&mut out, content),
-                    DebateTurnOutcome::Forfeit { reason_code, text } => {
-                        paragraph(&mut out, &format!("Forfeit ({reason_code:?}): {text}"))
-                    }
+                    DebateTurnOutcome::Forfeit { reason_code, text } => paragraph(
+                        &mut out,
+                        &format!(
+                            "Forfeit ({}): {text}",
+                            squad_protocol::human::label(&reason_code)
+                        ),
+                    ),
                 }
             }
             EnvelopePayload::DebateRoundScore(s) => {
@@ -476,7 +484,12 @@ pub fn render(
                     for c in &score.criteria {
                         block(
                             &mut out,
-                            &format!("{} · {:?} · {}/10", score.nick, c.criterion_id, c.score),
+                            &format!(
+                                "{} · {} · {}/10",
+                                score.nick,
+                                squad_protocol::human::label(&c.criterion_id),
+                                c.score
+                            ),
                             &c.reasoning,
                         );
                     }
@@ -564,7 +577,11 @@ pub fn render(
             EnvelopePayload::ContestState(ContestState::Selection(s)) => {
                 heading(
                     &mut out,
-                    &format!("Selection {} · {:?}", s.contest_id, s.state),
+                    &format!(
+                        "Selection {} · {}",
+                        s.contest_id,
+                        squad_protocol::human::label(&s.state)
+                    ),
                 );
                 for a in &s.answers {
                     block(
@@ -634,7 +651,11 @@ pub fn render(
             EnvelopePayload::GrillState(v) => {
                 heading(
                     &mut out,
-                    &format!("Grill round {} · {:?}", v.round, v.state),
+                    &format!(
+                        "Grill round {} · {}",
+                        v.round,
+                        squad_protocol::human::label(&v.state)
+                    ),
                 );
                 if let Some(reason) = &v.terminal_reason {
                     paragraph(&mut out, reason);
