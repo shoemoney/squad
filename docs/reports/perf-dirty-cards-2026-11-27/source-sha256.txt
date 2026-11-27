@@ -1,0 +1,11 @@
+# hueb sources measured at product commit 659700128025546c20e3e2d5024ccaa678cbc3cb
+dcaf5e8fd18ae1830eac982925e78dc0124323ac8b803b2a5d162de7a1022c85  crates/squad-tui/benches/composed_streams.rs
+112a1006c4f01f351dcb37ce68ae73c4c60e7ba7766264816e08440ed5c36b16  crates/squad-tui/src/app.rs
+3111107ace697fe31a7e72d5471f3fffd5a1b1fd08dcd85ceba6637ca76c218c  crates/squad-tui/src/composed.rs
+dcc9bae5a1925d7c2e39c49261b3404907e182974e5935447f8068af131cd726  crates/squad-tui/src/markdown.rs
+91eb45e9f735c398b87b0959a81dedc95db700f3631530875fd9377b72ec17b6  crates/squad-tui/src/session.rs
+6de6802cc7e9560b15a3e7c3be632ebb195cf7c726e68f7673c94e017cbda899  crates/squad-tui/src/transcript.rs
+5af0993b08eff2c7c222e3e2a8b14613e3b34e0e4285e33f323d9e77a76ce962  crates/squad-tui/src/ui.rs
+6ddc18d1726863871429f043f0c35beac2fe4a3c60a935fd15ddaa1b93a12074  crates/squad-tui/src/widgets/transcript.rs
+c1b6b1c629b96c4bc747a660a19e7bbcbc51d117ac00662ecdaae1c890e263b0  crates/squad-tui/tests/dirty_cards.rs
+7d2337e22b08d118b14ce1ea753aad8ec158ba4e03b3020e98d97c3bc87b82f1  crates/squad-tui/tests/markdown.rs

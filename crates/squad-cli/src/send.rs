@@ -385,6 +385,12 @@ async fn execute<R: RoomApi>(
             }
             watermark = Some(event.commit.seq);
         }
+        if progress == Progress::AwaitingHuman {
+            let ctx = R::parse_context(&state);
+            if let Some(pending) = ctx.pending_human.as_ref() {
+                output.human_pending(pending).map_err(io_error)?;
+            }
+        }
         if progress != Progress::Running {
             if !usage.is_empty() {
                 let mut total = 0.0;

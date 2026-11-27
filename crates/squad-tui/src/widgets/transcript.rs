@@ -5,7 +5,6 @@
 use crate::{
     fx::{ColorTier, Palette},
     markdown::{MarkdownRenderer, sanitize, wrap_lines},
-    text,
 };
 use ratatui::{
     buffer::Buffer,
@@ -17,6 +16,7 @@ use ratatui::{
 use squad_protocol::{MessageId, UserMessage};
 use std::collections::HashMap;
 use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// Changing any presentation choice invalidates the associated wrapped height.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -88,6 +88,7 @@ struct AnchorRows {
     source: String,
     width: usize,
     complete: bool,
+    graphemes: usize,
     rows: Vec<usize>,
 }
 struct CachedMessage {
@@ -123,32 +124,30 @@ impl CachedMessage {
         self.source_rows.clear();
         let source = self.markdown.source();
         let mut base = 0;
-        let mut previous_start = 0;
+        let mut previous_end = 0;
         for (index, block) in self.markdown.blocks().iter().enumerate() {
             let start = block.source_range.start;
             let end = block.source_range.end;
-            base += source[previous_start..start].graphemes(true).count();
-            previous_start = start;
+            base += source[previous_end..start].graphemes(true).count();
+            previous_end = end;
             let raw = &source[start..end];
             let reusable = self.anchor_cache.get(index).is_some_and(|cached| {
                 cached.source == raw
                     && cached.width == width
                     && cached.complete == self.model.complete
+                    && cached.rows.len() == block.row_count()
             });
             if !reusable {
-                let raw_rows = text::wrap(raw, width.saturating_sub(4).max(1));
-                let mut renderer = MarkdownRenderer::new();
-                renderer.update("anchor", raw, self.model.complete, width);
-                let rows = (0..renderer.row_count())
-                    .map(|i| {
-                        let byte = raw_rows.get(i).map_or(raw.len(), |r| r.source_start);
-                        raw[..byte].graphemes(true).count()
-                    })
-                    .collect();
+                let (mut rows, graphemes) = anchor_source_rows(raw, width.saturating_sub(4).max(1));
+                // Use the already parsed/styled block's actual row count. A second
+                // Markdown renderer per block repeated fence highlighting and
+                // could disagree with completion's reference reconciliation.
+                rows.resize(block.row_count(), graphemes);
                 let cache = AnchorRows {
                     source: raw.to_owned(),
                     width,
                     complete: self.model.complete,
+                    graphemes,
                     rows,
                 };
                 if index < self.anchor_cache.len() {
@@ -157,12 +156,14 @@ impl CachedMessage {
                     self.anchor_cache.push(cache);
                 }
             }
+            let cached = &self.anchor_cache[index];
             self.source_rows
-                .extend(self.anchor_cache[index].rows.iter().map(|row| base + row));
+                .extend(cached.rows.iter().map(|row| base + row));
+            base += cached.graphemes;
         }
         self.anchor_cache.truncate(self.markdown.blocks().len());
-        self.source_rows
-            .resize(self.markdown.row_count(), source.graphemes(true).count());
+        base += source[previous_end..].graphemes(true).count();
+        self.source_rows.resize(self.markdown.row_count(), base);
         self.height = self.header_rows()
             + self.prefix.len()
             + self.markdown.row_count()
@@ -176,6 +177,40 @@ impl CachedMessage {
         self.header_rows() + self.prefix.len()
     }
 }
+// The same greedy source-row policy as text::wrap, retaining only canonical
+// grapheme offsets. Display strings/cell vectors are unnecessary for anchors.
+fn anchor_source_rows(source: &str, width: usize) -> (Vec<usize>, usize) {
+    let width = width.max(1);
+    let mut rows = vec![0];
+    let mut column = 0;
+    let mut count = 0;
+    for (index, grapheme) in source.graphemes(true).enumerate() {
+        count = index + 1;
+        if grapheme == "\n" || grapheme == "\r\n" {
+            rows.push(count);
+            column = 0;
+            continue;
+        }
+        let control = grapheme != "\t" && grapheme.chars().any(char::is_control);
+        let measured = if control { 1 } else { grapheme.width() };
+        let mut cells = if grapheme == "\t" {
+            4 - column % 4
+        } else {
+            measured
+        };
+        if column > 0 && column + cells > width {
+            rows.push(index);
+            column = 0;
+            cells = if grapheme == "\t" { 4 } else { measured };
+        }
+        column += cells;
+    }
+    if column >= width {
+        rows.push(count);
+    }
+    (rows, count)
+}
+
 /// Top-of-viewport identity and original-source grapheme, never a terminal byte/cell offset.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TranscriptAnchor {
@@ -485,4 +520,31 @@ pub fn render(
         local = 0;
     }
     geometry
+}
+
+#[cfg(test)]
+mod anchor_tests {
+    use super::anchor_source_rows;
+    use unicode_segmentation::UnicodeSegmentation;
+
+    #[test]
+    fn lightweight_anchor_rows_match_source_layout_for_unicode_tabs_and_controls() {
+        for source in [
+            "",
+            "1234",
+            "a\tb\r\n世界 👩‍💻e\u{301}\n",
+            "a\u{1b}b\u{200d}c",
+            "\t\t\n\nlongwordwithoutbreaks",
+        ] {
+            for width in 1..20 {
+                let expected = crate::text::wrap(source, width)
+                    .iter()
+                    .map(|row| source[..row.source_start].graphemes(true).count())
+                    .collect::<Vec<_>>();
+                let (actual, count) = anchor_source_rows(source, width);
+                assert_eq!(actual, expected, "source={source:?} width={width}");
+                assert_eq!(count, source.graphemes(true).count());
+            }
+        }
+    }
 }

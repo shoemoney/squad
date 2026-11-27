@@ -1,0 +1,99 @@
+{
+  "round": 1,
+  "selection": {
+    "testRef": "Proposer 1:T1",
+    "instruction": "Run: python3 /tmp/squad-v020-debug-fixture-cyvxmygn/probe.py '[{\"amount\":100,\"rate\":0}]'",
+    "outcomes": [
+      {
+        "label": "O1",
+        "description": "[110.0]"
+      },
+      {
+        "label": "O2",
+        "description": "[100.0]"
+      },
+      {
+        "label": "O3",
+        "description": "Other output or error"
+      }
+    ],
+    "predictions": [
+      {
+        "hypothesisId": "H1",
+        "outcome": "O1"
+      },
+      {
+        "hypothesisId": "H2",
+        "outcome": "O2"
+      },
+      {
+        "hypothesisId": "H3",
+        "outcome": "O1"
+      },
+      {
+        "hypothesisId": "H4",
+        "outcome": "cannot_predict"
+      },
+      {
+        "hypothesisId": "H5",
+        "outcome": "O2"
+      },
+      {
+        "hypothesisId": "H6",
+        "outcome": "cannot_predict"
+      },
+      {
+        "hypothesisId": "H7",
+        "outcome": "cannot_predict"
+      }
+    ],
+    "addedHypotheses": [],
+    "notSelected": [
+      {
+        "testRef": "Proposer 1:T2",
+        "why": "Safe, and it would split H1, H2, H3 and H5 four ways. Not chosen because it has no catch-all outcome: the correct result or any unlisted output would be unclassifiable. The brief also asks for the zero-only probe first."
+      },
+      {
+        "testRef": "Proposer 2:T1",
+        "why": "Same zero-only probe as the selected test, and safe. Its procedure adds a numeric-comparison instruction that is not needed; the selected wording is the plainest."
+      },
+      {
+        "testRef": "Proposer 2:T2",
+        "why": "Safe and splits H1, H2, H3 and H5. It has no catch-all outcome, so unlisted outputs (including the correct one) cannot be labelled. The zero-only probe is preferred first."
+      },
+      {
+        "testRef": "Proposer 3:T1",
+        "why": "Same zero-only probe, and safe. It predicts [100.0] for H7, which over-commits an open-ended hypothesis; the selected proposal's cannot_predict is more defensible."
+      },
+      {
+        "testRef": "Proposer 3:T2",
+        "why": "Safe, has a catch-all, and is a strong follow-up candidate. It lumps H3, H4, H5 and H7 into one compound outcome and commits H7 to it speculatively. The brief asks for the simpler zero-only probe first."
+      },
+      {
+        "testRef": "Proposer 4:T1",
+        "why": "Same zero-only probe with equivalent predictions, and safe. It is redundant with the selected test."
+      },
+      {
+        "testRef": "Proposer 4:T2",
+        "why": "Safe and splits H1, H2, H3 and H5. It has no catch-all outcome, and it reuses amount 100, which could confound the caching variant of H7. The zero-only probe is preferred first."
+      },
+      {
+        "testRef": "Proposer 5:T1",
+        "why": "Same zero-only probe, and safe. It predicts [100.0] for H7 without the hypothesis specifying single-item behaviour; the selected proposal handles that more cautiously."
+      },
+      {
+        "testRef": "Proposer 5:T2",
+        "why": "Safe and splits H1, H2, H3 and H5. It has no catch-all outcome: its own note concedes that H7's caching variant would give an unlisted result. The zero-only probe is preferred first."
+      }
+    ]
+  },
+  "argv": [
+    "python3",
+    "/tmp/squad-v020-debug-fixture-cyvxmygn/probe.py",
+    "[{\"amount\":100,\"rate\":0}]"
+  ],
+  "stdout": "[110.0]\n",
+  "stderr": "",
+  "returncode": 0,
+  "answer": "O1"
+}

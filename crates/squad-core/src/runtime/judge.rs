@@ -25,7 +25,8 @@ impl squad_agents::worker::WorkExecutor for Executor {
         grant: ExecutionGrant,
         cancel: CancellationToken,
     ) -> squad_agents::worker::ExecutionFuture<'a> {
-        if grant.work.kind == WorkKind::ProbeReport
+        if grant.work.kind.new_mode_kind().is_some()
+            || grant.work.kind == WorkKind::ProbeReport
             || grant.work.kind.census_judge()
             || matches!(
                 grant.work.kind,
@@ -120,6 +121,19 @@ impl JudgeAttemptRunner for Runner {
                     &executor, context, grant, cancel,
                 )
                 .await;
+            }
+            if let Some(kind) = grant.work.kind.new_mode_kind() {
+                return super::execute_new_mode(
+                    kind,
+                    context,
+                    &grant,
+                    &self.client,
+                    &self.pack,
+                    &self.config,
+                    cancel,
+                )
+                .await
+                .map_err(super::new_mode_error);
             }
             if grant.work.kind == WorkKind::ProbeReport {
                 return super::probe::execute(
@@ -434,6 +448,18 @@ impl Runner {
 
                 CaseMaterial::Survey { .. } => return Err(ReaderError::Forbidden),
                 CaseMaterial::Probe(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Forge(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Tune(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::BassAckwardsPrd(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Forecast(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Decide(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Negotiate(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::BlowItUp(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Readback(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Debugging(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Trace(_) => return Err(ReaderError::NotRunnable),
+                CaseMaterial::Rank(_) => return Err(ReaderError::NotRunnable),
+
                 CaseMaterial::Standalone { messages, question } => self.pack.judge_inputs(
                     &self.config,
                     &grant.work,

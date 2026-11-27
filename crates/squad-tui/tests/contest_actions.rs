@@ -161,7 +161,7 @@ fn help_is_parser_owned_and_covers_every_new_verb_and_export() {
     }
     assert_eq!(
         actions::help_lines().len(),
-        squad_protocol::parser::HELP_EXAMPLES.len()
+        squad_protocol::parser::help_examples().len()
     );
     assert!(matches!(actions::help(), Request::Help));
     assert!(matches!(actions::who(), Request::Who));
@@ -170,7 +170,7 @@ fn help_is_parser_owned_and_covers_every_new_verb_and_export() {
 #[test]
 fn every_help_export_example_parses_to_an_export_scope() {
     let ctx = ParseContext::default();
-    for raw in squad_protocol::parser::HELP_EXAMPLES
+    for raw in squad_protocol::parser::help_examples()
         .iter()
         .filter(|r| r.starts_with("/export"))
     {
@@ -188,13 +188,32 @@ fn every_help_export_example_parses_to_an_export_scope() {
 
 #[tokio::test]
 async fn export_scopes_name_files_and_new_reports_are_flagged() {
-    assert_eq!(actions::EXPORT_SCOPES.len(), 8);
+    let mut expected = vec!["census", "crosscheck", "survey", "probe"];
+    expected.extend(
+        [
+            ContestKind::Forge,
+            ContestKind::Forecast,
+            ContestKind::Decide,
+            ContestKind::Negotiate,
+            ContestKind::BlowItUp,
+            ContestKind::Readback,
+            ContestKind::Debugging,
+            ContestKind::Trace,
+            ContestKind::Rank,
+            ContestKind::Tune,
+            ContestKind::BassAckwardsPrd,
+        ]
+        .into_iter()
+        .filter(|kind| kind.is_built())
+        .map(ContestKind::as_str),
+    );
+    assert_eq!(actions::EXPORT_SCOPES.len(), 4 + expected.len());
     let new: Vec<_> = actions::EXPORT_SCOPES
         .iter()
         .filter(|s| actions::is_new_report_scope(s))
         .map(actions::scope_name)
         .collect();
-    assert_eq!(new, ["census", "crosscheck", "survey", "probe"]);
+    assert_eq!(new, expected);
     let id = ContestId::new();
     assert_eq!(
         actions::export_file_name(&ExportScope::Survey, Some(id)),

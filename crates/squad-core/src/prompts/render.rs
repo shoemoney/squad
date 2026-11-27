@@ -144,7 +144,7 @@ fn encode(id: &str, name: &str, value: &Value) -> Result<String, PromptError> {
     } else if name == "mode_step" {
         matches!(
             text.split('.').next(),
-            Some("census" | "crosscheck" | "survey" | "probe")
+            Some("census" | "crosscheck" | "survey" | "probe" | "blow_it_up")
         ) && text
             .bytes()
             .all(|c| c.is_ascii_lowercase() || b"._".contains(&c))

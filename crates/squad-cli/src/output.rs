@@ -9,6 +9,23 @@ pub struct Output<'a> {
     pub stderr: &'a mut dyn Write,
 }
 impl Output<'_> {
+    pub fn human_pending(&mut self, pending: &parser::PendingHuman) -> io::Result<()> {
+        if self.json {
+            self.record(json!({"type":"contest.awaiting_human","contestId":pending.contest_id,"pending":pending}))
+        } else {
+            writeln!(
+                self.stdout,
+                "{} · AWAITING_HUMAN · {}",
+                pending.kind.as_str(),
+                pending.contest_id
+            )?;
+            for line in squad_tui::widgets::human_step::lines(pending) {
+                writeln!(self.stdout, "{}", sanitize(&line))?;
+            }
+            Ok(())
+        }
+    }
+
     pub fn record(&mut self, value: Value) -> io::Result<()> {
         // JSON escapes C0, but serde leaves Unicode C1 controls literal. Escape
         // those too so terminal output stays safe and decoded records stay intact.
@@ -133,6 +150,18 @@ impl Output<'_> {
         event: &CommittedEnvelope,
         latest_round: Option<u32>,
     ) -> io::Result<()> {
+        if let EnvelopePayload::ContestArtifact(a) = &event.content
+            && a.artifact_kind.as_str() == "bass_ackwards_prd.saved"
+            && matches!(a.audience, Some(ArtifactAudience::Human))
+            && let Some(body) = &a.body
+            && let (Some(filename), Some(path)) = (body["filename"].as_str(), body["path"].as_str())
+        {
+            return if self.json {
+                self.record(json!({"type":"export.ready","scope":"bass_ackwards_prd","filename":filename,"path":path}))
+            } else {
+                writeln!(self.stdout, "PRD saved to {}", sanitize(path))
+            };
+        }
         if self.json {
             self.record(json!({"type":"event","cursor":event.commit.seq,"event":event}))
         } else {
@@ -140,6 +169,16 @@ impl Output<'_> {
             let author = value["sender"].as_str().unwrap_or("system");
             let kind = value["kind"].as_str().unwrap_or("event");
             let payload = &value["payload"];
+            if let EnvelopePayload::ContestArtifact(artifact) = &event.content
+                && artifact.artifact_kind.as_str().ends_with(".report")
+                && matches!(artifact.audience, Some(ArtifactAudience::Human))
+            {
+                return writeln!(
+                    self.stdout,
+                    "{}",
+                    sanitize(&serde_json::to_string_pretty(&artifact.body)?)
+                );
+            }
             if let EnvelopePayload::CensusReport(report) = &event.content {
                 return writeln!(
                     self.stdout,

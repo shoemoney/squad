@@ -1,0 +1,15 @@
+   Compiling squad-tui v0.1.3 (/private/tmp/squad-dirty-cards-06ceab7/src/crates/squad-tui)
+    Finished `bench` profile [optimized] target(s) in 1.16s
+     Running benches/composed_streams.rs (/tmp/squad-dirty-cards-06ceab7/target/release/deps/composed_streams-0a4b22a513c7d16d)
+140x42 startup_ms=505.657
+140x42: resize_count=60 resize_call_p95_ms=0.093 resize_frame_p95_ms=73.723 resize_frame_max_ms=74.991 visible_verdict_frames=2252 historical=false
+140x42: elapsed=300.072s frames=17765 deltas=144012 draw_p95_ms=2.376 draw_p99_ms=3.058 key_p95_ms=18.638 cpu_one_core_pct=9.708 RSS KiB: 179216 gate=PASS
+140x42: reducer_plus_draw_p95_ms=2.511 reducer_plus_draw_p99_ms=3.203 load_start= load_end=
+80x24 startup_ms=460.568
+80x24: resize_count=60 resize_call_p95_ms=0.037 resize_frame_p95_ms=135.834 resize_frame_max_ms=136.529 visible_verdict_frames=2225 historical=false
+80x24: elapsed=300.135s frames=17535 deltas=144012 draw_p95_ms=1.564 draw_p99_ms=1.809 key_p95_ms=19.851 cpu_one_core_pct=8.343 RSS KiB: 220128 gate=PASS
+80x24: reducer_plus_draw_p95_ms=1.717 reducer_plus_draw_p99_ms=1.974 load_start= load_end=
+200x60 startup_ms=465.245
+200x60: resize_count=60 resize_call_p95_ms=0.158 resize_frame_p95_ms=74.436 resize_frame_max_ms=75.318 visible_verdict_frames=2252 historical=false
+200x60: elapsed=300.071s frames=17765 deltas=144012 draw_p95_ms=3.514 draw_p99_ms=4.196 key_p95_ms=19.474 cpu_one_core_pct=14.487 RSS KiB: 233568 gate=PASS
+200x60: reducer_plus_draw_p95_ms=3.591 reducer_plus_draw_p99_ms=4.323 load_start= load_end=

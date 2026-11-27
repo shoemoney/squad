@@ -73,6 +73,8 @@ pub enum ExportError {
     RoomIdForbidden,
     ContestIdRequired,
     ContestNotFound,
+    /// The contest exists but has not produced its terminal report yet.
+    ReportNotReady,
     ScopeMismatch,
     UnsupportedScope,
     InvalidSnapshot,
@@ -84,6 +86,7 @@ impl fmt::Display for ExportError {
             Self::RoomIdForbidden => "room export does not accept an ID",
             Self::ContestIdRequired => "contest export requires an ID",
             Self::ContestNotFound => "contest not found",
+            Self::ReportNotReady => "contest has no terminal report yet",
             Self::ScopeMismatch => "contest does not match export scope",
             Self::UnsupportedScope => "export scope is not implemented",
             Self::InvalidSnapshot => "invalid committed export snapshot",
@@ -132,6 +135,42 @@ pub fn render(
     id: Option<ContestId>,
 ) -> Result<String, ExportError> {
     check_scope(&scope, id)?;
+    match scope {
+        ExportScope::Tune => {
+            return tune::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::BassAckwardsPrd => {
+            return bass_ackwards_prd::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Forge => {
+            return forge::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Forecast => {
+            return forecast::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Decide => {
+            return decide::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Negotiate => {
+            return negotiate::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::BlowItUp => {
+            return blow_it_up::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Readback => {
+            return readback::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Debugging => {
+            return debugging::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Trace => {
+            return trace::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        ExportScope::Rank => {
+            return rank::render(snapshot, id.ok_or(ExportError::ContestIdRequired)?);
+        }
+        _ => {}
+    }
     let mut events: Vec<_> = snapshot.events.iter().collect();
     events.sort_by_key(|e| e.commit.seq);
     let mut ids = BTreeSet::new();
@@ -189,6 +228,18 @@ pub fn render(
             ExportScope::Crosscheck => ContestKind::Crosscheck,
             ExportScope::Survey => ContestKind::Survey,
             ExportScope::Probe => ContestKind::Probe,
+            ExportScope::Forge => ContestKind::Forge,
+            ExportScope::Tune => ContestKind::Tune,
+            ExportScope::BassAckwardsPrd => ContestKind::BassAckwardsPrd,
+            ExportScope::Forecast => ContestKind::Forecast,
+            ExportScope::Decide => ContestKind::Decide,
+            ExportScope::Negotiate => ContestKind::Negotiate,
+            ExportScope::BlowItUp => ContestKind::BlowItUp,
+            ExportScope::Readback => ContestKind::Readback,
+            ExportScope::Debugging => ContestKind::Debugging,
+            ExportScope::Trace => ContestKind::Trace,
+            ExportScope::Rank => ContestKind::Rank,
+
             _ => unreachable!(),
         };
         if *kind != expected {
@@ -717,6 +768,41 @@ fn contest_id(p: &EnvelopePayload) -> Option<ContestId> {
         return Some(id);
     }
     match p {
+        EnvelopePayload::ForgeSetup(s) => Some(s.contest_id),
+        EnvelopePayload::TuneSetup(s) => Some(s.contest_id),
+        EnvelopePayload::BassAckwardsPrdSetup(s) => Some(s.contest_id),
+        EnvelopePayload::ForgeState(s) => Some(s.contest_id),
+        EnvelopePayload::TuneState(s) => Some(s.contest_id),
+        EnvelopePayload::BassAckwardsPrdState(s) => Some(s.contest_id),
+        EnvelopePayload::ForgePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::TunePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::BassAckwardsPrdPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::ForecastSetup(s) => Some(s.contest_id),
+        EnvelopePayload::ForecastState(s) => Some(s.contest_id),
+        EnvelopePayload::ForecastPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::DecideSetup(s) => Some(s.contest_id),
+        EnvelopePayload::DecideState(s) => Some(s.contest_id),
+        EnvelopePayload::DecidePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::NegotiateSetup(s) => Some(s.contest_id),
+        EnvelopePayload::NegotiateState(s) => Some(s.contest_id),
+        EnvelopePayload::NegotiatePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::BlowItUpSetup(s) => Some(s.contest_id),
+        EnvelopePayload::BlowItUpState(s) => Some(s.contest_id),
+        EnvelopePayload::BlowItUpPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::ReadbackSetup(s) => Some(s.contest_id),
+        EnvelopePayload::ReadbackState(s) => Some(s.contest_id),
+        EnvelopePayload::ReadbackPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::DebuggingSetup(s) => Some(s.contest_id),
+        EnvelopePayload::DebuggingState(s) => Some(s.contest_id),
+        EnvelopePayload::DebuggingPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::TraceSetup(s) => Some(s.contest_id),
+        EnvelopePayload::TraceState(s) => Some(s.contest_id),
+        EnvelopePayload::TracePreflight(s) => Some(s.contest_id),
+        EnvelopePayload::RankSetup(s) => Some(s.contest_id),
+        EnvelopePayload::RankState(s) => Some(s.contest_id),
+        EnvelopePayload::RankPreflight(s) => Some(s.contest_id),
+        EnvelopePayload::ContestHumanRequested(s) => Some(s.pending.contest_id),
+        EnvelopePayload::ContestHumanAnswered(s) => Some(s.contest_id),
         EnvelopePayload::TournamentPreflight(s) => Some(s.base.contest_id),
         EnvelopePayload::TournamentEntry(s) => Some(s.contest_id),
         EnvelopePayload::TournamentRanking(s) => Some(s.contest_id),
@@ -868,4 +954,91 @@ impl ExportSource for squad_store::Store {
         })
         .map_err(|_| ExportError::ReadFailed)
     }
+}
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;
+
+pub mod tune;
+
+pub mod bass_ackwards_prd;
+
+/// Durable destination, independent of the process working directory.
+pub fn export_dir(data_dir: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+    let path = data_dir.join("exports");
+    let mut builder = std::fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        builder.mode(0o700);
+    }
+    builder.create(&path)?;
+    if !std::fs::symlink_metadata(&path)?.is_dir() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotADirectory,
+            "export destination is not a directory",
+        ));
+    }
+    Ok(path)
+}
+
+/// Publish complete bytes atomically; a restart can safely repeat the same write.
+pub fn write_export_file(
+    data_dir: &std::path::Path,
+    filename: &str,
+    bytes: &[u8],
+) -> std::io::Result<std::path::PathBuf> {
+    use std::io::Write;
+    if filename.is_empty()
+        || std::path::Path::new(filename).components().count() != 1
+        || !matches!(
+            std::path::Path::new(filename).components().next(),
+            Some(std::path::Component::Normal(_))
+        )
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "export filename must be one path component",
+        ));
+    }
+    let directory = export_dir(data_dir)?;
+    let destination = directory.join(filename);
+    let temporary = directory.join(format!(".{filename}.{}.tmp", uuid::Uuid::new_v4()));
+    let result = (|| {
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let mut file = options.open(&temporary)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        drop(file);
+        std::fs::rename(&temporary, &destination)?;
+        #[cfg(unix)]
+        std::fs::File::open(&directory)?.sync_all()?;
+        Ok(destination)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    result
 }

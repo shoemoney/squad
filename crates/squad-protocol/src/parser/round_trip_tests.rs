@@ -47,6 +47,18 @@ fn source(plan: &PlanSource) -> String {
 }
 fn format_valid(ast: &ParsedInput, ctx: &ParseContext) -> String {
     let mut out = match ast {
+        ParsedInput::Tune { .. }
+        | ParsedInput::BassAckwardsPrd { .. }
+        | ParsedInput::Forge { .. }
+        | ParsedInput::Forecast { .. }
+        | ParsedInput::Decide { .. }
+        | ParsedInput::Negotiate { .. }
+        | ParsedInput::BlowItUp { .. }
+        | ParsedInput::Readback { .. }
+        | ParsedInput::Debugging { .. }
+        | ParsedInput::Trace { .. }
+        | ParsedInput::Rank { .. }
+        | ParsedInput::HumanChoices { .. } => ast.raw().to_owned(),
         ParsedInput::Message {
             recipients, body, ..
         } => format!("{} {}", mentions(recipients), literal(body)),
@@ -60,6 +72,7 @@ fn format_valid(ast: &ParsedInput, ctx: &ParseContext) -> String {
         }
         ParsedInput::Slash { action, .. } => {
             return match action {
+                SlashAction::Answer { text } => format!("/answer {text}"),
                 SlashAction::Set { variable, value } => {
                     format!("/set {} {value}", variable.as_str())
                 }

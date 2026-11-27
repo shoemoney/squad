@@ -12,6 +12,7 @@ pub struct ParseContext {
     /// Effective values after stored-value/environment precedence; absent values use defaults.
     pub vars: BTreeMap<VariableName, u8>,
     pub pending_pick: Option<PendingPick>,
+    pub pending_human: Option<PendingHuman>,
     pub records: Vec<RecordSummary>,
     pub active_contest: Option<ContestState>,
 }
@@ -51,6 +52,17 @@ impl ParseContext {
         let active_contest = self.active_contest.as_ref().map(|s| match s {
             ContestState::Generic(s) => s.kind,
             ContestState::Selection(s) => s.kind,
+            ContestState::Forge(_) => ContestKind::Forge,
+            ContestState::Tune(_) => ContestKind::Tune,
+            ContestState::BassAckwardsPrd(_) => ContestKind::BassAckwardsPrd,
+            ContestState::Forecast(_) => ContestKind::Forecast,
+            ContestState::Decide(_) => ContestKind::Decide,
+            ContestState::Negotiate(_) => ContestKind::Negotiate,
+            ContestState::BlowItUp(_) => ContestKind::BlowItUp,
+            ContestState::Readback(_) => ContestKind::Readback,
+            ContestState::Debugging(_) => ContestKind::Debugging,
+            ContestState::Trace(_) => ContestKind::Trace,
+            ContestState::Rank(_) => ContestKind::Rank,
             ContestState::Debate(_) => ContestKind::Debate,
             ContestState::Tournament(_) => ContestKind::Tournament,
             ContestState::Census(_) => ContestKind::Census,
@@ -98,6 +110,7 @@ impl ParseContext {
             variables,
             metadata: meta.clone(),
             pending_pick: self.pending_pick.clone(),
+            pending_human: self.pending_human.clone(),
             active_contest,
             latest_parallel_answers,
             records: records
@@ -150,6 +163,17 @@ pub(crate) fn validate_control(
         start: 0,
         end: parsed.raw().len(),
     };
+    if let ParsedInput::HumanChoices {
+        contest_id, text, ..
+    } = parsed
+    {
+        let pending = ctx
+            .pending_human
+            .as_ref()
+            .filter(|p| p.contest_id == *contest_id && p.kind == ContestKind::Readback)
+            .ok_or_else(|| Rule::NoHuman.error(span.clone(), &[]))?;
+        return super::parser::validate_human_answer(text, pending, span);
+    }
     let ParsedInput::Slash { action, .. } = parsed else {
         return Ok(());
     };
@@ -163,6 +187,18 @@ pub(crate) fn validate_control(
         return Err(Rule::SelectionOutside.error(span, &[]));
     }
     match action {
+        SlashAction::Answer { text } => {
+            let pending = ctx
+                .pending_human
+                .as_ref()
+                .ok_or_else(|| Rule::NoHuman.error(span.clone(), &[]))?;
+            super::parser::validate_human_answer(text, pending, span)?;
+        }
+        SlashAction::Continue { plan: None }
+            if ctx.pending_human.is_some() && meta.quote.is_empty() => {}
+        SlashAction::Continue { .. } if ctx.pending_human.is_some() => {
+            return Err(Rule::Usage.error(span, &[("usage", "/continue")]));
+        }
         SlashAction::Continue { plan } => {
             if plan
                 .as_ref()
@@ -295,6 +331,7 @@ pub(super) fn parse_fixture(raw: &str, snapshot: &ParserSnapshot) -> ParseResult
         ]
         .into(),
         pending_pick: snapshot.pending_pick.clone(),
+        pending_human: snapshot.pending_human.clone(),
         active_contest: snapshot.active_contest.map(|kind| {
             crate::ContestState::Generic(crate::GenericContestState {
                 contest_id: crate::ContestId::new(),
@@ -368,4 +405,74 @@ pub(super) fn parse_fixture(raw: &str, snapshot: &ParserSnapshot) -> ParseResult
         });
     }
     parse(raw, &snapshot.metadata, &ctx)
+}
+
+/// Restore pending material from committed human-step events, without a timer.
+pub fn restore_pending_human(events: &[crate::CommittedEnvelope]) -> Option<PendingHuman> {
+    let mut pending: Option<PendingHuman> = None;
+    for event in events {
+        match &event.content {
+            crate::EnvelopePayload::ContestHumanRequested(v) => pending = Some(v.pending.clone()),
+            crate::EnvelopePayload::ContestHumanAnswered(v)
+                if pending
+                    .as_ref()
+                    .is_some_and(|p| p.contest_id == v.contest_id) =>
+            {
+                if v.complete {
+                    pending = None;
+                } else if let Some(p) = pending.as_mut() {
+                    p.state_version = v.expected_state_version + 1;
+                    if let Some(text) = &v.text {
+                        if p.kind == ContestKind::BassAckwardsPrd {
+                            p.answers.insert(p.answers.len() as u32 + 1, text.clone());
+                        } else if let Some((number, reading)) = text.split_once(':') {
+                            if let Ok(n) = number.trim().parse() {
+                                p.answers.insert(n, reading.trim().into());
+                            }
+                        } else {
+                            for token in text.split_whitespace() {
+                                let digits = token.bytes().take_while(u8::is_ascii_digit).count();
+                                if digits > 0
+                                    && digits < token.len()
+                                    && let Ok(n) = token[..digits].parse()
+                                {
+                                    p.answers.insert(n, token[digits..].into());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            crate::EnvelopePayload::ReadbackState(s)
+            | crate::EnvelopePayload::ContestState(ContestState::Readback(s))
+                if s.state.is_terminal()
+                    && pending
+                        .as_ref()
+                        .is_some_and(|p| p.contest_id == s.contest_id) =>
+            {
+                pending = None
+            }
+            crate::EnvelopePayload::DebuggingState(s)
+            | crate::EnvelopePayload::ContestState(ContestState::Debugging(s))
+                if s.state.is_terminal()
+                    && pending
+                        .as_ref()
+                        .is_some_and(|p| p.contest_id == s.contest_id) =>
+            {
+                pending = None
+            }
+            crate::EnvelopePayload::BassAckwardsPrdState(s)
+            | crate::EnvelopePayload::ContestState(ContestState::BassAckwardsPrd(s))
+                if s.state.is_terminal()
+                    && pending
+                        .as_ref()
+                        .is_some_and(|p| p.contest_id == s.contest_id) =>
+            {
+                pending = None
+            }
+            crate::EnvelopePayload::RoomCleared(_) => pending = None,
+            _ => {}
+        }
+    }
+    pending
 }

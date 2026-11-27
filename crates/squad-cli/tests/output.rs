@@ -271,3 +271,37 @@ fn state_json_never_contains_snake_case_wire_names_or_hidden_context() {
         assert!(value.get(required).is_some(), "{required}");
     }
 }
+
+#[test]
+fn saved_prd_prints_path_and_emits_export_ready() {
+    let saved = event(
+        1,
+        "contest.artifact",
+        json!({
+            "contestId":ID,"stepId":ID,"artifactKind":"bass_ackwards_prd.saved",
+            "sourceRefs":[],"data":{},"kind":"bass_ackwards_prd","round":0,
+            "actor":"system","audience":{"kind":"human"},
+            "body":{"filename":"prd-demo.md","path":"/room/exports/prd-demo.md"}
+        }),
+    );
+    for json in [true, false] {
+        let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+        Output {
+            json,
+            stdout: &mut stdout,
+            stderr: &mut stderr,
+        }
+        .event(&saved)
+        .unwrap();
+        let text = String::from_utf8(stdout).unwrap();
+        if json {
+            assert_eq!(
+                serde_json::from_str::<serde_json::Value>(&text).unwrap(),
+                serde_json::json!({"type":"export.ready","scope":"bass_ackwards_prd","filename":"prd-demo.md","path":"/room/exports/prd-demo.md"})
+            );
+        } else {
+            assert_eq!(text, "PRD saved to /room/exports/prd-demo.md\n");
+        }
+        assert!(stderr.is_empty());
+    }
+}

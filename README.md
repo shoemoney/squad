@@ -16,9 +16,9 @@ _A real recording with the v0.1.2 release binary against OpenRouter, about 46 s.
 
 ## 📍 Status
 
-All seven contest modes (debate, tournament, grill, census, crosscheck, survey, probe) run end to end against OpenRouter. The workspace test suite passes, and the first live run resolved all six default seats. Release v0.1.0 is published with Linux x64 and macOS arm64 binaries and a Homebrew formula.
+This branch includes **18 enabled contest modes** over one shared engine. The built-in default roster has six members. Integrated live-run evidence is recorded in [costs](docs/costs.md) as verification completes.
 
-Features in 0.1.3:
+Features carried forward from 0.1.3:
 
 - Composer typeahead for `@` members, `$` modes and `/` commands, with Tab starter menus.
 - Rotating idle TIP examples and keyboard hints (`SQUAD_TIPS=off` to disable).
@@ -46,6 +46,17 @@ Features in 0.1.3:
 - [✅ Crosscheck](#crosscheck)
 - [📊 Survey](#survey)
 - [🔬 Probe](#probe)
+- [Forge](#forge)
+- [Forecast](#forecast)
+- [Decide](#decide)
+- [Negotiate](#negotiate)
+- [Blow It Up](#blow-it-up)
+- [Readback](#readback)
+- [Debug](#debug)
+- [Trace](#trace)
+- [Rank](#rank)
+- [Tune](#tune)
+- [Bass Ackwards PRD](#bass-ackwards-prd)
 - [🧱 Persistent `CENSUS_PASSES`](#persistent-census_passes)
 - [🧩 New-mode call counts and skipped members](#new-mode-call-counts-and-skipped-members)
 - [🧠 Judge effort in the new modes](#judge-effort-in-the-new-modes)
@@ -210,7 +221,21 @@ Successful alias resolutions are stored in the local SQLite database. This avoid
 - Failed resolutions are never cached.
 - `squad models` reads the cache only. It makes no provider calls.
 
-### Stored `ROUNDS`, `GRILL_ROUNDS` and `CENSUS_PASSES`
+### Stored contest variables
+
+| Variable | Default | Range |
+|---|---:|---|
+| `ROUNDS` | 10 | 1–20 |
+| `GRILL_ROUNDS` | 2 | 1–10 |
+| `CENSUS_PASSES` | 2 | 1–5 |
+| `NEGOTIATE_ROUNDS` | 3 | 1–6 |
+| `READBACK_ROUNDS` | 2 | 1–4 |
+| `DEBUG_ROUNDS` | 3 | 1–6 |
+| `TUNE_GENERATIONS` | 3 | 1–6 |
+| `PRD_HUMAN_REVIEW` | 0 | 0 or 1 |
+
+Use `/set NAME value` or inline `$NAME=value`. Admission freezes the effective value for the contest.
+
 
 These three numbers live in the room. The environment only sets them the first time.
 
@@ -261,11 +286,24 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `$crosscheck` | Independent coverage grid for a pasted plan. |
 | `$survey` | Claims and votes on one question, with a report. |
 | `$probe` | Predictions and a decision tree for a question. |
+| `$forge` | Write and fuse drafts. |
+| `$forecast` | Frame and pool a probabilistic forecast. |
+| `$decide` | Compare options against an agreed rubric. |
+| `$negotiate` | Prepare and rehearse a negotiation. |
+| `$blow_it_up` | Attack a plan and challenge the attacks. |
+| `$readback` | Resolve conflicting readings with the human. |
+| `$debug` | Narrow a failure with tests you run. |
+| `$trace` | Build a cited brief from a supplied source packet. |
+| `$rank` | Order human-supplied items by pair comparison. |
+| `$tune` | Improve a prompt against a frozen test suite. |
+| `$bass_ackwards_prd` | Work backward from a finished result. |
 | `/help` | Shows the grammar and examples. Makes no model call. |
 | `/who` | Shows the roster, resolved models and records. |
-| `/set NAME value` | Changes `ROUNDS`, `GRILL_ROUNDS` or `CENSUS_PASSES` in the room. |
+| `/set NAME value` | Changes a stored contest variable; see the configuration table. |
+| `/answer <text>` | Records the human’s answer at a pending Readback, Debug or PRD review step. |
+| `/continue` | Continues a waiting census or closes a pending human step with the supplied answers. |
 | `/stop` or `/stop @nick` | Stops all work, or one member's work. |
-| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`. |
+| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `negotiate`, `blow_it_up`, `readback`, `debug`, `trace`, `rank`, `tune`, `bass_ackwards_prd`. |
 | `/clear` | **Wipes the stored room.** It is not a display-only action. |
 
 Each mode has its own rules and cost preview. Those are covered in the mode sections of this README.
@@ -303,7 +341,7 @@ Question-first grills work the same way. Pick one member to be grilled.
 
 ### Composer suggestions
 
-Composer suggestions open automatically after `@` (live roster), `$` (seven contest modes),
+Composer suggestions open automatically after `@` (live roster), `$` (17 contest modes),
 or `/` at the start (supported slash commands). Tab always opens suggestions, including
 a starter menu in an empty draft or matches for an unmarked word (`gro` → `@grok`,
 `deb` → `$debate`). Press Tab again or Enter to insert the selection and a space.
@@ -589,7 +627,7 @@ Benchmark-only variables, read by `cargo bench` and not used by the app:
 
 ## 🎛️ Contest modes at a glance
 
-Squad has **seven contest modes**. Each one is a script that runs on the same shared engine, and **only one contest can run per room at a time**.
+Squad has **17 contest modes**. Each one is a script that runs on the same shared engine, and **only one contest can run per room at a time**.
 
 | Mode | Start with | What it's for | Blind steps? | Normal model calls | Ends with | Export |
 |---|---|---|---|---|---|---|
@@ -600,8 +638,19 @@ Squad has **seven contest modes**. Each one is a script that runs on the same sh
 | ✅ Crosscheck | `@all $crosscheck <plan>` plus a `--` goal | Plan-blind inventory, a cell-by-cell review, and audits | Yes | `2m + 4 + e` | Coverage ledger and bounded-stop status | `/export crosscheck [id]` |
 | 📊 Survey | `@all $survey <question>` or `@all $survey` | Members vote on claims; the report sorts them into five bands | Yes (votes and revotes) | `3m + 2` new, `2m + 2` reusing answers | Claim map by band | `/export survey [id]` |
 | 🔬 Probe | `@a @b @c @d $probe <brief>` | Explainers and checkers propose; explainers commit predictions; a decision tree of cheap checks | Yes | `3m/2 + 1` (m even) | Decision tree and prediction matrix | `/export probe [id]` |
+| Forge | `@all $forge` with its required source/segments | Write and fuse drafts | Yes | `2m + 3` | Winning original or fusion | `/export forge [id]` |
+| Forecast | `@all $forecast` with its required source/segments | Frame and pool a probabilistic forecast | Yes | `2m + 2` | Pooled probability, spread and cruxes | `/export forecast [id]` |
+| Decide | `@all $decide` with its required source/segments | Compare options against an agreed rubric | Yes | `2m + 2 given options; 3m + 3 generated` | App-computed totals and sensitivity | `/export decide [id]` |
+| Negotiate | `@all $negotiate <our side> -- <counterpart>` | Prepare and rehearse a negotiation | Yes | `2m - P + 2PR + 2 maximum` | Strategy and hypothetical table playbook | `/export negotiate [id]` |
+| Blow It Up | `@all $blow_it_up` with its required source/segments | Attack a plan and challenge the attacks | Yes | `2m + 1` | Ranked surviving findings | `/export blow_it_up [id]` |
+| Readback | `@all $readback` with its required source/segments | Resolve conflicting readings with the human | Yes | `R(m + 2) maximum` | Revised spec and open ambiguities | `/export readback [id]` |
+| Trace | `@all $trace <question> -- <source> [-- <source>]` | Audit claims against supplied evidence | Yes | `2m + 2 maximum` | Cited brief and source ledger | `/export trace [id]` |
+| Debug | `@all $debug <failure> -- <limits>` | Narrow a failure with human-run tests | Yes | `(R + 1)(m + 1) + 1 maximum` | Evidence differential and patch advice when justified | `/export debug [id]` |
+| Rank | `@all $rank` with its required source/segments | Order human-supplied items by pair comparison | Yes | `m + 1` | Bradley–Terry order and cycle audit | `/export rank [id]` |
+| Tune | `@all $tune` with its required source/segments | Improve a prompt against a frozen test suite | Yes | `m + 13G + 15 maximum` | Held-out winner, diff and reusable suite | `/export tune [id]` |
+| Bass Ackwards PRD | `@all $bass_ackwards_prd` with its required source/segments | Work backward from a finished result | Yes | `4m + 4; one extra for human notes` | Saved dependency-ordered PRD | `/export bass_ackwards_prd [id]` |
 
-**Key:** m = members in the contest, G = grillers, R = rounds, k = entrants, e = 1 when crosscheck must first extract a goal (no `--` goal given), otherwise 0. "Blind" means members or a judge get anonymised material.
+**Key:** m = members in the contest, G = grillers, R = rounds, k = entrants, e = 1 when crosscheck must first extract a goal (no `--` goal given), otherwise 0. "Blind" means members or a judge get anonymised material. For Tune, G means generations; for Readback and Debug, R is the loop limit. Negotiate uses P = min(3, floor(m/2)).
 
 > 💡 **Rule of thumb:** no blind steps means the members see each other's words. Blind steps mean nobody can tell who said what.
 
@@ -1090,6 +1139,621 @@ The export has the brief, the explainers and checkers, any sit-out, every explan
 
 ---
 
+## Forge
+
+Forge is enabled. Start it from the composer or with `squad send` as shown below.
+
+`$forge` turns independent drafts into one finished deliverable: an email, launch post, design document or function. The authors of the two strongest drafts each write a fusion. A blind judge ranks those fusions alongside the best original. The original stands unless a fusion beats it.
+
+```text
+@all $forge Write a launch announcement for our offline notes app
+@all $forge Write a short project update -- Under 150 words; include one next action
+@claude @openai @gemini $forge Write a polite decline for a conference invitation
+```
+
+Choose at least three members. `@judge` cannot participate. Put constraints after `--`. The judge is included automatically.
+
+1. **Drafts:** every participant independently writes the requested artifact, within `planWords` (default 1,200).
+2. **Ranking:** members with accepted drafts rank every other accepted draft, under private shuffled labels. They name a steal-worthy element and an optional fatal flaw for each. Nobody votes for their own draft.
+3. **Fusion:** the app averages normalized Borda scores, then breaks ties by first places, fewer flaw voters, and a persisted random seed. The two highest-ranked authors independently fuse the drafts. They receive anonymous drafts and deduplicated steals and flaws, with no scores or ranks. A fusion's body cannot exceed the longest accepted draft's word count.
+4. **Verdict:** a blind judge ranks the best original and accepted fusions under fresh labels, without knowing which is which. The winning artifact is printed exactly as accepted; the judge cannot rewrite it.
+
+Fewer than three valid drafts or two valid ballots ends the run with an explicit quorum failure. A failed member is skipped for that step. If both fusions fail, the best original wins without a judge call. Invalid member output gets one repair; transport failures get a plain retry. Judges have up to three attempts and at most one schema repair. Stop releases participant holds and unstarted reservations. Restart preserves committed work, labels, tally and fuser selection.
+
+### Cost
+
+With `m` members, the normal maximum is `2m + 3` calls, reserving `4m + 7` attempts. The default six-member roster makes at most 15 normal calls and reserves 31 attempts. Skipped later calls release their unused reservation. Preflight prices each step against its frozen models and full input bounds; normal estimated cost and the conservative reserved ceiling differ. The usual daily cap and confirmation policy apply. Actual cost depends on selected models and output lengths.
+
+### Report and export
+
+The report includes the gate outcome, winning artifact, human-readable provenance, Borda scores, steals, fatal flaws, handled flaws, judge reasons and seams, and skipped members. Drafts are collapsed in the Forge view.
+
+```text
+/export forge
+/export forge <contest-id>
+```
+
+The Markdown export also includes all accepted drafts, ballots with label maps, fusions and the full judge output. Failed runs retain accepted evidence for export. These records are for the human; they do not enter members' ordinary chat histories. Forge awards no tournament trophies and changes no debate records.
+
+Examples and verification: [mode guide](docs/modes/forge.md).
+
+
+## Forecast
+
+`$forecast` produces a dated probability, the spread of the room, cruxes and
+observable signposts. Use it for a yes/no event with a deadline. Use `$survey`
+for a map of claims.
+
+**Status: enabled.** Forecast uses the production room runtime, parser,
+completion, help and rotating examples.
+
+```text
+@all $forecast Will the project release version 1 by 2027-06-30?
+@claude @openai @gemini $forecast Will the migration finish by 2027-03-31? -- The prototype works; production testing has not started.
+```
+
+Select three to twelve members. The judge is implicit; do not include `@judge`.
+The usual cost confirmation and daily budget apply before work starts.
+
+1. The judge freezes resolution criteria, date, source and a void rule. An
+   unforecastable question stops the run before any member call.
+2. Members independently give a probability from 1% to 99%, a reference class,
+   three factors and a rationale. Fewer than three accepted forecasts fails.
+3. Each accepted forecaster sees its own first estimate and anonymous peer
+   reasons. Peer probabilities/base-rate fields are absent, and numeric
+   probability/odds forms in prose are withheld. Members revise exactly once.
+   A missing revision carries the first estimate forward as `not revised`.
+4. The app pools forecasts using a trimmed mean of log-odds, trimming
+   `floor(n / 5)` entries at each end. It shows one sample standard deviation
+   of all log-odds around that pool as the **spread of the room**. This is not
+   a confidence interval. A large, balanced gap produces a split view showing
+   each side before the pool. The pool is not extremised: models share training
+   data and blind spots. Moves toward the initial pool without citations are
+   flagged as possible herding and still count.
+5. A blind judge explains cruxes and signposts under **Update if you see**.
+   It cannot change the app's probability. If this step fails, the aggregate
+   remains visible and exportable.
+
+The report includes the frame, pool/spread or split view, first/final table,
+missing revisions, uncited moves, cruxes, signposts, shared assumptions, weak
+evidence and skipped members. Export with `/export forecast` or
+`/export forecast <contest-id>`. The Markdown audit adds timestamps, accepted
+forecasts, each delivered bundle, raw probabilities, sorted and trimmed log-odds,
+`k`, `L` and `s`. Partial failed/stopped runs also export. `/stop` fences late
+results; restart reuses frozen inputs and label maps.
+
+Six members make 14 normal calls: one frame, six first estimates, six revisions
+and one crux explanation. Admission reserves 30 attempts: two per member call,
+three per judge call. Estimates/revisions allow 2,048 visible tokens; judges
+4,096. Member deadlines are 180 seconds; judge deadlines 300 seconds. Invalid
+output receives one repair; transport failures receive plain retries. Actual
+cost depends on roster token prices. Reservation is a worst-case hold, not the
+bill; unused holds are released.
+
+Examples and verification: [mode guide](docs/modes/forecast.md).
+
+
+## Decide
+
+Use `$decide` to compare two to four options on a rubric proposed independently by the room. The application computes the result; the judge merges wording and explains sensitivity.
+
+Start with options, one per line after `--`:
+
+```text
+@all $decide Choose a database for a small internal service. Prefer low maintenance and reliable backups.
+--
+Managed PostgreSQL
+Self-hosted PostgreSQL
+SQLite
+```
+
+Or let the room propose options:
+
+```text
+@all $decide How should we reduce support response time with a fixed team?
+```
+
+The room first generates and shortlists options when needed. Members independently propose criteria and integer weights. The judge merges synonyms while retaining every source. The application keeps criteria supported by at least two members, retains at most seven by mean weight, and renormalizes their weights. Singleton and capped criteria remain in the report.
+
+Each member scores every option on every retained criterion, with a short evidence line. Scorers receive shuffled option orders and no weights. The application uses cell medians and weighted totals, marks cells whose scores differ by at least four, and computes rankings with each criterion removed and the nearest weight changes that flip the leader. A margin below 0.25 on the ten-point scale produces “Too close to call” and no winner. The result is robust only when the leader survives every criterion removal and no flip is within ten percentage points of the current weight.
+
+The judge explains only computed flip conditions and evidence-backed dissents. Its schema has no winner, ranking, score or weight field. These scores describe model judgments about the supplied context, so the evidence gaps matter.
+
+Six members require 14 model calls with supplied options or 21 with generated options. Admission reserves 30 or 45 provider attempts respectively, including repairs. Actual dollar cost depends on frozen model prices, context and output lengths; preflight shows the estimate and conservative reservation. Failed members are skipped after two attempts. Every parallel step requires at least two accepted responses. Judge calls allow three attempts. A failed final explanation leaves the computed matrix exportable. `/stop` cancels unfinished work and keeps committed evidence; restart resumes frozen assignments and option orders.
+
+The report contains options, the frozen rubric, scores, totals and margin, contested cells, leave-one-out rankings, flip thresholds, dissents, dropped criteria, evidence gaps and skipped members. Export it with `/export decide` or `/export decide <contest-id>`. Exports also include each accepted member's original proposal, weights, score sheet and evidence, merge provenance, and unrounded arithmetic.
+
+Examples and verification: [mode guide](docs/modes/decide.md).
+
+
+## Negotiate
+
+Prepare and rehearse a negotiation with models playing both sides. Explore
+interests, fallback (BATNA), possible overlap (ZOPA), conditional concessions and
+objections before speaking with the real counterpart. **Hypothetical counterpart,
+not a fact:** a rehearsal deal does not predict the other side's behavior.
+
+### Start
+
+Select four to twelve members. Put our goal, fallback and private limits before
+`--`, and known counterpart information after it:
+
+```text
+@all $negotiate Renew a supplier contract. Need reliable weekly deliveries.
+Fallback: retain our current supplier. Red line: no exclusive commitment.
+-- The supplier wants predictable volume and faster payment.
+```
+
+For a shorter rehearsal, set the room variable first:
+
+```text
+NEGOTIATE_ROUNDS=1
+@all $negotiate Ask for a paid trial with no exclusivity -- Buyer has a tight launch date
+```
+
+The default is three rounds per table; the allowed range is one through six.
+Counterpart text is optional. Without it, inferences are especially uncertain.
+The judge is implicit; do not address `@judge`. Headless use is:
+
+```sh
+squad send '@all $negotiate Renew with weekly deliveries and no exclusivity -- Supplier wants faster payment'
+```
+
+### What happens
+
+1. Admission freezes inputs, participants, models, prompts, limits and rounds.
+   The app randomly draws disjoint negotiator/counterpart pairs and shows them.
+   Four or five members make two tables; six through twelve make three.
+   Restart reuses the draw.
+2. Every member independently maps interests, BATNAs, tentative ZOPA and tactics.
+   Counterpart interests are marked `supplied` or `inferred`. Fewer than two
+   accepted maps fails with `insufficient_maps`.
+3. The judge reads anonymous maps and creates our strategy sheet, a safe public
+   scenario and one hidden hypothetical brief per counterpart.
+4. Everyone except counterpart players prepares a package from our side and the
+   strategy sheet. A negotiator whose package failed opens from the strategy.
+5. Tables rehearse in parallel waves. A round is a negotiator move and counterpart
+   reply. Each sees its own transcript. Negotiators never receive hidden briefs;
+   counterparts receive only the public scenario, their own brief and transcript.
+   Negotiators are instructed to keep private fallback and limits out of messages.
+6. `accept` ends a table with `deal`; `walk_away` with `no_deal`. At the round
+   ceiling it is `unfinished`. Exhausting either player's attempts means
+   `abandoned`; a failed reply is never a concession. Impossible future turns
+   release their reservations immediately.
+7. The judge writes a playbook, even if all tables were abandoned: opening,
+   anchors, conditional concession ladder, objections, walk-away line, ZOPA,
+   questions and assumptions. Table notes flag unrealistic accepted concessions
+   against hidden reservations. All-abandoned means no rehearsal evidence.
+
+Members have two attempts, judges three. A schema-invalid first member answer
+gets one repair with diagnostics; transport failures retry normally. Missing moves
+are never fabricated. Judge exhaustion fails while preserving committed evidence.
+Stop fences late replies; restart reuses committed inputs and turns. Interrupted
+unknown charges remain held until shared accounting reconciles them.
+
+### Cost
+
+For `m` members, `P = min(3, floor(m/2))` tables and `R` rounds, ceilings are
+`2m - P + 2PR + 2` calls and `4m - 2P + 4PR + 6` reserved attempts:
+
+| Members | Rounds | Maximum calls | Reserved attempts |
+|---|---|---|---|
+| 4 | 3 | 20 | 42 |
+| 6 | 3 | 29 | 60 |
+| 12 | 3 | 41 | 84 |
+
+These are counts, not measured dollar prices. Reservations cover worst permitted
+retry/repair inputs and outputs. Admission shows the cost plan and follows normal
+confirmation and daily-budget policy. Context overflow fails admission instead of
+dropping evidence. Early table endings reduce work.
+
+### Report and export
+
+The report contains roles, supplied/inferred interests, BATNAs, ZOPA, packages,
+table transcripts and outcomes, playbook, assumptions and skipped work. The human
+sees all briefs with the hypothetical warning. Outcome counts are application
+computed. Breach flags come from the judge's `unrealisticConcessions`, not a claim
+about the actual counterpart. Wide layouts show tables side by side; narrow layouts stack them.
+
+```text
+/export negotiate
+/export negotiate <contest-id>
+```
+
+Markdown adds every accepted map, briefing, package and turn with round/table
+information. Failed/stopped partial contests stay exportable without new calls.
+Exports exclude frozen prompt sources and model configuration. A failure or stop
+after work has begun also commits an assembled partial report, retaining skipped
+members and committed table outcomes even when no playbook was completed.
+
+Examples and verification: [mode guide](docs/modes/negotiate.md).
+
+## Blow It Up
+
+`$blow_it_up` red-teams a plan, specification, prompt, configuration or diff. It asks how the target breaks or can be exploited, then challenges the attacks before reporting what survived. Use census or crosscheck to look for omissions.
+
+````text
+@all $blow_it_up ```All requests are accepted without authentication.```
+@all $blow_it_up <paste a plan here>
+--
+Focus on abuse, cost and operational failure.
+@claude $blow_it_up
+/export blow_it_up
+/export blow_it_up <contest-id>
+````
+
+The single-member mention selects that member's latest reply as the target; the whole room attacks it. You can also attach one quoted message. A source is frozen at admission and never silently refreshed. Starts require at least three room members; at least two usable attack sets must survive validation.
+
+1. Squad freezes the target, scope, roster, models, prompts and cost reservation. It draws and persists a private participant-to-lens permutation across outside attackers, malicious insiders, operator error, dependencies, incentives/cost/fraud, and legal/reputational failure. Lenses wrap after six participants.
+2. Each participant independently proposes up to five ordinary attack vectors plus exactly one diversity finding: something it believes the others will miss, using its assigned lens. Every vector quotes at least 12 contiguous characters of the target. Invalid structured output receives one private repair attempt; missing or failed attack sets are skipped.
+3. Squad assigns opaque shuffled vector IDs and freezes the pool with private provenance. Each member receives a fresh anonymous pool excluding its own vectors. It must challenge every supplied vector, and can add up to two discoveries. False-positive verdicts require a verbatim defeating quote; duplicate verdicts name another supplied vector. Reasons are limited to 20 words.
+4. Squad counts accepted ballots. At least two verdicts and a strict majority of false-positive votes kill a vector. A strict majority of weak plus false-positive votes otherwise makes it contested. Exact halves remain standing. Fewer than two verdicts means unchallenged: the false-positive filter did not run. Missing ballots never become votes.
+5. A blind judge deduplicates surviving evidence, assigns severity and likelihood, and writes mitigations, rebuttal status and residual risk. It cannot invent findings or reinstate killed vectors. Contested evidence requires a weakened finding or an explanation for rejecting the challenges.
+6. Squad ranks by severity × likelihood, then distinct blind attackers, then judge order. Critical/high/medium/low weigh 4/3/2/1 and likely/possible/unlikely weigh 3/2/1. A surviving finding from one blind attacker is highlighted as a lone finding. Challenge additions carry no finder count.
+
+The TUI uses severity colours; press F7 to expand or collapse the killed appendix. The report contains ranked findings, lone discoveries, additions, skipped members, unchallenged vectors, and a killed appendix with counts, defeating quotes and judge notes. Export includes the target snapshot, lens draw, all accepted attack sets, pool/provenance, ballots and app tallies. Stopped and failed contests retain their accepted evidence for export. No report establishes that a target is safe.
+
+A normal six-member run makes 13 calls and reserves 27 attempts (`2m + 1` calls, `4m + 3` attempts). Member deadlines are 180 seconds with two attempts; judge deadlines are 300 seconds with three attempts and at most one schema repair. Attack prose is capped at 700 words, challenges and the ruling at configured `planWords`. Provider cost depends on the frozen models and target size. Admission shows the normal estimate and the conservative reservation; actual usage replaces started reservations and unstarted reservations release on completion or stop.
+
+Examples and verification: [mode guide](docs/modes/blow_it_up.md).
+
+
+## Readback
+
+Use `$readback` to find requirements that different readers would implement differently. It suits tickets, prompts, specifications and contract clauses. Members independently describe what they would build. A blind judge collects differences that change behaviour, and you choose the intended meanings before anything is rewritten.
+
+```text
+@all $readback The service retains records. The operator deletes backups.
+@all $readback $READBACK_ROUNDS=1 The service retains records for thirty days.
+@claude $readback
+```
+
+Paste the source after the command, quote a retained message, or mention a member to use that member's latest reply. The default loop has two rounds; `READBACK_ROUNDS` accepts one through four. The judge is implicit and cannot be mentioned as a participant.
+
+Each round works as follows:
+
+1. Every participant reads only the current spec in a fresh context and returns concrete behaviours, edge cases and assumptions.
+2. The judge compares anonymous readings and produces a ledger of behavioural divergences anchored to verbatim passages. The human sees up to ten entries, lettered readings and member support counts.
+3. Squad pauses at `READ IT BACK`. Participant holds are released so ordinary chat can continue. The pending questions and partial answers survive a restart and never expire.
+4. Choose readings with `1b 2a`, or supply your own meaning with `/answer 3: retain records for thirty days`. Later answers replace earlier answers. Every entry answered closes the step; `/continue` closes it with the remaining entries open. No choice is preselected, and silence makes no choice.
+5. The judge rewrites only resolved passages. The application verifies the exact change set, preserves every other character and checks the size bound. A later round reads the new spec independently.
+
+An empty ledger ends with `converged`. Continuing without any answers ends with `no_readings_chosen` and makes no rewrite call. At the round limit the result is `rounds_complete`; the report explicitly says the last rewrite was not read back. Fewer than two accepted readings fails with `insufficient_readings`. Invalid member output gets one repair; exhausted members are skipped. Judge exhaustion keeps the last good spec. `/stop` preserves committed evidence and releases unused reservations.
+
+With six members and two rounds there are at most 16 model calls and 36 reserved attempts. A member has two attempts and a judge three, including transport retries and at most one schema repair. The cost preview prices the frozen source, prompts, schemas and worst-case later evidence against the resolved models. Convergence releases unused rounds. Actual cost depends on model pricing, source length, repairs and how many rounds you choose to continue.
+
+The report includes the final spec, per-round ledgers, reader attribution, chosen meanings, before/after pairs, open entries, skipped members and the application-computed convergence table. `/export readback [id]` also includes every spec version, interpretation and the human's raw answers. `squad send` returns at the human pause; use the same data directory for subsequent `/answer` or `/continue` sends.
+
+Examples and verification: [mode guide](docs/modes/readback.md).
+
+
+## Trace
+
+`$trace` turns a numbered source packet into a brief whose paragraphs point to
+checked claims. Use it to compare source documents, summarize a research packet,
+or separate what a set of records establishes from what it leaves uncertain.
+It reads only the supplied packet and performs no browsing.
+
+### Start
+
+```text
+@all $trace What retention obligations do these sources establish?
+--
+The service retains records for thirty days. Backups expire after seven days.
+--
+The backup policy applies only to production accounts.
+```
+
+Separate the question and each pasted source with a standalone `--` line.
+Supply one to twelve sources. Attached quoted messages follow pasted segments.
+Sources receive permanent numbers `S1`, `S2`, and so on in that order. The whole
+room participates. The packet and all later bounded steps must fit every
+assigned model's context; an oversized request returns `CONTEXT_TOO_LARGE`
+before any contest call.
+
+A headless invocation is:
+
+```sh
+squad send '@all $trace What is the retention period?
+--
+Records are retained for thirty days.' --yes
+```
+
+### What happens
+
+1. **EXTRACT:** Every member independently extracts up to ten claims with short
+   supporting quotes, counter-quotes and scope notes. There must be at least two
+   accepted extractions.
+2. **QUOTE CHECK:** Application code finds each contiguous quote in its cited
+   source. It normalizes Unicode, curly quotes, dashes and whitespace, while
+   preserving case. Quotes shorter than twelve normalized characters and stitched
+   ellipses do not pass. Each accepted quote carries the original UTF-8 byte span.
+   A missing quote becomes `quote_not_found`, is removed from subsequent prompts,
+   and is never sent back for repair.
+3. A blind judge merges overlapping claims into at most 25 canonical claims.
+   Each one must reference extracted claims. The app attaches their verified
+   quotes; the judge has no field for inventing a quotation. An empty claim set
+   finishes immediately and releases the remaining reservation.
+4. **VERIFY:** The app assigns two different reviewers per claim, balances their
+   loads and persists the seeded assignment. Noncontributors fill both slots whenever
+   two are available; a contributor fills a remaining slot only after distinct
+   noncontributors are exhausted. Reviewers receive only their assigned claims and
+   evidence, without contributor labels. They check entailment and scope; a
+   missing qualifier requires a verbatim qualifier quote.
+5. The app freezes the ledger. A claim is **unsupported** with no verified quotes
+   or unanimous accepted `not_supported` verdicts; **unverified** with quotes but
+   no verdicts; **supported** when every accepted verdict says `supported` and
+   scope `ok`; otherwise it is **disputed**. A missing reviewer is never a vote.
+6. **BRIEF:** The judge writes paragraphs citing supported claim IDs only.
+   Disputed claims have a separate section. Unsupported and unverified claims
+   remain separately visible, along with gaps and skipped members. The judge
+   cannot change the ledger status.
+
+Independent-source counts collapse declared `sharedOrigin` groups, including
+transitively overlapping groups. Repeated quotations of one source still count
+once. Contributing-model counts are shown separately: model agreement is not
+independent source corroboration.
+
+Invalid member structure or references get one diagnostic repair under D75.
+Judge calls reserve up to three attempts, with the shared policy allowing one
+validation repair. A second invalid response exhausts that repair. Transport
+failures can consume the remaining attempt allowance. Failed reviewers leave
+missing verdicts. Judge failure retains the committed evidence and ledger for
+export. `/stop` fences pending work, and restart keeps accepted evidence,
+provenance, prompt bundles and assignments.
+
+### Cost
+
+For `m` members, the normal upper bound is `2m + 2` calls and `4m + 6` reserved
+attempts: six members mean 14 calls / 30 attempts; twelve mean 26 / 54.
+Preflight prices frozen prompts, schemas, packet size and bounded prior outputs
+against the resolved catalog. The reservation includes retries and reasoning;
+actual cost depends on the roster, packet and generated output. Early completion
+releases unstarted capacity. Unknown started charges remain reserved until
+settled.
+
+This scaffold's built-in roster has six seats (`config.rs::DEFAULT_MODELS`). A
+custom twelve-seat roster requires twelve `SQUAD_MODEL_<NICK>` settings.
+
+### Report and export
+
+The report contains `[C1]`-style markers, claim statuses, support and counter-quotes
+with source numbers and byte spans, independent-source and contributor counts,
+verifier notes, qualifier quotes, flagged claims, missing quotes and skipped
+members. Press F9 to select the next claim marker and inspect its quotes and source numbers.
+
+```text
+/export trace <contest-id>
+```
+
+```sh
+squad export trace <contest-id> --output trace.md
+```
+
+Export adds the full numbered packet, every extraction, private-to-the-human
+reader provenance, quote checks, canonical claims, verifier assignments and every
+verdict. Frozen scheduling data, seeds and prompt bundles are excluded.
+
+### Example run
+
+The deterministic six-seat Wiremock workflow completes 14 provider calls and
+reserves 30 attempts. Its report includes:
+
+```text
+# TRACE
+Retention
+Result: complete
+
+Retention
+Records persist thirty days. [C1]
+
+[C1] Records retained thirty days
+Status: Supported; independent sources: 1; contributing members: 2
+Quote S1 bytes 0..37: > Records are retained for thirty days.
+```
+
+This is test evidence, not a paid live run. No live cost or wall time is claimed.
+
+
+
+## Debug
+
+Use debug for a persistent failure with competing explanations and observable tests. Members work independently; the judge merges the differential and selects a safe test. You run the test and paste the result. Squad runs no commands and applies no patches.
+
+```text
+@all $debug Requests time out after a deploy. Health checks pass. Rolling back fixes it.
+--
+Read-only checks only; production restarts are unavailable.
+```
+
+Select at least three members with mentions, or use `@all` (up to twelve). `@judge` cannot participate. Set `/set DEBUG_ROUNDS 3` before starting; the allowed range is 1–6. The default is three rounds.
+
+1. Every member independently proposes up to four hypotheses with supporting and contradicting quotes. Quotes that do not match the brief are retained as **unanchored**, never treated as evidence.
+2. A blind judge merges duplicate causes into up to eight hypotheses, preserving every source, opposing quote and prior spread.
+3. Each member independently proposes up to two tests and predicts an outcome for every live hypothesis. A prediction may explicitly say it cannot predict. Proposals include effort and safety.
+4. A blind judge selects a proposed test whose safety is `read_only` or `reversible` and which splits at least two live hypotheses. It cannot invent a test, alter the procedure, or select a `risky` test.
+5. `RUN THE TEST` shows the instruction and labels `O1`, `O2`, etc. The room waits without a timer and releases the participants for ordinary chat. Closing and reopening preserves the same instruction and labels.
+6. You answer. Application code updates the differential from the committed predictions and your result, then repeats or reports.
+
+```text
+/answer O2 The lookup returned the old address; here is the resolver output...
+/answer other The command returned a third result: permission denied.
+/answer unknown
+/continue
+```
+
+A listed outcome eliminates only hypotheses that predicted a different listed outcome. Matching predictions gain one consistent result. `disputed` and `cannot_predict` do not change. `other` eliminates nothing, records an unexpected result, and permits members to propose a new hypothesis next round. `unknown` and `/continue` record an inconclusive or unrun test and change nothing. Silence applies no default. Ordinary messages preserve the pending step.
+
+The loop ends with one live hypothesis (`isolated`), none (`all_eliminated`), no proposals (`no_tests`), no discriminating safe test (`no_discriminating_test`), or the round limit (`rounds_complete`). Failed members are named with the step and round; fewer than two initial hypothesis tables fails the run. Judge exhaustion fails with `judge_failed`. `/stop` fences outstanding work and retains committed evidence.
+
+A patch is advice for you to apply. It is allowed only when exactly one hypothesis remains live and at least one test you ran produced a consistent result for it. Otherwise the report states:
+
+> No patch: the evidence does not yet isolate a cause.
+
+The report contains the differential, live/eliminated status and consistent counts, every test and pasted result, failed predictions, the next test, risky unselected proposals, unanchored quotes and skipped members. No status means that a cause has been proved.
+
+### Cost
+
+For `m` members and `R` rounds the upper bound is `(R + 1)(m + 1) + 1` calls, reserving `2m(R + 1) + 3R + 6` attempts. Six members and three rounds plan 29 calls and 63 attempts; twelve members plan 53 calls and 111 attempts. Early termination releases unused reservations. Members get two attempts, including one invalid-output repair; judges get three attempts and at most one repair. Human waiting costs nothing.
+
+Preflight shows the estimate and worst-case reservation based on resolved model pricing and frozen prompts. Actual cost depends on models, output length and repairs. Later prompts include at most the first 400 words of each pasted result; the full answer remains in the transcript and export.
+
+### Report and export
+
+```text
+/export debug
+/export debug <contest-id>
+```
+
+From the shell:
+
+```sh
+squad send --yes '@all $debug Requests time out after deploy
+--
+Read-only checks only'
+squad send '/answer O2 The resolver returned the old address'
+squad export debug <contest-id> -o debug-report.md
+```
+
+The Markdown export includes the brief and limits, original hypothesis tables and attribution, all proposals and predictions, each selection, unanchored quotes, the full raw human answers, the differential and the report. Export while waiting includes the committed evidence and pending instruction. It contains no frozen provider prompts or credentials.
+
+
+Eliminated hypotheses appear grey, with explicit status labels retained.
+
+Examples and verification: [mode guide](docs/modes/debug.md).
+
+## Rank
+
+Rank orders three to forty of your own items by a criterion you supply. Use it for feature priorities, bugs, risks, or candidates. Independent pair comparisons feed an application-computed ranking; a judge explains the top items and majority cycles.
+
+
+### Start a ranking
+
+```text
+@all $rank prioritize by customer impact relative to effort
+--
+Fix intermittent data loss
+Make search tolerate spelling mistakes
+Refresh the settings icons
+```
+
+Put the criterion before a standalone `--`, then one item per line. Supply 3–40 nonempty items, each at most 60 words. Select members with mentions, or use `@all` for the default roster. The judge is implicit; do not mention `@judge`.
+
+### What happens
+
+1. Preflight freezes the criterion, items, models, prompts, pair sample and per-member assignments. It shows estimated and reserved cost, asking for confirmation when required by your configured threshold.
+2. Each member sees only its assigned pairs, with independently randomized A/B presentation. It chooses A or B for every pair and gives a reason of at most twelve words. It sees no other member's choices.
+3. After the comparison barrier, the app fits Bradley–Terry strengths with a fixed phantom opponent. It computes order, win/loss records, gaps, majority cycles, split pairs and connected components. Missing batches contribute no votes. Fewer than two accepted batches or fewer than `n−1` judged pairs fails with `insufficient_comparisons`.
+4. The blind judge explains the top five items (all for a shorter list), every displayed cycle, and caveats. It cannot change order or scores. If the judge fails, the fitted order remains available.
+5. The report shows the numbered order, scores and records; clear/close gaps; cycle readings; split pairs; component warnings; design and per-member loads; and skipped members.
+
+Up to seven items use every pair. Larger lists use a connected sample of `Q = min(n(n−1)/2, 3n)` pairs. Up to three distinct members judge each pair, with balanced loads and at most sixty judgments per member. The public command requires at least three members.
+
+A clear gap means the fitted chance the higher item beats its neighbour is at least 70%; a close gap means less. These are fitted comparison probabilities, not confidence intervals. Cycles preserve conflicting majorities; the ten smallest combined vote margins display first. If missing batches disconnect the graph, order between components rests on no comparison.
+
+### Cost and recovery
+
+A run uses `m+1` normal calls. The default six-member roster makes seven calls and reserves fifteen attempts. Members have two attempts with one schema repair; the judge has three attempts and at most one schema repair. Preflight prices model-specific worst-case input and output, including repairs. Actual spend depends on tokens and prices; unused unstarted reservations release on completion, failure or stop.
+
+`/stop` fences outstanding work and preserves accepted evidence. Recovery restores the exact pair design, A/B orders and accepted batches. It does not redraw or rerun accepted comparisons.
+
+### Report and export
+
+```text
+/export rank
+/export rank <contest-id>
+```
+
+Markdown export includes the report plus every accepted judgment with its member, A/B mapping, winner and reason, the win matrix, and unrounded fitted strengths and log scores. Prompt sources, private seeds, model bindings and persona maps are excluded.
+
+Examples and verification: [mode guide](docs/modes/rank.md).
+
+
+## Tune
+
+`$tune` evolves a prompt against hidden cases, executes every candidate on one fixed model, and chooses a winner on unseen cases. Use it when prompt behavior can be measured against a task.
+
+**Status: enabled.**
+
+```text
+@all $tune Answer clearly and concisely.
+--
+Answer support questions accurately, state uncertainty, and avoid invented facts.
+```
+
+Put each `--` on its own line. An optional third segment chooses the model to optimize for:
+
+```text
+$TUNE_GENERATIONS=1 @all $tune Summarize the following input: {{input}}
+--
+Summarize faithfully in three sentences, preserving important qualifications.
+--
+@fable
+```
+
+Without an executor segment, the judge's resolved model executes all prompts. A named executor leaves the participant set and contributes no cases or mutations. Select three to twelve other members. The original prompt is limited to 1,200 words, with at most one `{{input}}` token. A quoted message can supply the prompt when no inline prompt precedes the first separator. `/set TUNE_GENERATIONS=3` controls the default; the range is 1–6 and admission freezes it.
+
+1. Members independently propose up to three cases and three criteria. At least two proposals and four cases must survive validation.
+2. The judge selects four to six existing cases, at most two per member, and freezes two to four sourced criteria. It invents no case. The app privately seeds and persists the split: two or three train cases and two or three held-out cases.
+3. The fixed executor runs the original on train cases. The blind judge scores its outputs from 0 to 4 per criterion. A perfect baseline ends immediately.
+4. Three members per generation write mutually blind mutations. They see only the champion, task and a digest of train labels, criterion names, scores and short notes. They never receive cases, expectations, rubric descriptions, executor outputs or held-out information. The app rejects notes that copy six consecutive hidden words.
+5. The executor runs each candidate/case pair once, retaining the output across later sheets and restarts. Each judge sheet rescans the original, champion and complete variants together under fresh anonymous letters. A variant promotes only with a gain of at least 0.05 in that same sheet. Ties prefer shorter prompts, then the persisted seed.
+6. The original and at most two recent champions run on held-out cases. A variant wins only if it beats the original there by at least 0.05. Ties prefer the earlier champion. No promotion means no held-out pass.
+
+Executions are bare: one user message with `{{input}}` substituted, or the candidate as the system message and case input as the user message. Neither receives a Squad template, persona, history or redaction. The output ceiling is 1,024 visible tokens. A cut-off answer is retained and marked truncated. Executors get two plain attempts; structured member and judge calls follow D75, including one repair for invalid output. Missing baseline cases are dropped; fewer than two remaining train cases fails. Incomplete variants cannot promote. Held-out cases missing for any finalist are dropped for all finalists; no usable held-out case fails explicitly.
+
+`/stop` fences outstanding work. Restart preserves the admitted prompt, models, generation limit, seed, split, rotation, anonymous maps and accepted outputs. Ordinary participant work submitted during a tune contest is held until the contest ends.
+
+The human report includes the winning prompt verbatim, a unified line diff, lineage and stated changes, train and held-out score tables, regressions, generation scores, remaining failures and skipped work. `/export tune [contest-id]` adds the reusable suite with its split, every proposal, candidate, execution, scoring sheet with private label maps, and digest. Export contains the hidden suite for the human; do not send that archive to subsequent prompt authors.
+
+Six members at the default three generations make at most **60 calls**: 15 member, 39 executor and 6 judge calls, reserving **126 attempts**. A six-member one-generation smoke is capped at 34 calls and 72 attempts. Three members at one generation are capped at 31 calls and 66 attempts. Actual cost depends on token prices and output lengths. Preflight prices executor calls separately; reservations are worst-case holds and unused amounts are released as the suite shrinks, generations empty or the run ends.
+
+Examples and verification: [mode guide](docs/modes/tune.md).
+
+
+## Bass Ackwards PRD
+
+Start with the finished result. Squad agrees on observable acceptance tests, works backward to today's prerequisites, and saves a dependency-ordered PRD.
+
+```text
+@all $bass_ackwards_prd a self-hosted status page for a small SaaS, live with alerts
+@all $bass_ackwards_prd a production-ready status page -- We have a repository and a Linux server, but no deployed application.
+```
+
+From the CLI:
+
+```sh
+squad send '@all $bass_ackwards_prd a self-hosted status page for a small SaaS, live with alerts'
+```
+
+1. Members independently propose three to eight acceptance tests. The judge groups equivalent tests without rewording them. Application code freezes tests supported by at least two distinct members, up to twelve.
+2. Members independently build backward prerequisite trees, each bounded to twenty nodes and four levels. Every node serves a frozen acceptance test.
+3. The judge merges those trees into milestones, phases and tasks. Every task cites a source node and an acceptance test. Dependencies point within the same or an earlier milestone.
+4. Each member reviews through one assigned lens: missing steps, ways the plan can fail, or a concrete readback of one milestone. Comments must quote the delivered PRD. The application drops invented quotes without another call.
+5. The judge accepts or rejects each surviving comment and returns only keyed field edits. The application applies them to the stored PRD, preserving every untouched byte and permanent identity.
+6. Members propose up to three must-have additions each. Final assembly is add-only: existing text and order remain intact.
+7. Application code checks task mapping, acceptance-test coverage, missing dependencies and cycles. It computes parallel levels and the longest dependency chain, then saves the Markdown PRD.
+
+Revisions, final additions and human-note application use sparse edits (D101), so the judge does not spend output tokens copying the whole PRD. The application checks the reconstructed document before committing a version. Truncated or invalid patches apply nothing and follow the same last-good-version recovery rule. The output ceiling stays at 8,192 tokens; reservations account for the growing document in later inputs.
+
+The report includes uncovered acceptance tests, skipped members, quote failures, review decisions, must-haves and provenance resolved to member names. A coverage finding does not invent extra work: the file is saved with findings clearly stated.
+
+For an optional final human review, set `/set PRD_HUMAN_REVIEW 1` before starting. At `LAST LOOK`, `/answer <note>` adds a note and `/continue` proceeds to saving. Notes are limited to ten and 500 words together. Human notes are instructions; any impossible application is recorded as a conflict. With no notes there is no additional judge call. The default is off, so one command produces one file. A one-shot send with review enabled returns while waiting, before a file exists.
+
+Six members use at most 28 calls and reserve 60 attempts; three use 16 calls and reserve 36 attempts. Human review reserves one extra judge call (three attempts). Empty review and addition rounds skip their judge calls. Actual dollars depend on selected models and text length; the normal estimate and worst-case reservation are shown in preflight. Unused reservations are released at termination.
+
+The automatic destination is `<data_dir>/exports/prd-<title-slug>-<contestId>.md`, independent of the working directory. Files are written atomically with mode `0600`. The committed report precedes the write, allowing a restart during saving to reproduce the same bytes and destination. A later revision failure still saves the last good PRD. A merge failure saves nothing. If disk writing fails, the stored PRD remains available:
+
+```text
+/export bass_ackwards_prd
+/export bass_ackwards_prd <contestId>
+```
+
+Export includes the final PRD and the complete accepted record, including dropped review comments. A successful CLI run prints `PRD saved to <path>` and emits `export.ready` in JSON output.
+
+Examples and verification: [mode guide](docs/modes/bass_ackwards_prd.md).
+
+
 ## 🧱 Persistent `CENSUS_PASSES`
 
 | Setting | Value |
@@ -1133,7 +1797,7 @@ Census, crosscheck, survey and probe set their own judge effort. Every judge cal
 - **One active contest per room.** A competing start is refused with `A {kind} is already running. Stop it before starting another.`
 - **Admission:** every start goes through parsing, then preflight. Preflight estimates the cost and checks it against what's left of the **daily maximum**. If it doesn't fit, the contest is refused with `DAILY_MAX_REACHED`.
 - **Confirmation:** if the estimate is above the confirmation threshold (`SQUAD_DEBATE_CONFIRM_USD`), Squad asks you to confirm. Every preflight, for every mode, expires after **10 minutes**.
-- **Scripts:** all seven modes are scripts over the same moves. Those moves are fan-outs to members in parallel, barriers that commit a report, judge moves, tallies, and the final report.
+- **Scripts:** all modes are scripts over the same moves. Those moves are fan-outs to members in parallel, barriers that commit a report, judge moves, tallies, and the final report.
 - **Holds and fences:** participants are held for the contest. Stopping fences outstanding work, cancels it, and releases reservations for work that never started.
 - **Recovery:** contest progress is stored in SQLite and recovers after a restart.
 - **Blind text:** before anything blind is shown to a member or judge, every nick, configured or resolved model name, provider or family token, and persona is replaced with `[redacted]`.
@@ -1257,6 +1921,17 @@ Export a room or a contest as Markdown. You can do it from inside the room or fr
 | `crosscheck` | Yes, the contest ID | One crosscheck run. |
 | `survey` | Yes, the contest ID | One survey. |
 | `probe` | Yes, the contest ID | One probe. |
+| `forge` | Yes, the contest ID | Winning original or fusion. |
+| `forecast` | Yes, the contest ID | Pooled probability, spread and cruxes. |
+| `decide` | Yes, the contest ID | App-computed totals and sensitivity. |
+| `negotiate` | Yes, the contest ID | Hypothetical table transcripts and negotiation playbook. |
+| `blow_it_up` | Yes, the contest ID | Ranked surviving findings. |
+| `readback` | Yes, the contest ID | Revised spec and open ambiguities. |
+| `debug` | Yes, the contest ID | Differential, selected tests, results and report. |
+| `trace` | Yes, the contest ID | Cited brief, numbered packet, claim ledger and verifier evidence. |
+| `rank` | Yes, the contest ID | Bradley–Terry order and cycle audit. |
+| `tune` | Yes, the contest ID | Held-out winner, diff and reusable suite. |
+| `bass_ackwards_prd` | Yes, the contest ID | Saved dependency-ordered PRD. |
 
 Good to know:
 
@@ -1384,6 +2059,8 @@ Squad reads the cap when it starts, so restart Squad after you change it.
 - **Machine-wide, per data directory.** Every Squad process that opens the same data directory shares one ledger, in that directory's `squad.db`. A different `SQUAD_DATA_DIR` has its own totals.
 
 ## 🔍 Unknown costs
+
+A delayed receipt can replace a pending hold while the room is open or when it is reopened. Failed and cancelled calls keep their original billing day. Charges whose cost remains unknown stay reserved.
 
 Sometimes a call finishes but its cost never arrives.
 

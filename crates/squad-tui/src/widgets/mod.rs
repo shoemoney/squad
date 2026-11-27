@@ -20,3 +20,27 @@ pub mod crosscheck;
 pub mod probe;
 pub mod survey;
 mod tournament_events;
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;
+
+pub mod human_step;
+
+pub mod tune;
+
+pub mod bass_ackwards_prd;

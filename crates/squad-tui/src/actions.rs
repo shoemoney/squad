@@ -81,13 +81,13 @@ pub fn who() -> Request {
 }
 /// Help is the parser-owned example list; the TUI adds no grammar of its own.
 pub fn help_lines() -> Vec<String> {
-    squad_protocol::parser::HELP_EXAMPLES
+    squad_protocol::parser::help_examples()
         .iter()
         .map(|s| (*s).to_owned())
         .collect()
 }
 /// Every export scope the Foundations contract defines, in presentation order.
-pub const EXPORT_SCOPES: [ExportScope; 8] = [
+const EXPORT_INVENTORY: [ExportScope; 19] = [
     ExportScope::Room,
     ExportScope::Debate,
     ExportScope::Grill,
@@ -96,6 +96,17 @@ pub const EXPORT_SCOPES: [ExportScope; 8] = [
     ExportScope::Crosscheck,
     ExportScope::Survey,
     ExportScope::Probe,
+    ExportScope::Forge,
+    ExportScope::Forecast,
+    ExportScope::Decide,
+    ExportScope::Negotiate,
+    ExportScope::BlowItUp,
+    ExportScope::Readback,
+    ExportScope::Debugging,
+    ExportScope::Trace,
+    ExportScope::Rank,
+    ExportScope::Tune,
+    ExportScope::BassAckwardsPrd,
 ];
 pub fn scope_name(scope: &ExportScope) -> &'static str {
     match scope {
@@ -107,13 +118,38 @@ pub fn scope_name(scope: &ExportScope) -> &'static str {
         ExportScope::Crosscheck => "crosscheck",
         ExportScope::Survey => "survey",
         ExportScope::Probe => "probe",
+        ExportScope::Forge => "forge",
+        ExportScope::Tune => "tune",
+        ExportScope::BassAckwardsPrd => "bass_ackwards_prd",
+        ExportScope::Forecast => "forecast",
+        ExportScope::Decide => "decide",
+        ExportScope::Negotiate => "negotiate",
+        ExportScope::BlowItUp => "blow_it_up",
+        ExportScope::Readback => "readback",
+        ExportScope::Debugging => "debug",
+        ExportScope::Trace => "trace",
+        ExportScope::Rank => "rank",
     }
 }
 /// The four report scopes added after the original room/debate/grill/tournament set.
 pub fn is_new_report_scope(scope: &ExportScope) -> bool {
     matches!(
         scope,
-        ExportScope::Census | ExportScope::Crosscheck | ExportScope::Survey | ExportScope::Probe
+        ExportScope::Census
+            | ExportScope::Crosscheck
+            | ExportScope::Survey
+            | ExportScope::Probe
+            | ExportScope::Forge
+            | ExportScope::Forecast
+            | ExportScope::Decide
+            | ExportScope::Negotiate
+            | ExportScope::BlowItUp
+            | ExportScope::Readback
+            | ExportScope::Debugging
+            | ExportScope::Trace
+            | ExportScope::Rank
+            | ExportScope::Tune
+            | ExportScope::BassAckwardsPrd
     )
 }
 /// Report scope for a contest kind; the core renders the Markdown.
@@ -126,6 +162,17 @@ pub fn scope_for(kind: ContestKind) -> ExportScope {
         ContestKind::Crosscheck => ExportScope::Crosscheck,
         ContestKind::Survey => ExportScope::Survey,
         ContestKind::Probe => ExportScope::Probe,
+        ContestKind::Forge => ExportScope::Forge,
+        ContestKind::Tune => ExportScope::Tune,
+        ContestKind::BassAckwardsPrd => ExportScope::BassAckwardsPrd,
+        ContestKind::Forecast => ExportScope::Forecast,
+        ContestKind::Decide => ExportScope::Decide,
+        ContestKind::Negotiate => ExportScope::Negotiate,
+        ContestKind::BlowItUp => ExportScope::BlowItUp,
+        ContestKind::Readback => ExportScope::Readback,
+        ContestKind::Debugging => ExportScope::Debugging,
+        ContestKind::Trace => ExportScope::Trace,
+        ContestKind::Rank => ExportScope::Rank,
     }
 }
 /// Export a contest report to a destination chosen by the caller. Success is
@@ -212,3 +259,32 @@ pub async fn export_file(room: &dyn crate::session::RoomPort, job: ExportJob) ->
         },
     }
 }
+
+pub static EXPORT_SCOPES: std::sync::LazyLock<Vec<ExportScope>> = std::sync::LazyLock::new(|| {
+    let flags = [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        squad_protocol::forge::ENABLED,
+        squad_protocol::forecast::ENABLED,
+        squad_protocol::decide::ENABLED,
+        squad_protocol::negotiate::ENABLED,
+        squad_protocol::blow_it_up::ENABLED,
+        squad_protocol::readback::ENABLED,
+        squad_protocol::debugging::ENABLED,
+        squad_protocol::trace::ENABLED,
+        squad_protocol::rank::ENABLED,
+        squad_protocol::tune::ENABLED,
+        squad_protocol::bass_ackwards_prd::ENABLED,
+    ];
+    EXPORT_INVENTORY
+        .into_iter()
+        .zip(flags)
+        .filter_map(|(scope, enabled)| enabled.then_some(scope))
+        .collect()
+});

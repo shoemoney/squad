@@ -1,0 +1,56 @@
+{
+  "path": "/tmp/squad-v020-debug-c6s5um2l",
+  "mode": "debug",
+  "exit": 0,
+  "state": "COMPLETE",
+  "reason": "isolated",
+  "wall": 971.115,
+  "daily": [
+    {
+      "day": "2026-11-27",
+      "spent_micros": 1940283,
+      "reserved_micros": 0,
+      "unknown_calls": 0
+    }
+  ],
+  "estimate": {
+    "estimatedUsd": 9.350834,
+    "modelCalls": 29,
+    "remainingUsd": 149.998508,
+    "reservedUsd": 41.175132
+  },
+  "reservedAttempts": 63,
+  "attemptsByKind": [
+    [
+      "debug.hypothesize",
+      7,
+      192471
+    ],
+    [
+      "debug.merge",
+      1,
+      147064
+    ],
+    [
+      "debug.report",
+      1,
+      106872
+    ],
+    [
+      "debug.select",
+      3,
+      496512
+    ],
+    [
+      "debug.test",
+      21,
+      995872
+    ],
+    [
+      "startup",
+      4,
+      1492
+    ]
+  ],
+  "export_exit": 0
+}

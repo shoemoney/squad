@@ -8,7 +8,7 @@ Live requests use the in-process bus, and durable room state uses SQLite. The pa
 
 Only human input is parsed for routing or commands. Model output, quoted text, expanded variables, and resolved source text are never scanned for executable syntax.
 
-All seven modes use the shared contest engine under D71. The parser identifies the requested mode, resolves selectors, extracts arguments, and stages variable updates. The engine owns scripts over `collect`, `pick`, `fanout`, `turns`, `judge`, `tally`, `barrier`, and `report`, including their visibility, failure rules, and preflight call counts. Move names are not additional executable commands. The parser does not assign lenses, divide work, choose auditors, split probe roles, compute tallies, or assemble reports.
+All eighteen modes use the shared contest engine under D71, D73 and D88. The parser identifies the requested mode, resolves selectors, extracts arguments, and stages variable updates. The engine owns scripts over `collect`, `pick`, `fanout`, `turns`, `judge`, `tally`, `barrier`, and `report`, including their visibility, failure rules, and preflight call counts. Move names are not additional executable commands. The parser does not assign lenses, divide work, choose auditors, split probe roles, compute tallies, or assemble reports.
 
 Canonical values are defined in [Protocol’s canonical numbers and configuration](02-message-protocol-store-and-bus.md#canonical-numbers-and-configuration).
 
@@ -989,3 +989,42 @@ Every new mode is tested against each occupied-room kind, pending picks, the sin
 
 
 Continuation and acceptance fixtures cover kept and replaced plans, quoted attachments, escaped double quotes, both-source rejection, drained holds, COMPLETE-only acceptance, unique cells, required reasons, stale versions and exact codes. Execution fixtures land in M5.P7 and M5.P8.
+
+## M8/M9 command and control additions
+
+The grammar inventory contains all eighteen modes. Availability follows protocol
+switches; disabled modes remain parseable only as explicit not-implemented
+refusals and do not enter help, completion or idle tips.
+
+| Verb | Required source and optional segments |
+|---|---|
+| `$forge` | Brief; optional `--` constraints/style. |
+| `$forecast` | Question; optional `--` background. |
+| `$decide` | Decision/context; optional `--` and two to four option lines. Without options, generate and shortlist them. |
+| `$negotiate` | Our side; optional `--` counterpart information. Requires four members. |
+| `$blow_it_up` | Pasted plan, one quote, or a single member's latest reply; optional `--` scope. |
+| `$readback` | Pasted specification, one quote, or a single member's latest reply. |
+| `$debug` | Symptom and evidence; optional `--` runnable checks and limits. |
+| `$trace` | Question, then one to twelve `--` source segments; quoted sources append. |
+| `$rank` | Criterion, then `--` and three to forty item lines, at most sixty words each. |
+| `$tune` | Prompt, `--` task, optional `-- @nick` executor. Exactly one quote can supply an empty prompt segment. |
+| `$bass_ackwards_prd` | End result; optional `--` current resources and constraints. |
+
+These forms use three to twelve participants, except Negotiate's four-member
+minimum. A named Tune executor leaves the participant set, which still needs
+three members. In the source shortcuts, the single mentioned member supplies the
+source and the whole roster participates. The judge is implicit.
+
+`/answer <literal text>` records a version-bound human answer. Readback also
+accepts choice tokens such as `1b 2a`. `/continue` closes a human step with the
+answers supplied so far; it makes no unrecorded choice. Human steps never expire.
+
+`/set` and inline assignments add `NEGOTIATE_ROUNDS` (3, 1–6),
+`READBACK_ROUNDS` (2, 1–4), `DEBUG_ROUNDS` (3, 1–6), `TUNE_GENERATIONS` (3, 1–6),
+and `PRD_HUMAN_REVIEW` (0, 0–1) to the existing three stored variables. Admission
+freezes the effective inline value before pricing. Optional `SQUAD_<NAME>` seeds
+remain absent from `.env.example`.
+
+Each enabled mode adds `/export <mode> [id]`. The complete scope inventory has
+nineteen scopes, including `room`; room export takes no contest ID. Shell contest
+export takes an explicit ID, while room controls can resolve a retained report.

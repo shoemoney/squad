@@ -327,3 +327,94 @@ fn only_the_bus_may_submit_internal_requests_and_unknown_contests_are_not_found(
         Err(StoreError::Domain(ErrorCode::CONTEST_NOT_FOUND, _))
     ));
 }
+
+#[test]
+fn disabled_modes_are_rejected_before_admission_or_spend() {
+    let (store, mut router) = router_with(4, 20_000_000);
+    for mode in [
+        "forge",
+        "forecast",
+        "negotiate",
+        "blow_it_up",
+        "debug",
+        "trace",
+        "rank",
+    ] {
+        let kind: ContestKind = serde_json::from_value(serde_json::json!(mode)).unwrap();
+        if kind.is_built() {
+            continue;
+        }
+        let raw = format!("@all ${mode} brief");
+        let ctx = router.parse_context().unwrap();
+        let e = parse(&raw, &Default::default(), &ctx).unwrap_err();
+        assert_eq!(e.code, ErrorCode::COMMAND_NOT_IMPLEMENTED);
+        assert!(e.message.contains("disabled"));
+        let request = forged(&raw, "@all hello", 4, &Default::default());
+        assert_eq!(
+            rejection(&mut router, request).code,
+            ErrorCode::COMMAND_NOT_IMPLEMENTED
+        );
+    }
+    assert_eq!(row_count(&store, "SELECT COUNT(*) FROM contests"), 0);
+    assert_eq!(row_count(&store, "SELECT COUNT(*) FROM reservations"), 0);
+}
+#[test]
+fn invalid_new_mode_member_output_gets_one_repair_and_transport_gets_retry() {
+    use squad_core::orchestrator::{
+        rounds::failure_policy,
+        types::{AttemptDecision, FailureClass},
+    };
+    let id = WorkId::new();
+    assert!(matches!(
+        failure_policy(
+            id,
+            &WorkKind::ForgeDraft,
+            1,
+            2,
+            false,
+            FailureClass::InvalidOutput
+        ),
+        AttemptDecision::Retry {
+            next_attempt: 2,
+            repair: true,
+            ..
+        }
+    ));
+    assert!(matches!(
+        failure_policy(
+            id,
+            &WorkKind::ForgeDraft,
+            1,
+            2,
+            false,
+            FailureClass::Transport
+        ),
+        AttemptDecision::Retry {
+            next_attempt: 2,
+            repair: false,
+            ..
+        }
+    ));
+    assert!(matches!(
+        failure_policy(
+            id,
+            &WorkKind::ForgeDraft,
+            2,
+            2,
+            true,
+            FailureClass::InvalidOutput
+        ),
+        AttemptDecision::Forfeit(_)
+    ));
+    assert!(matches!(
+        failure_policy(
+            id,
+            &WorkKind::ForgeJudge,
+            3,
+            3,
+            true,
+            FailureClass::InvalidOutput
+        ),
+        AttemptDecision::JudgeFailed(_)
+    ));
+}

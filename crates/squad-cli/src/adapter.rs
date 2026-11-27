@@ -125,6 +125,21 @@ impl RoomApi for RoomHandle {
             return Progress::Failed;
         }
         let related = related(state, request);
+        let pending = parser::restore_pending_human(&state.events);
+        if pending.as_ref().is_some_and(|p| {
+            state.events.iter().any(|e| {
+                related.contains(&e.base.id)
+                    && match &e.content {
+                        EnvelopePayload::ContestHumanRequested(v) => {
+                            v.pending.contest_id == p.contest_id
+                        }
+                        _ => false,
+                    }
+            })
+        }) {
+            return Progress::AwaitingHuman;
+        }
+
         // Causal relevance may reach earlier material (for example regeneration).
         // Only transitions at or after this invocation can determine its result.
         let start = state
@@ -140,6 +155,7 @@ impl RoomApi for RoomHandle {
         let mut crosschecks = BTreeMap::new();
         let mut surveys = BTreeMap::new();
         let mut probes = BTreeMap::new();
+        let mut scripted = BTreeMap::new();
         let mut addressed = BTreeSet::new();
         let mut terminal = BTreeSet::new();
         let mut failed = false;
@@ -218,6 +234,15 @@ impl RoomApi for RoomHandle {
                         }
                     }
                 }
+                EnvelopePayload::ContestHumanAnswered(answer) if answer.complete => {
+                    // The answer commits before the driver schedules its next step.
+                    // Keep the invocation alive across that gap, including /continue
+                    // with no choices, which still needs to produce a final report.
+                    scripted.insert(
+                        answer.contest_id,
+                        squad_tui::widgets::contest_status::RunOutcome::Running,
+                    );
+                }
                 EnvelopePayload::TournamentState(t) => {
                     failed |= matches!(
                         t.state,
@@ -234,6 +259,101 @@ impl RoomApi for RoomHandle {
                 EnvelopePayload::SurveyState(s) => {
                     surveys.insert(s.contest_id, s.state);
                 }
+                EnvelopePayload::ForgeState(s)
+                | EnvelopePayload::ContestState(ContestState::Forge(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Forge(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::ForecastState(s)
+                | EnvelopePayload::ContestState(ContestState::Forecast(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Forecast(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::DecideState(s)
+                | EnvelopePayload::ContestState(ContestState::Decide(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Decide(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::NegotiateState(s)
+                | EnvelopePayload::ContestState(ContestState::Negotiate(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Negotiate(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::BlowItUpState(s)
+                | EnvelopePayload::ContestState(ContestState::BlowItUp(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::BlowItUp(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::ReadbackState(s)
+                | EnvelopePayload::ContestState(ContestState::Readback(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Readback(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::DebuggingState(s)
+                | EnvelopePayload::ContestState(ContestState::Debugging(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Debugging(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::TraceState(s)
+                | EnvelopePayload::ContestState(ContestState::Trace(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Trace(
+                            s.clone(),
+                        )),
+                    );
+                }
+                EnvelopePayload::RankState(s)
+                | EnvelopePayload::ContestState(ContestState::Rank(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Rank(s.clone())),
+                    );
+                }
+                EnvelopePayload::TuneState(s)
+                | EnvelopePayload::ContestState(ContestState::Tune(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(&ContestState::Tune(s.clone())),
+                    );
+                }
+                EnvelopePayload::BassAckwardsPrdState(s)
+                | EnvelopePayload::ContestState(ContestState::BassAckwardsPrd(s)) => {
+                    scripted.insert(
+                        s.contest_id,
+                        squad_tui::widgets::contest_status::outcome(
+                            &ContestState::BassAckwardsPrd(s.clone()),
+                        ),
+                    );
+                }
                 EnvelopePayload::ProbeState(p) => {
                     probes.insert(p.contest_id, p.state);
                 }
@@ -242,6 +362,16 @@ impl RoomApi for RoomHandle {
                 }
                 _ => (),
             }
+        }
+        if !scripted.is_empty() {
+            use squad_tui::widgets::contest_status::RunOutcome;
+            return if scripted.values().any(|v| *v == RunOutcome::Running) {
+                Progress::Running
+            } else if scripted.values().all(|v| *v == RunOutcome::Complete) {
+                Progress::Succeeded
+            } else {
+                Progress::Failed
+            };
         }
         if !probes.is_empty() {
             return if probes.values().any(|s| !s.is_terminal()) {
@@ -470,6 +600,11 @@ mod tests {
                     rounds: 3,
                     grill_rounds: 3,
                     census_passes: 3,
+                    negotiate_rounds: 3,
+                    readback_rounds: 2,
+                    debug_rounds: 3,
+                    tune_generations: 3,
+                    prd_human_review: 0,
                 },
                 participants: vec![],
                 debates: vec![],
@@ -673,6 +808,38 @@ mod tests {
             2,
             request,
             EnvelopePayload::CrosscheckState(crosscheck),
+        ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
+    }
+    #[test]
+    fn completed_human_answer_waits_for_the_next_script_transition() {
+        let request = EventId::new();
+        let contest = ContestId::new();
+        let mut state = state();
+        state.events.push(event(
+            1,
+            request,
+            EnvelopePayload::ContestHumanAnswered(ContestHumanAnswered {
+                contest_id: contest,
+                step_id: StepId::new(),
+                expected_state_version: 2,
+                text: None,
+                complete: true,
+            }),
+        ));
+        assert_eq!(RoomHandle::progress(&state, request), Progress::Running);
+        state.events.push(event(
+            2,
+            request,
+            EnvelopePayload::ReadbackState(ReadbackState {
+                contest_id: contest,
+                state_version: 4,
+                state: ReadbackStatus::Complete,
+                step_id: None,
+                round: 1,
+                artifact_event_ids: vec![],
+                terminal_reason: Some("no_readings_chosen".parse().unwrap()),
+            }),
         ));
         assert_eq!(RoomHandle::progress(&state, request), Progress::Succeeded);
     }

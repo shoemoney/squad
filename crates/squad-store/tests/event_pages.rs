@@ -238,7 +238,7 @@ fn generic_controls_artifacts_reports_and_budget_replay_without_private_maps() {
             EnvelopePayload::ContestPickRequested(ContestPickRequested {contest_id:contest,kind:ContestKind::Debate,question_message_id:message,eligible:nicks.clone(),required_picks:2,banner:"Pick debaters".into()}),
             EnvelopePayload::ContestPicked(ContestPicked {contest_id:contest,kind:ContestKind::Debate,nicks,source_message_ids:vec![message,MessageId::new()]}),
             EnvelopePayload::ContestStep(ContestStep {contest_id:contest,step_id:step,ordinal:1,script_version:Text::new("fixture.v1").unwrap(),move_name:ContestMove::Report,inputs:vec![],assignments:vec![]}),
-            EnvelopePayload::ContestArtifact(ContestArtifact {contest_id:contest,step_id:step,artifact_kind:Text::new("fixture").unwrap(),work_id:None,source_refs:vec![],data:serde_json::json!({"public":"artifact"})}),
+            EnvelopePayload::ContestArtifact(ContestArtifact {kind: None, round: None, actor: None, audience: None, body: None, contest_id:contest,step_id:step,artifact_kind:Text::new("fixture").unwrap(),work_id:None,source_refs:vec![],data:serde_json::json!({"public":"artifact"})}),
             EnvelopePayload::ContestReport(ContestReport {contest_id:contest,step_id:step,artifact_event_ids:vec![],skipped_work_ids:vec![],data:serde_json::json!({"public":"report"})}),
             EnvelopePayload::BudgetState(BudgetStateEvent {spent_usd:0.5,reserved_usd:0.1,limit_usd:10.0,estimated_usd:0.,unresolved_attempts:1,day:"2026-11-24".into(),unknown_calls:1}),
         ];

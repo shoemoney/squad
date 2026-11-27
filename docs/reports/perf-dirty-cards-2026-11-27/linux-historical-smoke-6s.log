@@ -1,0 +1,12 @@
+140x42 startup_ms=733.141
+140x42: resize_count=1 resize_call_p95_ms=0.025 resize_frame_p95_ms=0.607 resize_frame_max_ms=0.607 visible_verdict_frames=0 historical=true
+140x42: elapsed=6.001s frames=361 deltas=2892 draw_p95_ms=0.687 draw_p99_ms=0.798 key_p95_ms=15.780 cpu_one_core_pct=2.500 VmHWM:	  188884 kB, VmRSS:	  188884 kB gate=PASS
+140x42: reducer_plus_draw_p95_ms=0.706 reducer_plus_draw_p99_ms=0.842 load_start=1.49 5.53 6.50 2/1356 45526 load_end=1.41 5.38 6.44 1/1356 46103
+80x24 startup_ms=496.035
+80x24: resize_count=1 resize_call_p95_ms=0.029 resize_frame_p95_ms=0.323 resize_frame_max_ms=0.323 visible_verdict_frames=0 historical=true
+80x24: elapsed=6.001s frames=361 deltas=2892 draw_p95_ms=0.491 draw_p99_ms=0.973 key_p95_ms=15.856 cpu_one_core_pct=1.500 VmHWM:	  187764 kB, VmRSS:	  183636 kB gate=PASS
+80x24: reducer_plus_draw_p95_ms=0.531 reducer_plus_draw_p99_ms=1.009 load_start=1.41 5.38 6.44 2/1360 46152 load_end=1.38 5.31 6.41 1/1355 46641
+200x60 startup_ms=627.377
+200x60: resize_count=1 resize_call_p95_ms=0.065 resize_frame_p95_ms=0.874 resize_frame_max_ms=0.874 visible_verdict_frames=0 historical=true
+200x60: elapsed=6.001s frames=361 deltas=2892 draw_p95_ms=1.271 draw_p99_ms=1.535 key_p95_ms=15.773 cpu_one_core_pct=5.166 VmHWM:	  195432 kB, VmRSS:	  195432 kB gate=PASS
+200x60: reducer_plus_draw_p95_ms=1.291 reducer_plus_draw_p99_ms=1.600 load_start=1.38 5.31 6.41 2/1357 46679 load_end=1.27 5.22 6.37 1/1356 46991

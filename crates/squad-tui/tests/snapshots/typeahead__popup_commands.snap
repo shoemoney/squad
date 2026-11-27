@@ -15,12 +15,12 @@ idle W0 L0
                                 \___ \| | | | | | |/ _ \ | | | |
                                  ___) | |_| | |_| / ___ \| |_| |
                                 |____/ \__\_\\___/_/   \_\____/
-  /set  ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5>
+  /set  ROUNDS <1-20> | GRILL_ROUNDS <1-10> | CENSUS_PASSES <1-5> | NEGOTIATE_RO
+  /answer  <literal text>
   /stop  [@nick]
   /judge  [debateId]
   /regen  [messageId]
   /clear
-  /who
 ─ Input · To squad · quotes 0 ──────────────────────────────────────────────────
 > /
 

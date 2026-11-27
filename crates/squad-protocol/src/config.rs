@@ -129,6 +129,11 @@ pub struct RoomDefaults {
     pub reasoning_effort_explicit: bool,
     pub grill_rounds: u8,
     pub census_passes: u8,
+    pub negotiate_rounds: u8,
+    pub readback_rounds: u8,
+    pub debug_rounds: u8,
+    pub tune_generations: u8,
+    pub prd_human_review: u8,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct BudgetConfig {
@@ -227,6 +232,12 @@ pub enum ConfigError {
     Tips,
     GrillRounds,
     CensusPasses,
+    NegotiateRounds,
+    ReadbackRounds,
+    DebugRounds,
+    TuneGenerations,
+    PrdHumanReview,
+
     AliasCacheTtl,
 }
 impl std::error::Error for ConfigError {}
@@ -297,6 +308,17 @@ impl fmt::Display for ConfigError {
             Self::Banners => f.write_str("SQUAD_BANNERS must be on, compact, or off."),
             Self::Tips => f.write_str("SQUAD_TIPS must be on or off."),
             Self::Effects => f.write_str("SQUAD_FX must be full, lite, or off."),
+            Self::NegotiateRounds => {
+                f.write_str("SQUAD_NEGOTIATE_ROUNDS must be an integer from 1 to 6.")
+            }
+            Self::ReadbackRounds => {
+                f.write_str("SQUAD_READBACK_ROUNDS must be an integer from 1 to 4.")
+            }
+            Self::DebugRounds => f.write_str("SQUAD_DEBUG_ROUNDS must be an integer from 1 to 6."),
+            Self::PrdHumanReview => f.write_str("SQUAD_PRD_HUMAN_REVIEW must be 0 or 1."),
+            Self::TuneGenerations => {
+                f.write_str("SQUAD_TUNE_GENERATIONS must be an integer from 1 to 6.")
+            }
             Self::CensusPasses => {
                 f.write_str("SQUAD_CENSUS_PASSES must be an integer from 1 to 5.")
             }
@@ -622,6 +644,26 @@ impl EffectiveEnvironment {
             .ok_or(ConfigError::GrillRounds),
             DEFAULT_GRILL_ROUNDS
         );
+        let negotiate_rounds = take!(
+            bounded(&get("SQUAD_NEGOTIATE_ROUNDS", "3"), 1, 6).ok_or(ConfigError::NegotiateRounds),
+            3
+        );
+        let readback_rounds = take!(
+            bounded(&get("SQUAD_READBACK_ROUNDS", "2"), 1, 4).ok_or(ConfigError::ReadbackRounds),
+            2
+        );
+        let debug_rounds = take!(
+            bounded(&get("SQUAD_DEBUG_ROUNDS", "3"), 1, 6).ok_or(ConfigError::DebugRounds),
+            3
+        );
+        let prd_human_review = take!(
+            bounded(&get("SQUAD_PRD_HUMAN_REVIEW", "0"), 0, 1).ok_or(ConfigError::PrdHumanReview),
+            0
+        );
+        let tune_generations = take!(
+            bounded(&get("SQUAD_TUNE_GENERATIONS", "3"), 1, 6).ok_or(ConfigError::TuneGenerations),
+            3
+        );
         let census_passes = take!(
             bounded(&get("SQUAD_CENSUS_PASSES", "2"), 1, 5).ok_or(ConfigError::CensusPasses),
             2
@@ -702,6 +744,12 @@ impl EffectiveEnvironment {
                 rounds,
                 grill_rounds,
                 census_passes,
+                negotiate_rounds,
+                readback_rounds,
+                debug_rounds,
+                tune_generations,
+                prd_human_review,
+
                 reasoning_effort: take!(
                     effort(
                         &get(

@@ -1,0 +1,95 @@
+{
+  "round": 2,
+  "selection": {
+    "testRef": "Proposer 4:T1",
+    "instruction": "Run: python3 /tmp/squad-v020-debug-fixture-cyvxmygn/probe.py '[{\"amount\":100,\"rate\":0.20},{\"amount\":200,\"rate\":0}]'",
+    "outcomes": [
+      {
+        "label": "O1",
+        "description": "[120.0, 220.0]"
+      },
+      {
+        "label": "O2",
+        "description": "[110.0, 220.0]"
+      },
+      {
+        "label": "O3",
+        "description": "[120.0, 240.0]"
+      },
+      {
+        "label": "O4",
+        "description": "Any other output or error"
+      }
+    ],
+    "predictions": [
+      {
+        "hypothesisId": "H1",
+        "outcome": "O1"
+      },
+      {
+        "hypothesisId": "H3",
+        "outcome": "O2"
+      },
+      {
+        "hypothesisId": "H4",
+        "outcome": "cannot_predict"
+      },
+      {
+        "hypothesisId": "H6",
+        "outcome": "O3"
+      },
+      {
+        "hypothesisId": "H7",
+        "outcome": "cannot_predict"
+      }
+    ],
+    "addedHypotheses": [],
+    "notSelected": [
+      {
+        "testRef": "Proposer 1:T1",
+        "why": "Safe and splits H1 from H3, but with no zero item it gives H6 no concrete prediction. The selected test separates H1, H3 and H6 in one run."
+      },
+      {
+        "testRef": "Proposer 1:T2",
+        "why": "Safe and gives H4 a concrete prediction, but H3 and H4 share an outcome and H6 cannot predict. The first item's rate equals the default, so the first-item-rate variants stay hidden."
+      },
+      {
+        "testRef": "Proposer 2:T1",
+        "why": "Safe, but a single nonzero item only splits H1 from H3. H6 shares H1's outcome and no batch behaviour is exercised."
+      },
+      {
+        "testRef": "Proposer 2:T2",
+        "why": "Safe and splits H1 from H3, but with no zero item H6 cannot predict. The selected test gives three distinct concrete predictions."
+      },
+      {
+        "testRef": "Proposer 3:T1",
+        "why": "The procedure field is prose without the exact command, so it is a poor verbatim instruction. As a single-item probe it only splits H1 from H3, with H6 and H7 sharing H1's outcome."
+      },
+      {
+        "testRef": "Proposer 3:T2",
+        "why": "The procedure field is prose without the exact command, so the copied instruction would not say what to run. Its third outcome also bundles two different outputs, which makes it less clean than the selected test."
+      },
+      {
+        "testRef": "Proposer 4:T2",
+        "why": "Safe and splits H1 from H3, but without a zero item H6 cannot predict. Its sibling T1 is strictly more discriminating."
+      },
+      {
+        "testRef": "Proposer 5:T1",
+        "why": "Safe, but a single item only splits H1 from H3. H6 shares H1's outcome and no batch behaviour is tested."
+      },
+      {
+        "testRef": "Proposer 5:T2",
+        "why": "Safe and splits H1 from H3, but H4, H6 and H7 all cannot predict. The leak and first-item-rate results fall into the catch-all outcome, so it is less informative than the selected test."
+      }
+    ]
+  },
+  "argv": [
+    "python3",
+    "/tmp/squad-v020-debug-fixture-cyvxmygn/probe.py",
+    "[{\"amount\":100,\"rate\":0.20},{\"amount\":200,\"rate\":0}]"
+  ],
+  "stdout": "[120.0, 220.0]\n",
+  "stderr": "",
+  "returncode": 0,
+  "answer": "O1"
+}

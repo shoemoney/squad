@@ -10,10 +10,17 @@ pub fn apply(
     for update in updates {
         let max = match update.name {
             VariableName::Rounds => 20,
+            VariableName::NegotiateRounds => 6,
+            VariableName::ReadbackRounds => 4,
+            VariableName::DebugRounds => 6,
+            VariableName::TuneGenerations => 6,
+            VariableName::PrdHumanReview => 1,
+
             VariableName::GrillRounds => 10,
             VariableName::CensusPasses => 5,
         };
-        if update.value == 0 || update.value > max {
+        if (update.value == 0 && update.name != VariableName::PrdHumanReview) || update.value > max
+        {
             return Err(StoreError::Domain(
                 ErrorCode::INVALID_COMMAND,
                 "Variable value is out of range",

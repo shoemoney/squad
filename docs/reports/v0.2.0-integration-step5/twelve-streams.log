@@ -1,0 +1,5 @@
+    Finished `bench` profile [optimized] target(s) in 0.10s
+     Running benches/twelve_streams.rs (target/release/deps/twelve_streams-76f0bc8531c54ac6)
+twelve_streams: mode=TestBackend secs_per_viewport=30 target=linux-x86_64 effects=off
+120x36: elapsed=30.002s frames=1800 deltas=14400 keys=361 scrolls=15 resizes=6 startup_ms=3.920 draw_p95_ms=0.176 draw_p99_ms=0.206 key_p95_ms=15.861 cpu_one_core_pct=0.867 VmHWM:	   10896 kB, VmRSS:	   10896 kB gate=PASS
+80x24: elapsed=30.003s frames=1800 deltas=14400 keys=361 scrolls=15 resizes=6 startup_ms=3.406 draw_p95_ms=0.108 draw_p99_ms=0.128 key_p95_ms=15.814 cpu_one_core_pct=0.533 VmHWM:	   10952 kB, VmRSS:	   10952 kB gate=PASS

@@ -50,7 +50,12 @@ expression: "serde_json::to_string_pretty(&value).unwrap()"
   },
   "vars": {
     "CENSUS_PASSES": 2,
+    "DEBUG_ROUNDS": 3,
     "GRILL_ROUNDS": 2,
-    "ROUNDS": 10
+    "NEGOTIATE_ROUNDS": 3,
+    "PRD_HUMAN_REVIEW": 0,
+    "READBACK_ROUNDS": 2,
+    "ROUNDS": 10,
+    "TUNE_GENERATIONS": 3
   }
 }

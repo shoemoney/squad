@@ -146,6 +146,15 @@ pub fn output(work: &Work, owner: &ExecutorKey, payload: &EnvelopePayload) -> Re
                 && work.contest_id == Some(artifact.contest_id)
                 && work.step_id == Some(artifact.step_id) =>
         {
+            if let Some(kind) = work.kind.new_mode_kind() {
+                let actor = match &work.target {
+                    Target::Judge => Actor::Judge,
+                    Target::Member(nick) => Actor::Member(nick.clone()),
+                };
+                if artifact.kind != Some(kind) || artifact.actor != Some(actor) {
+                    return Err(forbidden());
+                }
+            }
             return Ok(());
         }
         _ => return Err(forbidden()),

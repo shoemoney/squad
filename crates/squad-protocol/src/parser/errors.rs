@@ -3,6 +3,44 @@ use super::{ParseError, Span};
 use crate::ErrorCode;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Rule {
+    TuneCountExecutor,
+    TuneSegments,
+    TuneExecutor,
+    TunePromptSize,
+    TunePlaceholder,
+    PrdHumanReview,
+    PrdNote,
+
+    TuneMissing,
+    TuneTask,
+    BassAckwardsPrdMissing,
+    TuneGenerations,
+
+    ModeDisabled,
+    ModeCount,
+    NegotiateCount,
+    ModeJudge,
+    ForgeMissing,
+    ForecastMissing,
+    DecideMissing,
+    NegotiateMissing,
+    DebugMissing,
+    TraceMissing,
+    RankMissing,
+    BlowItUpMissing,
+    ReadbackMissing,
+    DecideOptions,
+    RankItems,
+    TraceSources,
+    TraceSourceCount,
+    NoHuman,
+    ReadbackAnswer,
+    ReadbackChoice,
+    DebugAnswer,
+    NegotiateRounds,
+    ReadbackRounds,
+    DebugRounds,
+
     Empty,
     TooLarge,
     Inline,
@@ -75,6 +113,56 @@ pub enum Rule {
 impl Rule {
     pub fn template(self) -> &'static str {
         match self {
+            Self::TuneCountExecutor => "$tune needs at least three members besides the executor.",
+            Self::TuneSegments => {
+                "$tune takes the prompt, then -- and the task, then an optional -- @nick executor."
+            }
+            Self::TuneExecutor => "The $tune executor must be one roster member, like -- @nick.",
+            Self::TunePromptSize => "$tune takes a prompt of at most 1,200 words.",
+            Self::TunePlaceholder => "$tune allows {{input}} at most once in the prompt.",
+            Self::PrdHumanReview => "PRD_HUMAN_REVIEW must be 0 or 1.",
+            Self::PrdNote => {
+                "Add your note after /answer, or use /continue to save the PRD as it is."
+            }
+
+            Self::TuneMissing => "Add the prompt to optimise after $tune.",
+            Self::TuneTask => "Add the task after -- for $tune.",
+            Self::BassAckwardsPrdMissing => "Add the end result after $bass_ackwards_prd.",
+            Self::TuneGenerations => "TUNE_GENERATIONS must be an integer from 1 to 6.",
+
+            Self::ModeDisabled => "Command ${verb} is disabled until its implementation lands.",
+            Self::ModeCount => "${mode} needs at least three members.",
+            Self::NegotiateCount => "$negotiate needs at least four members.",
+            Self::ModeJudge => "@judge cannot be used with ${mode}.",
+            Self::ForgeMissing => "Add a brief after $forge.",
+            Self::ForecastMissing => "Add a question after $forecast.",
+            Self::DecideMissing => "Add the decision after $decide.",
+            Self::NegotiateMissing => "Add your side of the negotiation after $negotiate.",
+            Self::DebugMissing => "Add a symptom and the evidence after $debug.",
+            Self::TraceMissing => "Add a question after $trace.",
+            Self::RankMissing => "Add what to rank by after $rank.",
+            Self::BlowItUpMissing => {
+                "Add something to attack for $blow_it_up: quote one message, paste it, or use @nick for that member's latest reply."
+            }
+            Self::ReadbackMissing => {
+                "Add a spec for $readback: quote one message, paste it, or use @nick for that member's latest reply."
+            }
+            Self::DecideOptions => "$decide takes two to four options after --, one per line.",
+            Self::RankItems => "$rank takes three to forty items after --, one per line.",
+            Self::TraceSources => "Add at least one source after -- for $trace.",
+            Self::TraceSourceCount => "$trace takes at most twelve sources.",
+            Self::NoHuman => "Nothing is waiting for an answer.",
+            Self::ReadbackAnswer => {
+                "Answer with entry and reading, like 1b 2a, or /answer 3: your own reading."
+            }
+            Self::ReadbackChoice => "Entry {n} has no reading {x}.",
+            Self::DebugAnswer => {
+                "Answer with an outcome label and what you saw, like /answer O2 p99 fell to 180 ms, or /answer other <what you saw>, or /answer unknown."
+            }
+            Self::NegotiateRounds => "NEGOTIATE_ROUNDS must be an integer from 1 to 6.",
+            Self::ReadbackRounds => "READBACK_ROUNDS must be an integer from 1 to 4.",
+            Self::DebugRounds => "DEBUG_ROUNDS must be an integer from 1 to 6.",
+
             Self::CensusNotWaiting => "No census is waiting for a plan.",
             Self::ContinueSelection => {
                 "Select exactly one member reply or grill plan version for /continue."
@@ -171,6 +259,44 @@ impl Rule {
     }
     pub fn code(self) -> ErrorCode {
         match self {
+            Self::TuneCountExecutor => ErrorCode::INVALID_COMMAND,
+            Self::TuneSegments => ErrorCode::INVALID_COMMAND,
+            Self::TuneExecutor => ErrorCode::INVALID_COMMAND,
+            Self::TunePromptSize => ErrorCode::INVALID_COMMAND,
+            Self::TunePlaceholder => ErrorCode::INVALID_COMMAND,
+            Self::PrdHumanReview => ErrorCode::INVALID_COMMAND,
+            Self::PrdNote => ErrorCode::INVALID_COMMAND,
+
+            Self::TuneMissing => ErrorCode::INVALID_COMMAND,
+            Self::TuneTask => ErrorCode::INVALID_COMMAND,
+            Self::BassAckwardsPrdMissing => ErrorCode::INVALID_COMMAND,
+            Self::TuneGenerations => ErrorCode::INVALID_COMMAND,
+
+            Self::ModeDisabled => ErrorCode::COMMAND_NOT_IMPLEMENTED,
+            Self::ModeCount => ErrorCode::INVALID_COMMAND,
+            Self::NegotiateCount => ErrorCode::INVALID_COMMAND,
+            Self::ModeJudge => ErrorCode::INVALID_COMMAND,
+            Self::ForgeMissing => ErrorCode::INVALID_COMMAND,
+            Self::ForecastMissing => ErrorCode::INVALID_COMMAND,
+            Self::DecideMissing => ErrorCode::INVALID_COMMAND,
+            Self::NegotiateMissing => ErrorCode::INVALID_COMMAND,
+            Self::DebugMissing => ErrorCode::INVALID_COMMAND,
+            Self::TraceMissing => ErrorCode::INVALID_COMMAND,
+            Self::RankMissing => ErrorCode::INVALID_COMMAND,
+            Self::BlowItUpMissing => ErrorCode::INVALID_COMMAND,
+            Self::ReadbackMissing => ErrorCode::INVALID_COMMAND,
+            Self::DecideOptions => ErrorCode::INVALID_COMMAND,
+            Self::RankItems => ErrorCode::INVALID_COMMAND,
+            Self::TraceSources => ErrorCode::INVALID_COMMAND,
+            Self::TraceSourceCount => ErrorCode::INVALID_COMMAND,
+            Self::NoHuman => ErrorCode::INVALID_STATE_TRANSITION,
+            Self::ReadbackAnswer => ErrorCode::INVALID_COMMAND,
+            Self::ReadbackChoice => ErrorCode::INVALID_COMMAND,
+            Self::DebugAnswer => ErrorCode::INVALID_COMMAND,
+            Self::NegotiateRounds => ErrorCode::INVALID_COMMAND,
+            Self::ReadbackRounds => ErrorCode::INVALID_COMMAND,
+            Self::DebugRounds => ErrorCode::INVALID_COMMAND,
+
             Self::CensusNotWaiting => ErrorCode::INVALID_STATE_TRANSITION,
             Self::ContinueSelection => ErrorCode::CENSUS_SOURCE_MISSING,
             Self::NoCompleteCrosscheck => ErrorCode::CONTEST_NOT_FOUND,
@@ -284,6 +410,41 @@ pub fn contest_busy(
 
 /// All parser-owned diagnostics in specification order.
 pub const ALL_RULES: &[Rule] = &[
+    Rule::TuneCountExecutor,
+    Rule::TuneSegments,
+    Rule::TuneExecutor,
+    Rule::TunePromptSize,
+    Rule::TunePlaceholder,
+    Rule::PrdHumanReview,
+    Rule::PrdNote,
+    Rule::TuneMissing,
+    Rule::TuneTask,
+    Rule::BassAckwardsPrdMissing,
+    Rule::TuneGenerations,
+    Rule::ModeDisabled,
+    Rule::ModeCount,
+    Rule::NegotiateCount,
+    Rule::ModeJudge,
+    Rule::ForgeMissing,
+    Rule::ForecastMissing,
+    Rule::DecideMissing,
+    Rule::NegotiateMissing,
+    Rule::DebugMissing,
+    Rule::TraceMissing,
+    Rule::RankMissing,
+    Rule::BlowItUpMissing,
+    Rule::ReadbackMissing,
+    Rule::DecideOptions,
+    Rule::RankItems,
+    Rule::TraceSources,
+    Rule::TraceSourceCount,
+    Rule::NoHuman,
+    Rule::ReadbackAnswer,
+    Rule::ReadbackChoice,
+    Rule::DebugAnswer,
+    Rule::NegotiateRounds,
+    Rule::ReadbackRounds,
+    Rule::DebugRounds,
     Rule::Empty,
     Rule::TooLarge,
     Rule::Inline,
@@ -353,3 +514,14 @@ pub const ALL_RULES: &[Rule] = &[
     Rule::NoCompleteCrosscheck,
     Rule::AcceptanceStale,
 ];
+
+/// Validate the resolved prompt at admission (including a quoted source).
+pub fn tune_prompt(text: &str, span: Span) -> Result<(), ParseError> {
+    if text.split_whitespace().count() > 1200 {
+        return Err(Rule::TunePromptSize.error(span, &[]));
+    }
+    if text.matches("{{input}}").count() > 1 {
+        return Err(Rule::TunePlaceholder.error(span, &[]));
+    }
+    Ok(())
+}

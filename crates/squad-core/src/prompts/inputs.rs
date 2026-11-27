@@ -420,6 +420,21 @@ pub fn shared_move_composition(
 ) -> Result<Option<&'static str>, PromptError> {
     work.validate()
         .map_err(|_| error("invalid executable work"))?;
+    if work.kind.is_executor() {
+        return Ok(None);
+    }
+    if let Some(composition) = work.kind.new_mode_composition() {
+        let matches = if work.kind.new_mode_judge() {
+            matches!(move_name, ContestMove::Judge)
+        } else {
+            matches!(move_name, ContestMove::Fanout | ContestMove::Turns)
+        };
+        return if matches {
+            Ok(Some(composition))
+        } else {
+            Err(error("new mode move mismatch"))
+        };
+    }
     Ok(match move_name {
         ContestMove::Pick | ContestMove::Tally | ContestMove::Barrier | ContestMove::Report => None,
         ContestMove::Collect if work.kind == WorkKind::Reply => Some("reply"),
@@ -492,4 +507,36 @@ pub fn shared_move_composition(
         ContestMove::Judge if work.kind == WorkKind::ProbeReport => work.kind.probe_composition(),
         _ => return Err(error("move has no compiled work composition")),
     })
+}
+
+impl PromptPack {
+    pub fn new_mode_inputs(
+        &self,
+        work: &Work,
+        data: &Value,
+        repair: Option<&JudgeRepairData>,
+    ) -> Result<Inputs, PromptError> {
+        match work.kind.new_mode_kind() {
+            Some(ContestKind::Forge) => super::inputs_forge::inputs(self, work, data, repair),
+            Some(ContestKind::Tune) => super::inputs_tune::inputs(self, work, data, repair),
+            Some(ContestKind::BassAckwardsPrd) => {
+                super::inputs_bass_ackwards_prd::inputs(self, work, data, repair)
+            }
+            Some(ContestKind::Forecast) => super::inputs_forecast::inputs(self, work, data, repair),
+            Some(ContestKind::Decide) => super::inputs_decide::inputs(self, work, data, repair),
+            Some(ContestKind::Negotiate) => {
+                super::inputs_negotiate::inputs(self, work, data, repair)
+            }
+            Some(ContestKind::BlowItUp) => {
+                super::inputs_blow_it_up::inputs(self, work, data, repair)
+            }
+            Some(ContestKind::Readback) => super::inputs_readback::inputs(self, work, data, repair),
+            Some(ContestKind::Debugging) => {
+                super::inputs_debugging::inputs(self, work, data, repair)
+            }
+            Some(ContestKind::Trace) => super::inputs_trace::inputs(self, work, data, repair),
+            Some(ContestKind::Rank) => super::inputs_rank::inputs(self, work, data, repair),
+            _ => Err(error("not new-mode work")),
+        }
+    }
 }

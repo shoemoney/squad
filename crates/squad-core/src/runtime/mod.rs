@@ -1,4 +1,5 @@
 //! Private member workers and dynamically discovered case executors.
+mod accounting;
 pub mod contexts;
 mod crosscheck;
 mod judge;
@@ -175,6 +176,7 @@ fn launch_mode(
             }),
         ));
     }
+    let accounting_client = client.clone();
     let judge_model = resolution.judge.model;
     let judge = Arc::new(judge::Runner {
         client,
@@ -204,7 +206,12 @@ fn launch_mode(
     let handle_roster = roster.clone();
     let task = tokio::spawn(async move {
         let _cancel_on_exit = child_cancel.clone().drop_guard();
-        let mut tasks = Vec::new();
+        let mut tasks = vec![accounting::spawn(
+            store.clone(),
+            bus.clone(),
+            accounting_client.clone(),
+            child_cancel.child_token(),
+        )];
         for (nick, renderer, executor) in members {
             let context = contexts::agent_context(
                 store.clone(),
@@ -324,6 +331,7 @@ fn launch_mode(
                 result = Err(e);
             }
         }
+        accounting::finish(&store, &bus, &accounting_client).await;
         result
     });
     Ok(RuntimeHandle {
@@ -336,3 +344,72 @@ fn launch_mode(
         roster: handle_roster,
     })
 }
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;
+
+/// A store outage inside a new-mode executor must stop the worker like every other
+/// path; any other failure is a work-level `NotRunnable`.
+fn new_mode_error(error: squad_agents::agents::ExecutionError) -> ReaderError {
+    match error {
+        squad_agents::agents::ExecutionError::Reader(e @ ReaderError::StoreUnavailable { .. }) => e,
+        _ => ReaderError::NotRunnable,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn execute_new_mode(
+    kind: ContestKind,
+    context: &AgentContext,
+    grant: &ExecutionGrant,
+    client: &squad_agents::openrouter::OpenRouterClient,
+    pack: &PromptPack,
+    config: &SquadConfig,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<(), squad_agents::agents::ExecutionError> {
+    match kind {
+        ContestKind::Forge => forge::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::Tune => tune::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::BassAckwardsPrd => {
+            bass_ackwards_prd::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Forecast => {
+            forecast::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Decide => decide::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::Negotiate => {
+            negotiate::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::BlowItUp => {
+            blow_it_up::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Readback => {
+            readback::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Debugging => {
+            debugging::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Trace => trace::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::Rank => rank::execute(context, grant, client, pack, config, cancel).await,
+        _ => Err(ReaderError::NotRunnable.into()),
+    }
+}
+
+pub mod tune;
+
+pub mod bass_ackwards_prd;

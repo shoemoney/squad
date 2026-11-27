@@ -27,6 +27,16 @@ pub struct RoomVars {
     pub grill_rounds: u8,
     #[serde(rename = "CENSUS_PASSES")]
     pub census_passes: u8,
+    #[serde(rename = "NEGOTIATE_ROUNDS")]
+    pub negotiate_rounds: u8,
+    #[serde(rename = "READBACK_ROUNDS")]
+    pub readback_rounds: u8,
+    #[serde(rename = "DEBUG_ROUNDS")]
+    pub debug_rounds: u8,
+    #[serde(rename = "TUNE_GENERATIONS")]
+    pub tune_generations: u8,
+    #[serde(rename = "PRD_HUMAN_REVIEW")]
+    pub prd_human_review: u8,
 }
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -245,6 +255,28 @@ pub fn snapshot(
                 serde_json::from_str(&json)
                     .map(ContestState::Grill)
                     .or_else(|_| serde_json::from_str(&json).map(ContestState::Selection))
+            } else if kind == "tune" {
+                serde_json::from_str(&json).map(ContestState::Tune)
+            } else if kind == "bass_ackwards_prd" {
+                serde_json::from_str(&json).map(ContestState::BassAckwardsPrd)
+            } else if kind == "forge" {
+                serde_json::from_str(&json).map(ContestState::Forge)
+            } else if kind == "forecast" {
+                serde_json::from_str(&json).map(ContestState::Forecast)
+            } else if kind == "decide" {
+                serde_json::from_str(&json).map(ContestState::Decide)
+            } else if kind == "negotiate" {
+                serde_json::from_str(&json).map(ContestState::Negotiate)
+            } else if kind == "blow_it_up" {
+                serde_json::from_str(&json).map(ContestState::BlowItUp)
+            } else if kind == "readback" {
+                serde_json::from_str(&json).map(ContestState::Readback)
+            } else if kind == "debug" {
+                serde_json::from_str(&json).map(ContestState::Debugging)
+            } else if kind == "trace" {
+                serde_json::from_str(&json).map(ContestState::Trace)
+            } else if kind == "rank" {
+                serde_json::from_str(&json).map(ContestState::Rank)
             } else if kind == "probe" {
                 serde_json::from_str(&json).map(ContestState::Probe)
             } else {
@@ -279,7 +311,7 @@ pub fn snapshot(
                             .map(|p| PendingPreflight::Contest(p.base))
                     } else if kind == "debate" {
                         serde_json::from_str(&plan).map(PendingPreflight::Debate)
-                    } else if kind == "probe" {
+            } else if kind == "probe" {
                         serde_json::from_str::<ProbePreflight>(&plan)
                             .map(|p| PendingPreflight::Contest(p.base))
                     } else {
@@ -297,6 +329,11 @@ pub fn snapshot(
             rounds: variable("ROUNDS")?,
             grill_rounds: variable("GRILL_ROUNDS")?,
             census_passes: variable("CENSUS_PASSES")?,
+            negotiate_rounds: variable("NEGOTIATE_ROUNDS")?,
+            readback_rounds: variable("READBACK_ROUNDS")?,
+            debug_rounds: variable("DEBUG_ROUNDS")?,
+            tune_generations: variable("TUNE_GENERATIONS")?,
+            prd_human_review: variable("PRD_HUMAN_REVIEW")?,
         },
         participants,
         debates,

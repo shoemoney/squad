@@ -1,5 +1,206 @@
 # M6 performance measurements
 
+## v0.2.0 integration check on dev2 — 2026-11-26
+
+Source `7753b71ff5928188e5b07d3643f9fdd847b52c4c` integrates dirty-card rendering
+and nine enabled new modes (sixteen total). With four build jobs, both benchmark
+targets finished building before sampling. Each viewport ran for thirty seconds,
+with all original hard thresholds enforced and historical mode off. These short
+integrated checks passed; the longer hueb acceptance evidence follows below.
+
+Full-effects composed streams, 10,000 retained history cards and twelve streams:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Resize frame max ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 0.808 / 1.084 | 16.268 | 3.696 | 40.029 |
+| 80x24 | 0.488 / 0.633 | 16.298 | 3.915 | 137.342 |
+| 200x60 | 1.109 / 1.460 | 16.387 | 4.695 | 32.014 |
+
+Each viewport includes six real resize frames and 240 frames with a visible verdict.
+Resize stalls remain in the inclusive timing records; the maximum observed
+composed RSS was 200,960 KiB.
+
+The separate twelve-stream fixture, with effects off:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core |
+|---|---:|---:|---:|
+| 120x36 | 0.176 / 0.206 | 15.861 | 0.867 |
+| 80x24 | 0.108 / 0.128 | 15.814 | 0.533 |
+
+[Raw logs, environment and source](reports/v0.2.0-integration-step5/) and
+[machine-readable summary](reports/v0.2.0-integration-step5/summary.json).
+Trace and Debug remain pending enablement; the final all-mode integration review
+will follow their merge notice.
+
+
+## Dirty-card preparation — 2026-11-27
+
+Corrected-fixture gates pass on dev3 (30 seconds per viewport) and hueb
+(300 seconds per viewport). Required macOS workflow 45935575586 is green, including
+the corrected demo-artifact copy and upload.
+Measured on dev3 (AMD Ryzen 9 8945HX, Linux x86_64, Rust 1.99.1), optimized
+bench, `CARGO_BUILD_JOBS=4`, 30 seconds per viewport. Builds and measurements
+ran sequentially. Full effects, 60-Hz scheduling, real widgets, 10,000 retained
+history cards and twelve 40-delta/s streams remain enabled. No thresholds changed.
+
+### Accepted macOS workflow — run 45935575586
+
+[Run 45935575586](https://github.com/shoemoney/squad/actions/runs/45935575586)
+completed successfully on hueb at source `6f0aa45a1fec2c30deef7e613f7bce229b517ddc`.
+Compilation, demo packaging, invariants, both spike viewports, all three composed
+viewports, the full-catalogue frame gate and artifact upload passed. Each composed
+window ran 300 seconds and includes all sixty real resize frames. All draw p95
+values are below the 6-ms target; every original hard threshold remains unchanged.
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Resize frame p95 / max ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 2.501 / 3.048 | 18.609 | 11.987 | 74.030 / 75.177 |
+| 80x24 | 1.200 / 1.624 | 19.984 | 6.347 | 131.145 / 132.993 |
+| 200x60 | 3.687 / 4.471 | 20.215 | 14.963 | 71.887 / 75.759 |
+
+[Accepted workflow logs, environment and run state](reports/perf-dirty-cards-2026-11-27/workflow-45935575586/)
+retain the measurements. The uploaded artifact includes the executable demo.
+[Accepted draw comparison](reports/perf-dirty-cards-2026-11-27/accepted-draw-p95.html).
+
+Final Linux results (30 seconds each, all corrected-fixture gates pass):
+
+| Viewport | Before → final draw p95 ms | Final draw p99 ms | Final key p95 ms | Final CPU % one core | Final maximum resize frame ms | Final ending RSS KiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 140x42 | 3.173 → 0.765 | 0.991 | 16.201 | 3.397 | 40.733 | 194440 |
+| 80x24 | 2.815 → 0.472 | 0.563 | 16.236 | 3.488 | 104.629 | 189148 |
+| 200x60 | 3.501 → 1.219 | 1.719 | 16.324 | 5.126 | 43.478 | 199596 |
+
+The full final workspace suite passed: **1,302 tests, zero failures, four ignored**.
+The four ignored entries are the manual release latency gate, 30-minute streaming
+RSS soak, parent-driven PTY child entry point, and manual 500-message RSS audit.
+Workspace/all-target Clippy with `-D warnings`, formatting and whitespace checks
+pass. All existing insta snapshots remain unchanged. Seven new regressions cover
+terminal/retry/supersession publication, pending versus displayed text, no per-frame
+history lookups/inserts, follow/unread transitions, clear/restore, replay/paging,
+width/anchor stability, fence completion/replacement, and Unicode/tab source rows.
+A six-second-per-viewport historical-mode smoke also passed; it only verifies the
+preserved comparator switch and is not a sustained acceptance run.
+
+The corrected fixture resizes TestBackend with Terminal and anchors at the verdict
+widget's header before emitting its live cue. It asserts verdict visibility during
+the painter window. Resize frames remain in all inclusive latency percentiles;
+the log also reports resize-call and full resize-frame stalls separately.
+`COMPOSED_HISTORICAL=1` retains the original fixture behavior as a comparator;
+older results below used that behavior and did not exercise actual width reflow.
+
+| Viewport | Before draw p95 / p99 ms | Dirty-card draw p95 / p99 ms | Before / dirty key p95 ms | Before / dirty CPU % one core | Before / dirty ending RSS KiB |
+|---|---:|---:|---:|---:|---:|
+| 140x42 | 3.173 / 5.561 | 1.375 / 1.962 | 490.049 / 419.914 | 27.868 / 17.407 | 261976 / 195084 |
+| 80x24 | 2.815 / 5.276 | 1.113 / 1.475 | 404.681 / 419.890 | 26.019 / 16.206 | 256680 / 189792 |
+| 200x60 | 3.501 / 6.000 | 1.844 / 2.512 | 454.716 / 521.957 | 29.545 / 21.229 | 270272 / 203360 |
+
+These short corrected-fixture windows **fail the key-latency gate**. Each includes
+six real width changes. Before maximum resize-frame stalls were 792.389,
+789.332 and 791.800 ms; after dirty preparation they were 835.527, 815.787 and
+835.472 ms. Removing per-frame history scans improves draw latency and CPU but
+does not fix synchronous full-history width reflow. Completed fence parser state
+release reduces ending RSS by approximately 65.3 MiB in each viewport.
+
+Dirty publication retains one revision entry per message, rather than an unbounded
+chunk journal. Completion, failure, cancellation, retry and supersession publish
+identities immediately; pending deltas publish text at the 50-ms flush. Preparation
+reads CardState directly from the borrowed card. Activity counts change on actual
+insertions and follow transitions; ticks and draws perform no history insertions.
+Restore preserves surviving unread identities while older replayed cards count as
+seen. Completed Markdown keeps source and styled/wrapped rows and releases its
+incremental fence parser/highlighter state.
+
+[Raw before/after logs](reports/perf-dirty-cards-2026-11-27/) include startup,
+frame/delta counts, load, inclusive percentiles, resize stalls and RSS.
+### Conditional anchor/reflow follow-up
+
+A 30-second-per-viewport smoke on hueb (Apple M3 Ultra, 28 logical CPUs, 96 GiB,
+macOS 27.2.1, Rust 1.99.1, four Cargo jobs) confirmed the remaining failure after
+dirty preparation: draw p95 5.050/4.342/5.670 ms, key p95
+341.814/341.260/345.524 ms, CPU 21.484/18.827/27.666%, and maximum resize
+stalls 636.398/644.792/646.991 ms. This triggered the conditional rank-4 work.
+
+Anchor preparation now uses the already parsed block's actual row count and caches
+its source-grapheme count. Its lightweight source-row mapping preserves the existing
+Unicode/tab/control wrapping policy without allocating display cells or starting a
+second Markdown renderer/highlighter. Width changes reuse wrapped blocks when all
+styled lines fit both old and new widths, with a conservative tab-width bound.
+Narrowing still performs real wrapping; there is no viewport-specific shortcut or
+alternate renderer. Retry, completion, reference reconciliation and width changes
+keep the canonical source anchors.
+
+The subsequent Mac smoke passed at all three viewports:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Maximum resize frame ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 2.593 / 3.153 | 18.256 | 10.807 | 72.756 |
+| 80x24 | 1.541 / 1.812 | 18.155 | 8.263 | 133.793 |
+| 200x60 | 3.780 / 5.146 | 19.700 | 14.098 | 75.313 |
+
+These Mac measurements ran manually under the runner's `squad-ci` account in an
+isolated source/build directory with a clone of its compiled dependency cache.
+The unrelated CI job remained untouched and idle in its stalled PTY test.
+[Environment](reports/perf-dirty-cards-2026-11-27/mac-environment.txt) and raw logs
+identify this shared-host qualification. They are separate from workflow acceptance.
+
+[Run 45927912562](https://github.com/shoemoney/squad/actions/runs/45927912562)
+was the initial dirty-only dispatch and was cancelled while queued after the
+conditional fix. Its replacement, [run 45928957488](https://github.com/shoemoney/squad/actions/runs/45928957488),
+used product head `659700128025546c20e3e2d5024ccaa678cbc3cb`. It completed on
+hueb on 2026-11-27: invariants, all spike/composed viewports and the full-catalogue
+frame gate passed. The overall run failed when copying the demo from a hard-coded
+`target/release/examples/demo` path. This runner sets an external `CARGO_TARGET_DIR`.
+The workflow now resolves `target_directory` through Cargo metadata; a native hueb
+check copied the executable successfully. No benchmark or threshold changed.
+[Replacement run 45935575586](https://github.com/shoemoney/squad/actions/runs/45935575586)
+uses workflow-fix head `6f0aa45a1fec2c30deef7e613f7bce229b517ddc` and passed
+all steps, including demo artifact packaging and upload.
+
+Workflow 45928957488's actual 300-second composed measurements:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Maximum resize frame ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 2.606 / 3.144 | 18.803 | 12.520 | 74.005 |
+| 80x24 | 0.945 / 1.642 | 19.337 | 6.764 | 136.753 |
+| 200x60 | 3.694 / 4.436 | 20.039 | 15.376 | 76.797 |
+
+[Workflow logs and environment](reports/perf-dirty-cards-2026-11-27/workflow-45928957488/)
+retain the completed measurements. Overall workflow acceptance succeeded in the corrected replacement run. Original supplied macOS draw p95 was 10.8–11.6 ms in
+[run 45912463641](https://github.com/shoemoney/squad/actions/runs/45912463641).
+
+### Final manual macOS gate — 300 seconds per viewport
+
+All three corrected-fixture windows pass, with draw p95 below the 6-ms target.
+The 60 real width changes per viewport remain in inclusive draw, work and key
+latency samples; dedicated resize p95/max still expose the synchronous tails.
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Resize frame p95 / max ms | Frames / deltas | Ending RSS KiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 140x42 | 2.376 / 3.058 | 18.638 | 9.708 | 73.723 / 74.991 | 17765 / 144012 | 179216 |
+| 80x24 | 1.564 / 1.809 | 19.851 | 8.343 | 135.834 / 136.529 | 17535 / 144012 | 220128 |
+| 200x60 | 3.514 / 4.196 | 19.474 | 14.487 | 74.436 / 75.318 | 17765 / 144012 | 233568 |
+
+Product source is `659700128025546c20e3e2d5024ccaa678cbc3cb`.
+[Source hashes](reports/perf-dirty-cards-2026-11-27/source-sha256.txt) were checked
+against dev3. Linux's later benchmark-only Clippy spelling uses
+`is_multiple_of(8)` instead of `% 8 == 0`; production code and workload are identical.
+[Raw sustained Mac log](reports/perf-dirty-cards-2026-11-27/mac-final-300s.log),
+[machine-readable summary](reports/perf-dirty-cards-2026-11-27/summary.json) and
+[Linux comparison chart](reports/perf-dirty-cards-2026-11-27/draw-p95.html)
+retain the measurements. Shared-host manual results are separate from the workflow
+measurements above. The unrelated CI job was left untouched as requested; the
+performance workflow subsequently ran on the dedicated runner.
+
+Reproduction from the product checkout (builds finish before benchmark sampling):
+
+```sh
+CARGO_BUILD_JOBS=4 COMPOSED_SECS=30 cargo bench -p squad-tui --locked --bench composed_streams
+CARGO_BUILD_JOBS=4 COMPOSED_SECS=300 cargo bench -p squad-tui --locked --bench composed_streams
+CARGO_BUILD_JOBS=4 cargo test --workspace --no-fail-fast
+CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all -- --check
+```
+
 ## Scoped memory audit on dev2 — 2026-11-26
 
 Host: shared dev2, Linux x86_64, kernel 7.0.0-43-generic, AMD Ryzen 9 8945HX (32 logical CPUs), Rust 1.99.1. Debug test binaries, built with `CARGO_BUILD_JOBS=4`. These measurements use library/runtime test processes and do not certify the isolated four-core/8-GB reference-machine profile or an integrated physical-terminal/full-effects run. No live provider or real credential is used.

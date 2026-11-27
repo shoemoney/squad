@@ -1,0 +1,23 @@
+    Finished `bench` profile [optimized] target(s) in 0.12s
+     Running benches/twelve_streams.rs (/Users/squad-ci/target/squad/release/deps/twelve_streams-6a8339eca60e1f91)
+twelve_streams: mode=TestBackend secs_per_viewport=300 target=macos-aarch64 effects=off
+120x36: elapsed=300.019s frames=17982 deltas=144000 keys=3614 scrolls=150 resizes=60 startup_ms=2.945 draw_p95_ms=0.483 draw_p99_ms=0.526 key_p95_ms=16.901 cpu_one_core_pct=2.853 RSS KiB: 15664 gate=PASS
+80x24: elapsed=300.020s frames=17977 deltas=144000 keys=3614 scrolls=150 resizes=60 startup_ms=4.762 draw_p95_ms=0.297 draw_p99_ms=0.322 key_p95_ms=17.045 cpu_one_core_pct=1.847 RSS KiB: 18976 gate=PASS
+      600.33 real        12.78 user         1.51 sys
+           122241024  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               12647  page reclaims
+                   7  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                   9  voluntary context switches
+               36698  involuntary context switches
+          2050413750  instructions retired
+           603132579  cycles elapsed
+            97321704  peak memory footprint

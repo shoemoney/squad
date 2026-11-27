@@ -1,0 +1,32 @@
+    Finished `bench` profile [optimized] target(s) in 0.13s
+     Running benches/composed_streams.rs (/Users/squad-ci/target/squad/release/deps/composed_streams-0a4b22a513c7d16d)
+140x42 startup_ms=521.056
+140x42: resize_count=60 resize_call_p95_ms=0.094 resize_frame_p95_ms=74.030 resize_frame_max_ms=75.177 visible_verdict_frames=2252 historical=false
+140x42: elapsed=300.079s frames=17767 deltas=144012 draw_p95_ms=2.501 draw_p99_ms=3.048 key_p95_ms=18.609 cpu_one_core_pct=11.987 RSS KiB: 180080 gate=PASS
+140x42: reducer_plus_draw_p95_ms=2.644 reducer_plus_draw_p99_ms=3.176 load_start= load_end=
+80x24 startup_ms=464.358
+80x24: resize_count=60 resize_call_p95_ms=0.048 resize_frame_p95_ms=131.145 resize_frame_max_ms=132.993 visible_verdict_frames=2229 historical=false
+80x24: elapsed=300.135s frames=17578 deltas=144012 draw_p95_ms=1.200 draw_p99_ms=1.624 key_p95_ms=19.984 cpu_one_core_pct=6.347 RSS KiB: 225552 gate=PASS
+80x24: reducer_plus_draw_p95_ms=1.325 reducer_plus_draw_p99_ms=1.761 load_start= load_end=
+200x60 startup_ms=503.744
+200x60: resize_count=60 resize_call_p95_ms=0.168 resize_frame_p95_ms=71.887 resize_frame_max_ms=75.759 visible_verdict_frames=2254 historical=false
+200x60: elapsed=300.067s frames=17785 deltas=144012 draw_p95_ms=3.687 draw_p99_ms=4.471 key_p95_ms=20.215 cpu_one_core_pct=14.963 RSS KiB: 234400 gate=PASS
+200x60: reducer_plus_draw_p95_ms=3.778 reducer_plus_draw_p99_ms=4.611 load_start= load_end=
+      902.29 real        96.59 user         5.05 sys
+           252477440  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               29034  page reclaims
+                  11  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                  15  voluntary context switches
+               57649  involuntary context switches
+          2060318614  instructions retired
+           607511392  cycles elapsed
+            97256168  peak memory footprint

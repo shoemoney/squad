@@ -1,6 +1,6 @@
 # 💸 What a Squad run costs
 
-**Status: all eight modes measured.** Part 1 (2026-11-25) was cut short by OpenRouter's $250 weekly workspace budget. Part 2 (2026-11-26) measured ordinary, debate, survey and tournament on `cost-study-2`. Part 3 (2026-11-26 UTC) measured grill twice, census twice, crosscheck twice and a second successful probe on release build `e4e4bdc` of `release-v0.1.1`, after merging `fix-live-invalid-output` (`18c890d`). All seven part 3 runs completed; three judge outputs needed a paid repair. The default daily cap was $150.
+**Status: the original eight workflows are measured; v0.2.0 integration measurements follow below.** Part 1 (2026-11-25) was cut short by OpenRouter's $250 weekly workspace budget. Part 2 (2026-11-26) measured ordinary, debate, survey and tournament on `cost-study-2`. Part 3 (2026-11-26 UTC) measured grill twice, census twice, crosscheck twice and a second successful probe on release build `e4e4bdc` of `release-v0.1.1`, after merging `fix-live-invalid-output` (`18c890d`). All seven part 3 runs completed; three judge outputs needed a paid repair. The default daily cap was $150.
 
 ## Method
 
@@ -129,4 +129,104 @@ Cost and wall time cover completed, budget-clean runs across all three parts; hi
 - All seven part 3 runs completed. Crosscheck still produced two truncated first rulings (`JUDGE_INVALID_MODE_OUTPUT`), and probe one invalid first report (`JUDGE_INVALID_VERDICT`); automatic judge repairs recovered all three and are included in the cost. The four grill/census runs had no validation repairs.
 - Reservation size depends on plan bounds and model roles. Part 3's probe reserved $10.61 versus $26.18 in part 1; its random role split and brief differ, so the smaller reservation is not a controlled before/after comparison.
 
-All requested modes are now measured; broader prompts and more samples would establish a stronger range.
+The original seven contest modes and ordinary chat are measured in this study. The v0.2.0 additions are recorded separately below.
+
+## v0.2.0 integrated default-roster measurements
+
+Measured 2026-11-27 on dev2 with one release binary built from `5afff2f`
+(`cargo build --release --locked -p squad-cli`, SHA-256
+`4bdcd35ae163167f938ca49a8bb5ead7b0ff8dd85744d963dde962d9aab8c613`). All eleven
+new modes ran once, in parallel, on the built-in **six-member** roster and judge
+(no `SQUAD_MODEL_*` overrides), `SQUAD_DAILY_MAX_USD=150`, a fresh private data
+directory per mode and `--env-file /dev/null`. The OpenRouter credential entered
+each process environment directly from the vault; nothing was logged or saved,
+and every artifact was scanned for it.
+
+Each row is one paid contest start. Readback includes its one `/answer`
+continuation and Debug its two (the round-2 answer isolated the cause), so
+their wall time is the sum of active sends and excludes human think time.
+Wall time is process launch to exit with eleven contests sharing the machine,
+and peaks are the `spend_daily` reservation sampled every 0.5 s. Actual spend
+is the ledger total including four startup probes. Every attempt was then looked
+up on OpenRouter's generation endpoint: **all 251 of 251 were found and their sum
+matched the ledger to within one microdollar per run**.
+
+| Mode | Outcome | Actual | Wall | Preflight calls / provider attempts incl. startup | Peak reserved | Final reserved / unknown |
+|---|---|---:|---:|---:|---:|---|
+| Rank | COMPLETE, ranked | $0.155734 | 33.562 s | 7 / 11 | $18.024576 | $0 / 0 |
+| Forge | COMPLETE, original_won | $0.441333 | 80.158 s | 15 / 19 | $24.736836 | $0 / 0 |
+| Forecast | COMPLETE, complete | $0.471815 | 127.760 s | 14 / 18 | $20.188827 | $0 / 0 |
+| Decide | COMPLETE, complete | $0.443567 | 94.179 s | 14 / 18 | $16.400080 | $0 / 0 |
+| Blow It Up | COMPLETE, reported (two failed attempts, $0.100000) | $1.765600 | 197.393 s | 13 / 19 | $20.574231 | $0 / 0 |
+| Readback | COMPLETE, rounds_complete (R=1, `1a` answered) | $0.420513 | 44.090 s | 8 / 13 | $10.961076 | $0 / 0 |
+| Tune | COMPLETE, tuned | $0.552148 | 114.711 s | 34 / 35 | $24.970323 | $0 / 0 |
+| Bass Ackwards PRD | COMPLETE, saved | $2.146136 | 411.352 s | 28 / 32 | $50.711781 | $0 / 0 |
+| Negotiate | COMPLETE, rehearsed | $2.022003 | 376.767 s | 29 / 41 | $32.021214 | $0 / 0 |
+| Debug | COMPLETE, isolated (round 2; two failed attempts, $0.041460) | $1.357046 | 451.384 s | 29 / 27 | $41.175132 | $0 / 0 |
+| Trace | COMPLETE, complete | $0.356130 | 72.140 s | 14 / 18 | $23.796411 | $0 / 0 |
+
+Debug isolated after two of its three allowed rounds, so it used fewer calls than
+its bound. The eleven runs cost **$10.13** in total. Earlier per-mode evidence
+(different binaries, 2026-11-26) is in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md)
+and each mode's page.
+
+### Longer cross-mode runs (2026-11-27, final tree)
+
+Two further paid runs on the built-in six-member roster from a binary built at `120c0fd`
+(SHA-256 `e7bce9c2b856f61dfca3b47ecf814d0c228d7a1cbdbf23e9fa8379ffef47c488`); details and
+caveats are in [the follow-up section of the live smoke](live-smoke-2026-11-27-v0.2.0.md).
+
+| Run | Outcome | Actual | Wall (active sends) | Preflight calls / provider attempts incl. startup | Peak reserved | Final reserved / unknown |
+|---|---|---:|---:|---:|---:|---|
+| Readback, `READBACK_ROUNDS=2` (answered twice) | COMPLETE, rounds_complete | $1.356852 | 384.736 s | 16 / 24 | $19.825494 | $0 / 0 |
+| Bass Ackwards PRD, `PRD_HUMAN_REVIEW=1` (one note, `/continue`) | COMPLETE, saved | $2.561021 | 389.220 s | 29 / 35 | $56.142855 | $0 / 0 |
+
+A second Readback round roughly triples the one-round cost above ($0.420513 at R=1) because
+every member reads the rewritten spec again and a rewrite and a diff follow. Turning on the
+PRD review adds one planned call (the judge's apply) to the 28 of the default run and a
+worst-case reservation of $56.14 against $50.71. One Readback rewrite attempt failed and was
+paid ($0.086696) and settled; no reservation or unknown-cost call remained in either run.
+
+### Original timeout holds reconciled
+
+The integrated runtime reopened the original rooms with `/who` and reconciled
+their delayed receipts through the canonical writer. Forecast and Decide stayed at nineteen attempts each; Debug stayed at twelve.
+No new provider generation or direct ledger SQL edit occurred.
+
+| Original smoke | Spent at exit | Held at exit | Late actual charge | Settled spent | Final held / unknown |
+|---|---:|---:|---:|---:|---|
+| Forecast, dev3 | $0.493022 | $0.510112 | $0.014302 | $0.507324 | $0 / 0 |
+| Decide, dev2 | $0.607680 | $0.583480 | $0.014226 | $0.621906 | $0 / 0 |
+| Debug, dev2 worker partial | $0.113858 | $1.565995 | $0.037286 | $0.151144 | $0 / 0 |
+
+### Integrated Tune executor cost
+
+The one-generation run dispatches 31 mode calls against a 34-call preflight upper
+bound. All accepted work completed; the retained suite has three train and three
+held-out cases. The exported task-specific held-out score improved from 0.03 to
+1.00; this is a smoke result, not a general prompt-quality benchmark.
+
+| Component | Attempts | Actual |
+|---|---:|---:|
+| Bare executor (`tune.execute`) | 18 | $0.095800 |
+| Member case proposals and mutations | 9 | $0.203165 |
+| Judge freeze and score | 4 | $0.221576 |
+| Startup probes | 4 | $0.001536 |
+| Total | 35 | $0.522077 |
+
+### Integrated Negotiate retries and outcomes
+
+Default six members and three rounds produced twenty-nine completed work items.
+Six first member outputs exceeded their word budgets and repaired privately: one
+map, two moves and three counterpart replies. Thirty-five mode attempts plus
+four startup probes cost $1.591324. Both judge calls passed on the first attempt.
+One table ended in a deal; two reached the round ceiling unfinished; none were
+abandoned. Final reservation and unknown calls are zero. The preflight bound is
+29 calls / 60 reserved attempts; the estimated cost was $12.431808.
+
+Debug's two delayed Grok charges reconciled automatically. Its third old hold
+was an undispatched judge attempt: the old work-kind guard proves the provider
+runner was never called. That exact record was reconciled at zero through the
+accounting writer after a backup dry run, with a system audit notice. This is
+source-backed repair, not a policy that treats missing generation IDs as free.
+See [audit source and summary](reports/v0.2.0-debug-reconciliation/).

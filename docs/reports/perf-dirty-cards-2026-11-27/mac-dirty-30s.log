@@ -1,0 +1,25 @@
+   Compiling ring v0.17.14
+   Compiling squad-protocol v0.1.3 (/private/tmp/squad-dirty-cards-06ceab7/src/crates/squad-protocol)
+   Compiling rustls v0.23.46
+   Compiling rustls-webpki v0.103.17
+   Compiling tokio-rustls v0.26.6
+   Compiling hyper-rustls v0.27.10
+   Compiling reqwest v0.12.28
+   Compiling squad-store v0.1.3 (/private/tmp/squad-dirty-cards-06ceab7/src/crates/squad-store)
+   Compiling squad-agents v0.1.3 (/private/tmp/squad-dirty-cards-06ceab7/src/crates/squad-agents)
+   Compiling squad-core v0.1.3 (/private/tmp/squad-dirty-cards-06ceab7/src/crates/squad-core)
+   Compiling squad-tui v0.1.3 (/private/tmp/squad-dirty-cards-06ceab7/src/crates/squad-tui)
+    Finished `bench` profile [optimized] target(s) in 1m 04s
+     Running benches/composed_streams.rs (/tmp/squad-dirty-cards-06ceab7/target/release/deps/composed_streams-0a4b22a513c7d16d)
+140x42 startup_ms=976.296
+140x42: resize_count=6 resize_call_p95_ms=0.094 resize_frame_p95_ms=636.398 resize_frame_max_ms=636.398 visible_verdict_frames=240 historical=false
+140x42: elapsed=30.627s frames=1615 deltas=14412 draw_p95_ms=5.050 draw_p99_ms=6.345 key_p95_ms=341.814 cpu_one_core_pct=21.484 RSS KiB: 177904 gate=FAIL
+140x42: reducer_plus_draw_p95_ms=5.179 reducer_plus_draw_p99_ms=6.479 load_start= load_end=
+80x24 startup_ms=936.757
+80x24: resize_count=6 resize_call_p95_ms=0.100 resize_frame_p95_ms=644.792 resize_frame_max_ms=644.792 visible_verdict_frames=240 historical=false
+80x24: elapsed=30.648s frames=1611 deltas=14412 draw_p95_ms=4.342 draw_p99_ms=5.476 key_p95_ms=341.260 cpu_one_core_pct=18.827 RSS KiB: 224944 gate=FAIL
+80x24: reducer_plus_draw_p95_ms=4.466 reducer_plus_draw_p99_ms=5.595 load_start= load_end=
+200x60 startup_ms=932.953
+200x60: resize_count=6 resize_call_p95_ms=0.174 resize_frame_p95_ms=646.991 resize_frame_max_ms=646.991 visible_verdict_frames=240 historical=false
+200x60: elapsed=30.652s frames=1611 deltas=14412 draw_p95_ms=5.670 draw_p99_ms=7.236 key_p95_ms=345.524 cpu_one_core_pct=27.666 RSS KiB: 229168 gate=FAIL
+200x60: reducer_plus_draw_p95_ms=5.758 reducer_plus_draw_p99_ms=7.394 load_start= load_end=

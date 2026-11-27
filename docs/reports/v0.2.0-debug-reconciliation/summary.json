@@ -1,0 +1,38 @@
+{
+  "label": "debug",
+  "before": {
+    "daily": [
+      [
+        "2026-11-26",
+        113858,
+        1565995,
+        3
+      ]
+    ],
+    "attempts": 12,
+    "unresolved": 3
+  },
+  "after": {
+    "daily": [
+      [
+        "2026-11-26",
+        151144,
+        787385,
+        1
+      ]
+    ],
+    "attempts": 12,
+    "unresolved": 1
+  },
+  "exit_code": 0,
+  "wall_seconds": 1.216,
+  "evidence": "/tmp/squad-v020-reconcile-debug-hvquuycu",
+  "pre_dispatch_repair": {
+    "attempts": 12,
+    "basis": "source-proven pre-dispatch rejection; canonical Account transaction with audit notice",
+    "reserved_micros": 0,
+    "spent_micros": 151144,
+    "unknown_calls": 0
+  },
+  "pre_dispatch_dry_run_passed": true
+}

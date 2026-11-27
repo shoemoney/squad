@@ -482,8 +482,24 @@ async fn cached_alias_target_must_still_be_in_the_fresh_catalog() {
 
 #[tokio::test]
 async fn startup_probes_overlap_and_preserve_roster_and_judge_order() {
-    use std::time::{Duration, Instant};
+    use std::{
+        sync::{
+            Arc,
+            atomic::{AtomicUsize, Ordering},
+        },
+        time::Duration,
+    };
     use wiremock::matchers::body_partial_json;
+    struct CountedProbe {
+        started: Arc<AtomicUsize>,
+        response: wiremock::ResponseTemplate,
+    }
+    impl wiremock::Respond for CountedProbe {
+        fn respond(&self, _: &wiremock::Request) -> wiremock::ResponseTemplate {
+            self.started.fetch_add(1, Ordering::SeqCst);
+            self.response.clone()
+        }
+    }
     let fake = FakeOpenRouter::start().await;
     let mut cfg = config("~fixture/slow");
     let mut second = cfg.agents[0].clone();
@@ -498,6 +514,7 @@ async fn startup_probes_overlap_and_preserve_roster_and_judge_order() {
         data["data"].as_array_mut().unwrap().push(model);
     }
     fake.catalog(data).await;
+    let started = Arc::new(AtomicUsize::new(0));
     for (alias, slug, millis) in [
         ("~fixture/slow", "fixture/slow", 450),
         ("~fixture/fast", "fixture/fast", 300),
@@ -506,26 +523,27 @@ async fn startup_probes_overlap_and_preserve_roster_and_judge_order() {
         Mock::given(method("POST"))
             .and(path("/api/v1/chat/completions"))
             .and(body_partial_json(json!({"model":alias})))
-            .respond_with(alias_probe(slug).set_delay(Duration::from_millis(millis)))
+            .respond_with(CountedProbe {
+                started: started.clone(),
+                response: alias_probe(slug).set_delay(Duration::from_millis(millis)),
+            })
             .expect(1)
             .mount(&fake.server)
             .await;
     }
     let order = std::sync::Mutex::new(Vec::new());
-    let started = Instant::now();
     let result =
         resolve_persisted_with_progress(&client(&fake), &cfg, 10, &mut AliasStore(None), &|seat| {
+            // A sequential resolver completes its first probe before starting
+            // the others. Observe dispatch directly, without a host-speed gate.
+            assert_eq!(started.load(Ordering::SeqCst), 3);
             order.lock().unwrap().push(seat.nick.clone())
         })
         .await
         .unwrap();
-    assert!(
-        started.elapsed() < Duration::from_millis(850),
-        "probes must overlap: {:?}",
-        started.elapsed()
-    );
-    assert!(started.elapsed() >= Duration::from_millis(450));
-    assert_eq!(*order.lock().unwrap(), ["b", "judge", "a"]);
+    let mut progress = order.into_inner().unwrap();
+    progress.sort();
+    assert_eq!(progress, ["a", "b", "judge"]);
     assert_eq!(
         result
             .members

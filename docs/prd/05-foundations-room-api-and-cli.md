@@ -896,3 +896,12 @@ A waiting send exits 1 if any addressed execution ends in terminal failure, even
 
 Normal TUI exit performs cleanup and returns 0. Required doctor checks that fail produce exit 1. Help and version return 0.
 
+
+### Automatic PRD export directory
+
+`<data_dir>/exports/` holds automatically saved backward PRDs named
+`prd-<slug>-<contestId>.md`. The report commits before the atomic temporary-file
+rename, files use mode 0600, and recovery repeats the same destination and bytes.
+A disk failure preserves the stored exportable report and records `save_failed`.
+One-shot JSON output includes `export.ready` and human output prints the saved
+path. Optional PRD human review returns at `AWAITING_HUMAN` before saving.

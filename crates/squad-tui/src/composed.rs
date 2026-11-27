@@ -22,6 +22,9 @@ pub struct Composed {
     pub banners: widgets::banner::BannerCache,
     pub graphics: BTreeMap<MessageId, Graphics>,
     signature: Option<(usize, usize, usize, u16)>,
+    /// Number of reply cards inspected, independent of widget/anchor work.
+    pub prepared_cards: usize,
+    card_revision: u64,
     pub started: bool,
     pub verdict_expanded: bool,
     pub active_cues: Vec<crate::fx::TimedCue>,
@@ -33,6 +36,7 @@ pub struct Composed {
     pub logo: Rect,
     pick_id: Option<MessageId>,
     epoch: u64,
+    transcript_epoch: u64,
     artifact_signature: Option<(usize, usize, u16)>,
 }
 #[derive(Clone, Default)]
@@ -107,13 +111,16 @@ impl Composed {
         top >= bottom
     }
     pub fn prepare(&mut self, session: &Session, width: u16, palette: &Palette) {
-        if self.epoch != session.presentation_epoch {
+        if self.epoch != session.presentation_epoch
+            || self.transcript_epoch != session.transcript.epoch
+        {
             self.transcript = TranscriptView::new(width);
             self.graphics.clear();
             self.signature = None;
             self.artifact_signature = None;
             self.pick_id = None;
             self.epoch = session.presentation_epoch;
+            self.transcript_epoch = session.transcript.epoch;
         }
         let signature = (
             session.snapshot.events.len(),
@@ -124,7 +131,8 @@ impl Composed {
         if self.signature == Some(signature) {
             return;
         }
-        if self.signature.is_none_or(|old| old.1 > signature.1) {
+        let full = self.signature.is_none_or(|old| old.1 > signature.1);
+        if full {
             let mut retained = std::collections::BTreeSet::new();
             retained.extend(
                 session
@@ -157,33 +165,28 @@ impl Composed {
         self.transcript.resize(width);
         let body_width = width.saturating_sub(1);
         let mut models = Vec::new();
-        let mut superseded = session.transcript.superseded.clone();
-        for event in &session.snapshot.events {
-            if let EnvelopePayload::MessageSuperseded(s) = &event.content {
-                superseded.insert(s.superseded_message_id, s.replacement_message_id);
-            }
-        }
-        for card in session.transcript.cards.values() {
-            if session.debate_messages.contains(&card.id) {
+        let ids = if full {
+            session.transcript.cards.keys().copied().collect::<Vec<_>>()
+        } else {
+            session
+                .transcript
+                .changed_since(self.card_revision)
+                .collect::<Vec<_>>()
+        };
+        self.card_revision = session.transcript.revision;
+        for id in ids {
+            self.prepared_cards += 1;
+            let Some(card) = session.transcript.cards.get(&id) else {
                 continue;
-            }
-            let replacement = superseded.get(&card.id).copied();
-            let state = if replacement.is_some() {
-                crate::transcript::CardState::Superseded
-            } else {
-                session
-                    .transcript
-                    .state_of(card.id)
-                    .unwrap_or(crate::transcript::CardState::Complete)
             };
-            if self.transcript.message(card.id).is_some_and(|m| {
-                m.source == card.text
-                    && m.complete == card.complete
-                    && m.attempt == card.attempt
-                    && m.status == state.label()
-            }) {
+            if session.debate_messages.contains(&card.id) {
+                if self.transcript.message(card.id).is_some() {
+                    self.transcript.retain(|id| id != card.id);
+                }
                 continue;
             }
+            let replacement = session.transcript.superseded.get(&card.id).copied();
+            let state = card.state(replacement.is_some());
             let author = match &card.author {
                 Actor::Member(n) => n.to_string(),
                 Actor::Me => "me".into(),
@@ -510,6 +513,71 @@ impl Composed {
                     models.push(model);
                     continue;
                 }
+                let styled = match &contest.state {
+                    Some(ContestState::BlowItUp(_)) => {
+                        let mut view = contest.blow_it_up.clone();
+                        view.killed_expanded = expanded;
+                        Some(("BLOW IT UP", widgets::blow_it_up::styled_lines(&view)))
+                    }
+                    Some(ContestState::Debugging(_)) => Some((
+                        "DEBUG",
+                        widgets::debugging::styled_lines(&contest.debugging),
+                    )),
+                    _ => None,
+                };
+                if let Some((title, lines)) = styled {
+                    let mut model = TranscriptMessage::new(identity(id), title, "");
+                    let height = lines
+                        .iter()
+                        .map(|l| l.width().div_ceil(usize::from(body_width.max(1))) * 2 + 1)
+                        .sum::<usize>()
+                        .min(usize::from(u16::MAX)) as u16;
+                    let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, height));
+                    ratatui::widgets::Widget::render(
+                        ratatui::widgets::Paragraph::new(lines)
+                            .wrap(ratatui::widgets::Wrap { trim: false }),
+                        scratch.area,
+                        &mut scratch,
+                    );
+                    let height = (0..scratch.area.height)
+                        .rfind(|y| (0..body_width).any(|x| scratch[(x, *y)].symbol() != " "))
+                        .map_or(0, |y| usize::from(y) + 1);
+                    model.widget_rows = rows(&scratch, height);
+                    model.presentation.expanded = expanded;
+                    model.presentation.report_revision = revision;
+                    models.push(model);
+                    continue;
+                }
+                let mode_lines = match &contest.state {
+                    Some(ContestState::Forge(_)) => widgets::forge::render(&contest.forge),
+                    Some(ContestState::Tune(_)) => widgets::tune::render(&contest.tune),
+                    Some(ContestState::BassAckwardsPrd(_)) => {
+                        widgets::bass_ackwards_prd::render(&contest.bass_ackwards_prd)
+                    }
+                    Some(ContestState::Forecast(_)) => widgets::forecast::render(&contest.forecast),
+                    Some(ContestState::Decide(_)) => widgets::decide::render(&contest.decide),
+                    Some(ContestState::Negotiate(_)) => widgets::negotiate::render_width(
+                        &contest.negotiate,
+                        usize::from(body_width),
+                    ),
+                    Some(ContestState::BlowItUp(_)) => {
+                        widgets::blow_it_up::render(&contest.blow_it_up)
+                    }
+                    Some(ContestState::Readback(_)) => widgets::readback::render(&contest.readback),
+                    Some(ContestState::Debugging(_)) => {
+                        widgets::debugging::render(&contest.debugging)
+                    }
+                    Some(ContestState::Trace(_)) => widgets::trace::render(&contest.trace),
+                    Some(ContestState::Rank(_)) => widgets::rank::render(&contest.rank),
+                    _ => vec![],
+                };
+                if !mode_lines.is_empty() {
+                    let mut model =
+                        TranscriptMessage::new(identity(id), "CONTEST", mode_lines.join("\n"));
+                    model.presentation.report_revision = revision;
+                    models.push(model);
+                    continue;
+                }
                 if let Some(ContestState::Generic(state)) = &contest.state {
                     let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 128));
                     let rect = scratch.area;
@@ -534,6 +602,14 @@ impl Composed {
                     model.widget_rows = rows(&scratch, height);
                     models.push(model);
                 }
+            }
+            if let Some(pending) = &session.snapshot.context.pending_human {
+                let model = TranscriptMessage::new(
+                    identity(pending.contest_id),
+                    pending.kind.as_str().to_uppercase(),
+                    widgets::human_step::lines(pending).join("\n"),
+                );
+                models.push(model);
             }
             if let Some(pick) = &session.pick {
                 let mut view = widgets::pick::PickView::new(
