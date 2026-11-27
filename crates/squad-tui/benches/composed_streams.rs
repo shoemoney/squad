@@ -252,7 +252,11 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
             if !historical {
                 app.session.transcript.follow = false;
                 app.session.transcript.anchor = Some((verdict, 0));
-                app.composed.anchor = None;
+                app.composed.anchor = Some(squad_tui::widgets::transcript::TranscriptAnchor {
+                    id: verdict,
+                    source_grapheme: 0,
+                    row_in_header: Some(0),
+                });
             }
             let at = app.now();
             app.fx.queue_mut().push(
