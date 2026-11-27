@@ -13,21 +13,36 @@
 ## ⚡ TL;DR
 
 😖 **Pain:** one model, one confident answer, and no way to tell if it is the best one.<br>
-✨ **Potential:** what if up to twelve models shared one terminal room and argued it out, blind, until one answer survives?<br>
+✨ **Potential:** what if up to twelve models shared one terminal room, debated head to head, and a judge named the answer that survives, with blind steps in the modes that need them?<br>
 ✅ **Proof:** this is the real binary, a judged ten-round debate for about **$2.81** measured. ⬇️
 
 ![Squad live: six models streaming side by side, then a judged debate and its verdict card.](docs/media/squad-demo.gif)
 
-<p align="center"><sub><i>Real v0.1.2 release binary against OpenRouter. Trimmed to the populated room and played at 1.5x; long model waits were already cut and labelled on screen. Full recording: <a href="docs/demo/squad-raw.mp4"><code>squad-raw.mp4</code></a>.</i></sub></p>
+<p align="center"><sub><i>Real v0.1.2 release binary against OpenRouter. Idle startup trimmed and played at 1.5x; long model waits were already cut and labelled on screen. Full recording: <a href="docs/demo/squad-raw.mp4"><code>squad-raw.mp4</code></a>.</i></sub></p>
+
+**Linux x64**
 
 ```bash
-brew install shoemoney/tap/squad    # macOS arm64, Linux x64
-mkdir -p ~/.config/squad
-echo 'OPENROUTER_API_KEY=your-key' > ~/.config/squad/.env
+brew install shoemoney/tap/squad
+KEYDIR="${XDG_CONFIG_HOME:-$HOME/.config}/squad"
+mkdir -p "$KEYDIR"
+( umask 077; echo 'OPENROUTER_API_KEY=your-key-here' > "$KEYDIR/.env" )
+chmod 600 "$KEYDIR/.env"
 squad doctor && squad
 ```
 
-<sub>On macOS the key file lives at `~/Library/Application Support/squad/.env`. Full install options are in [Install](#-quick-start).</sub>
+**macOS Apple silicon**
+
+```bash
+brew install shoemoney/tap/squad
+KEYDIR="$HOME/Library/Application Support/squad"
+mkdir -p "$KEYDIR"
+( umask 077; echo 'OPENROUTER_API_KEY=your-key-here' > "$KEYDIR/.env" )
+chmod 600 "$KEYDIR/.env"
+squad doctor && squad
+```
+
+<sub>Replace `your-key-here` with your [OpenRouter key](https://openrouter.ai/keys). Each block is complete on its own. More install routes and troubleshooting: [Install](#-quick-start).</sub>
 
 > 🚧 **Honest status:** Squad is an early release (0.1.x; **0.1.3 is out**). All **seven** contest modes run end to end against OpenRouter. **Eleven more modes ship with v0.2.0** and are not in any release yet: see [New modes](#-new-modes-in-v020). You need your own [OpenRouter key](https://openrouter.ai/keys) with credit on it. Every cost is measured and sourced in [docs/costs.md](docs/costs.md).
 
@@ -68,9 +83,149 @@ Squad is a terminal chat room for several LLMs at once, through [OpenRouter](htt
 
 </details>
 
+<p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
+
+## 🚀 Quick start
+
+Squad runs on your machine. You bring an [OpenRouter key](https://openrouter.ai/keys), and Squad talks to the models for you.
+
+**You need:** a terminal at least 80 columns by 24 rows, an OpenRouter key with credit on it, and macOS on Apple silicon or Linux x64.
+
+### 1️⃣ Install
+
+| Route | Best for | Command |
+|:--|:--|:--|
+| 🍺 **Homebrew** | macOS arm64 and Linux x64, the easy path | `brew install shoemoney/tap/squad` |
+| 📦 **Release archive** | No package manager | Download from [GitHub Releases](https://github.com/shoemoney/squad/releases), see below |
+| 🛠️ **From source** | Hacking on Squad | `./setup.sh` from a checkout, see below |
+
+<details open>
+<summary><b>🍺 Homebrew</b></summary>
+
+```bash
+brew install shoemoney/tap/squad
+squad --version
+```
+
+Tested on 2026-11-26 in a clean `homebrew/brew` Linux container: it installed `squad 0.1.2` and `squad --help` ran. On a fresh Linux Homebrew the first install also pours Homebrew's `gcc` dependency (several hundred MB), so give it a minute. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
+
+</details>
+
+<details>
+<summary><b>📦 Release archive (Linux x64 and macOS arm64)</b></summary>
+
+Each archive ships with a SHA-256 file. This is the exact sequence recorded below, run in a throwaway home directory against the latest published release (`squad 0.1.2` at the time of recording):
+
+```bash
+B=https://github.com/shoemoney/squad/releases/latest/download
+A=squad-cli-x86_64-unknown-linux-gnu        # macOS Apple silicon: squad-cli-aarch64-apple-darwin
+curl -fsSL -O $B/$A.tar.xz -O $B/$A.tar.xz.sha256
+sha256sum -c $A.tar.xz.sha256               # macOS: shasum -a 256 -c $A.tar.xz.sha256
+tar -xJf $A.tar.xz
+mkdir -p ~/.local/bin && install -m 0755 $A/squad ~/.local/bin/squad
+export PATH="$HOME/.local/bin:$PATH"        # add this line to your shell profile too
+squad --version
+```
+
+<p align="center"><img src="docs/media/install.gif" alt="A terminal installing Squad from the release archive: download, checksum OK, install, squad --version, then squad doctor reporting PASS." width="860"></p>
+
+<p align="center"><sub><i>Recorded by <a href="docs/demo/install.tape"><code>docs/demo/install.tape</code></a> with VHS on Linux x64. The key on screen is a placeholder, not a credential.</i></sub></p>
+
+The macOS archive unpacks to `squad-cli-aarch64-apple-darwin/squad` (checked by listing it); the macOS commands were not run on a Mac for this README.
+
+</details>
+
+<details>
+<summary><b>🛠️ From source (setup script, or plain Cargo)</b></summary>
+
+From the repository root:
+
+```bash
+./setup.sh
+```
+
+The script does the boring work for you. It:
+
+- checks for a C toolchain, `pkg-config`, `git` and `curl`, and installs what is missing,
+- installs `rustup` and the pinned Rust toolchain (from `rust-toolchain.toml`) with `clippy` and `rustfmt`,
+- installs `cargo-nextest` and `cargo-insta` (unless you skip them),
+- creates a private `.env` from `.env.example` if you do not have one (mode `0600`),
+- reports whether `OPENROUTER_API_KEY` is set,
+- builds the locked release binary and runs `squad doctor`.
+
+Re-running `./setup.sh` is safe. An existing `.env` is kept. Then add your key to `.env` and start the room:
+
+```bash
+OPENROUTER_API_KEY=your-key-here      # in .env
+./target/release/squad
+```
+
+| Setup flag | What it does |
+|---|---|
+| `--yes` | Runs without prompts. Lets `sudo`, the package manager and `rustup` run unattended. |
+| `--runtime-only` | Skips `cargo-nextest` and `cargo-insta`. |
+| `--no-build` | Skips the release build and the built-binary `doctor` check. |
+| `--help` | Shows usage and exits without changing anything. |
+
+Prefer plain Cargo? `cargo install --path crates/squad-cli --root <empty-temp-directory>` installs the same `squad` binary from a checkout. Squad ships one binary, `squad`, from the `squad-cli` crate.
+
+</details>
+
+### 2️⃣ Add your key
+
+Squad reads configuration from environment variables only, and from exactly one env file. The quickest private setup is a file in your config directory (Linux and macOS use different directories, so pick your block; each assumes Squad is already installed):
+
+**Linux x64**
+
+```bash
+KEYDIR="${XDG_CONFIG_HOME:-$HOME/.config}/squad"
+mkdir -p "$KEYDIR"
+( umask 077; echo 'OPENROUTER_API_KEY=your-key-here' > "$KEYDIR/.env" )
+chmod 600 "$KEYDIR/.env"
+squad doctor
+```
+
+**macOS Apple silicon**
+
+```bash
+KEYDIR="$HOME/Library/Application Support/squad"
+mkdir -p "$KEYDIR"
+( umask 077; echo 'OPENROUTER_API_KEY=your-key-here' > "$KEYDIR/.env" )
+chmod 600 "$KEYDIR/.env"
+squad doctor
+```
+
+
+A `.env` in the directory you run `squad` from works too, and so does `export OPENROUTER_API_KEY=...` in your shell (a shell variable wins over the file). Full rules are in [Configuration](#-configuration).
+
+### 3️⃣ Check, then start the room
+
+```bash
+squad doctor      # offline checks; add --online to test OpenRouter reachability and your key
+squad             # open the room
+```
+
+<p align="center"><img src="docs/media/doctor-pass.png" alt="Terminal screenshot after installing: squad --version prints squad 0.1.2 and squad doctor reports Configuration PASS, Credential presence present, a writable data directory and Overall PASS." width="760"></p>
+
+<p align="center"><sub><i>What you should see: <code>Overall: PASS</code>. Without a key, <code>doctor</code> prints <code>Configuration: FAIL - OPENROUTER_API_KEY is required</code> and exits 1; see <a href="#-troubleshooting">Troubleshooting</a>.</i></sub></p>
+
+### 4️⃣ Say hello to the squad
+
+| Try this | What happens |
+|:--|:--|
+| `@all In one sentence: what is the most underrated Unix command?` | All six default members answer, streaming side by side. |
+| `@grok @gemini $debate Which pick would save a new developer more time? @judge` | A judged two-member debate. Squad shows a cost preview first. |
+| Press `Tab` on an empty line | The starter menu. `@`+Tab lists members, `$`+Tab lists modes, `/`+Tab lists commands. |
+
+Check the install any time with `squad --version` and `squad --help`.
+
+<p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
+
+<p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
+
 ## 🥋 The arena: seven contest modes
 
-Squad has **seven contest modes**. Each one is a script on the same shared engine, and **only one contest runs per room at a time**. Start one with a `$command` in a message. Every clip below is a real recording, trimmed to start populated; the full-length originals are in [`docs/media/full/`](docs/media/full/).
+Squad has **seven contest modes**. Each one is a script on the same shared engine, and **only one contest runs per room at a time**. Start one with a `$command` in a message. Every clip below is a real recording with the idle startup trimmed and the long model waits cut; full-length originals are in [`docs/media/full/`](docs/media/full/).
 
 | Mode | What it does |
 |:--|:--|
@@ -88,22 +243,19 @@ Squad has **seven contest modes**. Each one is a script on the same shared engin
 <summary><b>🗺️ Decision map and the full comparison matrix (calls, blind steps, export)</b></summary>
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1e1e2e','primaryTextColor':'#cdd6f4','primaryBorderColor':'#8b9cf0','lineColor':'#8b9cf0','secondaryColor':'#181825','tertiaryColor':'#1e1e2e','noteBkgColor':'#181825','noteTextColor':'#cdd6f4','actorBkg':'#1e1e2e','actorBorder':'#8b9cf0','actorTextColor':'#cdd6f4','signalColor':'#cdd6f4'}}}%%
-flowchart LR
+flowchart TD
     Start(["🤔 What do you need?"]) --> a{"Two models<br/>disagree?"}
     a -->|yes| Debate["🥊 $debate"]
-    a -->|no| b{"A plan to<br/>test?"}
-    b -->|question it| Grill["🧊 $grill"]
-    b -->|hunt omissions| Census["📋 $census"]
-    b -->|audit coverage| Cross["✅ $crosscheck"]
-    b -->|no plan| c{"What kind of<br/>question?"}
-    c -->|one best answer| Tour["🏆 $tournament"]
-    c -->|group agreement| Survey["📊 $survey"]
-    c -->|a symptom| Probe["🔬 $probe"]
-    classDef ask fill:#1e1e2e,stroke:#f9e2af,color:#f9e2af
-    classDef mode fill:#181825,stroke:#8b9cf0,color:#cdd6f4
+    a -->|no| b{"A plan<br/>to test?"}
+    b -->|yes| Plan["🧊 $grill<br/>📋 $census<br/>✅ $crosscheck"]
+    b -->|no| c{"What kind<br/>of question?"}
+    c -->|best answer| Tour["🏆 $tournament"]
+    c -->|agreement| Survey["📊 $survey"]
+    c -->|symptom| Probe["🔬 $probe"]
+    classDef ask fill:#9a6700,stroke:#6b4700,color:#fff
+    classDef mode fill:#4c5bd4,stroke:#2f3a9a,color:#fff
     class Start,a,b,c ask
-    class Debate,Grill,Census,Cross,Tour,Survey,Probe mode
+    class Debate,Plan,Tour,Survey,Probe mode
 ```
 
 | Mode | Start with | What it's for | Blind steps? | Normal model calls | Ends with | Export |
@@ -660,7 +812,6 @@ Every new-mode report says which members were skipped. Here is what happens when
 <summary><b>🗺️ The pipeline as a diagram</b></summary>
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1e1e2e','primaryTextColor':'#cdd6f4','primaryBorderColor':'#8b9cf0','lineColor':'#8b9cf0','secondaryColor':'#181825','tertiaryColor':'#1e1e2e','noteBkgColor':'#181825','noteTextColor':'#cdd6f4','actorBkg':'#1e1e2e','actorBorder':'#8b9cf0','actorTextColor':'#cdd6f4','signalColor':'#cdd6f4'}}}%%
 flowchart TD
     G["🧊 $grill<br/>the written plan"] --> C["📋 $census<br/>the grilled plan"]
     C --> Pa["✍️ /continue<br/>patch confirmed gaps"]
@@ -733,52 +884,6 @@ Census, crosscheck, survey and probe set their own judge effort. Every judge cal
 </details>
 
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
-
-## 🆕 New modes in v0.2.0
-
-> 🚧 **In development, not released.** Squad 0.1.3 is out with the seven modes above; **v0.2.0 adds eleven more** ([nine new modes](https://github.com/shoemoney/squad/blob/31288c9cc8621e89f3bd0d47474b30872188d483/docs/prd/10-new-modes.md), [`$tune` and `$bass_ackwards_prd`](https://github.com/shoemoney/squad/blob/842e982b042478fdca0f51fc447375df192aeacd/docs/prd/12-tune-and-bass-ackwards.md)). Names are final; behaviour may still change before release. With them Squad has eighteen modes. Until v0.2.0 ships, the seven above are the only contest `$` commands.
-
-Each entry below is one pitch, one starter command and one GIF. Starters and GIFs are filled in from the real v0.2.0 build when it is recorded; nothing here is a measured cost or result.
-
-- 🔨 **`$forge`**: One finished artifact that is better than any single draft.  
-  _Why not an existing mode:_ Tournament crowns one whole entry and discards the rest.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 🔮 **`$forecast`**: A dated probability with spread, cruxes and signposts.  
-  _Why not an existing mode:_ Survey bands claims; it produces no number.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- ⚖️ **`$decide`**: A choice among two to four options on several criteria.  
-  _Why not an existing mode:_ Debate is two-sided and rewards rhetoric.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 🤝 **`$negotiate`**: Preparation and rehearsal for a negotiation.  
-  _Why not an existing mode:_ No existing mode has hidden private information or role play.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 💣 **`$blow_it_up`**: An adversarial attack on a plan, spec, prompt, config or diff.  
-  _Why not an existing mode:_ Census and crosscheck find omissions; none attacks.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 📖 **`$readback`**: A spec that reads the same to every reader.  
-  _Why not an existing mode:_ Census finds what is missing; readback finds what is read differently.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 🐛 **`$debug`**: A stubborn failure, narrowed by tests you actually run.  
-  _Why not an existing mode:_ Probe is a one-shot decision tree with no evidence loop.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 🔍 **`$trace`**: A brief where every claim is tied to a quoted source span.  
-  _Why not an existing mode:_ Survey measures agreement between models, not support in sources.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 🏅 **`$rank`**: An ordered list of your own items.  
-  _Why not an existing mode:_ Tournament ranks model answers to one prompt.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 🎛️ **`$tune`**: A prompt that measurably behaves better, checked on cases its authors never saw.  
-  _Why not an existing mode:_ `$forge` is judged on opinion; no other mode executes its artifact.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-- 🍑 **`$bass_ackwards_prd`**: A PRD for a stated end result, derived backward from that result and saved as a file.  
-  _Why not an existing mode:_ `$grill` and `$census` improve a forward plan that already exists.  
-  `Starter command:` _pending v0.2.0 docs_ · `Demo:` _GIF pending v0.2.0 recording_
-
-<!-- Template for each mode once recorded:
-- 🔨 **`$mode`**: one-line pitch.
-  ![alt text describing what the clip shows](docs/media/mode.gif)
-  `Starter command:` `@all $mode <brief>`
-  Keep each GIF <= 1.5 MB and <= 25 s; record with VHS from docs/demo/*.tape. -->
 
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
 
@@ -898,8 +1003,7 @@ Question-first grills work the same way. Pick one member to be grilled.
 <summary><b>🗺️ Question-first flow as a diagram</b></summary>
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1e1e2e','primaryTextColor':'#cdd6f4','primaryBorderColor':'#8b9cf0','lineColor':'#8b9cf0','secondaryColor':'#181825','tertiaryColor':'#1e1e2e','noteBkgColor':'#181825','noteTextColor':'#cdd6f4','actorBkg':'#1e1e2e','actorBorder':'#8b9cf0','actorTextColor':'#cdd6f4','signalColor':'#cdd6f4'}}}%%
-flowchart LR
+flowchart TD
     Q["❓ @all $debate question"] --> A["1 Answer<br/>each member answers privately"]
     A --> P["2 Pick<br/>you send @nick @nick"]
     P -->|wrong pick| W["✋ Squad says what to fix<br/>the pick stays pending"]
@@ -952,126 +1056,6 @@ The bottom bar shows the most useful keys for your terminal width.
 </details>
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
 
-## 🚀 Quick start
-
-Squad runs on your machine. You bring an [OpenRouter key](https://openrouter.ai/keys), and Squad talks to the models for you.
-
-**You need:** a terminal at least 80 columns by 24 rows, an OpenRouter key with credit on it, and macOS on Apple silicon or Linux x64.
-
-### 1️⃣ Install
-
-| Route | Best for | Command |
-|:--|:--|:--|
-| 🍺 **Homebrew** | macOS arm64 and Linux x64, the easy path | `brew install shoemoney/tap/squad` |
-| 📦 **Release archive** | No package manager | Download from [GitHub Releases](https://github.com/shoemoney/squad/releases), see below |
-| 🛠️ **From source** | Hacking on Squad | `./setup.sh` from a checkout, see below |
-
-<details open>
-<summary><b>🍺 Homebrew</b></summary>
-
-```bash
-brew install shoemoney/tap/squad
-squad --version
-```
-
-Tested on 2026-11-26 in a clean `homebrew/brew` Linux container: it installed `squad 0.1.2` and `squad --help` ran. On a fresh Linux Homebrew the first install also pours Homebrew's `gcc` dependency (several hundred MB), so give it a minute. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
-
-</details>
-
-<details>
-<summary><b>📦 Release archive (Linux x64 and macOS arm64)</b></summary>
-
-Each archive ships with a SHA-256 file. This is the exact sequence recorded below, run in a throwaway home directory against the latest published release (`squad 0.1.2` at the time of recording):
-
-```bash
-B=https://github.com/shoemoney/squad/releases/latest/download
-A=squad-cli-x86_64-unknown-linux-gnu        # macOS Apple silicon: squad-cli-aarch64-apple-darwin
-curl -fsSL -O $B/$A.tar.xz -O $B/$A.tar.xz.sha256
-sha256sum -c $A.tar.xz.sha256               # macOS: shasum -a 256 -c $A.tar.xz.sha256
-tar -xJf $A.tar.xz
-mkdir -p ~/.local/bin && install -m 0755 $A/squad ~/.local/bin/squad
-export PATH="$HOME/.local/bin:$PATH"        # add this line to your shell profile too
-squad --version
-```
-
-<p align="center"><img src="docs/media/install.gif" alt="A terminal installing Squad from the release archive: download, checksum OK, install, squad --version, then squad doctor reporting PASS." width="860"></p>
-
-<p align="center"><sub><i>Recorded by <a href="docs/demo/install.tape"><code>docs/demo/install.tape</code></a> with VHS on Linux x64. The key on screen is a placeholder, not a credential.</i></sub></p>
-
-The macOS archive unpacks to `squad-cli-aarch64-apple-darwin/squad` (checked by listing it); the macOS commands were not run on a Mac for this README.
-
-</details>
-
-<details>
-<summary><b>🛠️ From source (setup script, or plain Cargo)</b></summary>
-
-From the repository root:
-
-```bash
-./setup.sh
-```
-
-The script does the boring work for you. It:
-
-- checks for a C toolchain, `pkg-config`, `git` and `curl`, and installs what is missing,
-- installs `rustup` and the pinned Rust toolchain (from `rust-toolchain.toml`) with `clippy` and `rustfmt`,
-- installs `cargo-nextest` and `cargo-insta` (unless you skip them),
-- creates a private `.env` from `.env.example` if you do not have one (mode `0600`),
-- reports whether `OPENROUTER_API_KEY` is set,
-- builds the locked release binary and runs `squad doctor`.
-
-Re-running `./setup.sh` is safe. An existing `.env` is kept. Then add your key to `.env` and start the room:
-
-```bash
-OPENROUTER_API_KEY=your-key-here      # in .env
-./target/release/squad
-```
-
-| Setup flag | What it does |
-|---|---|
-| `--yes` | Runs without prompts. Lets `sudo`, the package manager and `rustup` run unattended. |
-| `--runtime-only` | Skips `cargo-nextest` and `cargo-insta`. |
-| `--no-build` | Skips the release build and the built-binary `doctor` check. |
-| `--help` | Shows usage and exits without changing anything. |
-
-Prefer plain Cargo? `cargo install --path crates/squad-cli --root <empty-temp-directory>` installs the same `squad` binary from a checkout. Squad ships one binary, `squad`, from the `squad-cli` crate.
-
-</details>
-
-### 2️⃣ Add your key
-
-Squad reads configuration from environment variables only, and from exactly one env file. The quickest private setup is a file in your config directory:
-
-```bash
-# Linux
-mkdir -p ~/.config/squad
-( umask 077; echo 'OPENROUTER_API_KEY=your-key-here' > ~/.config/squad/.env )
-# macOS: the same file lives at ~/Library/Application Support/squad/.env
-```
-
-A `.env` in the directory you run `squad` from works too, and so does `export OPENROUTER_API_KEY=...` in your shell (a shell variable wins over the file). Full rules are in [Configuration](#-configuration).
-
-### 3️⃣ Check, then start the room
-
-```bash
-squad doctor      # offline checks; add --online to test OpenRouter reachability and your key
-squad             # open the room
-```
-
-<p align="center"><img src="docs/media/doctor-pass.png" alt="Terminal screenshot after installing: squad --version prints squad 0.1.2 and squad doctor reports Configuration PASS, Credential presence present, a writable data directory and Overall PASS." width="760"></p>
-
-<p align="center"><sub><i>What you should see: <code>Overall: PASS</code>. Without a key, <code>doctor</code> prints <code>Configuration: FAIL - OPENROUTER_API_KEY is required</code> and exits 1; see <a href="#-troubleshooting">Troubleshooting</a>.</i></sub></p>
-
-### 4️⃣ Say hello to the squad
-
-| Try this | What happens |
-|:--|:--|
-| `@all In one sentence: what is the most underrated Unix command?` | All six default members answer, streaming side by side. |
-| `@grok @gemini $debate Which pick would save a new developer more time? @judge` | A judged two-member debate. Squad shows a cost preview first. |
-| Press `Tab` on an empty line | The starter menu. `@`+Tab lists members, `$`+Tab lists modes, `/`+Tab lists commands. |
-
-Check the install any time with `squad --version` and `squad --help`.
-
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
 
 ## 💸 Costs and the safety net
@@ -1079,7 +1063,7 @@ Check the install any time with `squad --version` and `squad --help`.
 Squad reserves money **before** it sends any provider call, shows you a preflight card, and refuses anything that would pass today's cap. Real runs are far cheaper than the reserve.
 
 ```mermaid
-%%{init: {'themeVariables':{'xyChart':{'plotColorPalette':'#8b9cf0'}}}}%%
+%%{init: {'themeVariables':{'xyChart':{'plotColorPalette':'#5b6bd6'}}}}%%
 xychart-beta
     title "Mean real cost per run, default roster (USD)"
     x-axis ["@all", "probe", "grill", "survey", "tournament", "census", "crosscheck", "debate"]
@@ -1110,7 +1094,6 @@ In short: **parse, preflight, refuse if it would pass the daily cap, ask you to 
 <summary><b>🗺️ Admission flow as a diagram</b></summary>
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1e1e2e','primaryTextColor':'#cdd6f4','primaryBorderColor':'#8b9cf0','lineColor':'#8b9cf0','secondaryColor':'#181825','tertiaryColor':'#1e1e2e','noteBkgColor':'#181825','noteTextColor':'#cdd6f4','actorBkg':'#1e1e2e','actorBorder':'#8b9cf0','actorTextColor':'#cdd6f4','signalColor':'#cdd6f4'}}}%%
 flowchart TD
     S(["▶️ You start a contest"]) --> Pa["Parse"] --> Pf["🧾 Preflight<br/>estimate · reserve · remaining"]
     Pf -->|"would pass the daily cap"| R["⛔ DAILY_MAX_REACHED"]
@@ -1119,8 +1102,8 @@ flowchart TD
     Cf -->|Y| Run
     Cf -->|N| X["🛑 Cancelled"]
     Run --> Rep["📄 Report"] --> Ex["📤 /export"]
-    classDef warn fill:#2a1a1f,stroke:#e57f84,color:#f5c2c7
-    classDef ok fill:#12261d,stroke:#4fae82,color:#c8f0dc
+    classDef warn fill:#b3261e,stroke:#7a1812,color:#fff
+    classDef ok fill:#1f7a4d,stroke:#14532f,color:#fff
     class R,X warn
     class Run,Rep,Ex ok
 ```
@@ -1210,7 +1193,6 @@ In short: **the client starts a tournament, Squad prices it, a human confirms th
 <summary><b>🗺️ MCP call sequence as a diagram</b></summary>
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1e1e2e','primaryTextColor':'#cdd6f4','primaryBorderColor':'#8b9cf0','lineColor':'#8b9cf0','secondaryColor':'#181825','tertiaryColor':'#1e1e2e','noteBkgColor':'#181825','noteTextColor':'#cdd6f4','actorBkg':'#1e1e2e','actorBorder':'#8b9cf0','actorTextColor':'#cdd6f4','signalColor':'#cdd6f4'}}}%%
 sequenceDiagram
     autonumber
     participant C as 🤖 MCP client
@@ -1513,11 +1495,12 @@ Squad is a Cargo workspace of six crates. Each crate has one job, and the table 
 | `squad-tui` | Terminal UI built on Ratatui. | `squad-protocol`, `squad-core` |
 | `squad-cli` | The `squad` binary: argument parsing, one-shot commands, MCP server, `doctor`, `models` and export. | `squad-protocol`, `squad-core`, `squad-store`, `squad-tui` |
 
+In short: **`squad-cli` depends on the TUI, core, store and protocol; the TUI on core and protocol; core on agents, store and protocol; agents and store only on protocol.**
+
 <details>
 <summary><b>🗺️ Crate dependency diagram</b></summary>
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1e1e2e','primaryTextColor':'#cdd6f4','primaryBorderColor':'#8b9cf0','lineColor':'#8b9cf0','secondaryColor':'#181825','tertiaryColor':'#1e1e2e','noteBkgColor':'#181825','noteTextColor':'#cdd6f4','actorBkg':'#1e1e2e','actorBorder':'#8b9cf0','actorTextColor':'#cdd6f4','signalColor':'#cdd6f4'}}}%%
 flowchart TD
     cli["🧰 squad-cli<br/>binary: squad"] --> tui["🖥️ squad-tui"]
     cli --> core["🧠 squad-core"]
@@ -1542,26 +1525,15 @@ In short: **your message and its work commit in one transaction, spend is reserv
 <summary><b>🗺️ What happens on Enter, as a diagram</b></summary>
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1e1e2e','primaryTextColor':'#cdd6f4','primaryBorderColor':'#8b9cf0','lineColor':'#8b9cf0','secondaryColor':'#181825','tertiaryColor':'#1e1e2e','noteBkgColor':'#181825','noteTextColor':'#cdd6f4','actorBkg':'#1e1e2e','actorBorder':'#8b9cf0','actorTextColor':'#cdd6f4','signalColor':'#cdd6f4'}}}%%
-sequenceDiagram
-    autonumber
-    participant U as 🧑 You
-    participant T as 🖥️ TUI
-    participant K as 🧠 Core (router and bus)
-    participant S as 🗄️ SQLite store
-    participant A as 🤖 Agent worker
-    participant O as 🌐 OpenRouter
-    U->>T: @grok @gemini compare these
-    T->>K: submit message
-    K->>S: commit message and work in one transaction
-    K->>S: reserve spend, checked against the daily cap
-    K->>A: dispatch, context-bound to what was addressed
-    A->>O: stream the reply
-    O-->>A: tokens and usage
-    A-->>K: reply and real cost
-    K->>S: commit reply, settle the reservation
-    K-->>T: notify only after the commit
-    T-->>U: reply appears in the room
+flowchart TD
+    U["🧑 You send a message"] --> T["🖥️ TUI submits it"]
+    T --> K1["🧠 Core commits message and work<br/>in one transaction"]
+    K1 --> K2["🗄️ Spend reserved against the daily cap"]
+    K2 --> A["🤖 Worker dispatched, bound to<br/>what was addressed"]
+    A --> O["🌐 OpenRouter streams the reply"]
+    O --> K3["🧠 Reply committed,<br/>reservation settled"]
+    K3 --> N["🖥️ UI notified only after the commit"]
+    N --> R["🧑 Reply appears in the room"]
 ```
 
 </details>
@@ -1864,6 +1836,32 @@ Terminal requirements:
 Run `squad doctor` first. It checks most of these in one place.
 
 Logs are written to `<data directory>/logs/squad.jsonl`. The file is created with mode `0600`. Use `SQUAD_LOG_LEVEL=debug` for more detail.
+
+<p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
+
+## 🆕 New modes in v0.2.0
+
+> 🚧 **In development, not released.** Squad 0.1.3 is out with the seven modes above; **v0.2.0 adds eleven more** ([nine new modes](https://github.com/shoemoney/squad/blob/31288c9cc8621e89f3bd0d47474b30872188d483/docs/prd/10-new-modes.md), [`$tune` and `$bass_ackwards_prd`](https://github.com/shoemoney/squad/blob/842e982b042478fdca0f51fc447375df192aeacd/docs/prd/12-tune-and-bass-ackwards.md)). Names are final; behaviour may still change before release. With them Squad has eighteen modes. Until v0.2.0 ships, the seven above are the only contest `$` commands.
+
+Each gets one GIF, one pitch and one starter command when the v0.2.0 build is recorded. Until then this is only the list of what is specified: no costs and no results exist yet.
+
+- 🔨 **`$forge`**: One finished artifact that is better than any single draft.
+- 🔮 **`$forecast`**: A dated probability with spread, cruxes and signposts.
+- ⚖️ **`$decide`**: A choice among two to four options on several criteria.
+- 🤝 **`$negotiate`**: Preparation and rehearsal for a negotiation.
+- 💣 **`$blow_it_up`**: An adversarial attack on a plan, spec, prompt, config or diff.
+- 📖 **`$readback`**: A spec that reads the same to every reader.
+- 🐛 **`$debug`**: A stubborn failure, narrowed by tests you actually run.
+- 🔍 **`$trace`**: A brief where every claim is tied to a quoted source span.
+- 🏅 **`$rank`**: An ordered list of your own items.
+- 🎛️ **`$tune`**: A prompt that measurably behaves better, checked on cases its authors never saw.
+- 🍑 **`$bass_ackwards_prd`**: A PRD for a stated end result, derived backward from that result and saved as a file.
+
+<!-- Template for each mode once recorded:
+- 🔨 **`$mode`**: one-line pitch.
+  ![alt text describing what the clip shows](docs/media/mode.gif)
+  `Starter command:` `@all $mode <brief>`
+  Keep each GIF <= 1.5 MB and <= 25 s; record with VHS from docs/demo/*.tape. -->
 
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
 
