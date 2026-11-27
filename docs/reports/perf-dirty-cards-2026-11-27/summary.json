@@ -280,5 +280,45 @@
       "resize_frame_max_ms": 75.318,
       "passed": true
     }
+  },
+  "mac_workflow": {
+    "140x42": {
+      "elapsed": 300.079,
+      "draw_p95_ms": 2.501,
+      "draw_p99_ms": 3.048,
+      "key_p95_ms": 18.609,
+      "cpu_one_core_pct": 11.987,
+      "passed": true,
+      "resize_count": 60,
+      "resize_frame_p95_ms": 74.03,
+      "resize_frame_max_ms": 75.177
+    },
+    "80x24": {
+      "elapsed": 300.135,
+      "draw_p95_ms": 1.2,
+      "draw_p99_ms": 1.624,
+      "key_p95_ms": 19.984,
+      "cpu_one_core_pct": 6.347,
+      "passed": true,
+      "resize_count": 60,
+      "resize_frame_p95_ms": 131.145,
+      "resize_frame_max_ms": 132.993
+    },
+    "200x60": {
+      "elapsed": 300.067,
+      "draw_p95_ms": 3.687,
+      "draw_p99_ms": 4.471,
+      "key_p95_ms": 20.215,
+      "cpu_one_core_pct": 14.963,
+      "passed": true,
+      "resize_count": 60,
+      "resize_frame_p95_ms": 71.887,
+      "resize_frame_max_ms": 75.759
+    }
+  },
+  "accepted_workflow": {
+    "id": "45935575586",
+    "head": "6f0aa45a1fec2c30deef7e613f7bce229b517ddc",
+    "conclusion": "success"
   }
 }

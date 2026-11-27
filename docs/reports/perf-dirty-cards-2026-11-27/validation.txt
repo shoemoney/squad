@@ -11,4 +11,4 @@ Manual hueb CARGO_BUILD_JOBS=4 COMPOSED_SECS=300 COMPOSED_ENFORCE=0 composed_str
 Mac focused release library/Markdown/transcript/composed/dirty-card tests: PASS; snapshots unchanged.
 Required mac-perf.yml dispatch 45928957488: all performance/invariant steps PASS; overall FAIL from hard-coded demo artifact path.
 Workflow artifact path fixed using Cargo metadata; bash syntax and actual hueb metadata/copy check PASS.
-Replacement mac-perf.yml dispatch 45935575586 at 6f0aa45: QUEUED; overall workflow acceptance pending.
+Replacement mac-perf.yml dispatch 45935575586 at 6f0aa45: PASS (exit 0), all steps green, demo artifact present; 3/3 composed gates PASS and all draw p95 <=6 ms.

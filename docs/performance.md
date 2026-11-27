@@ -2,13 +2,32 @@
 
 ## Dirty-card preparation — 2026-11-27
 
-Corrected-fixture manual gates pass on dev3 (30 seconds per viewport) and hueb
-(300 seconds per viewport). The dispatched workflow also passed all performance
-gates; its demo-artifact copy failed and a corrected workflow is queued.
+Corrected-fixture gates pass on dev3 (30 seconds per viewport) and hueb
+(300 seconds per viewport). Required macOS workflow 45935575586 is green, including
+the corrected demo-artifact copy and upload.
 Measured on dev3 (AMD Ryzen 9 8945HX, Linux x86_64, Rust 1.99.1), optimized
 bench, `CARGO_BUILD_JOBS=4`, 30 seconds per viewport. Builds and measurements
 ran sequentially. Full effects, 60-Hz scheduling, real widgets, 10,000 retained
 history cards and twelve 40-delta/s streams remain enabled. No thresholds changed.
+
+### Accepted macOS workflow — run 45935575586
+
+[Run 45935575586](https://github.com/shoemoney/squad/actions/runs/45935575586)
+completed successfully on hueb at source `6f0aa45a1fec2c30deef7e613f7bce229b517ddc`.
+Compilation, demo packaging, invariants, both spike viewports, all three composed
+viewports, the full-catalogue frame gate and artifact upload passed. Each composed
+window ran 300 seconds and includes all sixty real resize frames. All draw p95
+values are below the 6-ms target; every original hard threshold remains unchanged.
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Resize frame p95 / max ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 2.501 / 3.048 | 18.609 | 11.987 | 74.030 / 75.177 |
+| 80x24 | 1.200 / 1.624 | 19.984 | 6.347 | 131.145 / 132.993 |
+| 200x60 | 3.687 / 4.471 | 20.215 | 14.963 | 71.887 / 75.759 |
+
+[Accepted workflow logs, environment and run state](reports/perf-dirty-cards-2026-11-27/workflow-45935575586/)
+retain the measurements. The uploaded artifact includes the executable demo.
+[Accepted draw comparison](reports/perf-dirty-cards-2026-11-27/accepted-draw-p95.html).
 
 Final Linux results (30 seconds each, all corrected-fixture gates pass):
 
@@ -101,7 +120,8 @@ frame gate passed. The overall run failed when copying the demo from a hard-code
 The workflow now resolves `target_directory` through Cargo metadata; a native hueb
 check copied the executable successfully. No benchmark or threshold changed.
 [Replacement run 45935575586](https://github.com/shoemoney/squad/actions/runs/45935575586)
-uses workflow-fix head `6f0aa45a1fec2c30deef7e613f7bce229b517ddc` and is queued.
+uses workflow-fix head `6f0aa45a1fec2c30deef7e613f7bce229b517ddc` and passed
+all steps, including demo artifact packaging and upload.
 
 Workflow 45928957488's actual 300-second composed measurements:
 
@@ -112,8 +132,7 @@ Workflow 45928957488's actual 300-second composed measurements:
 | 200x60 | 3.694 / 4.436 | 20.039 | 15.376 | 76.797 |
 
 [Workflow logs and environment](reports/perf-dirty-cards-2026-11-27/workflow-45928957488/)
-retain the completed measurements. Overall workflow acceptance awaits the artifact
-path correction's rerun. Original supplied macOS draw p95 was 10.8–11.6 ms in
+retain the completed measurements. Overall workflow acceptance succeeded in the corrected replacement run. Original supplied macOS draw p95 was 10.8–11.6 ms in
 [run 45912463641](https://github.com/shoemoney/squad/actions/runs/45912463641).
 
 ### Final manual macOS gate — 300 seconds per viewport
