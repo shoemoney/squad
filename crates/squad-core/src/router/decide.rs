@@ -497,7 +497,10 @@ fn step_kind(s: DecideStatus) -> Option<WorkKind> {
         _ => return None,
     })
 }
-fn blind(mut v: Value, setup: &DecideSetup) -> Value {
+/// The blind projection applied to every decision-bearing prose value; public so the
+/// cross-mode isolation fixtures can drive it directly.
+#[doc(hidden)]
+pub fn blind(mut v: Value, setup: &DecideSetup) -> Value {
     let mut tokens = setup.redactions.clone();
     tokens.extend(setup.participants.iter().map(ToString::to_string));
     tokens.extend(setup.models.values().map(|b| b.model.to_string()));

@@ -114,6 +114,11 @@ pub fn blind(text: &str, setup: &ForgeSetup) -> String {
                     .filter(|p| p.len() > 2 && p.chars().any(char::is_alphabetic))
                     .map(str::to_owned),
             );
+            // A short provider such as `x-ai` is split into pieces too small to keep, so
+            // the provider is also redacted whole.
+            if let Some((provider, _)) = slug.trim_start_matches('~').split_once('/') {
+                tokens.push(provider.to_owned());
+            }
         }
     }
     tokens.retain(|s| !s.trim().is_empty());
@@ -129,7 +134,7 @@ pub fn blind(text: &str, setup: &ForgeSetup) -> String {
         .join("|");
     regex::Regex::new(&format!(r"(?i)\b(?:{alternatives})\b"))
         .expect("escaped tokens")
-        .replace_all(text, "?")
+        .replace_all(text, "[redacted]")
         .into_owned()
 }
 pub fn drive(

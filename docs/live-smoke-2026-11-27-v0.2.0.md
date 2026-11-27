@@ -38,3 +38,47 @@ eleven, and the PRD run emitted `export.ready` with its saved path.
 Wall times are with eleven runs sharing the host and exclude human think time.
 Gates on this source: format, Clippy `-D warnings`, 1,689 Cargo passes (four manual
 ignores), 1,688 Nextest passes, doc tests.
+
+## Cross-mode follow-up: two longer live runs (2026-11-27, dev3)
+
+Run after the cross-mode checklist work, from a release binary built from the final tree
+(`120c0fd`, `cargo build --release --locked -p squad-cli`, SHA-256
+`e7bce9c2b856f61dfca3b47ecf814d0c228d7a1cbdbf23e9fa8379ffef47c488`). That tree differs from
+`5afff2f` by the three blind-projection fixes recorded in the changelog. Built-in six-member
+roster and judge, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory per run and
+`--env-file /dev/null`; the key went from the vault into the child environment only. Both
+runs were driven through `squad send --yes --json` and ran at the same time.
+
+| Run | Outcome | Wall (active sends) | Actual | Peak reserved | Final reserved / unknown |
+|---|---|---:|---:|---:|---|
+| `$readback` with `READBACK_ROUNDS=2` | COMPLETE, `rounds_complete` | 384.736 s | $1.356852 | $19.825494 | $0 / 0 |
+| `$bass_ackwards_prd` with `PRD_HUMAN_REVIEW=1` | COMPLETE, `saved` | 389.220 s | $2.561021 | $56.142855 | $0 / 0 |
+
+Wall time sums the sends and excludes human think time. Peak is the worst-case
+reservation the preflight placed (the largest `reservedUsd` in the CLI's accounting
+records); every run released it in full. Actual cost is the ledger total including four
+startup probes. Offline `export` exited 0 for both (41,469 and 349,456 bytes).
+
+**Readback, two rounds.** Start 104.373 s to the first `AWAITING_HUMAN` (three entries),
+`1a 2a 3a` (148.967 s) answered round 1 and returned at the second pause (the rewritten spec read
+back), `1a 2a` (131.396 s) answered round 2 and finished. The run made 24 provider attempts: four
+startup probes, 16 planned mode calls, three `readback.interpret` retries and one
+`readback.rewrite` retry. The first rewrite attempt failed, was paid ($0.086696) and settled;
+its retry completed. Two rewrites and two diff judgments ran. The export states
+*"The last rewrite was not read back."* That is the documented behaviour, not a defect: with
+two rounds the round-1 rewrite is read back in round 2, and the rewrite produced from the
+round-2 answers is the last version and has no further round. Reading that one back needs
+`READBACK_ROUNDS=3`.
+
+**PRD with human review.** The start call returned at `LAST LOOK` after 356.281 s with the
+document built and no file yet written. `/answer <note>` (0.546 s) recorded one note and
+`/continue` (32.393 s) ran the judge's apply step and saved the file. 35 provider attempts: four
+probes, 29 planned calls (six each of done, tree, review and must-have, plus freeze, merge,
+revise, finalize and apply once) and two repair retries (`review`, `apply`). The saved file is
+`exports/prd-self-hosted-status-page-for-a-small-saas-live-wi-<id>.md` under the data
+directory, and the `/continue` send emitted `export.ready` with that path.
+
+**Superseded rehearsal.** Both runs were first made on a binary built before the three
+blind-projection fixes (`4bdcd35…`, the integrated build). They completed too (Readback
+$1.448497; PRD reached `LAST LOOK` at $2.163536 after 405.187 s) and were discarded and redone
+on the final binary, so the owner-approved spend for this section is about $7.5 in total.

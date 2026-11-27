@@ -2,6 +2,8 @@ use rusqlite::params;
 use squad_core::router::{Router, human};
 use squad_protocol::*;
 use squad_store::{Store, commit::CommitOutcome};
+#[path = "support/mode_seeds.rs"]
+mod mode_seeds;
 fn event(store: &Store) -> CommittedEnvelope {
     let id = EventId::new();
     store
@@ -54,8 +56,8 @@ fn fixture(path: &std::path::Path, kind: ContestKind) -> (Store, Router, parser:
  let state=serde_json::json!({"contestId":p.contest_id,"stateVersion":1,"state":if p.kind==ContestKind::Debugging {"MERGING"} else {"INTERPRETING"},"stepId":p.step_id,"round":if p.kind==ContestKind::BassAckwardsPrd {0}else{1},"artifactEventIds":[],"terminalReason":null});
  db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active,updated_seq) VALUES(?,?,1,1,?,1,?)",params![p.contest_id.to_string(),p.kind.as_str(),state.to_string(),seq.get()])?;
  db.execute("INSERT INTO contest_steps(step_id,contest_id,ordinal,script_version,move,state_json,inputs_json,updated_seq) VALUES(?,?,1,'v1','judge','{}','[]',?)",params![p.step_id.to_string(),p.contest_id.to_string(),seq.get()])?;
- if p.kind == ContestKind::Readback { seed_readback(db, &p)?; }
- if p.kind == ContestKind::Debugging { seed_debugging(db, &p)?; }
+ if p.kind == ContestKind::Readback { mode_seeds::seed_readback(db, p.contest_id)?; }
+ if p.kind == ContestKind::Debugging { mode_seeds::seed_debugging(db, p.contest_id)?; }
  Ok(())}).unwrap();
     let held = pending.contest_id;
     store.call(move|db| {
@@ -75,125 +77,6 @@ fn fixture(path: &std::path::Path, kind: ContestKind) -> (Store, Router, parser:
         .unwrap();
     let router = router(&store);
     (store, router, pending)
-}
-// Mode callbacks persist resolved choices and stop reports in the owned run row.
-fn seed_readback(
-    db: &rusqlite::Connection,
-    pending: &parser::PendingHuman,
-) -> squad_store::Result<()> {
-    use squad_protocol::readback::*;
-    let setup = ReadbackSetup {
-        spec: "The service retains records. The operator deletes backups.".into(),
-        participants: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
-        rounds: 2,
-        room_words: 120,
-        plan_words: 500,
-        models: ["a", "b", "c", "judge"]
-            .map(|n| {
-                (
-                    n.into(),
-                    ExecutorBinding {
-                        model: "test/model".parse().unwrap(),
-                        effort: ReasoningEffort::Low,
-                    },
-                )
-            })
-            .into(),
-        prompt_refs: ["readback.interpret", "readback.diff", "readback.rewrite"]
-            .map(|name| {
-                (
-                    name.into(),
-                    PromptRef {
-                        pack_version: "fixture-v1".parse().unwrap(),
-                        template_id: name.parse().unwrap(),
-                        template_hash: "fixture-hash".parse().unwrap(),
-                    },
-                )
-            })
-            .into(),
-    };
-    squad_store::readback::insert(db, pending.contest_id, &setup)?;
-    let mut run = squad_store::readback::run(db, pending.contest_id)?;
-    let entries = [
-        "The service retains records.",
-        "The operator deletes backups.",
-    ]
-    .into_iter()
-    .enumerate()
-    .map(|(i, passage)| ReadbackEntry {
-        entry_id: format!("entry{i}"),
-        passage: passage.into(),
-        question: "Which behaviour?".into(),
-        behaviour_change: "Observable behaviour differs".into(),
-        readings: ["a", "b"]
-            .map(|id| ReadbackReading {
-                reading_id: id.into(),
-                text: format!("Meaning {id}"),
-                source_labels: vec![format!("Reader {}", if id == "a" { 1 } else { 2 })],
-            })
-            .to_vec(),
-    })
-    .collect();
-    run.rounds.push(squad_store::readback::Round {
-        spec: setup.spec,
-        ledger: Some(ReadbackLedger { entries }),
-        ..Default::default()
-    });
-    squad_store::readback::save(db, pending.contest_id, &run)
-}
-fn seed_debugging(
-    db: &rusqlite::Connection,
-    pending: &parser::PendingHuman,
-) -> squad_store::Result<()> {
-    use squad_protocol::debugging::*;
-    let models = ["a", "b", "c", "judge"]
-        .map(|name| {
-            (
-                name.into(),
-                ExecutorBinding {
-                    model: "test/model".parse().unwrap(),
-                    effort: ReasoningEffort::Low,
-                },
-            )
-        })
-        .into();
-    let prompt_refs = [
-        "debug.hypothesize",
-        "debug.merge",
-        "debug.test",
-        "debug.select",
-        "debug.report",
-    ]
-    .map(|name| {
-        (
-            name.into(),
-            PromptRef {
-                pack_version: "fixture-v1".parse().unwrap(),
-                template_id: name.parse().unwrap(),
-                template_hash: "fixture-hash".parse().unwrap(),
-            },
-        )
-    })
-    .into();
-    let setup = DebuggingSetup {
-        brief: "Requests fail".into(),
-        limits: "Read only".into(),
-        participants: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
-        rounds: 3,
-        room_words: 120,
-        plan_words: 500,
-        models,
-        prompt_refs,
-    };
-    squad_store::debugging::insert(db, pending.contest_id, &setup)?;
-    let mut run = squad_store::debugging::run(db, pending.contest_id)?;
-    run.differential = serde_json::from_value(serde_json::json!([
-        {"hypothesis":{"hypothesisId":"H1","cause":"DNS","sources":["A:a"],"supporting":[],"contradicting":[],"priorSpread":["high"]},"status":"live","consistentResults":0,"failedPrediction":null},
-        {"hypothesis":{"hypothesisId":"H2","cause":"Server","sources":["A:b"],"supporting":[],"contradicting":[],"priorSpread":["low"]},"status":"live","consistentResults":0,"failedPrediction":null}
-    ]))?;
-    run.rounds.push(DebuggingRound {round:1,proposals:Default::default(),selection:Some(serde_json::from_value(serde_json::json!({"testRef":"A:t","instruction":"Read the resolver output","outcomes":[{"label":"O1","description":"DNS fails"},{"label":"O2","description":"DNS works"}],"predictions":[{"hypothesisId":"H1","outcome":"O1"},{"hypothesisId":"H2","outcome":"O2"}],"addedHypotheses":[],"notSelected":[]}))?),result:None,elimination:None});
-    run.resume = DebuggingStatus::AwaitingHuman;
-    squad_store::debugging::save(db, pending.contest_id, &run)
 }
 fn router(store: &Store) -> Router {
     let roster = ["a", "b", "c"].map(|n| Nick::new(n).unwrap()).to_vec();
@@ -332,102 +215,4 @@ fn prd_notes_stay_pending_until_continue_and_survive_literal_commands() {
         RequestResult::Accepted { .. }
     ));
     assert!(r.parse_context().unwrap().pending_human.is_none());
-}
-
-#[test]
-fn stop_fences_every_new_work_kind_and_clear_removes_them() {
-    let root = tempfile::tempdir().unwrap();
-    let (store, mut r, pending) = fixture(
-        &root.path().join("fencing.db"),
-        ContestKind::BassAckwardsPrd,
-    );
-    let contest = pending.contest_id;
-    let step = pending.step_id;
-    store.call(move|db|{
-        let raw:String=db.query_row("SELECT scheduling_meta FROM work LIMIT 1",[],|r|r.get(0))?;
-        let original:serde_json::Value=serde_json::from_str(&raw)?;
-        for (wire,judge) in [
-("forge.draft", false),
-("forge.rank", false),
-("forge.fuse", false),
-("forge.judge", true),
-("forecast.frame", true),
-("forecast.estimate", false),
-("forecast.revise", false),
-("forecast.cruxes", true),
-("decide.options", false),
-("decide.shortlist", true),
-("decide.criteria", false),
-("decide.freeze", true),
-("decide.score", false),
-("decide.explain", true),
-("negotiate.map", false),
-("negotiate.brief", true),
-("negotiate.package", false),
-("negotiate.move", false),
-("negotiate.counter", false),
-("negotiate.playbook", true),
-("blow_it_up.attack", false),
-("blow_it_up.challenge", false),
-("blow_it_up.rule", true),
-("readback.interpret", false),
-("readback.diff", true),
-("readback.rewrite", true),
-("debug.hypothesize", false),
-("debug.merge", true),
-("debug.test", false),
-("debug.select", true),
-("debug.report", true),
-("trace.extract", false),
-("trace.merge", true),
-("trace.verify", false),
-("trace.assemble", true),
-("rank.compare", false),
-("rank.explain", true),
-("tune.cases", false),
-("tune.freeze", true),
-("tune.execute", false),
-("tune.score", true),
-("tune.mutate", false),
-("bass_ackwards_prd.done", false),
-("bass_ackwards_prd.freeze", true),
-("bass_ackwards_prd.tree", false),
-("bass_ackwards_prd.merge", true),
-("bass_ackwards_prd.review", false),
-("bass_ackwards_prd.revise", true),
-("bass_ackwards_prd.must_have", false),
-("bass_ackwards_prd.finalize", true),
-("bass_ackwards_prd.apply", true),
-        ] {
-            let mut meta=original.clone();
-            let id=WorkId::new();
-            let case=CaseId::new();
-            meta["work"]["workId"]=serde_json::json!(id);
-            meta["work"]["kind"]=serde_json::json!(wire);
-            meta["work"]["contestId"]=serde_json::json!(contest);
-            meta["work"]["stepId"]=serde_json::json!(step);
-            meta["work"]["inReplyToMessageId"]=serde_json::Value::Null;
-            meta["work"]["target"]=serde_json::json!(if judge {"judge"} else {"a"});
-            let context=if judge {format!("judge:{case}")} else {format!("contest:{contest}:{step}:a")};
-            meta["work"]["contextId"]=serde_json::json!(context);
-            if judge {
-                meta["work"]["caseId"]=serde_json::json!(case);
-                db.execute("INSERT INTO cases VALUES(?,?,1,?,'test/model','{}',1,NULL,'{}')",params![case.to_string(),context,contest.to_string()])?;
-            }
-            let owner=if judge {ExecutorKey::Case(case)} else {ExecutorKey::Member("a".parse().unwrap())};
-            let target=if judge {"judge"}else{"a"};
-            db.execute("INSERT INTO work(work_id,kind,target,context_id,trigger_event_seq,trigger_event_id,message_id,status,epoch,runnable,contest_id,scheduling_meta,lease_fence,step_id,max_output_tokens,history_through,lease_owner,lease_until,attempt,case_id) VALUES (?,?,?, ?,1,?,?, 'running',1,1,?,?,7,?,1024,1,?,'2099-01-01T00:00:00Z',1,?)",params![id.to_string(),wire,target,context,meta["work"]["triggerEventId"].as_str().unwrap(),MessageId::new().to_string(),contest.to_string(),meta.to_string(),step.to_string(),serde_json::to_string(&owner)?,if judge{Some(case.to_string())}else{None}])?;
-        }Ok(())
-    }).unwrap();
-    assert!(matches!(
-        answer(&mut r, "/stop").result,
-        RequestResult::Accepted { .. }
-    ));
-    store.call(move|db|{
-        let counts:(i64,i64)=db.query_row("SELECT COUNT(*),SUM(status='cancelled' AND runnable=0 AND lease_fence=8) FROM work WHERE contest_id=?",[contest.to_string()],|r|Ok((r.get(0)?,r.get(1)?)))?;
-        assert_eq!(counts,(51,51));
-        let tx=db.transaction()?;squad_store::clear::content(&tx)?;tx.commit()?;
-        assert_eq!(db.query_row("SELECT COUNT(*) FROM work",[],|r|r.get::<_,i64>(0))?,0);
-        Ok(())
-    }).unwrap();
 }

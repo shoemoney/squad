@@ -308,6 +308,8 @@ pub fn prepare(
                 .map(|binding| binding.model.to_string()),
         )
         .collect::<Vec<_>>();
+    // Provider and family names (`openai`, `claude`, `gpt`) are identities too.
+    let tokens = super::probe::blind_tokens(tokens);
     squad_store::contest_steps::private_map(
         tx,
         contest,

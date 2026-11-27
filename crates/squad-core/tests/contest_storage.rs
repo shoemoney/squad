@@ -4,6 +4,8 @@
 use squad_core::router::{Router, error};
 use squad_protocol::*;
 use squad_store::Store;
+#[path = "support/mode_starts.rs"]
+mod mode_starts;
 
 fn nick(s: &str) -> MemberNick {
     MemberNick::new(s).unwrap()
@@ -528,5 +530,126 @@ fn new_mode_admission_names_each_active_kind_without_starting_work() {
         }
         assert_eq!(scalar(&store, "SELECT COUNT(*) FROM contests"), 1);
         assert_eq!(scalar(&store, "SELECT COUNT(*) FROM work"), 0);
+    }
+}
+
+/// Exhaustive on purpose: adding a `ContestKind` breaks this match until the claim
+/// matrix below learns about the new kind.
+fn claim_name(kind: ContestKind) -> &'static str {
+    match kind {
+        ContestKind::Debate => "debate",
+        ContestKind::Tournament => "tournament",
+        ContestKind::Grill => "grill",
+        ContestKind::Census => "census",
+        ContestKind::Crosscheck => "crosscheck",
+        ContestKind::Survey => "survey",
+        ContestKind::Probe => "probe",
+        ContestKind::Forge => "forge",
+        ContestKind::Forecast => "forecast",
+        ContestKind::Decide => "decide",
+        ContestKind::Negotiate => "negotiate",
+        ContestKind::BlowItUp => "blow_it_up",
+        ContestKind::Readback => "readback",
+        ContestKind::Debugging => "debug",
+        ContestKind::Trace => "trace",
+        ContestKind::Rank => "rank",
+        ContestKind::Tune => "tune",
+        ContestKind::BassAckwardsPrd => "bass_ackwards_prd",
+    }
+}
+
+const ALL_KINDS: [ContestKind; 18] = [
+    ContestKind::Debate,
+    ContestKind::Tournament,
+    ContestKind::Grill,
+    ContestKind::Census,
+    ContestKind::Crosscheck,
+    ContestKind::Survey,
+    ContestKind::Probe,
+    ContestKind::Forge,
+    ContestKind::Forecast,
+    ContestKind::Decide,
+    ContestKind::Negotiate,
+    ContestKind::BlowItUp,
+    ContestKind::Readback,
+    ContestKind::Debugging,
+    ContestKind::Trace,
+    ContestKind::Rank,
+    ContestKind::Tune,
+    ContestKind::BassAckwardsPrd,
+];
+
+/// M8.P11.L1.T1 / M9.P4.L1.T1: the sixteen released kinds plus tune and PRD (eighteen
+/// in all) are the only kinds, every one is enabled, and the storage claim matrix is
+/// built from the enum itself.
+#[test]
+fn claim_matrix_covers_every_contest_kind_and_every_kind_is_enabled() {
+    let names: std::collections::BTreeSet<_> = ALL_KINDS.iter().map(|k| claim_name(*k)).collect();
+    assert_eq!(names.len(), 18);
+    for kind in ALL_KINDS {
+        assert_eq!(kind.as_str(), claim_name(kind));
+        assert!(kind.is_built(), "{} is not enabled", kind.as_str());
+        assert_eq!(
+            serde_json::to_value(kind).unwrap(),
+            serde_json::json!(kind.as_str())
+        );
+    }
+}
+
+/// A start parsed while the room was idle must still lose to a claim taken after it was
+/// parsed: the router, not just the parser, enforces the single active claim.
+#[test]
+fn a_start_parsed_before_another_claim_is_refused_by_the_router_for_every_new_kind() {
+    let starts = mode_starts::STARTS;
+    let meta = parser::SubmissionMeta::default();
+    for (first_kind, first) in starts {
+        for (second_kind, second) in starts {
+            let dir = tempfile::tempdir().unwrap();
+            let (store, mut router) = mode_starts::room(dir.path());
+            let idle = router.parse_context().unwrap();
+            let stale = parse(second, &meta, &idle).unwrap();
+            let winner = parse(first, &meta, &idle).unwrap();
+            let outcome = router
+                .process(
+                    Request::from_parsed_with_context(EventId::new(), winner, &meta, &idle, false)
+                        .unwrap(),
+                    None,
+                )
+                .unwrap();
+            assert!(
+                matches!(outcome.result, RequestResult::Accepted { .. }),
+                "{first_kind}: {:?}",
+                outcome.result
+            );
+            assert_eq!(
+                scalar(&store, "SELECT COUNT(*) FROM contests WHERE active=1"),
+                1,
+                "{first_kind} did not take the claim"
+            );
+            let work_before = scalar(&store, "SELECT COUNT(*) FROM work");
+            let refused = router.process(
+                Request::from_parsed_with_context(EventId::new(), stale, &meta, &idle, false)
+                    .unwrap(),
+                None,
+            );
+            let code = match refused {
+                Ok(out) => match out.result {
+                    RequestResult::Rejected { error, .. } => error.code,
+                    other => panic!("{second_kind} admitted behind {first_kind}: {other:?}"),
+                },
+                Err(squad_store::StoreError::Domain(code, _)) => code,
+                Err(other) => panic!("{other:?}"),
+            };
+            assert!(
+                matches!(code, ErrorCode::DEBATE_BUSY | ErrorCode::CONTEST_BUSY),
+                "{second_kind} behind {first_kind}: {code:?}"
+            );
+            assert_eq!(
+                scalar(&store, "SELECT COUNT(*) FROM contests WHERE active=1"),
+                1
+            );
+            assert_eq!(scalar(&store, "SELECT COUNT(*) FROM contests"), 1);
+            assert_eq!(scalar(&store, "SELECT COUNT(*) FROM work"), work_before);
+        }
     }
 }
