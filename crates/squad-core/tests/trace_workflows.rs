@@ -89,6 +89,7 @@ enum Fault {
     Stop,
     Outer,
     Exhausted,
+    Dormant,
 }
 struct Answers;
 fn extract(text: &str) -> serde_json::Value {
@@ -246,6 +247,16 @@ async fn owned_run(fault: Fault) -> (Fixture, squad_store::Store, ContestId) {
         })
         .unwrap();
     let c = f.contest();
+    if fault == Fault::Dormant {
+        let member = roster[0].clone();
+        let binding = bindings[member.as_str()].clone();
+        store.call(move|db|{
+       let event:String=db.query_row("SELECT id FROM events WHERE kind='trace.setup' ORDER BY seq DESC LIMIT 1",[],|r|r.get(0))?;
+       let w=Work{work_id:WorkId::new(),message_id:MessageId::new(),in_reply_to_message_id:None,kind:WorkKind::Reply,target:Target::Member(member.clone()),context_id:ContextId(member.to_string()),trigger_event_id:event.parse().unwrap(),history_through:HistoryPosition::new(1).unwrap(),attempt:1,debate_id:None,round:None,replay:None,case_id:None,prompt_ref:None,max_output_tokens:None,contest_id:None,step_id:None};
+       squad_store::work::insert(db,&w,&binding,None)?;
+       db.execute("UPDATE work SET runnable=0,scheduling_meta=json_set(scheduling_meta,'$.openModeDormant',1) WHERE work_id=?",[w.work_id.to_string()])?;Ok(())
+      }).unwrap();
+    }
     if fault == Fault::Outer {
         let room = squad_core::room::RoomHandle::open_with_client(
             f.config.clone(),
@@ -583,4 +594,17 @@ async fn recovered_exhausted_verifiers_settle_without_replaying_provider_calls()
         )
         .unwrap();
     assert_eq!(queued, 0);
+}
+
+#[tokio::test]
+async fn dormant_ordinary_work_does_not_block_trace_admission() {
+    let (f, _, c) = owned_run(Fault::Dormant).await;
+    assert_eq!(
+        squad_core::router::trace::load_state(&f.db(), c)
+            .unwrap()
+            .state,
+        TraceStatus::Complete
+    );
+    assert_eq!(f.fake.captured_bodies().await.len(), 14);
+    assert_eq!(f.db().query_row("SELECT COUNT(*) FROM work WHERE kind='reply' AND status='queued' AND runnable=0 AND json_extract(scheduling_meta,'$.openModeDormant')=1",[],|r|r.get::<_,i64>(0)).unwrap(),1);
 }

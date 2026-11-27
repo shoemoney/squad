@@ -607,7 +607,7 @@ pub(crate) fn drive_move(
     }
     if s.state == TraceStatus::WaitingForParticipants {
         for n in &setup.participants {
-            let pending:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE target=? AND kind='reply' AND status IN ('queued','running') AND held_by_contest_id IS NULL)",[n.as_str()],|r|r.get(0))?;
+            let pending:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM work WHERE target=? AND kind='reply' AND status IN ('queued','running') AND held_by_contest_id IS NULL AND json_type(scheduling_meta,'$.openModeDormant') IS NULL)",[n.as_str()],|r|r.get(0))?;
             if pending {
                 return Ok(g.accepted(id));
             }
