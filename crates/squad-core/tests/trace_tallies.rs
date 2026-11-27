@@ -92,6 +92,28 @@ fn seeded_assignment_is_balanced_and_excludes_contributors() {
         .map(|c| &c.claim_id)
         .collect::<BTreeSet<_>>();
     assert_eq!(a.values().flatten().collect::<BTreeSet<_>>(), all);
+    let provenance = members[..5]
+        .iter()
+        .enumerate()
+        .map(|(i, n)| (format!("Reader {}", i + 1), n.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let consensus = TraceClaims {
+        claims: vec![TraceCanonicalClaim {
+            claim_id: "C1".into(),
+            text: "Consensus claim".into(),
+            sources: provenance
+                .keys()
+                .map(|label| TraceClaimRef {
+                    member_label: label.clone(),
+                    local_id: "L1".into(),
+                })
+                .collect(),
+            shared_origin: vec![],
+        }],
+    };
+    let fallback = assign_verifiers(&consensus, &provenance, &members, "seed");
+    assert_eq!(fallback.values().map(Vec::len).sum::<usize>(), 2);
+    assert_eq!(fallback[&members[5]], vec!["C1"]);
     assert_eq!(call_bounds(6), (14, 30));
     assert_eq!(call_bounds(12), (26, 54));
 }

@@ -59,7 +59,7 @@ pub fn check_quotes(
         })
         .collect()
 }
-/// Two distinct reviewers. Contributors are used only if no alternative exists.
+/// Two distinct reviewers. Contributors fill a slot only after distinct noncontributors are exhausted.
 /// Seeded digest order makes ties stable across restarts and independent of roster order.
 pub fn assign_verifiers(
     claims: &TraceClaims,
@@ -78,17 +78,10 @@ pub fn assign_verifiers(
             .iter()
             .filter_map(|r| provenance.get(&r.member_label))
             .collect::<BTreeSet<_>>();
-        let alternatives = members
-            .iter()
-            .filter(|n| !contributors.contains(n))
-            .collect::<Vec<_>>();
-        let mut eligible = if alternatives.is_empty() {
-            members.iter().collect::<Vec<_>>()
-        } else {
-            alternatives
-        };
+        let mut eligible = members.iter().collect::<Vec<_>>();
         eligible.sort_by_key(|n| {
             (
+                contributors.contains(n),
                 out[*n].len(),
                 squad_store::commit::digest(&(seed, &c.claim_id, *n)).expect("digest"),
             )

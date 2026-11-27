@@ -46,9 +46,9 @@ Records are retained for thirty days.' --yes
    quotes; the judge has no field for inventing a quotation. An empty claim set
    finishes immediately and releases the remaining reservation.
 4. **VERIFY:** The app assigns two different reviewers per claim, balances their
-   loads and persists the seeded assignment. Contributors are excluded whenever
-   alternatives exist. If only one eligible alternative exists, its second
-   verdict remains missing. Reviewers receive only their assigned claims and
+   loads and persists the seeded assignment. Noncontributors fill both slots whenever
+   two are available; a contributor fills a remaining slot only after distinct
+   noncontributors are exhausted. Reviewers receive only their assigned claims and
    evidence, without contributor labels. They check entailment and scope; a
    missing qualifier requires a verbatim qualifier quote.
 5. The app freezes the ledger. A claim is **unsupported** with no verified quotes
