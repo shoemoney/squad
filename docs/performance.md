@@ -3,7 +3,8 @@
 ## Dirty-card preparation — 2026-11-27
 
 Corrected-fixture manual gates pass on dev3 (30 seconds per viewport) and hueb
-(300 seconds per viewport), with the requested Mac workflow still queued.
+(300 seconds per viewport). The dispatched workflow also passed all performance
+gates; its demo-artifact copy failed and a corrected workflow is queued.
 Measured on dev3 (AMD Ryzen 9 8945HX, Linux x86_64, Rust 1.99.1), optimized
 bench, `CARGO_BUILD_JOBS=4`, 30 seconds per viewport. Builds and measurements
 ran sequentially. Full effects, 60-Hz scheduling, real widgets, 10,000 retained
@@ -93,10 +94,26 @@ identify this shared-host qualification. They are separate from workflow accepta
 [Run 45927912562](https://github.com/shoemoney/squad/actions/runs/45927912562)
 was the initial dirty-only dispatch and was cancelled while queued after the
 conditional fix. Its replacement, [run 45928957488](https://github.com/shoemoney/squad/actions/runs/45928957488),
-uses product head `659700128025546c20e3e2d5024ccaa678cbc3cb` and remains queued
-behind unrelated CI, which the user requested be left running. The final manual
-300-second-per-viewport run passes at all sizes; workflow acceptance remains
-pending. Original supplied macOS draw p95 was 10.8–11.6 ms in
+used product head `659700128025546c20e3e2d5024ccaa678cbc3cb`. It completed on
+hueb on 2026-11-27: invariants, all spike/composed viewports and the full-catalogue
+frame gate passed. The overall run failed when copying the demo from a hard-coded
+`target/release/examples/demo` path. This runner sets an external `CARGO_TARGET_DIR`.
+The workflow now resolves `target_directory` through Cargo metadata; a native hueb
+check copied the executable successfully. No benchmark or threshold changed.
+[Replacement run 45935575586](https://github.com/shoemoney/squad/actions/runs/45935575586)
+uses workflow-fix head `6f0aa45a1fec2c30deef7e613f7bce229b517ddc` and is queued.
+
+Workflow 45928957488's actual 300-second composed measurements:
+
+| Viewport | Draw p95 / p99 ms | Key p95 ms | CPU % one core | Maximum resize frame ms |
+|---|---:|---:|---:|---:|
+| 140x42 | 2.606 / 3.144 | 18.803 | 12.520 | 74.005 |
+| 80x24 | 0.945 / 1.642 | 19.337 | 6.764 | 136.753 |
+| 200x60 | 3.694 / 4.436 | 20.039 | 15.376 | 76.797 |
+
+[Workflow logs and environment](reports/perf-dirty-cards-2026-11-27/workflow-45928957488/)
+retain the completed measurements. Overall workflow acceptance awaits the artifact
+path correction's rerun. Original supplied macOS draw p95 was 10.8–11.6 ms in
 [run 45912463641](https://github.com/shoemoney/squad/actions/runs/45912463641).
 
 ### Final manual macOS gate — 300 seconds per viewport
@@ -118,9 +135,9 @@ against dev3. Linux's later benchmark-only Clippy spelling uses
 [Raw sustained Mac log](reports/perf-dirty-cards-2026-11-27/mac-final-300s.log),
 [machine-readable summary](reports/perf-dirty-cards-2026-11-27/summary.json) and
 [Linux comparison chart](reports/perf-dirty-cards-2026-11-27/draw-p95.html)
-retain the measurements. Shared-host manual results are separate from the queued
-workflow's acceptance status. The workflow still needs to run on the dedicated
-runner; its stalled unrelated CI job was left untouched as requested.
+retain the measurements. Shared-host manual results are separate from the workflow
+measurements above. The unrelated CI job was left untouched as requested; the
+performance workflow subsequently ran on the dedicated runner.
 
 Reproduction from the product checkout (builds finish before benchmark sampling):
 
