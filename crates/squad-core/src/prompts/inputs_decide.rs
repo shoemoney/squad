@@ -1,10 +1,30 @@
-//! decide authorized prompt mapping belongs here.
+//! Mapping accepts only an authorized, step-specific projection.
 use squad_protocol::*;
 pub fn inputs(
     _pack: &super::PromptPack,
-    _work: &Work,
-    _data: &serde_json::Value,
-    _repair: Option<&JudgeRepairData>,
+    work: &Work,
+    data: &serde_json::Value,
+    repair: Option<&JudgeRepairData>,
 ) -> Result<super::Inputs, super::PromptError> {
-    Err(super::PromptError::new("decide", None, "mode is disabled"))
+    let schema = squad_protocol::decide::output_schema(&work.kind)
+        .ok_or_else(|| super::PromptError::new("decide", None, "invalid decide kind"))?;
+    let mut values = super::Inputs::from([
+        ("mode_data_json".into(), data.clone()),
+        ("mode_schema_json".into(), schema),
+    ]);
+    values.insert(
+        "mode_step".into(),
+        serde_json::json!(work.kind.new_mode_composition().unwrap_or("decide")),
+    );
+    if let Some(r) = repair {
+        values.insert(
+            "invalid_output_json".into(),
+            serde_json::json!(r.rejected_output),
+        );
+        values.insert(
+            "validation_errors_json".into(),
+            serde_json::json!(r.validation_errors),
+        );
+    }
+    Ok(values)
 }

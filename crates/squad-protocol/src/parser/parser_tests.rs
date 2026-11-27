@@ -130,7 +130,9 @@ fn every_spec_example() {
         let ctx = example_context(i);
         let before = format!("{ctx:?}");
         let input = case["input"].as_str().unwrap();
-        let result = parse(input, &ctx);
+        // Keep the original seven-mode contract and its 166-row snapshot frozen.
+        // Current activation and export discovery are covered by new-mode tests.
+        let result = with_mode_activation(false, || parse(input, &ctx));
         if let Some(error) = case.get("error") {
             assert_eq!(
                 result.as_ref().unwrap_err().to_string(),
