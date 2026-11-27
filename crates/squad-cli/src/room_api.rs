@@ -24,6 +24,7 @@ impl std::error::Error for RoomError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Progress {
+    AwaitingHuman,
     Running,
     Succeeded,
     Failed,

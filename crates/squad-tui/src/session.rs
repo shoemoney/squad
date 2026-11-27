@@ -139,6 +139,19 @@ pub trait RoomPort: Send + Sync {
 }
 #[derive(Debug, Clone, Default)]
 pub struct ContestView {
+    pub tune: crate::widgets::tune::View,
+    pub bass_ackwards_prd: crate::widgets::bass_ackwards_prd::View,
+
+    pub forge: crate::widgets::forge::View,
+    pub forecast: crate::widgets::forecast::View,
+    pub decide: crate::widgets::decide::View,
+    pub negotiate: crate::widgets::negotiate::View,
+    pub blow_it_up: crate::widgets::blow_it_up::View,
+    pub readback: crate::widgets::readback::View,
+    pub debugging: crate::widgets::debugging::View,
+    pub trace: crate::widgets::trace::View,
+    pub rank: crate::widgets::rank::View,
+
     pub state: Option<ContestState>,
     pub setup: Option<ContestSetup>,
     pub artifacts: BTreeMap<EventId, ContestArtifact>,
@@ -315,6 +328,18 @@ impl Session {
             ContestState::Census(s) => s.contest_id,
             ContestState::Survey(s) => s.contest_id,
             ContestState::Probe(s) => s.contest_id,
+            ContestState::Forge(s) => s.contest_id,
+            ContestState::Tune(s) => s.contest_id,
+            ContestState::BassAckwardsPrd(s) => s.contest_id,
+            ContestState::Forecast(s) => s.contest_id,
+            ContestState::Decide(s) => s.contest_id,
+            ContestState::Negotiate(s) => s.contest_id,
+            ContestState::BlowItUp(s) => s.contest_id,
+            ContestState::Readback(s) => s.contest_id,
+            ContestState::Debugging(s) => s.contest_id,
+            ContestState::Trace(s) => s.contest_id,
+            ContestState::Rank(s) => s.contest_id,
+
             ContestState::Grill(s) => s.contest_id,
             ContestState::Debate(s) => s.debate_id,
             ContestState::Tournament(s) => s.contest_id,
@@ -457,6 +482,144 @@ impl Session {
                 .is_some_and(|c| c.complete && c.attempt >= g.attempt)
         }) {
             return false;
+        }
+        match content {
+            EnvelopePayload::TuneState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .tune
+                .apply(base.id, content),
+            EnvelopePayload::BassAckwardsPrdState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .bass_ackwards_prd
+                .apply(base.id, content),
+            EnvelopePayload::ForgeState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .forge
+                .apply(base.id, content),
+            EnvelopePayload::ForecastState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .forecast
+                .apply(base.id, content),
+            EnvelopePayload::DecideState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .decide
+                .apply(base.id, content),
+            EnvelopePayload::NegotiateState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .negotiate
+                .apply(base.id, content),
+            EnvelopePayload::BlowItUpState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .blow_it_up
+                .apply(base.id, content),
+            EnvelopePayload::ReadbackState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .readback
+                .apply(base.id, content),
+            EnvelopePayload::DebuggingState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .debugging
+                .apply(base.id, content),
+            EnvelopePayload::TraceState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .trace
+                .apply(base.id, content),
+            EnvelopePayload::RankState(s) => self
+                .contests
+                .entry(s.contest_id)
+                .or_default()
+                .rank
+                .apply(base.id, content),
+            EnvelopePayload::ContestArtifact(a) => match a.kind {
+                Some(ContestKind::Tune) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .tune
+                    .apply(base.id, content),
+                Some(ContestKind::BassAckwardsPrd) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .bass_ackwards_prd
+                    .apply(base.id, content),
+                Some(ContestKind::Forge) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .forge
+                    .apply(base.id, content),
+                Some(ContestKind::Forecast) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .forecast
+                    .apply(base.id, content),
+                Some(ContestKind::Decide) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .decide
+                    .apply(base.id, content),
+                Some(ContestKind::Negotiate) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .negotiate
+                    .apply(base.id, content),
+                Some(ContestKind::BlowItUp) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .blow_it_up
+                    .apply(base.id, content),
+                Some(ContestKind::Readback) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .readback
+                    .apply(base.id, content),
+                Some(ContestKind::Debugging) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .debugging
+                    .apply(base.id, content),
+                Some(ContestKind::Trace) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .trace
+                    .apply(base.id, content),
+                Some(ContestKind::Rank) => self
+                    .contests
+                    .entry(a.contest_id)
+                    .or_default()
+                    .rank
+                    .apply(base.id, content),
+                _ => {}
+            },
+            _ => {}
         }
         let mut cue = None;
         let mut immediate = true;
@@ -1094,6 +1257,57 @@ impl Session {
                     duration: Duration::from_secs(6),
                 });
             }
+            EnvelopePayload::TuneState(s) => {
+                self.restore_contest(ContestState::Tune(s.clone()));
+            }
+            EnvelopePayload::BassAckwardsPrdState(s) => {
+                self.restore_contest(ContestState::BassAckwardsPrd(s.clone()));
+            }
+            EnvelopePayload::ForgeState(s) => {
+                self.restore_contest(ContestState::Forge(s.clone()));
+            }
+            EnvelopePayload::ForecastState(s) => {
+                self.restore_contest(ContestState::Forecast(s.clone()));
+            }
+            EnvelopePayload::DecideState(s) => {
+                self.restore_contest(ContestState::Decide(s.clone()));
+            }
+            EnvelopePayload::NegotiateState(s) => {
+                self.restore_contest(ContestState::Negotiate(s.clone()));
+            }
+            EnvelopePayload::BlowItUpState(s) => {
+                self.restore_contest(ContestState::BlowItUp(s.clone()));
+            }
+            EnvelopePayload::ReadbackState(s) => {
+                self.restore_contest(ContestState::Readback(s.clone()));
+            }
+            EnvelopePayload::DebuggingState(s) => {
+                self.restore_contest(ContestState::Debugging(s.clone()));
+            }
+            EnvelopePayload::TraceState(s) => {
+                self.restore_contest(ContestState::Trace(s.clone()));
+            }
+            EnvelopePayload::RankState(s) => {
+                self.restore_contest(ContestState::Rank(s.clone()));
+            }
+            EnvelopePayload::ContestHumanRequested(v) => {
+                self.snapshot.context.pending_human = Some(v.pending.clone());
+            }
+            EnvelopePayload::ContestHumanAnswered(v) => {
+                if v.complete {
+                    self.snapshot.context.pending_human = None;
+                } else {
+                    let mut events = self.snapshot.events.clone();
+                    if let Some(commit) = committed {
+                        events.push(CommittedEnvelope {
+                            base: base.clone(),
+                            content: content.clone(),
+                            commit: commit.clone(),
+                        });
+                    }
+                    self.snapshot.context.pending_human = parser::restore_pending_human(&events);
+                }
+            }
             EnvelopePayload::ContestArtifact(a) => {
                 if a.artifact_kind.as_str() == "crosscheck.cell"
                     && let Some(work_id) = a.work_id
@@ -1333,6 +1547,18 @@ pub fn contest_active(s: &ContestState) -> bool {
         ContestState::Census(s) => !s.status.is_terminal(),
         ContestState::Survey(s) => !s.state.is_terminal(),
         ContestState::Probe(p) => !p.state.is_terminal(),
+        ContestState::Forge(s) => !s.state.is_terminal(),
+        ContestState::Tune(s) => !s.state.is_terminal(),
+        ContestState::BassAckwardsPrd(s) => !s.state.is_terminal(),
+        ContestState::Forecast(s) => !s.state.is_terminal(),
+        ContestState::Decide(s) => !s.state.is_terminal(),
+        ContestState::Negotiate(s) => !s.state.is_terminal(),
+        ContestState::BlowItUp(s) => !s.state.is_terminal(),
+        ContestState::Readback(s) => !s.state.is_terminal(),
+        ContestState::Debugging(s) => !s.state.is_terminal(),
+        ContestState::Trace(s) => !s.state.is_terminal(),
+        ContestState::Rank(s) => !s.state.is_terminal(),
+
         ContestState::Grill(p) => !p.state.is_terminal(),
         ContestState::Debate(d) => matches!(
             d.state,

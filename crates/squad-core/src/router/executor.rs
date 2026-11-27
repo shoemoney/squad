@@ -130,12 +130,23 @@ pub fn failed(
         if failure.work_id != Some(work_id) || failure.case_id != work.case_id || failure.contest_id != work.contest_id || failure.debate_id != work.debate_id {
             return Err(super::authorization::forbidden());
         }
-        let repair_used: bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM judge_repairs WHERE work_id=?)",[work_id.to_string()],|r|r.get(0))?;
+        let repair_used: bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM judge_repairs WHERE work_id=?1 UNION ALL SELECT 1 FROM mode_repairs WHERE work_id=?1)",[work_id.to_string()],|r|r.get(0))?;
         let failure_class=if matches!(failure.code,ErrorCode::JUDGE_INVALID_VERDICT|ErrorCode::JUDGE_INVALID_MODE_OUTPUT) { crate::orchestrator::types::FailureClass::InvalidOutput } else if failure.code==ErrorCode::PROVIDER_TIMEOUT { crate::orchestrator::types::FailureClass::Timeout } else { crate::orchestrator::types::FailureClass::Transport };
         // Judge transport/deadline failures are terminal; only invalid output
         // receives a repair attempt. The shared policy still chooses the outcome.
         let budget=if matches!(work.kind,WorkKind::Judge|WorkKind::JudgeRound|WorkKind::SurveyExtract|WorkKind::SurveyReport) && failure_class!=crate::orchestrator::types::FailureClass::InvalidOutput { attempt as u8 } else {crate::orchestrator::rounds::attempt_limit(&work.kind)};
         let decision=if work.kind==WorkKind::JudgeTournament && attempt<3 { crate::orchestrator::types::AttemptDecision::Retry{work_id,next_attempt:attempt+1,repair:failure_class==crate::orchestrator::types::FailureClass::InvalidOutput} } else { crate::orchestrator::rounds::failure_policy(work_id,&work.kind,attempt,budget,repair_used,failure_class) };
+        if work.kind.new_mode_kind().is_some()
+            && let crate::orchestrator::types::AttemptDecision::Retry {repair: needs_repair,..}=decision {
+                if needs_repair {
+                    let repair=repair.ok_or(StoreError::Domain(ErrorCode::INVALID_STATE_TRANSITION,"Invalid mode output requires repair diagnostics"))?;
+                    let started:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM attempts WHERE work_id=? AND attempt=? AND epoch=?)",params![work_id.to_string(),attempt,epoch as i64],|r|r.get(0))?;
+                    if !started || repair_used || repair.attempt!=attempt+1 {return Err(super::authorization::forbidden());}
+                    squad_store::judge_repairs::save_mode(tx,&work,&repair)?;
+                } else if repair.is_some() {return Err(super::authorization::forbidden());}
+                tx.execute("UPDATE work SET status='queued',lease_fence=lease_fence+1,lease_owner=NULL,lease_until=NULL,execution_deadline=NULL WHERE work_id=?",[work_id.to_string()])?;
+                return Ok(group.accepted(id));
+        }
         if work.kind.census_composition().is_some() && attempt < if work.kind.census_judge(){3}else{2} && !(work.kind.census_judge() && repair_used && failure.code==ErrorCode::JUDGE_INVALID_MODE_OUTPUT) {
             if let Some(repair)=repair {
                 if !work.kind.census_judge() || repair.attempt!=attempt+1 || failure.code!=ErrorCode::JUDGE_INVALID_MODE_OUTPUT {return Err(super::authorization::forbidden());}
@@ -242,4 +253,29 @@ pub fn stored_usage(db: &rusqlite::Connection, mut record: UsageRecord) -> Resul
         .transpose()
         .map_err(|_| StoreError::Unavailable)?;
     Ok(record)
+}
+
+/// Frozen candidate execution is deliberately separate from every prompt adapter.
+pub fn executor_call(
+    grant: &ExecutionGrant,
+    prompt: &str,
+    input: &str,
+    published_output_limit: u32,
+) -> std::result::Result<
+    squad_agents::openrouter::ChatRequest,
+    squad_agents::openrouter::TransportError,
+> {
+    squad_agents::agents::bare_executor_request(grant, prompt, input, published_output_limit)
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExecutorCallFailure {
+    Retry { next_attempt: u32 },
+    Missing,
+}
+pub fn executor_call_failure(attempt: u32) -> ExecutorCallFailure {
+    if attempt == 1 {
+        ExecutorCallFailure::Retry { next_attempt: 2 }
+    } else {
+        ExecutorCallFailure::Missing
+    }
 }

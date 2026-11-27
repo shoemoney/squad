@@ -1,0 +1,14 @@
+//! forecast authorized prompt mapping belongs here.
+use squad_protocol::*;
+pub fn inputs(
+    _pack: &super::PromptPack,
+    _work: &Work,
+    _data: &serde_json::Value,
+    _repair: Option<&JudgeRepairData>,
+) -> Result<super::Inputs, super::PromptError> {
+    Err(super::PromptError::new(
+        "forecast",
+        None,
+        "mode is disabled",
+    ))
+}

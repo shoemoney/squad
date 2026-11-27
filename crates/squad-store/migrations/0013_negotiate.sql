@@ -1,0 +1,1 @@
+-- Reserved for negotiate; filled by its mode implementation.

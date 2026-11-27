@@ -40,6 +40,7 @@ fn four_mode_committed_reports_replay_export_and_banners_without_private_materia
                 tx.execute("INSERT INTO contest_private_maps VALUES (?,'labels','{\"secret\":\"PRIVATE_MAP_CANARY\"}')", [id.to_string()])?;
                 for payload in [
                     EnvelopePayload::ContestArtifact(ContestArtifact {
+                        kind:None,round:None,actor:None,audience:None,body:None,
                         contest_id: id,
                         step_id: step,
                         artifact_kind: Text::new(mode).unwrap(),

@@ -77,3 +77,37 @@ async fn file_export_writes_core_text_and_preserves_existing_destination() {
     assert_eq!(std::fs::read(&path).unwrap(), original);
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn disabled_scaffold_modes_are_absent_from_completion_and_help() {
+    let ctx = squad_protocol::parser::ParseContext {
+        roster: ["a", "b", "c", "d"].map(|n| n.parse().unwrap()).to_vec(),
+        ..Default::default()
+    };
+    let examples = squad_tui::typeahead::examples(&ctx);
+    for mode in [
+        "forge",
+        "forecast",
+        "decide",
+        "negotiate",
+        "blow_it_up",
+        "readback",
+        "debug",
+        "trace",
+        "rank",
+        "tune",
+        "bass_ackwards_prd",
+    ] {
+        let token = format!("${mode}");
+        assert!(!squad_tui::typeahead::MODES.iter().any(|(m, _)| *m == token));
+        assert!(
+            !squad_protocol::parser::help_examples()
+                .iter()
+                .any(|e| e.contains(&token))
+        );
+        assert!(!examples.iter().any(|e| e.contains(&token)));
+    }
+    for example in examples {
+        squad_protocol::parse(&example, &Default::default(), &ctx).unwrap();
+    }
+}

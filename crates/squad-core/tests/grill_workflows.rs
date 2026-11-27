@@ -803,6 +803,11 @@ async fn generation_identity_bound_readers_and_durable_deadline_are_enforced() {
     );
     let make = |message_id| {
         EnvelopePayload::ContestArtifact(ContestArtifact {
+            kind: None,
+            round: None,
+            actor: None,
+            audience: None,
+            body: None,
             contest_id: work.contest_id.unwrap(),
             step_id: work.step_id.unwrap(),
             artifact_kind: Text::new("grill.question").unwrap(),

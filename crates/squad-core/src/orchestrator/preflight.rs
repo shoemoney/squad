@@ -355,3 +355,27 @@ pub fn cancellation(plan: &DebatePlan, request: &Request) -> Result<DebateTransi
         DebateTransition::Cancel
     })
 }
+
+pub fn prepare_new_mode(
+    kind: ContestKind,
+    parsed: &ParsedInput,
+) -> Result<(), crate::prompts::PromptError> {
+    match kind {
+        ContestKind::Forge => super::forge::prepare(parsed),
+        ContestKind::Tune => super::tune::prepare(parsed),
+        ContestKind::BassAckwardsPrd => super::bass_ackwards_prd::prepare(parsed),
+        ContestKind::Forecast => super::forecast::prepare(parsed),
+        ContestKind::Decide => super::decide::prepare(parsed),
+        ContestKind::Negotiate => super::negotiate::prepare(parsed),
+        ContestKind::BlowItUp => super::blow_it_up::prepare(parsed),
+        ContestKind::Readback => super::readback::prepare(parsed),
+        ContestKind::Debugging => super::debugging::prepare(parsed),
+        ContestKind::Trace => super::trace::prepare(parsed),
+        ContestKind::Rank => super::rank::prepare(parsed),
+        _ => Err(crate::prompts::PromptError::new(
+            "mode",
+            None,
+            "not a new mode",
+        )),
+    }
+}

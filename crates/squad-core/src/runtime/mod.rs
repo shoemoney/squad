@@ -336,3 +336,63 @@ fn launch_mode(
         roster: handle_roster,
     })
 }
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;
+
+#[allow(clippy::too_many_arguments)]
+async fn execute_new_mode(
+    kind: ContestKind,
+    context: &AgentContext,
+    grant: &ExecutionGrant,
+    client: &squad_agents::openrouter::OpenRouterClient,
+    pack: &PromptPack,
+    config: &SquadConfig,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<(), squad_agents::agents::ExecutionError> {
+    match kind {
+        ContestKind::Forge => forge::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::Tune => tune::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::BassAckwardsPrd => {
+            bass_ackwards_prd::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Forecast => {
+            forecast::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Decide => decide::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::Negotiate => {
+            negotiate::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::BlowItUp => {
+            blow_it_up::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Readback => {
+            readback::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Debugging => {
+            debugging::execute(context, grant, client, pack, config, cancel).await
+        }
+        ContestKind::Trace => trace::execute(context, grant, client, pack, config, cancel).await,
+        ContestKind::Rank => rank::execute(context, grant, client, pack, config, cancel).await,
+        _ => Err(ReaderError::NotRunnable.into()),
+    }
+}
+
+pub mod tune;
+
+pub mod bass_ackwards_prd;

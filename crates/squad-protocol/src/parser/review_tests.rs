@@ -368,6 +368,8 @@ fn complete_exact_validation_table_and_execution_helpers() {
         ("id", "missing"),
         ("nick", "grok"),
         ("kind", "survey"),
+        ("mode", "forge"),
+        ("x", "b"),
         ("eligible", "@grok, @gemini"),
         ("n", "1"),
         ("m", "6"),
@@ -379,6 +381,7 @@ fn complete_exact_validation_table_and_execution_helpers() {
             !rule
                 .error(Span { start: 0, end: 0 }, &values)
                 .message
+                .replace("{{input}}", "input")
                 .contains('{')
         );
     }

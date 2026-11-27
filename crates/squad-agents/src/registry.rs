@@ -57,6 +57,9 @@ impl<'a> Registry<'a> {
         grant: &squad_protocol::ExecutionGrant,
     ) -> Result<ChatRequest, crate::openrouter::TransportError> {
         use squad_protocol::{ExecutorKey, WorkKind};
+        if grant.work.kind.is_executor() {
+            return Err(crate::openrouter::TransportError::InvalidConfiguration);
+        }
         if model.id != grant.binding.model.as_str()
             || grant.work.validate().is_err()
             || !grant.owner.owns(&grant.work)
@@ -68,6 +71,59 @@ impl<'a> Registry<'a> {
             return Err(crate::openrouter::TransportError::InvalidModel);
         }
         let (kind, deadline) = match grant.work.kind {
+            WorkKind::TuneCases => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::TuneFreeze => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::TuneExecute => (TaskKind::Reply, DeadlineClass::Executor),
+            WorkKind::TuneScore => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::TuneMutate => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdDone => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdFreeze => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdTree => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdMerge => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdReview => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdRevise => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdMustHave => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BassAckwardsPrdFinalize => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BassAckwardsPrdApply => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+
+            WorkKind::ForgeDraft => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::ForgeRank => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::ForgeFuse => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::ForgeJudge => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::ForecastFrame => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::ForecastEstimate => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::ForecastRevise => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::ForecastCruxes => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::DecideOptions => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::DecideShortlist => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::DecideCriteria => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::DecideFreeze => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::DecideScore => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::DecideExplain => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::NegotiateMap => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::NegotiateBrief => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::NegotiatePackage => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::NegotiateMove => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::NegotiateCounter => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::NegotiatePlaybook => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::BlowItUpAttack => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BlowItUpChallenge => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::BlowItUpRule => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::ReadbackInterpret => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::ReadbackDiff => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::ReadbackRewrite => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::DebuggingHypothesize => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::DebuggingMerge => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::DebuggingTest => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::DebuggingSelect => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::DebuggingReport => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::TraceExtract => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::TraceMerge => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::TraceVerify => (TaskKind::Reply, DeadlineClass::DebateTurn),
+            WorkKind::TraceAssemble => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+            WorkKind::RankCompare => (TaskKind::Plan, DeadlineClass::DebateTurn),
+            WorkKind::RankExplain => (TaskKind::ProbeJudge, DeadlineClass::FinalJudge),
+
             WorkKind::CensusHunt | WorkKind::CensusRate => {
                 (TaskKind::Reply, DeadlineClass::DebateTurn)
             }
@@ -120,6 +176,9 @@ impl<'a> Registry<'a> {
             .work
             .max_output_tokens
             .unwrap_or(request.visible_ceiling);
+        if let Some(visible) = grant.work.kind.new_mode_visible_tokens() {
+            request.visible_ceiling = grant.work.max_output_tokens.unwrap_or(visible);
+        }
         request.policy = ExecutionPolicy::SingleAttempt(deadline);
         request.body()?;
         Ok(request)

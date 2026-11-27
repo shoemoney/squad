@@ -510,6 +510,35 @@ impl Composed {
                     models.push(model);
                     continue;
                 }
+                let mode_lines = match &contest.state {
+                    Some(ContestState::Forge(_)) => widgets::forge::render(&contest.forge),
+                    Some(ContestState::Tune(_)) => widgets::tune::render(&contest.tune),
+                    Some(ContestState::BassAckwardsPrd(_)) => {
+                        widgets::bass_ackwards_prd::render(&contest.bass_ackwards_prd)
+                    }
+                    Some(ContestState::Forecast(_)) => widgets::forecast::render(&contest.forecast),
+                    Some(ContestState::Decide(_)) => widgets::decide::render(&contest.decide),
+                    Some(ContestState::Negotiate(_)) => {
+                        widgets::negotiate::render(&contest.negotiate)
+                    }
+                    Some(ContestState::BlowItUp(_)) => {
+                        widgets::blow_it_up::render(&contest.blow_it_up)
+                    }
+                    Some(ContestState::Readback(_)) => widgets::readback::render(&contest.readback),
+                    Some(ContestState::Debugging(_)) => {
+                        widgets::debugging::render(&contest.debugging)
+                    }
+                    Some(ContestState::Trace(_)) => widgets::trace::render(&contest.trace),
+                    Some(ContestState::Rank(_)) => widgets::rank::render(&contest.rank),
+                    _ => vec![],
+                };
+                if !mode_lines.is_empty() {
+                    let mut model =
+                        TranscriptMessage::new(identity(id), "CONTEST", mode_lines.join("\n"));
+                    model.presentation.report_revision = revision;
+                    models.push(model);
+                    continue;
+                }
                 if let Some(ContestState::Generic(state)) = &contest.state {
                     let mut scratch = Buffer::empty(Rect::new(0, 0, body_width, 128));
                     let rect = scratch.area;
@@ -534,6 +563,14 @@ impl Composed {
                     model.widget_rows = rows(&scratch, height);
                     models.push(model);
                 }
+            }
+            if let Some(pending) = &session.snapshot.context.pending_human {
+                let model = TranscriptMessage::new(
+                    identity(pending.contest_id),
+                    pending.kind.as_str().to_uppercase(),
+                    widgets::human_step::lines(pending).join("\n"),
+                );
+                models.push(model);
             }
             if let Some(pick) = &session.pick {
                 let mut view = widgets::pick::PickView::new(

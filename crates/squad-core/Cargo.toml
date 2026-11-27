@@ -15,6 +15,8 @@ squad-store = { workspace = true }
 squad-agents = { workspace = true }
 figlet-rs = "1"
 unicode-width = "0.2"
+unicode-normalization = "0.1"
+unicode-segmentation = "1"
 tokio = { version = "1", features = ["sync", "rt", "macros"] }
 tokio-util = "0.7"
 chrono = "0.4"
@@ -23,6 +25,8 @@ tracing.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
 regex = "1"
+rand = "0.9"
+sha2 = "0.10"
 
 [dev-dependencies]
 tracing-subscriber = { workspace = true, features = ["fmt"] }

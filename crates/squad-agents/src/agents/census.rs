@@ -131,6 +131,11 @@ impl WorkExecutor for CensusExecutor {
                             fence: grant.fence,
                             epoch: grant.epoch,
                             output: EnvelopePayload::ContestArtifact(ContestArtifact {
+                                kind: None,
+                                round: None,
+                                actor: None,
+                                audience: None,
+                                body: None,
                                 contest_id: grant
                                     .work
                                     .contest_id

@@ -19,7 +19,7 @@ fn every_new_mode_composition_is_registered_and_hashed_distinctly() {
         assert_eq!(reference.pack_version.as_str(), pack.version());
         assert_eq!(reference.template_hash.as_str(), hash);
     }
-    assert_eq!(NEW_MODE_COMPOSITIONS.len(), 18);
+    assert_eq!(NEW_MODE_COMPOSITIONS.len(), 68);
 }
 
 #[test]

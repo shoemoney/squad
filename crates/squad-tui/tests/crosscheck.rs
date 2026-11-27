@@ -252,6 +252,11 @@ fn evidence_audit_acceptance_and_skipped_review() {
         EnvelopePayload::CrosscheckSetup(setup),
         EnvelopePayload::CrosscheckGrid(view.grid.clone().unwrap()),
         EnvelopePayload::ContestArtifact(ContestArtifact {
+            kind: None,
+            round: None,
+            actor: None,
+            audience: None,
+            body: None,
             contest_id,
             step_id: StepId::new(),
             artifact_kind: text("crosscheck.cell"),

@@ -6,6 +6,23 @@ use squad_protocol::*;
 
 fn output_schema(kind: &WorkKind) -> Option<Value> {
     use validation::schema;
+    if let Some(mode) = kind.new_mode_kind() {
+        return match mode {
+            ContestKind::Forge => forge::output_schema(kind),
+            ContestKind::Forecast => forecast::output_schema(kind),
+            ContestKind::Decide => decide::output_schema(kind),
+            ContestKind::Negotiate => negotiate::output_schema(kind),
+            ContestKind::BlowItUp => blow_it_up::output_schema(kind),
+            ContestKind::Readback => readback::output_schema(kind),
+            ContestKind::Debugging => debugging::output_schema(kind),
+            ContestKind::Trace => trace::output_schema(kind),
+            ContestKind::Rank => rank::output_schema(kind),
+            ContestKind::Tune => tune::output_schema(kind),
+            ContestKind::BassAckwardsPrd => bass_ackwards_prd::output_schema(kind),
+            _ => None,
+        };
+    }
+
     Some(match kind {
         WorkKind::Judge => schema::<JudgeVerdict>(),
         WorkKind::JudgeRound => schema::<RoundJudgeResponse>(),

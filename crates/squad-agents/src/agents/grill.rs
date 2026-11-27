@@ -98,7 +98,7 @@ impl WorkExecutor for GrillExecutor {
             {
                 return failed(context, &grant, ErrorCode::MODE_INVALID_OUTPUT).await;
             }
-            acknowledged(context.submit.submit(ExecutorRequest::Result{work_id:grant.work.work_id,attempt:grant.work.attempt,fence:grant.fence,epoch:grant.epoch,output:EnvelopePayload::ContestArtifact(ContestArtifact{contest_id:input.state.contest_id,step_id:grant.work.step_id.ok_or(ReaderError::NotRunnable)?,artifact_kind:Text::new(grant.work.kind.grill_composition().expect("checked")).expect("literal"),work_id:Some(grant.work.work_id),source_refs:vec![],data:serde_json::json!({"generation":identity(&grant),"raw":output.content,"finishReason":output.finish_reason})})}).await)
+            acknowledged(context.submit.submit(ExecutorRequest::Result{work_id:grant.work.work_id,attempt:grant.work.attempt,fence:grant.fence,epoch:grant.epoch,output:EnvelopePayload::ContestArtifact(ContestArtifact {kind: None, round: None, actor: None, audience: None, body: None, contest_id:input.state.contest_id,step_id:grant.work.step_id.ok_or(ReaderError::NotRunnable)?,artifact_kind:Text::new(grant.work.kind.grill_composition().expect("checked")).expect("literal"),work_id:Some(grant.work.work_id),source_refs:vec![],data:serde_json::json!({"generation":identity(&grant),"raw":output.content,"finishReason":output.finish_reason})})}).await)
         })
     }
 }

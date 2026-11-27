@@ -1,6 +1,173 @@
 // Explicit build-time inventory; keep in sync with prompts/manifest.json.
 pub(super) const MANIFEST: &str = include_str!("../../prompts/manifest.json");
 pub(super) const TEMPLATES: &[(&str, &str)] = &[
+    ("tune.cases", include_str!("../../prompts/tune.cases.md")),
+    ("tune.freeze", include_str!("../../prompts/tune.freeze.md")),
+    ("tune.score", include_str!("../../prompts/tune.score.md")),
+    ("tune.mutate", include_str!("../../prompts/tune.mutate.md")),
+    (
+        "bass_ackwards_prd.done",
+        include_str!("../../prompts/bass_ackwards_prd.done.md"),
+    ),
+    (
+        "bass_ackwards_prd.freeze",
+        include_str!("../../prompts/bass_ackwards_prd.freeze.md"),
+    ),
+    (
+        "bass_ackwards_prd.tree",
+        include_str!("../../prompts/bass_ackwards_prd.tree.md"),
+    ),
+    (
+        "bass_ackwards_prd.merge",
+        include_str!("../../prompts/bass_ackwards_prd.merge.md"),
+    ),
+    (
+        "bass_ackwards_prd.review",
+        include_str!("../../prompts/bass_ackwards_prd.review.md"),
+    ),
+    (
+        "bass_ackwards_prd.revise",
+        include_str!("../../prompts/bass_ackwards_prd.revise.md"),
+    ),
+    (
+        "bass_ackwards_prd.must_have",
+        include_str!("../../prompts/bass_ackwards_prd.must_have.md"),
+    ),
+    (
+        "bass_ackwards_prd.finalize",
+        include_str!("../../prompts/bass_ackwards_prd.finalize.md"),
+    ),
+    (
+        "bass_ackwards_prd.apply",
+        include_str!("../../prompts/bass_ackwards_prd.apply.md"),
+    ),
+    ("forge.draft", include_str!("../../prompts/forge.draft.md")),
+    ("forge.rank", include_str!("../../prompts/forge.rank.md")),
+    ("forge.fuse", include_str!("../../prompts/forge.fuse.md")),
+    ("forge.judge", include_str!("../../prompts/forge.judge.md")),
+    (
+        "forecast.frame",
+        include_str!("../../prompts/forecast.frame.md"),
+    ),
+    (
+        "forecast.estimate",
+        include_str!("../../prompts/forecast.estimate.md"),
+    ),
+    (
+        "forecast.revise",
+        include_str!("../../prompts/forecast.revise.md"),
+    ),
+    (
+        "forecast.cruxes",
+        include_str!("../../prompts/forecast.cruxes.md"),
+    ),
+    (
+        "decide.options",
+        include_str!("../../prompts/decide.options.md"),
+    ),
+    (
+        "decide.shortlist",
+        include_str!("../../prompts/decide.shortlist.md"),
+    ),
+    (
+        "decide.criteria",
+        include_str!("../../prompts/decide.criteria.md"),
+    ),
+    (
+        "decide.freeze",
+        include_str!("../../prompts/decide.freeze.md"),
+    ),
+    (
+        "decide.score",
+        include_str!("../../prompts/decide.score.md"),
+    ),
+    (
+        "decide.explain",
+        include_str!("../../prompts/decide.explain.md"),
+    ),
+    (
+        "negotiate.map",
+        include_str!("../../prompts/negotiate.map.md"),
+    ),
+    (
+        "negotiate.brief",
+        include_str!("../../prompts/negotiate.brief.md"),
+    ),
+    (
+        "negotiate.package",
+        include_str!("../../prompts/negotiate.package.md"),
+    ),
+    (
+        "negotiate.move",
+        include_str!("../../prompts/negotiate.move.md"),
+    ),
+    (
+        "negotiate.counter",
+        include_str!("../../prompts/negotiate.counter.md"),
+    ),
+    (
+        "negotiate.playbook",
+        include_str!("../../prompts/negotiate.playbook.md"),
+    ),
+    (
+        "blow_it_up.attack",
+        include_str!("../../prompts/blow_it_up.attack.md"),
+    ),
+    (
+        "blow_it_up.challenge",
+        include_str!("../../prompts/blow_it_up.challenge.md"),
+    ),
+    (
+        "blow_it_up.rule",
+        include_str!("../../prompts/blow_it_up.rule.md"),
+    ),
+    (
+        "readback.interpret",
+        include_str!("../../prompts/readback.interpret.md"),
+    ),
+    (
+        "readback.diff",
+        include_str!("../../prompts/readback.diff.md"),
+    ),
+    (
+        "readback.rewrite",
+        include_str!("../../prompts/readback.rewrite.md"),
+    ),
+    (
+        "debug.hypothesize",
+        include_str!("../../prompts/debug.hypothesize.md"),
+    ),
+    ("debug.merge", include_str!("../../prompts/debug.merge.md")),
+    ("debug.test", include_str!("../../prompts/debug.test.md")),
+    (
+        "debug.select",
+        include_str!("../../prompts/debug.select.md"),
+    ),
+    (
+        "debug.report",
+        include_str!("../../prompts/debug.report.md"),
+    ),
+    (
+        "trace.extract",
+        include_str!("../../prompts/trace.extract.md"),
+    ),
+    ("trace.merge", include_str!("../../prompts/trace.merge.md")),
+    (
+        "trace.verify",
+        include_str!("../../prompts/trace.verify.md"),
+    ),
+    (
+        "trace.assemble",
+        include_str!("../../prompts/trace.assemble.md"),
+    ),
+    (
+        "rank.compare",
+        include_str!("../../prompts/rank.compare.md"),
+    ),
+    (
+        "rank.explain",
+        include_str!("../../prompts/rank.explain.md"),
+    ),
     (
         "census.final",
         include_str!("../../prompts/census.final.md"),

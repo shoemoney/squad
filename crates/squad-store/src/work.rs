@@ -136,6 +136,17 @@ pub fn insert(
                         .map(|v| v as u32)
                         .unwrap_or_else(|| setup.reserved_calls()),
                 )
+            } else if work.kind.new_mode_kind().is_some() {
+                let plan: ContestPreflight = serde_json::from_value(value)?;
+                if Some(plan.kind) != work.kind.new_mode_kind() {
+                    return Err(invalid("Work does not match frozen contest plan"));
+                }
+                let attempts = plan.settings["reservedAttempts"]
+                    .as_u64()
+                    .and_then(|n| u32::try_from(n).ok())
+                    .filter(|n| *n > 0)
+                    .ok_or_else(|| invalid("Missing mode attempt bound"))?;
+                (plan.plan_id, plan.estimate.reserved_usd, attempts)
             } else if value.get("base").is_some() {
                 let p: TournamentPreflight = serde_json::from_value(value)?;
                 (
