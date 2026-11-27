@@ -266,7 +266,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "forecast");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Decide.is_built());
+    assert_eq!(ContestKind::Decide.is_built(), decide::ENABLED);
     assert_eq!(serde_json::to_value(ContestKind::Decide).unwrap(), "decide");
     let state = DecideState {
         contest_id: ContestId::new(),
@@ -282,7 +282,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "decide");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Negotiate.is_built());
+    assert_eq!(ContestKind::Negotiate.is_built(), negotiate::ENABLED);
     assert_eq!(
         serde_json::to_value(ContestKind::Negotiate).unwrap(),
         "negotiate"
@@ -301,7 +301,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "negotiate");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(ContestKind::BlowItUp.is_built());
+    assert_eq!(ContestKind::BlowItUp.is_built(), blow_it_up::ENABLED);
     assert_eq!(
         serde_json::to_value(ContestKind::BlowItUp).unwrap(),
         "blow_it_up"
@@ -320,7 +320,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "blow_it_up");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(ContestKind::Readback.is_built());
+    assert_eq!(ContestKind::Readback.is_built(), readback::ENABLED);
     assert_eq!(
         serde_json::to_value(ContestKind::Readback).unwrap(),
         "readback"
@@ -339,7 +339,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "readback");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Debugging.is_built());
+    assert_eq!(ContestKind::Debugging.is_built(), debugging::ENABLED);
     assert_eq!(
         serde_json::to_value(ContestKind::Debugging).unwrap(),
         "debug"
@@ -358,7 +358,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "debug");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Trace.is_built());
+    assert_eq!(ContestKind::Trace.is_built(), trace::ENABLED);
     assert_eq!(serde_json::to_value(ContestKind::Trace).unwrap(), "trace");
     let state = TraceState {
         contest_id: ContestId::new(),
@@ -374,7 +374,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "trace");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Rank.is_built());
+    assert_eq!(ContestKind::Rank.is_built(), rank::ENABLED);
     assert_eq!(serde_json::to_value(ContestKind::Rank).unwrap(), "rank");
     let state = RankState {
         contest_id: ContestId::new(),

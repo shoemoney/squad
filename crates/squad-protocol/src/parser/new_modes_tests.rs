@@ -86,7 +86,7 @@ fn new_mode_examples_and_refusals() {
             }
         }
         let result = if case["condition"] == "disabled" {
-            with_mode_enablement(false, run)
+            with_mode_activation(false, run)
         } else {
             with_new_modes(run)
         };
@@ -116,7 +116,7 @@ fn override_resets_after_fixture() {
         ..Default::default()
     };
     assert!(with_new_modes(|| super::parser::parse_snapshot("@all $forge brief", &ctx)).is_ok());
-    assert!(!ENABLE_NEW_MODES.with(|enabled| enabled.get()));
+    assert_eq!(ENABLE_NEW_MODES.with(|enabled| enabled.get()), None);
 }
 
 #[test]
