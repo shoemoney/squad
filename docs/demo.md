@@ -12,9 +12,9 @@ This file is the timed script for the canonical Squad demonstration, the walkthr
 | Effects reel | `docs/demo/free/effects.tape` | `effects-reel.gif` | `~/squad-demo-raw/free-effects.mp4` (29 s) |
 | Tournament (live) | `docs/demo/tournament.tape` | `tournament.gif` | `~/squad-demo-raw/live-tournament.mp4` (164 s) |
 | Grill (live) | `docs/demo/grill.tape` | `grill.gif` | `~/squad-demo-raw/live-grill.mp4` (169 s) |
-| Census (live) | `docs/demo/census.tape` | `census.gif` | `~/squad-demo-raw/live-census.mp4` (161 s) |
+| Census (live, v0.2.0) | `docs/demo/new/census.tape` | `census.gif` | `docs/media/full/census.gif` (complete, lighter GIF) |
 | Crosscheck (live) | `docs/demo/crosscheck.tape` | `crosscheck.gif` | `~/squad-demo-raw/live-crosscheck.mp4` (206 s) |
-| Install (release archive) | `docs/demo/install.tape` | `install.gif`, `doctor-pass.png` | none (short, real time) |
+| Install (release archive, v0.2.0) | `docs/demo/install.tape` | `install.gif`, `doctor-pass.png` | none (short, real time) |
 | Survey (live v0.1.2) | `docs/demo/survey.tape` + `survey-report.tape` | [survey.gif](media/survey.gif) | `~/squad-demo-raw/audit-survey-v0.1.2.mp4` + report continuation |
 | Probe (live v0.1.2) | `docs/demo/probe.tape` + `probe-report.tape` | [probe.gif](media/probe.gif) | `~/squad-demo-raw/audit-probe-v0.1.2.mp4` + report continuation |
 
@@ -428,3 +428,9 @@ Two things to confirm when the first recording runs. The README's export table s
 - [ ] `squad.tape` fixes applied (`/set ROUNDS 1`, export `Enter`, export directory): the walkthrough tapes have them; the canonical live `squad.tape` was not re-recorded.
 - [x] Links from `README.md` replace the `RECORDING` placeholders above.
 - [ ] Survey and probe walkthroughs recorded successfully (blocked: both fail live on v0.1.0).
+
+## The v0.2.0 mode recordings
+
+The eleven new modes, the census and the install clip were recorded on the **v0.2.0 release binary** (SHA-256 verified against the published `.sha256` file) with the default six-model roster. Tapes are `docs/demo/new/<mode>.tape`; `docs/demo/new/record-all.sh <squad> [mode ...]` records each in a private temp home under `/dev/shm`, builds the full-length GIF in `docs/media/full/`, cuts the README GIF (25 s or less, 1.5 MB or less, every sped-up stretch labelled `TIME CUT`) and OCR-scans both for `/home/`, `/Users/`, `/tmp/` and `sk-or-`. `SKIP_RECORD=1` re-cuts existing raw recordings; `CUT_<mode>="a:b:speed ..."` sets the cut points (used for `readback`, `debug` and `bass_ackwards_prd` so the human step stays on screen at real time).
+
+Tape lessons: wait for the `Ask the squad` prompt before typing, wait for the preflight `Confirm` card before pressing `y`, press `Escape` before `Enter` after a bare slash command (an open suggestion list swallows Enter), and use fixed sleeps rather than a text marker for the end of a contest because a long report scrolls the status header off screen. The `/answer` in `debug` closes its step, so no `/continue` follows it. Long recordings run on a dev worker with enough memory: VHS's own GIF encode of a long take was killed on small hosts, so the full-length GIF is made from the MP4.

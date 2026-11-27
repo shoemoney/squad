@@ -473,9 +473,9 @@ The grill has no judge and no winner. The result is the **final plan** and an **
 💸 **~$2.33** measured (2 passes) · 👥 3 to 12 members · 🧱 blind
 
 #### 🎯 What it's for
-![Census: three members hunt a deploy plan for omissions in one pass, the judge merges the findings and the report lists the ledger, finder counts and discovery curve.](docs/media/census.gif)
+![Census on the v0.2.0 release binary: the six default members hunt a deploy plan for omissions in one pass, rate them blind, and the report ends on the discovery curve and the estimate of what is still unfound.](docs/media/census.gif)
 
-_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._ In this run one member reply was rejected as invalid, so the estimate line reads "Estimate unavailable".
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded live with the v0.2.0 release binary on the default six-model roster, one pass; the complete recording is in [`docs/media/full/census.gif`](docs/media/full/)._
 
 Find omissions in a plan. Members hunt blind, the judge merges and the members rate anonymously, and the report estimates what's still unfound.
 
