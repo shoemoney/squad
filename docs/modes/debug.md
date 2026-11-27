@@ -146,3 +146,20 @@ removed; all twenty-four new-mode judge compositions keep the shared blind
 header regression. The exact `deb` prefix fixture now includes `$debug` when
 enabled. Full gates pass: fmt, Clippy, 1,658 Cargo passing executions, 1,657 unique
 Nextest passes with four inherited skips in 190.690 seconds and doc tests.
+
+## Integrated release smoke (2026-11-27)
+
+Release 0.2.0 source `d4f0225` ran once on dev2 with the built-in six-member
+roster. CLI exit 0, `COMPLETE`, `isolated`; 29 planned mode calls and
+37 total provider attempts including startup. Spend was $1.940283, observed
+wall time 971.115 seconds, and initial/sample-peak reservation
+$41.175132/$41.175132. Final reserved funds were $0.000000 and unknown
+calls 0. Credential-free offline export passed. Evidence: `/tmp/squad-v020-debug-c6s5um2l/`;
+see the [integration record](../live-smoke-2026-11-27-debug.md).
+
+This is one contest with three actual local operator probes and `/answer`
+continuations. Wall time includes those observations. Grok exhausted its two
+transport attempts for each test-proposal round; the other five proposals were
+accepted. All five judge calls passed first try. All seven failed attempt
+receipts reconciled automatically. H1 retained three consistent results and
+the report included an illustrative defaulting-expression patch, not applied.

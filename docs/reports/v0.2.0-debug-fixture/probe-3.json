@@ -1,0 +1,79 @@
+{
+  "round": 3,
+  "selection": {
+    "testRef": "Proposer 5:T1",
+    "instruction": "Run: python3 /tmp/squad-v020-debug-fixture-cyvxmygn/probe.py '[{\"amount\":100,\"rate\":0.5},{\"amount\":100,\"rate\":0}]' and paste stdout and exit status.",
+    "outcomes": [
+      {
+        "label": "O1",
+        "description": "Output is [150.0, 110.0]"
+      },
+      {
+        "label": "O2",
+        "description": "Both outputs are equal (e.g. [110.0, 110.0] or [150.0, 150.0])"
+      },
+      {
+        "label": "O3",
+        "description": "Any other output or nonzero exit status"
+      }
+    ],
+    "predictions": [
+      {
+        "hypothesisId": "H1",
+        "outcome": "O1"
+      },
+      {
+        "hypothesisId": "H4",
+        "outcome": "O2"
+      },
+      {
+        "hypothesisId": "H7",
+        "outcome": "O2"
+      }
+    ],
+    "addedHypotheses": [],
+    "notSelected": [
+      {
+        "testRef": "Proposer 1:T1",
+        "why": "Safe and splits H1 from H4, but H7 cannot predict. The selected test gives all three live hypotheses a concrete prediction."
+      },
+      {
+        "testRef": "Proposer 1:T2",
+        "why": "Safe and splits H1 from H4, but H7 is left as cannot predict. The selected test covers H7 concretely."
+      },
+      {
+        "testRef": "Proposer 2:T1",
+        "why": "Only H1 gets a concrete prediction; H4 and H7 cannot predict, so no two live hypotheses are split on concrete labels."
+      },
+      {
+        "testRef": "Proposer 2:T2",
+        "why": "A close alternative with the same split (H1 versus H4 and H7). Its outcome list does not cover an error or nonzero exit, which the selected test does."
+      },
+      {
+        "testRef": "Proposer 3:T1",
+        "why": "Safe and splits H1 from H4, but H7 cannot predict, and the three-item, four-outcome design is more complex than needed."
+      },
+      {
+        "testRef": "Proposer 4:T1",
+        "why": "The procedure field is a prose description without the command, so copying it verbatim would not give a runnable instruction. H4 also cannot predict."
+      },
+      {
+        "testRef": "Proposer 4:T2",
+        "why": "The procedure field again lacks the actual command, and H4 cannot predict."
+      },
+      {
+        "testRef": "Proposer 5:T2",
+        "why": "Safe and splits H1 from H7, but H4 cannot predict. Proposer 5:T1 gives concrete predictions for every live hypothesis."
+      }
+    ]
+  },
+  "argv": [
+    "python3",
+    "/tmp/squad-v020-debug-fixture-cyvxmygn/probe.py",
+    "[{\"amount\":100,\"rate\":0.5},{\"amount\":100,\"rate\":0}]"
+  ],
+  "stdout": "[150.0, 110.0]\n",
+  "stderr": "",
+  "returncode": 0,
+  "answer": "O1"
+}

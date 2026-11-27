@@ -26,6 +26,7 @@ resolved-model cache and frozen preflight.
 | Tune | 0 / COMPLETE, tuned | $0.522077 | 134.272 s | $24.970323 / $24.970323 | $0.000000 / 0 | `/tmp/squad-v020-tune-voxbepir/` |
 | Bass Ackwards PRD | 0 / COMPLETE, saved | $2.552690 | 410.874 s | $50.711781 / $50.711781 | $0.000000 / 0 | `/tmp/squad-v020-bass_ackwards_prd-rklsr3wq/` |
 | Negotiate | 0 / COMPLETE, rehearsed | $1.591324 | 274.577 s | $32.021214 / $32.021214 | $0.000000 / 0 | `/tmp/squad-v020-negotiate-iocxpej9/` |
+| Debug | 0 / COMPLETE, isolated | $1.940283 | 971.115 s | $41.175132 / $41.175132 | $0.000000 / 0 | `/tmp/squad-v020-debug-c6s5um2l/` |
 
 Rank used fifteen pairs, replication three and forty-five judgments. All six
 batches were accepted; Claude's first batch needed its one private validation
@@ -36,9 +37,9 @@ Forge used all fifteen normal mode calls without retries, plus four startup
 probes. It returned the best original verbatim, with no judge failure. Credential-free
 offline export passed.
 
-Nine enabled additions have had one integrated invocation. Eight reached
+Ten enabled additions have had one integrated invocation. Nine reached
 `COMPLETE`; Readback returned zero at its documented human pause. None ended
-`judge_failed`. Trace and Debug await the owner's merge notice.
+`judge_failed`. Trace awaits the owner's merge notice.
 
 ## Delayed receipt repair on the original evidence
 
@@ -78,7 +79,7 @@ passed all required workspace gates and an explicit release build. Its private
 binary snapshot and SHA-256 are in `/tmp/squad-v020-build-8bade6d/build.json`.
 The paid invocations above retain the earlier integrated source and binary hash.
 The first eight fresh rooms spent $6.379471. Including Negotiate, observed spend
-across nine smoke rooms is $7.970795.
+across nine smoke rooms is $7.970795. With Debug, the ten rooms total $9.911078.
 
 The saved PRD path is `/tmp/squad-v020-bass_ackwards_prd-rklsr3wq/data/exports/prd-self-hosted-status-page-with-outage-alerts-01a21b55-edfa-73da-8505-e8c9ef373546.md` (mode 0600,
 SHA-256 `6c36d8f59f9ed41eea72ef0ed9e3443ce5264a179c4608ddac93c9bde0c0360e`). Its content occurs verbatim in the full evidence
@@ -111,3 +112,14 @@ Raw run evidence is `/tmp/squad-v020-negotiate-iocxpej9/`, including the frozen
 plan, ledger, resolved roster, provider-call summaries and `report.md`. Integrated
 composed and twelve-stream performance checks also pass at this source; their
 logs are committed under `docs/reports/v0.2.0-integration-step5/`.
+
+## Debug on the later integrated snapshot
+
+Debug used source `d4f0225`, the same six-member defaults and three actual
+operator probes within one contest. It completed with `isolated` in 971.115
+seconds end to end, including human observation time. Spend was $1.940283,
+initial/peak reservation $41.175132 and final reservation/unknown calls zero.
+CLI exit and offline export passed. The report suggests a key-presence check
+instead of a truthiness default; the illustrative patch was not applied.
+See [full Debug evidence](live-smoke-2026-11-27-debug.md), including probe
+inputs and actual output.

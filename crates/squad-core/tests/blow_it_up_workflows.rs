@@ -293,8 +293,11 @@ async fn invalid_diversity_sets_are_repaired_once() {
     let f = Fixture::new(Scenario::Repair).await;
     let room = f.open().await;
     f.start(&room).await;
-    f.wait(|| f.state().is_some_and(|s| s.state == BlowItUpStatus::Ruling))
-        .await;
+    f.wait(|| {
+        f.state()
+            .is_some_and(|s| s.state == BlowItUpStatus::Complete)
+    })
+    .await;
     let calls = f.fake.captured_bodies().await;
     assert_eq!(
         calls

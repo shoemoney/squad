@@ -136,7 +136,8 @@ The original seven contest modes and ordinary chat are measured in this study. T
 These runs use release 0.2.0, the built-in **six-member** roster and judge,
 `SQUAD_DAILY_MAX_USD=150`, a fresh private data directory per mode, and
 `--env-file /dev/null`. Credentials enter the process environment off-screen.
-Each row is one paid mode invocation. Wall time runs from process launch to
+Each row is one paid contest start; Debug includes three `/answer` continuations
+and operator observation time. Wall time runs from process launch to
 observed exit (0.5-second polling); reservation peaks are sampled at that interval.
 Actual spend includes startup probes. Source/binary provenance and further runs
 are recorded in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md).
@@ -152,6 +153,7 @@ are recorded in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md).
 | Tune | COMPLETE, tuned | $0.522077 | 134.272 s | 34 / 35 | $24.970323 | $24.970323 | $0.000000 / 0 |
 | Bass Ackwards PRD | COMPLETE, saved | $2.552690 | 410.874 s | 28 / 33 | $50.711781 | $50.711781 | $0.000000 / 0 |
 | Negotiate | COMPLETE, rehearsed | $1.591324 | 274.577 s | 29 / 39 | $32.021214 | $32.021214 | $0.000000 / 0 |
+| Debug | COMPLETE, isolated | $1.940283 | 971.115 s | 29 / 37 | $41.175132 | $41.175132 | $0.000000 / 0 |
 
 ### Original timeout holds reconciled
 

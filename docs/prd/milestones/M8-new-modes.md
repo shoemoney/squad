@@ -324,7 +324,7 @@ Owns only the `debugging` module files listed in **New modes → Files each mode
   - [x] M8.P8.L4.T2 — Render the `DEBUG` banner, the dividers, a differential table that greys eliminated rows and the `RUN THE TEST` human step through the shared widget, in crate `squad-tui`, files `crates/squad-tui/src/widgets/debugging.rs` and `crates/squad-tui/src/fx/debugging.rs`, with view tests in `crates/squad-tui/tests/debugging_view.rs`. **Evidence (2026-11-26):** Banner, dividers, explicit status and pending-answer projection pass the owned view tests. The integrator connected the shared styled-row compositor and verified actual grey eliminated cells and normal live cells for both elimination and report artifacts.
 
 - **M8.P8.L5 — Verification and enable**
-  - [ ] M8.P8.L5.T1 — Verify the debug acceptance tests in **New modes**, including that `unknown` changes no status and that no text gives a hypothesis a confirmed status, plus stop fencing and export, in crate `squad-core`, files `crates/squad-core/tests/debugging_workflows.rs` and `crates/squad-core/tests/debugging_export.rs`, and executor tests in crate `squad-agents`, file `crates/squad-agents/tests/agents_debugging.rs`. **Evidence (2026-11-26):** Mode acceptance tests pass (25 owned tests), but production RoomHandle judging remains blocked by `runtime/judge.rs`; the single paid smoke stopped at MERGING. The final workspace gate has ten shared-fixture/enablement failures plus the inherited tournament snapshot race across eight shared targets. See `docs/modes/debug.md`.
+  - [x] M8.P8.L5.T1 — Verify the debug acceptance tests in **New modes**, including that `unknown` changes no status and that no text gives a hypothesis a confirmed status, plus stop fencing and export, in crate `squad-core`, files `crates/squad-core/tests/debugging_workflows.rs` and `crates/squad-core/tests/debugging_export.rs`, and executor tests in crate `squad-agents`, file `crates/squad-agents/tests/agents_debugging.rs`. **Evidence (2026-11-26):** Mode acceptance tests pass (25 owned tests), but production RoomHandle judging remains blocked by `runtime/judge.rs`; the single paid smoke stopped at MERGING. The final workspace gate has ten shared-fixture/enablement failures plus the inherited tournament snapshot race across eight shared targets. See `docs/modes/debug.md`.
   - [x] M8.P8.L5.T2 — Verify the pure functions against hand-computed fixtures: elimination for matching, differing, `disputed`, `cannot_predict`, `other` and `unknown`, and the patch gate, in crate `squad-core`, file `crates/squad-core/tests/debugging_tallies.rs`. **Evidence (2026-11-26):** Four pure tally/quote tests pass, including other/unknown/disputed/cannot_predict, patch gating and exact call bounds.
   - [x] M8.P8.L5.T3 — Write the user-facing mode section in `docs/modes/debug.md` in the README mode-section format, then set `ENABLED = true` in crate `squad-protocol`, file `crates/squad-protocol/src/debugging.rs`. **Evidence (2026-11-26):** User docs and partial live evidence are in `docs/modes/debug.md`; ENABLED=true; owned parser, completion and help tests pass. Shared TIP addition and global gate expectation maintenance are reported for integration.
 
@@ -418,3 +418,11 @@ pairs across eighteen kinds and stop/clear for all fifty-one new work kinds.
 The added public parser/context matrix verifies 144 starts with exact active-kind
 busy diagnostics for the eight enabled additions. Remaining start cases activate
 when Trace, Debug and Negotiate are enabled; L1.T1 remains open until that pass.
+
+Debug integration evidence (2026-11-27): all fourteen M8.P8 tasks are checked.
+The full release smoke at `d4f0225` completed all three default rounds and
+three actual operator probes, then isolated H1 with patch advice. CLI and
+offline export passed; $1.940283 spent in 971.115 seconds, initial/peak
+reservation $41.175132, final reservation and unknown calls zero. All seven
+failed provider attempts have settled receipts. See
+[Debug live evidence](../../live-smoke-2026-11-27-debug.md).

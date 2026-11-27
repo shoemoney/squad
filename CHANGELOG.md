@@ -12,8 +12,8 @@ All notable changes to Squad will be documented in this file, following
 
 - Forge, Forecast, Decide, Negotiate, Blow It Up, Readback, Debug, Rank, Tune and Bass Ackwards PRD
   modes, including reports, export, recovery, cost previews and private repairs.
-- Nine integrated default six-member smoke invocations, with measured cost,
-  time and reservations in [cost evidence](docs/costs.md). Eight completed;
+- Ten integrated default six-member smoke invocations, with measured cost,
+  time and reservations in [cost evidence](docs/costs.md). Nine completed;
   Readback returned at its documented human pause. No run ended `judge_failed`.
 - Public preflight regressions for script-derived call and reservation counts,
   including Tune executors and optional PRD human review.
@@ -23,6 +23,8 @@ All notable changes to Squad will be documented in this file, following
 - Publish only dirty transcript cards and account for activity on events; reuse
   layout anchors and release completed syntax-fence state.
 - Negotiate tables use the actual viewport width for side-by-side layout.
+- Debug eliminated rows retain grey styling in the actual compositor.
+- Tournament and Blow It Up fixtures observe stable completion state.
 - Shared new-mode judge dispatch and member validation repairs.
 - Blind judge prompts replace the identity header throughout the new modes.
 - Delayed timeout/cancellation receipts reconcile while a room is open, after
