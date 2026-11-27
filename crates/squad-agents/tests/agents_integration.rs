@@ -341,8 +341,9 @@ async fn accounting_reconciles_same_attempt_and_keeps_unknown_cost() {
     assert_eq!(server.server.received_requests().await.unwrap().len(), 1);
 }
 /// A cost lookup the provider never answers must not stall the finished call: it ends in
-/// a deadline error within the reconcile bound and the cost stays unknown.
-#[tokio::test(start_paused = true)]
+/// a deadline error within the reconcile bound and the cost stays unknown. Runs in real
+/// time: a paused clock lets the client's connect timer win on hosts where connect is slow.
+#[tokio::test]
 async fn reconcile_gives_up_when_the_generation_lookup_never_answers() {
     let f = Fixture::new("alice", "current");
     let grant = f.grant.lock().unwrap().clone();
@@ -356,7 +357,7 @@ async fn reconcile_gives_up_when_the_generation_lookup_never_answers() {
     server.generation_hangs("stuck").await;
     let client = OpenRouterClient::new(&server.base_url(), "fixture-key").unwrap();
     account.metadata(Some("stuck".into()), None);
-    let started = tokio::time::Instant::now();
+    let started = std::time::Instant::now();
     let result = account.reconcile(&client).await;
     assert!(
         matches!(result, Err(TransportError::Deadline)),
