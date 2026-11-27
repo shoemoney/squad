@@ -564,17 +564,23 @@ impl Session {
                         );
                     }
                 }
-                if d.debate_id.is_some()
+                let visibility_changed = if d.debate_id.is_some()
                     || d.contest_id
                         .is_some_and(|id| self.tournaments.contains_key(&id))
                 {
-                    self.debate_messages.insert(card.id);
+                    let changed = self.debate_messages.insert(card.id);
                     self.debate_streams.insert(card.id, d.clone());
-                }
+                    changed
+                } else {
+                    false
+                };
                 card.next_chunk = d.chunk_index + 1;
                 card.pending_text.push_str(&d.text);
-                self.transcript
-                    .pending_delta(d.generation.message_id, inserted, replaced);
+                self.transcript.pending_delta(
+                    d.generation.message_id,
+                    inserted,
+                    replaced || visibility_changed,
+                );
                 self.transcript
                     .batch_deadline
                     .get_or_insert(now + Duration::from_millis(50));

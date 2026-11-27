@@ -336,3 +336,33 @@ async fn replay_paging_clear_and_restore_keep_anchors_and_unread_membership() {
     assert!(!app.composed.transcript.is_empty());
     assert_eq!(app.session.transcript.new_activity(), 0);
 }
+
+#[test]
+fn a_stream_assigned_to_an_inline_artifact_removes_its_ordinary_card_immediately() {
+    let mut app = app();
+    let g = generation();
+    delta(&mut app.session, &g, 0, "ordinary");
+    app.session.transcript.flush(Duration::from_millis(50));
+    draw(&mut app, 140);
+    assert!(app.composed.transcript.message(g.message_id).is_some());
+    app.session.reduce(
+        FeedItem::Delta(ProducerEnvelope {
+            base: base(&g),
+            content: EnvelopePayload::Delta(Delta {
+                generation: g.clone(),
+                chunk_index: 1,
+                text: " debate".into(),
+                debate_id: Some(DebateId::new()),
+                round: None,
+                case_id: None,
+                contest_id: None,
+                step_id: None,
+            }),
+        }),
+        FeedOrigin::Live,
+        Duration::from_millis(60),
+        &mut FxQueue::new(),
+    );
+    draw(&mut app, 140);
+    assert!(app.composed.transcript.message(g.message_id).is_none());
+}
