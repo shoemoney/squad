@@ -320,7 +320,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "blow_it_up");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Readback.is_built());
+    assert!(ContestKind::Readback.is_built());
     assert_eq!(
         serde_json::to_value(ContestKind::Readback).unwrap(),
         "readback"

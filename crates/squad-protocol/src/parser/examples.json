@@ -2890,8 +2890,7 @@
     "row": 203,
     "input": "@all $readback target spec",
     "m8": true,
-    "error": "Command $readback is disabled until its implementation lands.",
-    "condition": "disabled"
+    "kind": "readback"
   },
   {
     "row": 204,

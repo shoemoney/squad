@@ -53,7 +53,9 @@ fn fixture(path: &std::path::Path, kind: ContestKind) -> (Store, Router, parser:
     store.call(move|db|{
  let state=serde_json::json!({"contestId":p.contest_id,"stateVersion":1,"state":if p.kind==ContestKind::Debugging {"MERGING"} else {"INTERPRETING"},"stepId":p.step_id,"round":if p.kind==ContestKind::BassAckwardsPrd {0}else{1},"artifactEventIds":[],"terminalReason":null});
  db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active,updated_seq) VALUES(?,?,1,1,?,1,?)",params![p.contest_id.to_string(),p.kind.as_str(),state.to_string(),seq.get()])?;
- db.execute("INSERT INTO contest_steps(step_id,contest_id,ordinal,script_version,move,state_json,inputs_json,updated_seq) VALUES(?,?,1,'v1','judge','{}','[]',?)",params![p.step_id.to_string(),p.contest_id.to_string(),seq.get()])?;Ok(())}).unwrap();
+ db.execute("INSERT INTO contest_steps(step_id,contest_id,ordinal,script_version,move,state_json,inputs_json,updated_seq) VALUES(?,?,1,'v1','judge','{}','[]',?)",params![p.step_id.to_string(),p.contest_id.to_string(),seq.get()])?;
+ if p.kind == ContestKind::Readback { seed_readback(db, &p)?; }
+ Ok(())}).unwrap();
     let held = pending.contest_id;
     store.call(move|db| {
         db.execute("INSERT INTO catalog VALUES ('test/model',131072,65536,'{\"prompt\":\"0\",\"completion\":\"0\"}','[]','2026-11-25T00:00:00Z')",[])?;
@@ -72,6 +74,71 @@ fn fixture(path: &std::path::Path, kind: ContestKind) -> (Store, Router, parser:
         .unwrap();
     let router = router(&store);
     (store, router, pending)
+}
+// Mode callbacks persist resolved choices and stop reports in the owned run row.
+fn seed_readback(
+    db: &rusqlite::Connection,
+    pending: &parser::PendingHuman,
+) -> squad_store::Result<()> {
+    use squad_protocol::readback::*;
+    let setup = ReadbackSetup {
+        spec: "The service retains records. The operator deletes backups.".into(),
+        participants: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
+        rounds: 2,
+        room_words: 120,
+        plan_words: 500,
+        models: ["a", "b", "c", "judge"]
+            .map(|n| {
+                (
+                    n.into(),
+                    ExecutorBinding {
+                        model: "test/model".parse().unwrap(),
+                        effort: ReasoningEffort::Low,
+                    },
+                )
+            })
+            .into(),
+        prompt_refs: ["readback.interpret", "readback.diff", "readback.rewrite"]
+            .map(|name| {
+                (
+                    name.into(),
+                    PromptRef {
+                        pack_version: "fixture-v1".parse().unwrap(),
+                        template_id: name.parse().unwrap(),
+                        template_hash: "fixture-hash".parse().unwrap(),
+                    },
+                )
+            })
+            .into(),
+    };
+    squad_store::readback::insert(db, pending.contest_id, &setup)?;
+    let mut run = squad_store::readback::run(db, pending.contest_id)?;
+    let entries = [
+        "The service retains records.",
+        "The operator deletes backups.",
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(i, passage)| ReadbackEntry {
+        entry_id: format!("entry{i}"),
+        passage: passage.into(),
+        question: "Which behaviour?".into(),
+        behaviour_change: "Observable behaviour differs".into(),
+        readings: ["a", "b"]
+            .map(|id| ReadbackReading {
+                reading_id: id.into(),
+                text: format!("Meaning {id}"),
+                source_labels: vec![format!("Reader {}", if id == "a" { 1 } else { 2 })],
+            })
+            .to_vec(),
+    })
+    .collect();
+    run.rounds.push(squad_store::readback::Round {
+        spec: setup.spec,
+        ledger: Some(ReadbackLedger { entries }),
+        ..Default::default()
+    });
+    squad_store::readback::save(db, pending.contest_id, &run)
 }
 fn router(store: &Store) -> Router {
     let roster = ["a", "b", "c"].map(|n| Nick::new(n).unwrap()).to_vec();

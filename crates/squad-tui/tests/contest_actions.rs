@@ -170,7 +170,7 @@ fn help_is_parser_owned_and_covers_every_new_verb_and_export() {
 #[test]
 fn every_help_export_example_parses_to_an_export_scope() {
     let ctx = ParseContext::default();
-    for raw in squad_protocol::parser::HELP_EXAMPLES
+    for raw in squad_protocol::parser::help_examples()
         .iter()
         .filter(|r| r.starts_with("/export"))
     {
