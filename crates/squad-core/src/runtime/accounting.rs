@@ -13,6 +13,8 @@ fn unavailable() -> ReaderError {
 }
 
 fn pending(store: &Store) -> Result<Vec<(u64, UsageRecord)>, ReaderError> {
+    // Startup identity probes have a separate persistence owner and may retain
+    // an unresolved alias rather than a concrete executable-work identity.
     store
         .call(|db| {
             let mut query = db.prepare(
@@ -25,6 +27,7 @@ fn pending(store: &Store) -> Result<Vec<(u64, UsageRecord)>, ReaderError> {
                     'debateId',debate_id,'caseId',case_id,'contestId',contest_id)
                  FROM attempts a
                  WHERE unresolved=1 AND provider_request_id IS NOT NULL
+                   AND a.context_id <> ('probe:' || a.target)
                    AND (ended_at IS NOT NULL OR NOT EXISTS (
                        SELECT 1 FROM work w WHERE w.work_id=a.work_id
                        AND w.attempt=a.attempt AND w.epoch=a.epoch

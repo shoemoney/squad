@@ -369,3 +369,40 @@ async fn delayed_receipt_survives_clear_and_reopen_with_its_original_attempt() {
         14_045
     );
 }
+
+#[tokio::test]
+async fn work_receipt_sweeper_preserves_startup_probe_ownership() {
+    let mut f = Fixture::new().await;
+    f.config.agents[0].model = "~fixture/member0-alias".into();
+    f.fake.completions(vec![streaming("healthy", "stop")]).await;
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(body_partial_json(
+            serde_json::json!({"model":"~fixture/member0-alias"}),
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "id":"gen-unpriced-startup", "model":"fixture/member0",
+            "choices":[{"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}],
+            "usage":{"prompt_tokens":11,"completion_tokens":17}
+        })))
+        .with_priority(1)
+        .expect(1)
+        .mount(&f.fake.server)
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    assert_eq!(
+        f.scalar("SELECT COUNT(*) FROM attempts WHERE context_id='probe:member0' AND unresolved=1"),
+        1
+    );
+    let result = room
+        .submit(f.request("@member1 continue ordinary work"))
+        .await;
+    assert!(matches!(result, RequestResult::Accepted { .. }));
+    f.finals(1).await;
+    room.shutdown().await.unwrap();
+    assert_eq!(
+        f.scalar("SELECT COUNT(*) FROM attempts WHERE context_id='probe:member0' AND unresolved=1"),
+        1
+    );
+    assert_eq!(f.fake.captured_bodies().await.len(), 2);
+}
