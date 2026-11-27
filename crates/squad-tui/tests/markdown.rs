@@ -325,3 +325,27 @@ fn completed_fences_reuse_rows_on_resize_and_rebuild_on_replacement() {
         fresh.visible_rows(0..usize::MAX)
     );
 }
+
+#[test]
+fn fitting_blocks_reuse_wrapped_rows_but_narrowing_reflows_code_tabs_and_prose() {
+    let source = "Short **styled** 世界 paragraph.\n\n```rust\n\tlet x = 42;\n```";
+    let mut renderer = MarkdownRenderer::new();
+    renderer.update("one", source, true, 140);
+    let stats = renderer.stats();
+    renderer.update("one", source, true, 139);
+    assert_eq!(
+        renderer.stats(),
+        stats,
+        "fitting lines have identical cells at both widths"
+    );
+    for width in [24, 23, 8, 5, 4, 0, 80, 140] {
+        renderer.update("one", source, true, width);
+        let mut fresh = MarkdownRenderer::new();
+        fresh.update("one", source, true, width);
+        assert_eq!(
+            renderer.visible_rows(0..usize::MAX),
+            fresh.visible_rows(0..usize::MAX),
+            "width={width}"
+        );
+    }
+}

@@ -40,6 +40,7 @@ pub struct MarkdownBlock {
     pub finalized: bool,
     code: Option<String>,
     styled: Vec<Line<'static>>,
+    unwrapped_width: usize,
     wrapped: Vec<Line<'static>>,
 }
 
@@ -47,6 +48,9 @@ impl MarkdownBlock {
     /// Unwrapped code for copying, without the fence label or visual padding.
     pub fn code(&self) -> Option<&str> {
         self.code.as_deref()
+    }
+    pub(crate) fn row_count(&self) -> usize {
+        self.wrapped.len()
     }
 }
 
@@ -91,7 +95,8 @@ impl MarkdownRenderer {
             self.complete = false;
         }
         let changed = source != self.source || complete != self.complete;
-        let resized = self.width != width;
+        let old_width = self.width;
+        let resized = old_width != width;
         self.key = attempt_key.to_owned();
         self.width = width;
         if changed {
@@ -139,6 +144,16 @@ impl MarkdownRenderer {
         }
         if resized {
             for block in &mut self.blocks {
+                // Padding is constant above five columns. If neither width wraps
+                // a styled line, its cached cells and height are identical.
+                if !changed
+                    && old_width >= 5
+                    && width >= 5
+                    && block.unwrapped_width <= old_width.saturating_sub(4)
+                    && block.unwrapped_width <= width.saturating_sub(4)
+                {
+                    continue;
+                }
                 block.wrapped = wrap_lines_policy(
                     &block.styled,
                     width,
@@ -335,6 +350,16 @@ fn parse_blocks(source: &str, base: usize, fence: &mut FenceHighlighter) -> Vec<
                 source_range: base + start..base + range.end,
                 finalized: false,
                 code: code_source,
+                // A tab expands by at most four cells; the conservative bound
+                // avoids treating tab-containing lines as narrower than they are.
+                unwrapped_width: styled
+                    .iter()
+                    .map(|line| {
+                        let text = line.to_string();
+                        text.width() + 4 * text.matches('\t').count()
+                    })
+                    .max()
+                    .unwrap_or(0),
                 styled,
                 wrapped: Vec::new(),
             });

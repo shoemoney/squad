@@ -83,6 +83,22 @@ fn commit(session: &mut Session, g: &GenerationIdentity, content: EnvelopePayloa
         &mut FxQueue::new(),
     );
 }
+fn complete(session: &mut Session, g: &GenerationIdentity, text: &str) {
+    commit(
+        session,
+        g,
+        EnvelopePayload::MessageFinal(Completion {
+            completed: CompletedGeneration {
+                generation: g.clone(),
+                model: Text::new("test/model").unwrap(),
+                finish_reason: FinishReason::Stop,
+                usage: None,
+            },
+            in_reply_to_message_id: MessageId::new(),
+            content: text.into(),
+        }),
+    );
+}
 fn status(session: &mut Session, g: &GenerationIdentity, status: WorkStatus) {
     commit(
         session,
@@ -160,6 +176,11 @@ fn static_history_does_no_frame_bookkeeping_and_only_published_cards_are_prepare
         app.composed.prepared_cards, inspected,
         "width reflows cached rows without rechecking cards"
     );
+    // Restore is an explicit full invalidation even when retained counts match.
+    let snapshot = app.session.snapshot.clone();
+    app.session.restore(snapshot);
+    draw(&mut app, 80);
+    assert!(app.composed.transcript.message(g.message_id).is_none());
 }
 
 #[test]
@@ -197,9 +218,7 @@ fn terminal_retry_and_supersession_publish_without_waiting_for_a_text_flush() {
             "streaming"
         );
         app.session.transcript.flush(Duration::from_millis(50));
-        app.session
-            .transcript
-            .complete(g.message_id, Actor::Me, g.attempt, "durable".into());
+        complete(&mut app.session, &g, "durable");
         draw(&mut app, 140);
         assert_eq!(
             app.composed
@@ -242,6 +261,12 @@ fn terminal_retry_and_supersession_publish_without_waiting_for_a_text_flush() {
                 .to_string()
                 .contains("@claude")
         );
+        let snapshot = app.session.snapshot.clone();
+        app.session.restore(snapshot);
+        draw(&mut app, 140);
+        let model = app.composed.transcript.message(g.message_id).unwrap();
+        assert_eq!(model.status, "superseded");
+        assert_eq!(model.source, "durable");
     }
 }
 
@@ -276,6 +301,16 @@ async fn replay_paging_clear_and_restore_keep_anchors_and_unread_membership() {
         app.session.transcript.new_activity(),
         0,
         "transient card absent from restored history is removed"
+    );
+    let durable = generation();
+    complete(&mut app.session, &durable, "durable unread");
+    assert_eq!(app.session.transcript.new_activity(), 1);
+    app.session.page_older(&room).await.unwrap();
+    draw(&mut app, 140);
+    assert_eq!(
+        app.session.transcript.new_activity(),
+        1,
+        "paging retains surviving unread identities"
     );
     let inspected = app.composed.prepared_cards;
     app.expire(Duration::from_secs(1));
