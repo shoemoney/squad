@@ -82,3 +82,22 @@ fn blind_prose_preserves_identifiers() {
     assert!(!v.to_string().contains("Member0"));
     assert_eq!(v["localId"], "one");
 }
+#[test]
+fn quotes_are_retained_but_only_verbatim_spans_are_anchored() {
+    let h = DebuggingHypothesis {
+        local_id: "h".into(),
+        cause: "DNS".into(),
+        supporting: vec![
+            "Network requests fail".into(),
+            "invented successful result".into(),
+        ],
+        contradicting: vec!["short".into()],
+        prior: DebuggingPrior::Medium,
+    };
+    let checked = check_quotes(&h, "Network requests fail intermittently.");
+    assert_eq!(checked.len(), 3);
+    assert!(!checked[0].unanchored);
+    assert!(checked[1].unanchored);
+    assert!(checked[2].unanchored);
+    assert_eq!(checked[1].quote, h.supporting[1]);
+}

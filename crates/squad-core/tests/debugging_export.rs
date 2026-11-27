@@ -74,3 +74,18 @@ fn report_retains_raw_results_and_unanchored_quotes() {
     }
     assert!(!out.contains("confirmed"));
 }
+#[test]
+fn merge_preserves_minorities_quotes_and_prior_disagreement() {
+    let data = json!({"tables":{"Table 1":{"hypotheses":[{"localId":"a","cause":"DNS","supporting":["Network requests fail"],"contradicting":[],"prior":"high"}]},"Table 2":{"hypotheses":[{"localId":"b","cause":"DNS","supporting":[],"contradicting":["Health checks pass"],"prior":"low"}]}}});
+    let merged = json!({"hypotheses":[{"hypothesisId":"H1","cause":"DNS","sources":["Table 1:a","Table 2:b"],"supporting":["Network requests fail"],"contradicting":["Health checks pass"],"priorSpread":["high","low"]}]});
+    validate_output(&WorkKind::DebuggingMerge, &data, &merged).unwrap();
+    for (field, value) in [
+        ("sources", json!(["Table 1:a"])),
+        ("contradicting", json!([])),
+        ("priorSpread", json!(["high"])),
+    ] {
+        let mut invalid = merged.clone();
+        invalid["hypotheses"][0][field] = value;
+        assert!(validate_output(&WorkKind::DebuggingMerge, &data, &invalid).is_err());
+    }
+}

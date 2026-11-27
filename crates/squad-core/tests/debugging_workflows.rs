@@ -66,15 +66,13 @@ fn nick(s: &str) -> MemberNick {
 struct Answers;
 fn extract(text: &str) -> serde_json::Value {
     for (i, c) in text.char_indices() {
-        if c == '{' {
-            if let Some(Ok(v)) = serde_json::Deserializer::from_str(&text[i..])
+        if c == '{'
+            && let Some(Ok(v)) = serde_json::Deserializer::from_str(&text[i..])
                 .into_iter::<serde_json::Value>()
                 .next()
-            {
-                if v.get("input").is_some() {
-                    return v["input"].clone();
-                }
-            }
+            && v.get("input").is_some()
+        {
+            return v["input"].clone();
         }
     }
     panic!("no input");
@@ -384,6 +382,15 @@ async fn human_outcome_isolation_accounting_restart_and_export() {
             Ok(())
         })
         .unwrap();
+    let exported = squad_core::export::export(&d.store, ExportScope::Debugging, Some(id)).unwrap();
+    for field in [
+        "resolver returned no address",
+        "DIFFERENTIAL",
+        "isolated",
+        "Correct the DNS configuration",
+    ] {
+        assert!(exported.contains(field), "{field}");
+    }
     let bodies = f.fake.captured_bodies().await;
     for b in bodies {
         let text = b["messages"][1]["content"].as_str().unwrap();
@@ -397,6 +404,7 @@ async fn human_outcome_isolation_accounting_restart_and_export() {
         }
         if data.get("tables").is_some() || data.get("proposals").is_some() {
             assert!(!text.contains("PERSONA_"));
+            assert!(!b["messages"].to_string().contains("@fable"));
             assert!(!text.contains("fixture/member"));
         }
     }
@@ -494,4 +502,19 @@ async fn stop_fences_queued_work_and_preserves_partial_evidence() {
             Ok(())
         })
         .unwrap();
+}
+
+#[tokio::test]
+async fn last_consumed_attempt_after_restart_settles_without_another_call() {
+    let f = Fixture::new().await;
+    let d = Direct::new(&f);
+    d.send(&f, "@all $debug Network requests fail intermittently.");
+    d.pump_until(&f, Some(DebuggingStatus::Merging)).await;
+    d.store.call(|db|{db.execute("UPDATE work SET attempt=3,status='queued',lease_owner=NULL,lease_until=NULL WHERE kind='debug.merge'",[])?;Ok(())}).unwrap();
+    squad_core::router::recovery::recover_on_open(&d.store).unwrap();
+    let before = f.fake.captured_bodies().await.len();
+    d.pump(&f).await;
+    assert_eq!(before, f.fake.captured_bodies().await.len());
+    assert_eq!(d.state().state, DebuggingStatus::Failed);
+    assert_eq!(d.state().terminal_reason.unwrap().as_str(), "judge_failed");
 }

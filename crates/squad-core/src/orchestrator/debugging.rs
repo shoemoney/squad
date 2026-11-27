@@ -76,6 +76,16 @@ pub fn loop_end(rows: &[DebuggingLiveHypothesis], round: u32, max: u32) -> Optio
         _ => None,
     }
 }
+pub fn check_quotes(h: &DebuggingHypothesis, brief: &str) -> Vec<DebuggingQuoteCheck> {
+    h.supporting
+        .iter()
+        .chain(&h.contradicting)
+        .map(|quote| DebuggingQuoteCheck {
+            quote: quote.clone(),
+            unanchored: super::verbatim::verbatim(quote, brief).is_none(),
+        })
+        .collect()
+}
 pub fn prompt_evidence(s: &str) -> String {
     s.split_whitespace().take(400).collect::<Vec<_>>().join(" ")
 }
@@ -268,6 +278,15 @@ pub fn validate_output(
             let ts = tests(&p);
             let rows = live(data)?;
             let Some(reference) = &s.test_ref else {
+                ensure(
+                    s.not_selected
+                        .iter()
+                        .map(|n| n.test_ref.clone())
+                        .collect::<BTreeSet<_>>()
+                        == ts.keys().cloned().collect::<BTreeSet<_>>()
+                        && s.not_selected.iter().all(|n| !n.why.trim().is_empty()),
+                    "null selection must explain all proposals",
+                )?;
                 return ensure(
                     !ts.values().any(can_split),
                     "a discriminating safe test exists",

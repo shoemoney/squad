@@ -222,9 +222,23 @@ pub fn prepare(
     let mut frozen = serde_json::Map::new();
     let mut refs = BTreeMap::new();
     for name in names {
-        let (system, user) = pack
+        let (mut system, user) = pack
             .composition_source(name, false)
             .map_err(|_| invalid())?;
+        if matches!(name, "debug.merge" | "debug.select") {
+            // The scaffold prepends a blind prefix but retains the identity header.
+            // Remove that known header before freezing, including its literal @fable.
+            let header = pack
+                .template("judge.system")
+                .map_err(|_| invalid())?
+                .split_once("You cannot see")
+                .ok_or_else(invalid)?
+                .0;
+            if system.matches(header).count() != 1 {
+                return Err(invalid());
+            }
+            system = system.replacen(header, "", 1);
+        }
         refs.insert(
             name.into(),
             PromptRef {
@@ -544,7 +558,7 @@ pub fn finish(
         .filter_map(|raw| {
             serde_json::from_str::<ContestHumanAnswered>(&raw)
                 .ok()
-                .and_then(|a| a.text)
+                .map(|a| a.text.unwrap_or_else(|| "/continue".into()))
         })
         .collect();
     let setup = squad_store::debugging::setup(tx, s.contest_id)?;
@@ -644,6 +658,13 @@ pub(crate) fn drive_move(
         );
         run.differential = elimination.hypotheses.clone();
         round.elimination = Some(elimination.clone());
+        // Keep the human selection step as the result's durable owner.
+        let step: String = tx.query_row(
+            "SELECT step_id FROM contest_human_steps WHERE contest_id=?",
+            [s.contest_id.to_string()],
+            |r| r.get(0),
+        )?;
+        let step: StepId = step.parse().map_err(|_| invalid())?;
         // The state update, result and elimination are committed in this one transaction.
         for (kind, body) in [
             (
@@ -654,11 +675,7 @@ pub(crate) fn drive_move(
         ] {
             let artifact = ContestArtifact {
                 contest_id: s.contest_id,
-                step_id: round
-                    .selection
-                    .as_ref()
-                    .and(s.step_id)
-                    .unwrap_or_else(StepId::new),
+                step_id: step,
                 artifact_kind: kind.parse().expect("kind"),
                 work_id: None,
                 source_refs: vec![],
@@ -669,10 +686,6 @@ pub(crate) fn drive_move(
                 audience: Some(ArtifactAudience::Human),
                 body: Some(body),
             };
-            // Keep the human selection step as the result's durable owner.
-            let step:String=tx.query_row("SELECT step_id FROM contest_human_steps WHERE contest_id=? ORDER BY rowid DESC LIMIT 1",[s.contest_id.to_string()],|r|r.get(0))?;
-            let mut artifact = artifact;
-            artifact.step_id = step.parse().map_err(|_| invalid())?;
             let seq = g.push(
                 tx,
                 envelope(
@@ -829,16 +842,7 @@ pub(crate) fn drive_move(
                 let table: DebuggingHypotheses =
                     serde_json::from_value(a.body.ok_or_else(invalid)?)?;
                 for h in &table.hypotheses {
-                    for quote in h.supporting.iter().chain(&h.contradicting) {
-                        run.quotes.push(DebuggingQuoteCheck {
-                            quote: quote.clone(),
-                            unanchored: crate::orchestrator::verbatim::verbatim(
-                                quote,
-                                &setup.brief,
-                            )
-                            .is_none(),
-                        });
-                    }
+                    run.quotes.extend(script::check_quotes(h, &setup.brief));
                 }
                 run.tables.insert(label, table);
             }
@@ -881,16 +885,7 @@ pub(crate) fn drive_move(
                 let proposal: DebuggingTestProposal =
                     serde_json::from_value(a.body.ok_or_else(invalid)?)?;
                 if let Some(h) = &proposal.new_hypothesis {
-                    for quote in h.supporting.iter().chain(&h.contradicting) {
-                        run.quotes.push(DebuggingQuoteCheck {
-                            quote: quote.clone(),
-                            unanchored: crate::orchestrator::verbatim::verbatim(
-                                quote,
-                                &setup.brief,
-                            )
-                            .is_none(),
-                        });
-                    }
+                    run.quotes.extend(script::check_quotes(h, &setup.brief));
                 }
                 r.proposals.insert(label, proposal);
             }
@@ -1008,7 +1003,7 @@ fn allocate(
     let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='debug.prompts'",[s.contest_id.to_string()],|r|r.get(0))?;
     let frozen: serde_json::Value = serde_json::from_str(&frozen)?;
     let tokens: Vec<String> = serde_json::from_value(frozen["tokens"].clone())?;
-    let mut ledger=run.rounds.iter().filter_map(|r|r.result.as_ref().map(|result|serde_json::json!({"round":r.round,"test":r.selection.as_ref().map(|s|&s.instruction),"outcome":result.outcome,"evidence":script::prompt_evidence(&result.evidence)}))).collect::<Vec<_>>();
+    let ledger=run.rounds.iter().filter_map(|r|r.result.as_ref().map(|result|serde_json::json!({"round":r.round,"test":r.selection.as_ref().map(|s|&s.instruction),"outcome":result.outcome,"evidence":script::prompt_evidence(&result.evidence)}))).collect::<Vec<_>>();
     let allow_new = run
         .rounds
         .iter()
@@ -1026,8 +1021,10 @@ fn allocate(
         _ => {
             data["differential"] = serde_json::to_value(&run.differential)?;
             data["quoteChecks"] = serde_json::to_value(&run.quotes)?;
-            data["ledger"] = serde_json::to_value(&mut ledger)?;
-            data["allowNewHypothesis"] = allow_new.into();
+            data["ledger"] = serde_json::to_value(&ledger)?;
+            if kind != WorkKind::DebuggingReport {
+                data["allowNewHypothesis"] = allow_new.into();
+            }
             if kind == WorkKind::DebuggingSelect {
                 data["proposals"] =
                     serde_json::to_value(&run.rounds.last().ok_or_else(invalid)?.proposals)?;
@@ -1036,6 +1033,11 @@ fn allocate(
                 data["patchAllowed"] = script::patch_allowed(&run.differential).into();
             }
         }
+    }
+    if judge {
+        let mut material = data.clone();
+        material["step"] = name.into();
+        validation::decode::<DebuggingCaseMaterial>(&material).map_err(|_| invalid())?;
     }
     script::blind_value(&mut data, &tokens);
     let step_id = StepId::new();

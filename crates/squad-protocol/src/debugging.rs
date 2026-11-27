@@ -296,10 +296,42 @@ pub enum DebuggingTransition {
     Advance,
 }
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "step", deny_unknown_fields)]
+pub enum DebuggingCaseMaterial {
+    #[serde(rename = "debug.merge", rename_all = "camelCase")]
+    Merge {
+        brief: String,
+        limits: String,
+        tables: std::collections::BTreeMap<String, DebuggingHypotheses>,
+        quote_checks: Vec<DebuggingQuoteCheck>,
+    },
+    #[serde(rename = "debug.select", rename_all = "camelCase")]
+    Select {
+        brief: String,
+        limits: String,
+        differential: Vec<DebuggingLiveHypothesis>,
+        ledger: Vec<DebuggingLedgerEntry>,
+        proposals: std::collections::BTreeMap<String, DebuggingTestProposal>,
+        allow_new_hypothesis: bool,
+        quote_checks: Vec<DebuggingQuoteCheck>,
+    },
+    #[serde(rename = "debug.report", rename_all = "camelCase")]
+    Report {
+        brief: String,
+        limits: String,
+        differential: Vec<DebuggingLiveHypothesis>,
+        ledger: Vec<DebuggingLedgerEntry>,
+        patch_allowed: bool,
+        quote_checks: Vec<DebuggingQuoteCheck>,
+    },
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct DebuggingCaseMaterial {
-    pub step: String,
-    pub data: serde_json::Value,
+pub struct DebuggingLedgerEntry {
+    pub round: u32,
+    pub test: String,
+    pub outcome: String,
+    pub evidence: String,
 }
 
 fn ids<'a>(v: impl Iterator<Item = &'a String>) -> bool {

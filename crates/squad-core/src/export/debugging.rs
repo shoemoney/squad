@@ -148,7 +148,27 @@ pub fn render(
     if let Some(report) = report {
         let r = validation::decode::<DebuggingReport>(report)
             .map_err(|_| super::ExportError::InvalidSnapshot)?;
-        return Ok(report_text(&r, true));
+        let mut out = report_text(&r, true);
+        // A stop may arrive between acceptance and the parallel barrier. Those
+        // accepted outputs remain evidence even when no run snapshot consumed them.
+        out.push_str("\n## Accepted step artifacts\n");
+        for e in &snapshot.events {
+            if let EnvelopePayload::ContestArtifact(a) = &e.content
+                && a.contest_id == id
+                && a.audience == Some(ArtifactAudience::Human)
+                && a.work_id.is_some()
+            {
+                let _ = writeln!(
+                    out,
+                    "\n### {} · round {}\n\n```json\n{}\n```",
+                    a.artifact_kind,
+                    a.round.unwrap_or_default(),
+                    serde_json::to_string_pretty(a.body.as_ref().unwrap_or(&a.data))
+                        .unwrap_or_default()
+                );
+            }
+        }
+        return Ok(out);
     }
     // A human wait has no final report yet: expose every committed artifact and raw answer.
     let mut out = String::from("# DEBUG — in progress\n");

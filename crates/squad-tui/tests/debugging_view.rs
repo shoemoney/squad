@@ -26,3 +26,17 @@ fn committed_state_is_idempotent_and_pending_shape_is_visible() {
     assert!(lines.contains("RUN THE TEST"));
     assert!(lines.contains("/answer O1 <what you saw>"));
 }
+
+#[test]
+fn discovery_uses_the_enabled_switch() {
+    assert!(squad_tui::typeahead::enabled("$debug"));
+    assert_eq!(
+        squad_tui::typeahead::describe("$debug", &[]),
+        "Narrow a failure with tests you run"
+    );
+    assert!(
+        squad_protocol::parser::help_examples()
+            .iter()
+            .any(|s| s.contains("$debug"))
+    );
+}
