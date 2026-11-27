@@ -1,3 +1,3 @@
-tune.mutate scaffold placeholder; mode disabled.
+Write one improved prompt for the task using ONLY the current champion and its failure digest. Return JSON only: prompt and 1–5 changes. Preserve the exact count of the input placeholder tokens specified by placeholders. Keep the prompt within lengthBudget words and make a substantive change from the parent. Changes have what, why and targets (only supplied train case labels, or an empty array for general improvements). Use at most 150 words in all what and why fields together. Do not invent or request test cases, expected answers, rubric descriptions, executor outputs or held-out information. Keep all useful instructions in the standalone prompt.
 Authorized input: {{mode_data_json}}
 Schema: {{mode_schema_json}}

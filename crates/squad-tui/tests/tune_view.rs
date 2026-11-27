@@ -1,0 +1,90 @@
+use squad_protocol::{tune::*, *};
+use squad_tui::widgets::tune::*;
+#[test]
+fn human_view_dividers_and_report_are_committed_only() {
+    let id = ContestId::new();
+    let mut view = View::default();
+    let mut s = TuneState {
+        contest_id: id,
+        state_version: 1,
+        state: TuneStatus::BuildingCases,
+        step_id: None,
+        round: 0,
+        artifact_event_ids: vec![],
+        terminal_reason: None,
+    };
+    view.apply(EventId::new(), &EnvelopePayload::TuneState(s.clone()));
+    assert_eq!(render(&view), ["TUNE", "TEST SET"]);
+    s.state = TuneStatus::Mutating;
+    s.round = 2;
+    s.state_version += 1;
+    view.apply(EventId::new(), &EnvelopePayload::TuneState(s.clone()));
+    assert!(render(&view).contains(&"GENERATION 2".into()));
+    let old = s.clone();
+    s.state = TuneStatus::Complete;
+    s.terminal_reason = Some(Text::new("tuned").unwrap());
+    s.state_version += 1;
+    view.apply(EventId::new(), &EnvelopePayload::TuneState(s));
+    view.apply(EventId::new(), &EnvelopePayload::TuneState(old));
+    assert!(render(&view).contains(&"RESULT".into()));
+    let r = TuneReport {
+        reason: "tuned".into(),
+        result_line: "Tuned: 0.58 to 0.81 on held-out cases.".into(),
+        winner: "c1".into(),
+        prompt: "prompt".into(),
+        diff: "diff".into(),
+    };
+    let body = serde_json::to_value(r).unwrap();
+    let a = ContestArtifact {
+        kind: Some(ContestKind::Tune),
+        round: Some(2),
+        actor: Some(Actor::System),
+        audience: Some(ArtifactAudience::Human),
+        body: Some(body.clone()),
+        contest_id: id,
+        step_id: StepId::new(),
+        artifact_kind: Text::new("tune.report").unwrap(),
+        work_id: None,
+        source_refs: vec![],
+        data: body,
+    };
+    view.apply(EventId::new(), &EnvelopePayload::ContestArtifact(a));
+    assert!(render(&view).iter().any(|l| l.starts_with("Tuned: 0.58")));
+}
+
+#[test]
+fn tune_discovery_follows_the_public_switch_and_examples_parse() {
+    let ctx = ParseContext {
+        roster: ["alice", "bob", "carol", "dave"]
+            .map(|n| n.parse().unwrap())
+            .to_vec(),
+        ..Default::default()
+    };
+    let modes = squad_tui::typeahead::MODES
+        .iter()
+        .filter(|(token, _)| *token == "$tune")
+        .count();
+    assert_eq!(modes, usize::from(ENABLED));
+    let examples = squad_tui::typeahead::examples(&ctx);
+    let tune: Vec<_> = examples.iter().filter(|s| s.contains("$tune")).collect();
+    assert_eq!(tune.len(), usize::from(ENABLED));
+    let tip_count = (0..examples.len() + squad_tui::typeahead::KEY_TIPS.len())
+        .map(|i| squad_tui::typeahead::tip(&ctx, i as u64 * 8))
+        .filter(|tip| tip.contains("$tune"))
+        .count();
+    assert_eq!(tip_count, usize::from(ENABLED));
+    for example in tune {
+        assert!(matches!(
+            parse(example, &SubmissionMeta::default(), &ctx).unwrap(),
+            ParsedInput::Tune { .. }
+        ));
+    }
+    if ENABLED {
+        assert!(squad_tui::typeahead::enabled("$tune"));
+        assert!(
+            squad_protocol::parser::help_examples()
+                .iter()
+                .any(|s| s.contains("$tune"))
+        );
+    }
+}

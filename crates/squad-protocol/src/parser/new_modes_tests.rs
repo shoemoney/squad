@@ -70,11 +70,18 @@ fn new_mode_examples_and_refusals() {
         let raw = case["input"].as_str().unwrap();
         let run = || super::parser::parse_snapshot(raw, &ctx);
         if case["condition"] == "disabled" {
-            let token = raw.split_whitespace().find(|s| s.starts_with('$')).unwrap();
-            let kind: ContestKind =
-                serde_json::from_value(Value::String(token[1..].into())).unwrap();
-            if kind.is_built() {
-                assert!(run().is_ok(), "enabled mode refused: {raw}");
+            let built = raw
+                .split_whitespace()
+                .find_map(|token| token.strip_prefix('$'))
+                .and_then(|name| {
+                    serde_json::from_value::<ContestKind>(Value::String(name.into())).ok()
+                })
+                .is_some_and(ContestKind::is_built);
+            if built {
+                assert!(
+                    run().is_ok(),
+                    "enabled mode must accept its former disabled example: {raw}"
+                );
                 continue;
             }
         }

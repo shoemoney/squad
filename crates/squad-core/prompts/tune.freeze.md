@@ -1,3 +1,3 @@
-tune.freeze scaffold placeholder; mode disabled.
+Select a hidden evaluation suite from the labelled proposals. Return JSON only. Select 4–6 distinct case references in the form P1:localId, at most TWO from any one proposal. Prefer varied, deduplicated cases. Write no case and edit none. List EVERY unselected case once in dropped with a reason of at most 25 words. Freeze 2–4 distinct rubric criteria, names at most 6 words and descriptions at most 40; each needs at least one valid criterion sourceRef in the same P1:localId form. Do not choose a train/held-out split. Keep the reply concise within the room word budget.
 Authorized input: {{mode_data_json}}
 Schema: {{mode_schema_json}}

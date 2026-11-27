@@ -251,7 +251,16 @@ fn tips_parse_rotate_hide_and_respect_narrow_and_no_colour() {
     let examples = typeahead::examples(&context());
     assert_eq!(
         examples.len(),
-        6 + usize::from(squad_protocol::forge::ENABLED),
+        6 + [
+            squad_protocol::ContestKind::Forge,
+            squad_protocol::ContestKind::Forecast,
+            squad_protocol::ContestKind::Rank,
+            squad_protocol::ContestKind::Tune,
+            squad_protocol::ContestKind::BassAckwardsPrd
+        ]
+        .into_iter()
+        .filter(|kind| kind.is_built())
+        .count(),
         "every authored example must parse with this roster"
     );
     assert!(
@@ -300,6 +309,7 @@ fn descriptions_use_resolved_models_and_parser_command_hints() {
         let raw = match *name {
             "$debate" => "@grok @deepseek $debate topic @judge".to_string(),
             "$crosscheck" => "@all $crosscheck plan\n--\ngoal".to_string(),
+            "$tune" => "@all $tune prompt\n--\ntask".to_string(),
             _ => format!("@all {name} topic"),
         };
         let mut ctx = context();
