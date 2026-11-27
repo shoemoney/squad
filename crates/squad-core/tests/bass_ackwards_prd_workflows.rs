@@ -670,6 +670,33 @@ async fn owned_engine_and_handlers_complete_28_calls_and_persist_file() {
             .unwrap()
             .contains("## Dependency order")
     );
+    // Contribution labels come from a persisted seeded permutation, never roster
+    // order: the stored label maps equal the digest order of the persisted seed.
+    let contest = s.contest_id;
+    let (seed, done, trees): (String, BTreeMap<String, String>, BTreeMap<String, String>) = h
+        .store
+        .call(move |db| {
+            Ok((
+                squad_store::bass_ackwards_prd::get(db, contest, "label_seed")?,
+                squad_store::bass_ackwards_prd::get(db, contest, "done_authors")?,
+                squad_store::bass_ackwards_prd::get(db, contest, "tree_authors")?,
+            ))
+        })
+        .unwrap();
+    let roster: Vec<String> = f.config.agents.iter().map(|a| a.nick.to_string()).collect();
+    let mut differs = false;
+    for (stage, authors) in [("DefiningDone", &done), ("BuildingTrees", &trees)] {
+        let mut expected = roster.clone();
+        expected.sort_by_cached_key(|n| {
+            squad_store::commit::digest(&("prd.labels", &seed, stage, n.clone())).unwrap()
+        });
+        let mut by_label: Vec<_> = authors.iter().collect();
+        by_label.sort_by_key(|(l, _)| l[1..].parse::<u32>().unwrap());
+        let actual: Vec<String> = by_label.into_iter().map(|(_, n)| n.clone()).collect();
+        assert_eq!(actual, expected, "{stage}");
+        differs |= actual != roster;
+    }
+    assert!(differs, "labels must not follow roster order");
     f.assert_ledger();
 }
 

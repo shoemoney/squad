@@ -175,7 +175,10 @@ pub fn ledger(
                             .map(|v| (n.clone(), v.clone()))
                     })
                     .collect::<BTreeMap<_, _>>();
-                let ids = quotes
+                // Only verified SUPPORTING quotes count toward status and independence;
+                // counter-quotes stay in `quotes` (flagged) for the contradictions section.
+                let supporting = quotes.iter().filter(|q| !q.counter).collect::<Vec<_>>();
+                let ids = supporting
                     .iter()
                     .map(|q| q.quote.source_id.clone())
                     .collect::<Vec<_>>();
@@ -183,7 +186,7 @@ pub fn ledger(
                     claim_id: c.claim_id.clone(),
                     text: c.text.clone(),
                     status: claim_status(
-                        quotes.len(),
+                        supporting.len(),
                         &verdicts.values().cloned().collect::<Vec<_>>(),
                     ),
                     independent_sources: independent_sources(&ids, &c.shared_origin),
@@ -371,6 +374,15 @@ pub fn provider_projection(kind: &WorkKind, data: &Value) -> Value {
     let mut pool = serde_json::Map::new();
     let mut ids = BTreeMap::<String, String>::new();
     for claim in claims {
+        // Verdicts are keyed by verifier nick in the typed ledger. The blind judge
+        // only needs the verdicts themselves: drop the keys and order by content, so
+        // neither a nick nor roster order reaches the prompt. Nicks stay in the
+        // ledger for the human report.
+        if let Some(map) = claim.get("verdicts").and_then(Value::as_object) {
+            let mut anonymous = map.values().cloned().collect::<Vec<_>>();
+            anonymous.sort_by_key(Value::to_string);
+            claim["verdicts"] = Value::Array(anonymous);
+        }
         let quotes = claim
             .as_object_mut()
             .and_then(|c| c.remove("quotes"))
@@ -469,4 +481,92 @@ pub fn drive(router: &mut Router) -> Result<Vec<CommitOutcome>> {
         }
     }
     Ok(outcomes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn claims(sources: &[(&str, &str)]) -> TraceClaims {
+        TraceClaims {
+            claims: vec![TraceCanonicalClaim {
+                claim_id: "C1".into(),
+                text: "claim".into(),
+                sources: sources
+                    .iter()
+                    .map(|(l, id)| TraceClaimRef {
+                        member_label: (*l).into(),
+                        local_id: (*id).into(),
+                    })
+                    .collect(),
+                shared_origin: vec![],
+            }],
+        }
+    }
+    fn check(label: &str, id: &str, source: &str, counter: bool) -> TraceQuoteCheck {
+        TraceQuoteCheck {
+            member_label: label.into(),
+            local_id: id.into(),
+            counter,
+            quote: TraceQuote {
+                source_id: source.into(),
+                quote: format!("quote from {source}"),
+            },
+            status: "found".into(),
+            span: Some(TraceSpan { start: 0, end: 5 }),
+        }
+    }
+
+    #[test]
+    fn a_claim_backed_only_by_counter_quotes_is_unsupported() {
+        let l = ledger(
+            &claims(&[("Reader 1", "a")]),
+            &[check("Reader 1", "a", "S1", true)],
+            &BTreeMap::new(),
+        );
+        assert_eq!(l.claims[0].status, TraceClaimStatus::Unsupported);
+        assert_eq!(l.claims[0].independent_sources, 0);
+        assert_eq!(
+            l.claims[0].quotes.len(),
+            1,
+            "the counter-quote stays in the ledger"
+        );
+    }
+
+    #[test]
+    fn counter_quote_sources_are_not_independent_support() {
+        let l = ledger(
+            &claims(&[("Reader 1", "a")]),
+            &[
+                check("Reader 1", "a", "S1", false),
+                check("Reader 1", "a", "S2", true),
+            ],
+            &BTreeMap::new(),
+        );
+        assert_eq!(l.claims[0].independent_sources, 1);
+        assert_eq!(l.claims[0].status, TraceClaimStatus::Unverified);
+    }
+
+    #[test]
+    fn assemble_projection_has_no_member_nick_keys() {
+        let mut l = ledger(
+            &claims(&[("Reader 1", "a")]),
+            &[check("Reader 1", "a", "S1", false)],
+            &BTreeMap::new(),
+        );
+        l.claims[0].verdicts.insert(
+            MemberNick::new("zebra").unwrap(),
+            TraceVerdict {
+                claim_id: "C1".into(),
+                entailment: TraceEntailment::Supported,
+                scope: TraceScope::Ok,
+                qualifier_quote: None,
+                note: "ok".into(),
+            },
+        );
+        let data = json!({"question":"q","ledger":l});
+        let projected = provider_projection(&WorkKind::TraceAssemble, &data).to_string();
+        assert!(!projected.contains("zebra"), "{projected}");
+        assert!(projected.contains("\"verdicts\":[{"));
+    }
 }

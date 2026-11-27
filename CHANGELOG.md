@@ -54,6 +54,11 @@ All notable changes to Squad will be documented in this file, following
 - `$tune` executor calls on reasoning models carry a separate reasoning allowance
   and reserve for it, so hidden reasoning cannot consume the 1,024 visible tokens.
 - Bass Ackwards PRD closes its human step through the versioned state save.
+- Trace counts only verified supporting quotes toward claim status and independent
+  sources (counter-quotes stay in the ledger for contradictions), and the final
+  judge's ledger carries anonymous verdicts instead of member-nick keys.
+- Bass Ackwards PRD contribution labels (A, T, R, H) come from a persisted seeded
+  permutation, not roster order.
 - Offline Readback export of a contest without a terminal report says
   `contest has no terminal report yet` instead of `contest not found`.
 - Debug eliminated rows retain grey styling in the actual compositor.
