@@ -48,6 +48,8 @@ Sleep 3s
 # If entries remain open, close the step with them unanswered
 Type "/continue"
 Sleep 500ms
+Escape
+Sleep 300ms
 Enter
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
 Sleep 120s
