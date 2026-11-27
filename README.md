@@ -1843,25 +1843,73 @@ Logs are written to `<data directory>/logs/squad.jsonl`. The file is created wit
 
 > 🚧 **In development, not released.** Squad 0.1.3 is out with the seven modes above; **v0.2.0 adds eleven more** ([nine new modes](https://github.com/shoemoney/squad/blob/31288c9cc8621e89f3bd0d47474b30872188d483/docs/prd/10-new-modes.md), [`$tune` and `$bass_ackwards_prd`](https://github.com/shoemoney/squad/blob/842e982b042478fdca0f51fc447375df192aeacd/docs/prd/12-tune-and-bass-ackwards.md)). Names are final; behaviour may still change before release. With them Squad has eighteen modes. Until v0.2.0 ships, the seven above are the only contest `$` commands.
 
-Each gets one GIF, one pitch and one starter command when the v0.2.0 build is recorded. Until then this is only the list of what is specified: no costs and no results exist yet.
+Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`) and one starter command. The recordings come from the v0.2.0 build.
 
 - 🔨 **`$forge`**: One finished artifact that is better than any single draft.
+
+  ![Drafts, blind ranking, two fusions and a blind verdict. Recorded on v0.2.0.](docs/media/forge.gif)
+
+  Starter command: `@all $forge Write a launch announcement for our offline notes app`
+
 - 🔮 **`$forecast`**: A dated probability with spread, cruxes and signposts.
+
+  ![The pooled probability, the spread of the room and what to watch. Recorded on v0.2.0.](docs/media/forecast.gif)
+
+  Starter command: `@all $forecast Will the project release version 1 by 2027-06-30?`
+
 - ⚖️ **`$decide`**: A choice among two to four options on several criteria.
+
+  ![A rubric the room proposes, scored cells, totals and flip points. Recorded on v0.2.0.](docs/media/decide.gif)
+
+  Starter command: `@all $decide How should we reduce support response time with a fixed team?`
+
 - 🤝 **`$negotiate`**: Preparation and rehearsal for a negotiation.
+
+  ![Interest maps and rehearsal tables against a hypothetical counterpart. Recorded on v0.2.0.](docs/media/negotiate.gif)
+
+  Starter command: `@all $negotiate Ask for a paid trial with no exclusivity -- Buyer has a tight launch date`
+
 - 💣 **`$blow_it_up`**: An adversarial attack on a plan, spec, prompt, config or diff.
+
+  ![Attack vectors, blind challenge and severity-ranked findings. Recorded on v0.2.0.](docs/media/blow_it_up.gif)
+
+  Starter command: `@all $blow_it_up <paste a plan here>`
+
 - 📖 **`$readback`**: A spec that reads the same to every reader.
+
+  ![Divergent readings, the `READ IT BACK` pause and the rewritten spec. Recorded on v0.2.0.](docs/media/readback.gif)
+
+  Starter command: `@all $readback The service retains records. The operator deletes backups.`
+
 - 🐛 **`$debug`**: A stubborn failure, narrowed by tests you actually run.
+
+  ![A differential, a safe test to run and your `/answer`. Recorded on v0.2.0.](docs/media/debug.gif)
+
+  Starter command: `@all $debug Requests time out after a deploy. Health checks pass. Rolling back fixes it.`
+
 - 🔍 **`$trace`**: A brief where every claim is tied to a quoted source span.
+
+  ![Numbered sources and checked claims behind each paragraph. Recorded on v0.2.0.](docs/media/trace.gif)
+
+  Starter command: `@all $trace What is the retention period? (then `--` and one source per block, Ctrl+J for newlines)`
+
 - 🏅 **`$rank`**: An ordered list of your own items.
+
+  ![Pair comparisons fitted into an order, with cycles and split pairs. Recorded on v0.2.0.](docs/media/rank.gif)
+
+  Starter command: `@all $rank prioritize by customer impact relative to effort (then `--` and one item per line)`
+
 - 🎛️ **`$tune`**: A prompt that measurably behaves better, checked on cases its authors never saw.
+
+  ![Hidden cases, mutated prompts and a held-out winner. Recorded on v0.2.0.](docs/media/tune.gif)
+
+  Starter command: `@all $tune Answer clearly and concisely. (then `--` and the goal on the next line)`
+
 - 🍑 **`$bass_ackwards_prd`**: A PRD for a stated end result, derived backward from that result and saved as a file.
 
-<!-- Template for each mode once recorded:
-- 🔨 **`$mode`**: one-line pitch.
-  ![alt text describing what the clip shows](docs/media/mode.gif)
-  `Starter command:` `@all $mode <brief>`
-  Keep each GIF <= 1.5 MB and <= 25 s; record with VHS from docs/demo/*.tape. -->
+  ![Acceptance tests, backward prerequisites, a human `LAST LOOK` and the saved file. Recorded on v0.2.0.](docs/media/bass_ackwards_prd.gif)
+
+  Starter command: `@all $bass_ackwards_prd a self-hosted status page for a small SaaS, live with alerts`
 
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
 
