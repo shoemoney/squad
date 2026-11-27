@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/shoemoney/squad?style=flat-square&label=release&color=8b9cf0&labelColor=1e1e2e)](https://github.com/shoemoney/squad/releases)
 [![License](https://img.shields.io/badge/license-Apache--2.0-e0916f?style=flat-square&labelColor=1e1e2e)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-Ratatui%20TUI-e57f84?style=flat-square&logo=rust&logoColor=white&labelColor=1e1e2e)](rust-toolchain.toml)
-![Modes](https://img.shields.io/badge/contest%20modes-7%20shipping-4fae82?style=flat-square&labelColor=1e1e2e)
+![Modes](https://img.shields.io/badge/contest%20modes-18%20shipping-4fae82?style=flat-square&labelColor=1e1e2e)
 ![Models](https://img.shields.io/badge/models-1%20to%2012-8b9cf0?style=flat-square&labelColor=1e1e2e)
 
 </div>
@@ -18,18 +18,26 @@
 
 ![Squad live: six models streaming side by side, then a judged debate and its verdict card.](docs/media/squad-demo.gif)
 
-<p align="center"><sub><i>Real v0.1.2 release binary against OpenRouter. Idle startup trimmed and played at 1.5x; long model waits were already cut and labelled on screen. Full recording: <a href="docs/demo/squad-raw.mp4"><code>squad-raw.mp4</code></a>.</i></sub></p>
+<p align="center"><sub><i>Recorded on 2026-11-26 with the real v0.1.2 release binary against OpenRouter (not re-recorded for v0.2.0). Idle startup trimmed and played at 1.5x; long model waits were already cut and labelled on screen. Full recording: <a href="docs/demo/squad-raw.mp4"><code>squad-raw.mp4</code></a>.</i></sub></p>
 
-**Linux x64**
+**Linux x64** (needs `curl` and `xz`; no Homebrew required)
 
 ```bash
-brew install shoemoney/tap/squad
+B=https://github.com/shoemoney/squad/releases/latest/download
+A=squad-cli-x86_64-unknown-linux-gnu
+curl -fsSL -O $B/$A.tar.xz -O $B/$A.tar.xz.sha256
+sha256sum -c $A.tar.xz.sha256
+tar -xJf $A.tar.xz
+mkdir -p ~/.local/bin && install -m 0755 $A/squad ~/.local/bin/squad
+export PATH="$HOME/.local/bin:$PATH"
 KEYDIR="${XDG_CONFIG_HOME:-$HOME/.config}/squad"
 mkdir -p "$KEYDIR"
 ( umask 077; echo 'OPENROUTER_API_KEY=your-key-here' > "$KEYDIR/.env" )
 chmod 600 "$KEYDIR/.env"
 squad doctor && squad
 ```
+
+<sub>Already have Homebrew on Linux? `brew install shoemoney/tap/squad` works too. Debian and Ubuntu: `sudo apt-get install -y curl xz-utils ca-certificates` first.</sub>
 
 **macOS Apple silicon**
 
@@ -46,7 +54,7 @@ squad doctor && squad
 
 > 🚧 **Honest status:** Squad is an early release (**v0.2.0 is out**). All **eighteen** contest modes, the seven originals and the [eleven added in v0.2.0](#-new-modes-in-v020), run end to end against OpenRouter. You need your own [OpenRouter key](https://openrouter.ai/keys) with credit on it. Every cost is measured and sourced in [docs/costs.md](docs/costs.md).
 
-**Jump to:** [Install](#-quick-start) · [Contest modes](#-the-arena-seven-contest-modes) · [New modes](#-new-modes-in-v020) · [The room](#-the-room) · [Costs](#-costs-and-the-safety-net) · [MCP](#-mcp-server) · [CLI](#-cli-one-shot-use) · [Config](#-configuration) · [Architecture](#-architecture) · [Manual](#-reference-manual) · [Troubleshooting](#-troubleshooting) · [Roadmap](#-roadmap)
+**Jump to:** [Install](#-quick-start) · [Contest modes](#-the-arena-the-original-seven-contest-modes) · [New modes](#-new-modes-in-v020) · [The room](#-the-room) · [Costs](#-costs-and-the-safety-net) · [MCP](#-mcp-server) · [CLI](#-cli-one-shot-use) · [Config](#-configuration) · [Architecture](#-architecture) · [Manual](#-reference-manual) · [Troubleshooting](#-troubleshooting) · [Roadmap](#-roadmap)
 
 ## 📟 Squad at a glance
 
@@ -79,7 +87,7 @@ Squad is a terminal chat room for several LLMs at once, through [OpenRouter](htt
 
 ![Platforms](https://img.shields.io/badge/platforms-macOS%20arm64%20%C2%B7%20Linux%20x64-5b8def?style=flat-square&labelColor=1e1e2e)
 ![Daily cap](https://img.shields.io/badge/daily%20cap-%24150%20default-f9e2af?style=flat-square&labelColor=1e1e2e)
-![Status](https://img.shields.io/badge/status-early%20release%200.1.x-e0916f?style=flat-square&labelColor=1e1e2e)
+![Status](https://img.shields.io/badge/status-early%20release%200.2.x-e0916f?style=flat-square&labelColor=1e1e2e)
 
 </details>
 
@@ -107,7 +115,7 @@ brew install shoemoney/tap/squad
 squad --version
 ```
 
-Tested on 2026-11-27 in a clean `homebrew/brew` Linux container (non-root): the Linux block above installed `squad 0.1.3` (the latest release at the time; it pulls Homebrew's `xz` as its only dependency), `squad --version` printed `squad 0.1.3`, and `squad doctor` passed with a placeholder key. The latest release is now v0.2.0 and prints `squad 0.2.0`. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
+Tested on 2026-11-27: on macOS Apple silicon, `brew install shoemoney/tap/squad` installed `squad 0.2.0`. On Linux, an earlier run in a clean `homebrew/brew` container (non-root) installed `squad 0.1.3` (it pulls Homebrew's `xz` as its only dependency) and `squad doctor` passed with a placeholder key. Most Linux boxes have no Homebrew, so use the release archive there. The formula template is `dist/homebrew/squad.rb`; `python3 dist/homebrew/render.py` fills in the version, tag and hashes.
 
 </details>
 
@@ -221,9 +229,7 @@ Check the install any time with `squad --version` and `squad --help`.
 
 <p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
 
-<p align="center"><img src="docs/media/divider.svg" alt="" width="100%"></p>
-
-## 🥋 The arena: seven contest modes
+## 🥋 The arena: the original seven contest modes
 
 Squad has **eighteen contest modes**: the seven below, then the [eleven added in v0.2.0](#-new-modes-in-v020). Each one is a script on the same shared engine, and **only one contest runs per room at a time**. Start one with a `$command` in a message. Every clip below is a real recording with the idle startup trimmed and the long model waits cut; full-length originals are in [`docs/media/full/`](docs/media/full/).
 
@@ -267,17 +273,17 @@ flowchart TD
 | ✅ Crosscheck | `@all $crosscheck <plan>` plus a `--` goal | Plan-blind inventory, a cell-by-cell review, and audits | Yes | `2m + 4 + e` | Coverage ledger and bounded-stop status | `/export crosscheck [id]` |
 | 📊 Survey | `@all $survey <question>` or `@all $survey` | Members vote on claims; the report sorts them into five bands | Yes (votes and revotes) | `3m + 2` new, `2m + 2` reusing answers | Claim map by band | `/export survey [id]` |
 | 🔬 Probe | `@a @b @c @d $probe <brief>` | Explainers and checkers propose; explainers commit predictions; a decision tree of cheap checks | Yes | `3m/2 + 1` (m even) | Decision tree and prediction matrix | `/export probe [id]` |
-| Forge | `@all $forge` with its required source/segments | Write and fuse drafts | Yes | `2m + 3` | Winning original or fusion | `/export forge [id]` |
-| Forecast | `@all $forecast` with its required source/segments | Frame and pool a probabilistic forecast | Yes | `2m + 2` | Pooled probability, spread and cruxes | `/export forecast [id]` |
-| Decide | `@all $decide` with its required source/segments | Compare options against an agreed rubric | Yes | `2m + 2 given options; 3m + 3 generated` | App-computed totals and sensitivity | `/export decide [id]` |
-| Negotiate | `@all $negotiate <our side> -- <counterpart>` | Prepare and rehearse a negotiation | Yes | `2m - P + 2PR + 2 maximum` | Strategy and hypothetical table playbook | `/export negotiate [id]` |
-| Blow It Up | `@all $blow_it_up` with its required source/segments | Attack a plan and challenge the attacks | Yes | `2m + 1` | Ranked surviving findings | `/export blow_it_up [id]` |
-| Readback | `@all $readback` with its required source/segments | Resolve conflicting readings with the human | Yes | `R(m + 2) maximum` | Revised spec and open ambiguities | `/export readback [id]` |
-| Trace | `@all $trace <question> -- <source> [-- <source>]` | Audit claims against supplied evidence | Yes | `2m + 2 maximum` | Cited brief and source ledger | `/export trace [id]` |
-| Debug | `@all $debug <failure> -- <limits>` | Narrow a failure with human-run tests | Yes | `(R + 1)(m + 1) + 1 maximum` | Evidence differential and patch advice when justified | `/export debug [id]` |
-| Rank | `@all $rank` with its required source/segments | Order human-supplied items by pair comparison | Yes | `m + 1` | Bradley–Terry order and cycle audit | `/export rank [id]` |
-| Tune | `@all $tune` with its required source/segments | Improve a prompt against a frozen test suite | Yes | `m + 13G + 15 maximum` | Held-out winner, diff and reusable suite | `/export tune [id]` |
-| Bass Ackwards PRD | `@all $bass_ackwards_prd` with its required source/segments | Work backward from a finished result | Yes | `4m + 4; one extra for human notes` | Saved dependency-ordered PRD | `/export bass_ackwards_prd [id]` |
+| 🔨 Forge | `@all $forge <task>` plus an optional `--` constraint | Write and fuse drafts | Yes | `2m + 3` | Winning original or fusion | `/export forge [id]` |
+| 🔮 Forecast | `@all $forecast <dated yes/no question>` plus an optional `-- <context>` | Frame and pool a probabilistic forecast | Yes | `2m + 2` | Pooled probability, spread and cruxes | `/export forecast [id]` |
+| ⚖️ Decide | `@all $decide <decision>` plus `--` and two to four options, one per line | Compare options against an agreed rubric | Yes | `2m + 2 given options; 3m + 3 generated` | App-computed totals and sensitivity | `/export decide [id]` |
+| 🤝 Negotiate | `@all $negotiate <our side> -- <counterpart>` | Prepare and rehearse a negotiation | Yes | `2m - P + 2PR + 2 maximum` | Strategy and hypothetical table playbook | `/export negotiate [id]` |
+| 💣 Blow It Up | `@all $blow_it_up <paste a plan here>` plus an optional `--` focus | Attack a plan and challenge the attacks | Yes | `2m + 1` | Ranked surviving findings | `/export blow_it_up [id]` |
+| 📖 Readback | `@all $readback <spec text>` | Resolve conflicting readings with the human | Yes | `R(m + 2) maximum` | Revised spec and open ambiguities | `/export readback [id]` |
+| 🔍 Trace | `@all $trace <question> -- <source> [-- <source>]` | Audit claims against supplied evidence | Yes | `2m + 2 maximum` | Cited brief and source ledger | `/export trace [id]` |
+| 🐛 Debug | `@all $debug <failure> -- <limits>` | Narrow a failure with human-run tests | Yes | `(R + 1)(m + 1) + 1 maximum` | Evidence differential and patch advice when justified | `/export debug [id]` |
+| 🏅 Rank | `@all $rank <criterion>` plus `--` and one item per line (3 to 40) | Order human-supplied items by pair comparison | Yes | `m + 1` | Bradley–Terry order and cycle audit | `/export rank [id]` |
+| 🎛️ Tune | `@all $tune <prompt>` plus `--` and the goal on its own line | Improve a prompt against a frozen test suite | Yes | `m + 13G + 15 maximum` | Held-out winner, diff and reusable suite | `/export tune [id]` |
+| 🍑 Bass Ackwards PRD | `@all $bass_ackwards_prd <finished result>` plus an optional `-- <where you are today>` | Work backward from a finished result | Yes | `4m + 4; one extra for human notes` | Saved dependency-ordered PRD | `/export bass_ackwards_prd [id]` |
 
 **Key:** m = members in the contest, G = grillers, R = rounds, k = entrants, e = 1 when crosscheck must first extract a goal (no `--` goal given), otherwise 0. "Blind" means members or a judge get anonymised material. For Tune, G means generations; for Readback and Debug, R is the loop limit. Negotiate uses P = min(3, floor(m/2)).
 
@@ -352,7 +358,7 @@ The report has the setup, every turn (including forfeits), the per-round scores,
 #### 🎯 What it's for
 ![Tournament: three entrants answer, a blind judge ranks them, one is eliminated each round, and the champion and final placings are shown.](docs/media/tournament.gif)
 
-_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded on 2026-11-25 with the v0.1.0 release binary on low-cost models (not re-recorded for v0.2.0); the complete recordings are described in [docs/demo.md](docs/demo.md)._
 
 A knockout. Entrants answer, a blind judge ranks them, and the lowest-ranked entrant goes out each round until one champion remains.
 
@@ -410,7 +416,7 @@ The export has the setup (prompt, entrants, judge model, rounds), each answer, e
 #### 🎯 What it's for
 ![Grill: three members answer, one is picked as leader, the other two question the leader, and the plan is rebuilt into a final plan with a question-and-answer appendix.](docs/media/grill.gif)
 
-_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded on 2026-11-25 with the v0.1.0 release binary on low-cost models (not re-recorded for v0.2.0); the complete recordings are described in [docs/demo.md](docs/demo.md)._
 
 Stress-test a plan. Grillers question the leader, the leader answers and revises, and the plan is rebuilt after every round.
 
@@ -572,7 +578,7 @@ Each pass shows the plan and its sources, each hunt with its lens and count, the
 #### 🎯 What it's for
 ![Crosscheck: three members build a plan-blind inventory, review each cell, two auditors sample closures, and the report shows the coverage ledger and the bounded-stop caveat.](docs/media/crosscheck.gif)
 
-_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded with the v0.1.0 release binary on low-cost models; the complete recordings are described in [docs/demo.md](docs/demo.md)._
+_Time cuts: model waits are sped up and each cut is labelled on screen. Recorded on 2026-11-25 with the v0.1.0 release binary on low-cost models (not re-recorded for v0.2.0); the complete recordings are described in [docs/demo.md](docs/demo.md)._
 
 Test how well a plan covers its obligations. A plan-blind inventory defines what should be covered, reviewers check each cross-cutting cell against the plan, and auditors look for false closures.
 
@@ -1033,8 +1039,8 @@ flowchart TD
     P -->|wrong pick| W["✋ Squad says what to fix<br/>the pick stays pending"]
     W --> P
     P --> C["3 Confirm<br/>cost preview: y or n"]
-    C -->|y| D["🥊 Debate runs"]
-    C -->|n| X["🛑 Cancelled"]
+    C -->|yes| D["🥊 Debate runs"]
+    C -->|no| X["🛑 Cancelled"]
 ```
 
 </details>
@@ -1086,16 +1092,29 @@ The bottom bar shows the most useful keys for your terminal width.
 
 Squad reserves money **before** it sends any provider call, shows you a preflight card, and refuses anything that would pass today's cap. Real runs are far cheaper than the reserve.
 
+**The original seven modes, plus an ordinary `@all`:**
+
 ```mermaid
 %%{init: {'themeVariables':{'xyChart':{'plotColorPalette':'#5b6bd6'}}}}%%
-xychart-beta
+xychart-beta horizontal
     title "Mean real cost per run, default roster (USD)"
-    x-axis ["@all", "rank", "trace", "readback", "forge", "decide", "forecast", "tune", "probe", "grill", "debug", "survey", "tournament", "blow it up", "negotiate", "bass-ackwards", "census", "crosscheck", "debate"]
+    x-axis ["@all", "probe", "grill", "survey", "tournament", "census", "crosscheck", "debate"]
     y-axis "USD" 0 --> 3
-    bar [0.09, 0.16, 0.36, 0.42, 0.44, 0.44, 0.47, 0.55, 0.91, 0.93, 1.36, 1.61, 1.75, 1.77, 2.02, 2.15, 2.33, 2.53, 2.81]
+    bar [0.09, 0.91, 0.93, 1.61, 1.75, 2.33, 2.53, 2.81]
 ```
 
-Measured on 2026-11-25 and 2026-11-26 with the default roster and settings, one fresh data directory per run. Full method, estimates, per-run numbers and failures are in [docs/costs.md](docs/costs.md). Grill includes its seed-plan call; census includes both default passes. Times reflect parallel load and sum active sends.
+**The eleven modes added in v0.2.0:**
+
+```mermaid
+%%{init: {'themeVariables':{'xyChart':{'plotColorPalette':'#5b6bd6'}}}}%%
+xychart-beta horizontal
+    title "Mean real cost per run, v0.2.0 modes (USD)"
+    x-axis ["rank", "trace", "readback", "forge", "decide", "forecast", "tune", "debug", "blow up", "negotiate", "PRD"]
+    y-axis "USD" 0 --> 3
+    bar [0.16, 0.36, 0.42, 0.44, 0.44, 0.47, 0.55, 1.36, 1.77, 2.02, 2.15]
+```
+
+Measured on 2026-11-25 and 2026-11-26 (the original seven modes) and on 2026-11-27 (the eleven v0.2.0 modes) with the default roster and settings, one fresh data directory per run. Full method, estimates, per-run numbers and failures are in [docs/costs.md](docs/costs.md). Grill includes its seed-plan call; census includes both default passes. Times reflect parallel load and sum active sends.
 
 | Run | Mean real cost (min–max) | Mean time (min–max) | Peak reserved | Reserved ÷ actual | Fits the $150 default cap? |
 |---|---|---|---|---|---|
@@ -1898,7 +1917,7 @@ Logs are written to `<data directory>/logs/squad.jsonl`. The file is created wit
 
 > ✅ **Shipped in v0.2.0** (2026-11-27). Together with the seven modes above, Squad has **eighteen** contest modes. Every clip was recorded live on the v0.2.0 release binary with the default six-model roster; costs are the measured per-run figures in [docs/costs.md](docs/costs.md). Each mode has its own guide in [docs/modes](docs/modes/).
 
-Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`), one starter command and its measured cost. Nine of the eleven clips are finished runs; `$tune` and `$blow_it_up` are marked below.
+Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`), one starter command and its measured cost. Nine of the eleven clips are finished runs; `$tune` and `$blow_it_up` have no clip yet and say so below. Every clip except the first sits in a collapsible so the page loads lighter: open the ones you want.
 
 - 🔨 **`$forge`**: One finished artifact that is better than any single draft.
 
@@ -1910,7 +1929,12 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 🔮 **`$forecast`**: A dated probability with spread, cruxes and signposts.
 
-  ![The pooled probability, the spread of the room and what to watch. Recorded on v0.2.0.](docs/media/forecast.gif)
+  <details>
+  <summary>▶️ Watch the <code>$forecast</code> clip</summary>
+
+  <img src="docs/media/forecast.gif" alt="The pooled probability, the spread of the room and what to watch. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
 
   Starter command: `@all $forecast Will the project release version 1 by 2027-06-30?`
 
@@ -1918,7 +1942,12 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - ⚖️ **`$decide`**: A choice among two to four options on several criteria.
 
-  ![A rubric the room proposes, scored cells, totals and flip points. Recorded on v0.2.0.](docs/media/decide.gif)
+  <details>
+  <summary>▶️ Watch the <code>$decide</code> clip</summary>
+
+  <img src="docs/media/decide.gif" alt="A rubric the room proposes, scored cells, totals and flip points. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
 
   Starter command: `@all $decide How should we reduce support response time with a fixed team?`
 
@@ -1926,7 +1955,12 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 🤝 **`$negotiate`**: Preparation and rehearsal for a negotiation.
 
-  ![Interest maps and rehearsal tables against a hypothetical counterpart. Recorded on v0.2.0.](docs/media/negotiate.gif)
+  <details>
+  <summary>▶️ Watch the <code>$negotiate</code> clip</summary>
+
+  <img src="docs/media/negotiate.gif" alt="Interest maps and rehearsal tables against a hypothetical counterpart. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
 
   Starter command: `@all $negotiate Ask for a paid trial with no exclusivity -- Buyer has a tight launch date`
 
@@ -1934,7 +1968,7 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 💣 **`$blow_it_up`**: An adversarial attack on a plan, spec, prompt, config or diff.
 
-  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished run to show. The measured result and a worked example are in the [guide](docs/modes/blow_it_up.md)._
+  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished clip yet. The measured result and a worked example are in the [guide](docs/modes/blow_it_up.md)._
 
   Starter command: `@all $blow_it_up <paste a plan here>`
 
@@ -1942,7 +1976,12 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 📖 **`$readback`**: A spec that reads the same to every reader.
 
-  ![Divergent readings, the `READ IT BACK` pause and the rewritten spec. Recorded on v0.2.0.](docs/media/readback.gif)
+  <details>
+  <summary>▶️ Watch the <code>$readback</code> clip</summary>
+
+  <img src="docs/media/readback.gif" alt="Divergent readings, the `READ IT BACK` pause and the rewritten spec. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
 
   Starter command: `@all $readback The service retains records. The operator deletes backups.`
 
@@ -1950,7 +1989,12 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 🐛 **`$debug`**: A stubborn failure, narrowed by tests you actually run.
 
-  ![A differential, a safe test to run and your `/answer`. Recorded on v0.2.0.](docs/media/debug.gif)
+  <details>
+  <summary>▶️ Watch the <code>$debug</code> clip</summary>
+
+  <img src="docs/media/debug.gif" alt="A differential, a safe test to run and your `/answer`. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
 
   Starter command: `@all $debug Requests time out after a deploy. Health checks pass. Rolling back fixes it.`
 
@@ -1958,31 +2002,68 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 🔍 **`$trace`**: A brief where every claim is tied to a quoted source span.
 
-  ![Numbered sources and checked claims behind each paragraph. Recorded on v0.2.0.](docs/media/trace.gif)
+  <details>
+  <summary>▶️ Watch the <code>$trace</code> clip</summary>
 
-  Starter command: `@all $trace What is the retention period? (then `--` and one source per block, Ctrl+J for newlines)`
+  <img src="docs/media/trace.gif" alt="Numbered sources and checked claims behind each paragraph. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
+
+  Starter command (one `--` line before each source; Ctrl+J adds newlines):
+
+  ```text
+  @all $trace What is the retention period?
+  --
+  <source 1>
+  --
+  <source 2>
+  ```
 
   Measured: **~$0.36** on the default roster, 72 s ([guide](docs/modes/trace.md)).
 
 - 🏅 **`$rank`**: An ordered list of your own items.
 
-  ![Pair comparisons fitted into an order, with cycles and split pairs. Recorded on v0.2.0.](docs/media/rank.gif)
+  <details>
+  <summary>▶️ Watch the <code>$rank</code> clip</summary>
 
-  Starter command: `@all $rank prioritize by customer impact relative to effort (then `--` and one item per line)`
+  <img src="docs/media/rank.gif" alt="Pair comparisons fitted into an order, with cycles and split pairs. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
+
+  Starter command (then one item per line):
+
+  ```text
+  @all $rank prioritize by customer impact relative to effort
+  --
+  <item 1>
+  <item 2>
+  <item 3>
+  ```
 
   Measured: **~$0.16** on the default roster, 34 s ([guide](docs/modes/rank.md)).
 
 - 🎛️ **`$tune`**: A prompt that measurably behaves better, checked on cases its authors never saw.
 
-  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished run to show. The measured result and a worked example are in the [guide](docs/modes/tune.md)._
+  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished clip yet. The measured result and a worked example are in the [guide](docs/modes/tune.md)._
 
-  Starter command: `@all $tune Answer clearly and concisely. (then `--` and the goal on the next line)`
+  Starter command (the `--` goes on its own line, then the goal):
+
+  ```text
+  @all $tune Answer clearly and concisely.
+  --
+  <goal>
+  ```
 
   Measured: **~$0.55** on the default roster, 115 s ([guide](docs/modes/tune.md)).
 
 - 🍑 **`$bass_ackwards_prd`**: A PRD for a stated end result, derived backward from that result and saved as a file.
 
-  ![Acceptance tests, backward prerequisites, a human `LAST LOOK` and the saved file. Recorded on v0.2.0.](docs/media/bass_ackwards_prd.gif)
+  <details>
+  <summary>▶️ Watch the <code>$bass_ackwards_prd</code> clip</summary>
+
+  <img src="docs/media/bass_ackwards_prd.gif" alt="Acceptance tests, backward prerequisites, a human `LAST LOOK` and the saved file. Recorded on v0.2.0." width="860" loading="lazy">
+
+  </details>
 
   Starter command: `@all $bass_ackwards_prd a self-hosted status page for a small SaaS, live with alerts`
 
