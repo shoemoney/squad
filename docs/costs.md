@@ -170,6 +170,23 @@ its bound. The eleven runs cost **$10.13** in total. Earlier per-mode evidence
 (different binaries, 2026-11-26) is in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md)
 and each mode's page.
 
+### Longer cross-mode runs (2026-11-27, final tree)
+
+Two further paid runs on the built-in six-member roster from a binary built at `120c0fd`
+(SHA-256 `e7bce9c2b856f61dfca3b47ecf814d0c228d7a1cbdbf23e9fa8379ffef47c488`); details and
+caveats are in [the follow-up section of the live smoke](live-smoke-2026-11-27-v0.2.0.md).
+
+| Run | Outcome | Actual | Wall (active sends) | Preflight calls / provider attempts incl. startup | Peak reserved | Final reserved / unknown |
+|---|---|---:|---:|---:|---:|---|
+| Readback, `READBACK_ROUNDS=2` (answered twice) | COMPLETE, rounds_complete | $1.356852 | 384.736 s | 16 / 24 | $19.825494 | $0 / 0 |
+| Bass Ackwards PRD, `PRD_HUMAN_REVIEW=1` (one note, `/continue`) | COMPLETE, saved | $2.561021 | 389.220 s | 29 / 35 | $56.142855 | $0 / 0 |
+
+A second Readback round roughly triples the one-round cost above ($0.420513 at R=1) because
+every member reads the rewritten spec again and a rewrite and a diff follow. Turning on the
+PRD review adds one planned call (the judge's apply) to the 28 of the default run and a
+worst-case reservation of $56.14 against $50.71. One Readback rewrite attempt failed and was
+paid ($0.086696) and settled; no reservation or unknown-cost call remained in either run.
+
 ### Original timeout holds reconciled
 
 The integrated runtime reopened the original rooms with `/who` and reconciled
