@@ -66,3 +66,27 @@ fn selecting_marker_shows_only_its_quoted_evidence() {
     v.select_claim("[C2]");
     assert!(v.inspect().is_empty());
 }
+#[test]
+fn discovery_and_tip_rotation_follow_activation() {
+    let ctx = parser::ParseContext {
+        roster: vec![
+            "one".parse().unwrap(),
+            "two".parse().unwrap(),
+            "three".parse().unwrap(),
+        ],
+        ..Default::default()
+    };
+    assert_eq!(
+        squad_tui::typeahead::MODES
+            .iter()
+            .any(|(name, _)| *name == "$trace"),
+        ENABLED
+    );
+    assert_eq!(squad_tui::typeahead::enabled("$trace"), ENABLED);
+    assert_eq!(
+        squad_tui::typeahead::examples(&ctx)
+            .iter()
+            .any(|e| e.contains("$trace")),
+        ENABLED
+    );
+}

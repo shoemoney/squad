@@ -66,3 +66,24 @@ fn source_aware_extraction_validation_rejects_unknown_source_but_not_missing_quo
     known.claims[0].quotes[0].source_id = "S1".into();
     assert!(known.validate_sources(&[source]).is_ok());
 }
+#[test]
+fn parser_example_and_help_follow_the_activation_switch() {
+    let ctx = parser::ParseContext {
+        roster: vec![
+            "one".parse().unwrap(),
+            "two".parse().unwrap(),
+            "three".parse().unwrap(),
+        ],
+        ..Default::default()
+    };
+    let parsed = parse(
+        "@all $trace What is retained? -- Records are retained for thirty days.",
+        &parser::SubmissionMeta::default(),
+        &ctx,
+    );
+    assert_eq!(parsed.is_ok(), ENABLED);
+    assert_eq!(
+        parser::help_examples().iter().any(|e| e.contains("$trace")),
+        ENABLED
+    );
+}

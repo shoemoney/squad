@@ -88,6 +88,7 @@ enum Fault {
     Recover,
     Stop,
     Outer,
+    Exhausted,
 }
 struct Answers;
 fn extract(text: &str) -> serde_json::Value {
@@ -305,6 +306,14 @@ async fn owned_run(fault: Fault) -> (Fixture, squad_store::Store, ContestId) {
                 );
                 return (f, store, c);
             }
+        }
+        if fault == Fault::Exhausted
+            && state.state == TraceStatus::Verifying
+            && state.step_id.is_some()
+        {
+            store.call(move|db|{db.execute("UPDATE work SET attempt=2 WHERE contest_id=? AND kind='trace.verify' AND status='queued'",[c.to_string()])?;Ok(())}).unwrap();
+            squad_core::router::recovery::recover_on_open(&store).unwrap();
+            continue;
         }
         if fault == Fault::Recover && state.step_id.is_some() {
             let prior = squad_store::trace::run(&f.db(), c).unwrap();
@@ -546,4 +555,32 @@ async fn stop_and_startup_recovery_preserve_private_assignments() {
 async fn full_room_runtime_completes_trace_after_outer_dispatch_integration() {
     let (f, _, _) = owned_run(Fault::Outer).await;
     assert_eq!(f.fake.captured_bodies().await.len(), 14);
+}
+
+#[tokio::test]
+async fn recovered_exhausted_verifiers_settle_without_replaying_provider_calls() {
+    let (f, _, c) = owned_run(Fault::Exhausted).await;
+    assert_eq!(
+        squad_core::router::trace::load_state(&f.db(), c)
+            .unwrap()
+            .state,
+        TraceStatus::Complete
+    );
+    let run = squad_store::trace::run(&f.db(), c).unwrap();
+    assert!(run.verifications.is_empty());
+    assert_eq!(
+        run.ledger.claims[0].status,
+        trace::TraceClaimStatus::Unverified
+    );
+    assert_eq!(run.skipped.len(), 6);
+    assert_eq!(f.fake.captured_bodies().await.len(), 8);
+    let queued: i64 = f
+        .db()
+        .query_row(
+            "SELECT COUNT(*) FROM work WHERE contest_id=? AND status IN ('queued','running')",
+            [c.to_string()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(queued, 0);
 }

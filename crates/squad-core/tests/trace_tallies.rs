@@ -126,6 +126,15 @@ fn validation_checks_unknown_sources_qualifier_spans_and_body_status() {
     let ledger = json!({"claims":[{"claimId":"C1","text":"Claim","status":"unsupported","quotes":[],"independentSources":0,"contributingMembers":1,"verdicts":{}}]});
     let brief = json!({"sections":[{"heading":"Summary","paragraphs":[{"text":"Claim","claimIds":["C1"]}]}],"disputed":[],"gaps":[]});
     assert!(validate_output(&WorkKind::TraceAssemble, &json!({"ledger":ledger}), &brief).is_err());
+    let disputed = json!({"sections":[],"disputed":[{"claimId":"C1","text":"Claim"}],"gaps":[]});
+    assert!(
+        validate_output(
+            &WorkKind::TraceAssemble,
+            &json!({"ledger":ledger}),
+            &disputed
+        )
+        .is_err()
+    );
     let v = json!({"verdicts":[{"claimId":"C1","entailment":"partial","scope":"missing_qualifier","qualifierQuote":{"sourceId":"S1","quote":"A fabricated qualifier"},"note":"Qualifier missing"}]});
     let input =
         json!({"claims":[{"claimId":"C1","text":"Claim","quotes":[]}],"sources":data["sources"]});
