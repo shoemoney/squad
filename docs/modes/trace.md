@@ -162,3 +162,24 @@ Verification and assembly requests include a lossless quote pool: claims referen
 quote IDs, and each verified quote and byte span appears once per request. The
 stored ledger and export retain the full claim-to-quote relationships. This avoids
 repeating long evidence passages across many canonical claims inside paid prompts.
+
+## Validation
+
+Validated on dev2 with `CARGO_BUILD_JOBS=4` at code head
+`6943017e71b03789873f2687fee96cbfdf4b49e8`:
+
+- `RUST_TEST_THREADS=4 cargo test --workspace --no-fail-fast`: 1,356 passing
+  executions, zero failures, five ignores. One WAL subprocess repeats a passing
+  test, so the unique passing-test count is 1,355. Four ignores are inherited;
+  the fifth is the explicitly blocked Trace RoomHandle regression.
+- All 30 active Trace checks pass: protocol 4, store 3, agents 3, workflows 7,
+  tally/validation/sizing 9, export 1, view/discovery 3.
+- `cargo clippy --workspace --all-targets -- -D warnings`: passed.
+- `cargo fmt --all -- --check`: passed.
+- The workspace release CLI suite builds and exercises the optimized binary.
+- The documented parser example and help pass with temporary activation.
+  The normal build remains disabled until integration, and no paid smoke was run.
+
+Only the 24 permitted repository paths changed. Eleven of fourteen Trace
+milestone tasks are checked off. `M8.P9.L4.T2`, `M8.P9.L5.T1` and
+`M8.P9.L5.T3` retain explicit integration reasons and partial evidence.
