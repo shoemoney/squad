@@ -1,0 +1,2 @@
+21:44  up 8 days,  9:44, 1 user, load averages: 3.71 3.20 2.57
+21:54  up 8 days,  9:54, 1 user, load averages: 1.87 2.04 2.20

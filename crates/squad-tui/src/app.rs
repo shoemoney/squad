@@ -466,8 +466,7 @@ impl App {
             source_grapheme: found.graphemes.start,
             row_in_header: row,
         });
-        self.session.transcript.sync_activity();
-        self.session.transcript.follow = false;
+        self.session.transcript.pause_follow();
     }
     fn search_key(&mut self, key: &crossterm::event::KeyEvent) -> bool {
         match key.code {
@@ -575,7 +574,6 @@ impl App {
             self.dirty = true;
         }
         self.dirty |= self.session.transcript.flush(now);
-        self.session.transcript.sync_activity();
     }
     pub fn ui_deadline(&self) -> Option<Duration> {
         [
@@ -800,7 +798,7 @@ impl App {
                     }
                     KeyCode::F(7) => {
                         self.composed.toggle_verdict();
-                        self.session.transcript.follow = false;
+                        self.session.transcript.pause_follow();
                         for view in self.session.probes.values_mut() {
                             view.toggle_matrix();
                         }
@@ -906,7 +904,6 @@ impl App {
     /// Scrolls by rows, anchored to source; reaching the bottom resumes live following.
     pub fn scroll_transcript(&mut self, delta: isize) {
         if self.session.transcript.follow {
-            self.session.transcript.sync_activity();
             // Leave the live edge from where the bottom currently is.
             self.composed.top = self
                 .composed
@@ -918,7 +915,7 @@ impl App {
             self.resume_live();
             return;
         }
-        self.session.transcript.follow = false;
+        self.session.transcript.pause_follow();
         self.dirty = true;
     }
     /// One viewport page up or down (one row of overlap kept for orientation).
