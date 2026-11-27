@@ -1,0 +1,17 @@
+Fri Nov 27 02:28:45 UTC 2026
+hueb.shoemoney.ai
+ProductName:		macOS
+ProductVersion:		27.2.1
+BuildVersion:		26B131
+Darwin hueb.shoemoney.ai 27.2.0 Darwin Kernel Version 27.2.0: Wed Oct 14 23:47:32 PDT 2026; root:xnu-13432.41.4~25/RELEASE_ARM64_T6031 arm64
+machdep.cpu.brand_string: Apple M3 Ultra
+hw.memsize: 103079215104
+hw.ncpu: 28
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+binary: rustc
+commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67
+commit-date: 2026-10-13
+host: aarch64-apple-darwin
+release: 1.99.1
+LLVM version: 23.1.1
+20:28  up 8 days,  8:28, 1 user, load averages: 1.75 2.06 1.93

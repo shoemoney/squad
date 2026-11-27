@@ -3115,3 +3115,35 @@ A retry of the clear request returns its receipt rather than clearing again. Onc
 
 The storage ceiling defined by Hardening rejects new generation admission with `STORAGE_LIMIT`. Cleanup, export, accounting reconciliation and completion of already accepted work remain possible. This section adds no retention configuration.
 
+
+### M8/M9 step-bound visibility additions
+
+All eleven additions use the generic `contest.artifact` carrier with the owned
+protocol validator. Artifact headers bind kind, round, actor and audience.
+Executable reads require the frozen work assignment and authorized projection;
+guessing a work, context or artifact ID grants no access. Human exports can
+include provenance and hidden maps that are excluded from model projections.
+
+| Mode | Authorized model projection |
+|---|---|
+| Forge | Independent drafts; ballots exclude the voter's draft; fusers receive only admitted source material; judge sees anonymous candidates. |
+| Forecast | Frozen resolution frame; initial forecasts are independent; revision reasons omit every probability; judge gets app-computed pooling and anonymized evidence. |
+| Decide | Independent proposals and criteria; anonymous shortlist/freeze inputs; scoring omits weights; explanation sees app-computed totals and sensitivity, with no winner field. |
+| Negotiate | Counterparts receive their hypothetical hidden brief and public table transcript; negotiators receive our limits/fallback and transcript. Neither receives the other side's private material. The human sees all hypothetical briefs. |
+| Blow It Up | One private lens per attacker; challenge pool excludes the recipient's own vectors; ruling gets accepted ballots and app kill decisions, never permission to reinstate killed vectors. |
+| Readback | Each round's current spec only for readers; anonymous interpretations for diff; rewrites receive the ledger and recorded human choices. Open passages remain unchanged. |
+| Debug | Fresh hypotheses/test proposals; selected tests come only from members; the app eliminates by recorded predictions and human evidence. Human silence or unknown evidence eliminates nothing. |
+| Trace | Source packet for extraction; only verified contiguous quotes reach merge and verification; verifiers receive assigned claims without authorship; assembly body uses supported claims only. |
+| Rank | Each member receives only its own randomly oriented A/B pairs; the judge gets computed order/cycles and anonymous reasons and cannot reorder. |
+| Tune | Prompt authors receive champion plus train digest, excluding hidden cases, expectations and executor outputs. Scoring sheets have fresh anonymous labels. Bare executor calls preserve prompt/input bytes and contain no Squad persona, history or template. |
+| Bass Ackwards PRD | Independent DoD/tree work; blind merge/revision inputs; one dealt review lens; must-have work is add-only. Human notes are instructions. Sparse patches preserve unaddressed bytes and permanent keys. |
+
+New-mode judge compositions discard the identity header through exact-prefix
+replacement. They contain no configured roster, judge model identity or literal
+`@fable`. Repair material remains private to its authorized attempt.
+
+`attempts` remains independent of conversational foreign keys. Delayed failed or
+cancelled receipts reconcile against the original attempt and billing day after
+stop, clear or restart. Known costs replace unresolved holds atomically; unknown
+receipts retain their reservation. Reconciliation dispatches no conversational
+work and does not reopen a contest.

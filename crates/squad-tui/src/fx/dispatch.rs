@@ -232,3 +232,21 @@ fn positions(rect: Rect) -> impl Iterator<Item = Position> {
     (rect.top()..rect.bottom())
         .flat_map(move |y| (rect.left()..rect.right()).map(move |x| Position::new(x, y)))
 }
+
+/// Every mode owns its effects hook; disabled modes emit no effects.
+pub fn mode_enabled(kind: squad_protocol::ContestKind) -> bool {
+    match kind {
+        squad_protocol::ContestKind::Forge => super::forge::enabled(),
+        squad_protocol::ContestKind::Tune => super::tune::enabled(),
+        squad_protocol::ContestKind::BassAckwardsPrd => super::bass_ackwards_prd::enabled(),
+        squad_protocol::ContestKind::Forecast => super::forecast::enabled(),
+        squad_protocol::ContestKind::Decide => super::decide::enabled(),
+        squad_protocol::ContestKind::Negotiate => super::negotiate::enabled(),
+        squad_protocol::ContestKind::BlowItUp => super::blow_it_up::enabled(),
+        squad_protocol::ContestKind::Readback => super::readback::enabled(),
+        squad_protocol::ContestKind::Debugging => super::debugging::enabled(),
+        squad_protocol::ContestKind::Trace => super::trace::enabled(),
+        squad_protocol::ContestKind::Rank => super::rank::enabled(),
+        _ => true,
+    }
+}

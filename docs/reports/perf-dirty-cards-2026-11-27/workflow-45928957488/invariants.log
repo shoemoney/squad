@@ -1,0 +1,98 @@
+    Finished `release` profile [optimized] target(s) in 0.13s
+     Running tests/event_loop_shell.rs (/Users/squad-ci/target/squad/release/deps/event_loop_shell-1f78d53d9d354daa)
+
+running 6 tests
+test effects_finish_then_idle_timer_stays_disarmed ... ok
+test feed_lag_recovers_authoritative_state_without_losing_draft ... ok
+test frame_scheduler_caps_every_source_and_disarms_idle ... ok
+test idle_room_draws_once_and_stays_disarmed_for_five_seconds ... ok
+test ready_input_precedes_initial_draw ... ok
+test sustained_feed_draws_between_bounded_batches_and_quit_stays_responsive ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.49s
+
+     Running tests/fx_crosscheck.rs (/Users/squad-ci/target/squad/release/deps/fx_crosscheck-09abb047a90ea284)
+
+running 3 tests
+test duplicates_audit_supersession_and_grid_order ... ok
+test lifecycle_levels_narrow_and_partial_results ... ok
+test storyboard_single_and_200_cell_audit ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/fx_governor.rs (/Users/squad-ci/target/squad/release/deps/fx_governor-71a35b13e8d14d16)
+
+running 6 tests
+test bytes_and_input_latency_are_immediate_pressure ... ok
+test ewma_uses_alpha_point_two ... ok
+test recovery_waits_three_seconds_and_moves_only_one_grade ... ok
+test renewed_pressure_resets_hysteresis ... ok
+test shedding_table_and_explicit_level_are_composed ... ok
+test threshold_frame_counts_are_consecutive_and_strict ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/fx_invariants.rs (/Users/squad-ci/target/squad/release/deps/fx_invariants-6dd84d6ef0dce354)
+
+running 29 tests
+test accepted_cues_are_available_for_catalogue_dispatch_once ... ok
+test all_hero_cap_cannot_be_exceeded ... ok
+test arbitrary_catalogue_sequence_finishes_like_off ... proptest: FileFailurePersistence::SourceParallel set, but failed to find lib.rs or main.rs
+ok
+test arbitrary_cue_sequence_finishes_like_off ... proptest: FileFailurePersistence::SourceParallel set, but failed to find lib.rs or main.rs
+ok
+test blank_cell_pass_never_paints_text_or_protected_blanks ... ok
+test cap_evicts_oldest_nonhero_and_preserves_heroes ... ok
+test catalogue_scratch_is_bounded_by_viewport_and_candidate_keys_follow_pending_state ... ok
+test color_only_allowlist_cannot_change_glyphs_or_modifiers ... ok
+test destructive_shader_is_clipped_and_finishes_to_static ... ok
+test duplicate_event_has_no_second_entrance ... ok
+test entire_catalogue_settles_to_off_and_protects_partial_committed_reports ... ok
+test finished_frame_and_following_frame_equal_static_render ... ok
+test fractional_frame_ticks_do_not_accumulate_shader_time_drift ... ok
+test governor_snap_and_unsynchronized_output_disable_passes ... ok
+test idle_halts_streams_and_periodic_have_distinct_cadences ... ok
+test keys_replace_without_a_jump_or_stack ... ok
+test off_and_resize_settle_without_losing_static_content ... ok
+test pass_allocation_is_clipped_to_viewport_even_for_large_registered_rect ... ok
+test protected_glyphs_survive_any_sample ... proptest: FileFailurePersistence::SourceParallel set, but failed to find lib.rs or main.rs
+ok
+test protected_rect_keeps_glyphs_styles_and_wide_cell_metadata ... ok
+test queue_drops_oldest_and_retains_order ... ok
+test reel_covers_every_scene_at_wide_and_narrow_sizes_with_honest_totals ... ok
+test report_cues_replace_and_collapse_by_contest ... ok
+test same_artifact_under_a_new_event_does_not_restart_and_new_artifact_replaces ... ok
+test stale_boundary_and_future_time_are_guarded ... ok
+test stochastic_adapter_is_seeded_from_cue_identity ... ok
+test third_party_passes_cannot_bypass_color_tiers ... ok
+test thousand_replayed_events_create_zero_effects ... ok
+test whole_catalogue_replay_duplicates_drops_and_resize ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/fx_probe.rs (/Users/squad-ci/target/squad/release/deps/fx_probe-1cc5a50d94464c75)
+
+running 3 tests
+test lifecycle_levels_narrow_wrap_and_partial_tree ... ok
+test order_no_node_accents_duplicate_and_rejected_output ... ok
+test storyboard_root_first_unexpected_and_inseparable ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/fx_survey.rs (/Users/squad-ci/target/squad/release/deps/fx_survey-ecc39ed6ed8ed891)
+
+running 4 tests
+test an_empty_previous_tally_is_neutral_not_unsure ... ok
+test lifecycle_levels_partial_votes_and_narrow ... ok
+test stored_proportions_missing_votes_and_supersession ... ok
+test storyboard_all_bands_and_revote ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/m4b_fx_integration_audit.rs (/Users/squad-ci/target/squad/release/deps/m4b_fx_integration_audit-c6bbd2880ea9edd9)
+
+running 1 test
+test new_effects_do_not_gate_moves_barriers_or_change_deliveries_and_export ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+

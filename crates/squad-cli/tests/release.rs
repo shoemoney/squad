@@ -279,10 +279,9 @@ fn release_binary_reports_the_workspace_version_and_help_has_no_side_effects() {
     let root = tempfile::tempdir().unwrap();
     let version = squad(root.path()).arg("--version").output().unwrap();
     assert!(version.status.success());
-    assert_eq!(text(&version), "squad 0.1.3\n");
     assert_eq!(
-        text(&version).trim(),
-        format!("squad {}", env!("CARGO_PKG_VERSION"))
+        text(&version),
+        format!("squad {}\n", env!("CARGO_PKG_VERSION"))
     );
     let mut helps: Vec<Vec<&str>> = vec![
         vec!["--help"],
@@ -334,7 +333,7 @@ fn six_workspace_crates_carry_release_metadata_and_versioned_internal_dependenci
     for package in metadata["packages"].as_array().unwrap() {
         let name = package["name"].as_str().unwrap();
         names.push(name.to_owned());
-        assert_eq!(package["version"], "0.1.3", "{name}");
+        assert_eq!(package["version"], env!("CARGO_PKG_VERSION"), "{name}");
         assert_eq!(package["license"], "Apache-2.0", "{name}");
         assert_eq!(
             package["repository"], "https://github.com/shoemoney/squad",
@@ -349,7 +348,8 @@ fn six_workspace_crates_carry_release_metadata_and_versioned_internal_dependenci
             if dependency["name"].as_str().unwrap().starts_with("squad-") {
                 assert_ne!(dependency["req"], "*", "{name} -> {}", dependency["name"]);
                 assert_eq!(
-                    dependency["req"], "^0.1.3",
+                    dependency["req"],
+                    format!("^{}", env!("CARGO_PKG_VERSION")),
                     "{name} -> {}",
                     dependency["name"]
                 );

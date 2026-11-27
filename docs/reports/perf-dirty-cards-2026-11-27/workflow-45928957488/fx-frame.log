@@ -1,0 +1,33 @@
+    Finished `bench` profile [optimized] target(s) in 0.13s
+     Running benches/fx_frame.rs (/Users/squad-ci/target/squad/release/deps/fx_frame-0b14d842d3572708)
+Gnuplot not found, using plotters backend
+full catalogue warm frame mean: 5.15556ms
+Benchmarking fx_frame/full_catalogue_12_streams_and_verdict_200x60
+Benchmarking fx_frame/full_catalogue_12_streams_and_verdict_200x60: Warming up for 1.0000 s
+Benchmarking fx_frame/full_catalogue_12_streams_and_verdict_200x60: Collecting 10 samples in estimated 2.2503 s (440 iterations)
+Benchmarking fx_frame/full_catalogue_12_streams_and_verdict_200x60: Analyzing
+fx_frame/full_catalogue_12_streams_and_verdict_200x60
+                        time:   [5.1641 ms 5.1664 ms 5.1708 ms]
+                        change: [+1.4900% +1.6227% +1.7550%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+        5.34 real         7.71 user         0.60 sys
+           121634816  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               13765  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                  20  voluntary context switches
+                6662  involuntary context switches
+          2059250248  instructions retired
+           610818710  cycles elapsed
+            96699112  peak memory footprint

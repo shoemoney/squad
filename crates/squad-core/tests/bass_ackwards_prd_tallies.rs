@@ -1,0 +1,260 @@
+#[path = "../../squad-protocol/tests/bass_ackwards_prd.rs"]
+mod fixtures;
+use serde_json::json;
+use squad_core::orchestrator::bass_ackwards_prd::*;
+use squad_protocol::{bass_ackwards_prd::*, *};
+#[test]
+fn quorum_freeze_caps_and_order_are_application_owned() {
+    let items=json!((0..14).flat_map(|i|[json!({"ref":format!("A:{i}"),"label":"A","test":format!("test {i}"),"verifiedBy":"inspection"}),json!({"ref":format!("B:{i}"),"label":if i==13{"A"}else{"B"},"test":format!("test {i}"),"verifiedBy":"inspection"})]).collect::<Vec<_>>());
+    let groups = BassAckwardsPrdGrouping {
+        groups: (0..14)
+            .map(|i| BassAckwardsPrdGroup {
+                text: format!("test {i}"),
+                source_refs: vec![format!("A:{i}"), format!("B:{i}")],
+            })
+            .collect(),
+    };
+    let d = freeze(&groups, &items);
+    assert_eq!(d.items.len(), 12);
+    assert_eq!(d.items[11].id, "D12");
+    assert_eq!(d.single_source.len(), 1);
+    assert!(d.items.iter().all(|i| i.support == 2));
+}
+#[test]
+fn lens_deal_and_call_counts() {
+    for m in [3, 6, 7] {
+        let n = (0..m)
+            .map(|i| format!("n{i}").parse().unwrap())
+            .collect::<Vec<MemberNick>>();
+        let lenses = n
+            .iter()
+            .map(|p| lens(&n, p))
+            .collect::<std::collections::BTreeSet<_>>();
+        assert_eq!(lenses.len(), 3);
+        assert_eq!(readback(&n, &n[2], 2), 0);
+    }
+    assert_eq!(calls(6, false), (28, 60));
+    assert_eq!(calls(3, false), (16, 36));
+    assert_eq!(calls(6, true), (29, 63));
+}
+#[test]
+fn keys_levels_critical_chain_and_slug() {
+    let mut d: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    mint_keys(&mut d);
+    d.validate().unwrap();
+    let first = d.lines()[0].key.clone().unwrap();
+    assert_eq!(
+        d.lines()[1].depends_on.as_slice(),
+        std::slice::from_ref(&first)
+    );
+    let done = BassAckwardsPrdDone {
+        items: ["D1", "D2"]
+            .map(|id| BassAckwardsPrdDoneEntry {
+                id: id.into(),
+                test: "observable".into(),
+                verified_by: "test".into(),
+                support: 2,
+                source_refs: vec![],
+            })
+            .into(),
+        single_source: vec![],
+    };
+    let c = checks(&d, &done);
+    assert!(c.mapped && c.covered && c.dependencies && c.acyclic);
+    assert_eq!(c.levels.len(), 2);
+    assert_eq!(c.critical_path[0], first);
+    assert_eq!(slug("  Héllo WORLD!! "), "h-llo-world");
+    assert_eq!(slug("💥"), "prd");
+    assert_eq!(slug(""), "prd");
+    assert_eq!(slug(&"a".repeat(100)).len(), 48);
+    let old = d.clone();
+    mint_keys(&mut d);
+    assert_eq!(d, old);
+}
+#[test]
+fn revision_integrity_decision_coverage_and_add_only() {
+    let mut doc: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    mint_keys(&mut doc);
+    let mut data = fixtures::data();
+    data["document"] = serde_json::to_value(&doc).unwrap();
+    data["sourceIds"] = json!(["R1"]);
+    let key = doc.lines()[0].key.clone().unwrap();
+    let mut output = json!({"decisions":[{"ref":"R1","verdict":"reject","reason":"Already covered","appliedTo":[],"removes":[]}],"edits":[]});
+    validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &output).unwrap();
+    output["edits"] = json!([{"op":"setText","key":key,"field":"text","value":"Silent rewording"}]);
+    assert!(validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &output).is_err());
+    output["decisions"][0]["verdict"] = json!("accept");
+    output["decisions"][0]["appliedTo"] = json!([key]);
+    validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &output).unwrap();
+    assert!(validate_output(&WorkKind::BassAckwardsPrdFinalize, &data, &output).is_err());
+    output["edits"] = json!([]);
+    output["decisions"] = json!([]);
+    assert!(validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &output).is_err());
+}
+
+#[test]
+fn diamond_and_equal_chains_tie_by_document_order() {
+    let mut d: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    let mut left = d.milestones[0].phases[0].line_items[0].clone();
+    left.local_id = "left".into();
+    let mut right = left.clone();
+    right.local_id = "right".into();
+    d.milestones[0].phases[0].line_items = vec![left, right];
+    let mut end = d.milestones[1].phases[0].line_items[0].clone();
+    end.depends_on = vec!["right".into(), "left".into()];
+    d.milestones[1].phases[0].line_items = vec![end];
+    let done = BassAckwardsPrdDone {
+        items: vec![],
+        single_source: vec![],
+    };
+    let c = checks(&d, &done);
+    assert_eq!(c.critical_path, vec!["left", "l2"]);
+    assert_eq!(c.levels, vec![vec!["left", "right"], vec!["l2"]]);
+    let mut extra = d.milestones[1].phases[0].line_items[0].clone();
+    extra.local_id = "other_end".into();
+    extra.depends_on = vec!["right".into()];
+    d.milestones[1].phases[0].line_items[0].depends_on = vec!["left".into()];
+    d.milestones[1].phases[0].line_items.push(extra);
+    assert_eq!(checks(&d, &done).critical_path, vec!["left", "l2"]);
+}
+
+#[test]
+fn redaction_does_not_change_unaddressed_committed_bytes() {
+    let mut original: BassAckwardsPrdDocument =
+        serde_json::from_value(fixtures::document()).unwrap();
+    mint_keys(&mut original);
+    original.milestones[0].phases[0].line_items[0].text = "Ask @alpha to deploy the page".into();
+    let mut projected = original.clone();
+    projected.milestones[0].phases[0].line_items[0].text =
+        "Ask [redacted] to deploy the page".into();
+    let mut next = projected.clone();
+    restore_unaddressed(&original, &projected, &mut next, &[], false);
+    assert_eq!(next, original);
+}
+
+#[test]
+fn compact_key_counter_never_reuses_removed_identities() {
+    let mut doc: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    let mut counter = 0;
+    mint_keys_after(&mut doc, &mut counter);
+    let removed = doc.milestones[1].phases[0].line_items[0]
+        .key
+        .clone()
+        .unwrap();
+    doc.milestones[1].phases[0].line_items[0].key = None;
+    doc.milestones[1].phases[0].line_items[0].local_id = "replacement".into();
+    mint_keys_after(&mut doc, &mut counter);
+    assert_ne!(doc.lines()[1].key.as_ref(), Some(&removed));
+    assert!(doc.order().iter().all(|key| key.len() <= 3));
+    doc.validate().unwrap();
+}
+
+#[test]
+fn large_prd_revision_output_does_not_repeat_the_document() {
+    let mut doc: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    let seed = doc.lines()[0].clone();
+    doc.milestones[0].phases.clear();
+    doc.milestones[1].phases.clear();
+    for m in 0..2 {
+        for p in 0..4 {
+            let mut phase = BassAckwardsPrdPhase {
+                key: None,
+                local_id: format!("phase{m}_{p}"),
+                title: "Implementation".into(),
+                line_items: vec![],
+            };
+            for n in 0..if m == 1 && p == 3 { 4 } else { 8 } {
+                let mut line = seed.clone();
+                line.key = None;
+                line.local_id = format!("task{m}_{p}_{n}");
+                line.text = std::iter::repeat_n("deployment-verification", 25)
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                line.serves = vec!["D1".into(), "D2".into()];
+                phase.line_items.push(line);
+            }
+            doc.milestones[m].phases.push(phase);
+        }
+    }
+    mint_keys(&mut doc);
+    doc.validate().unwrap();
+    assert_eq!(doc.lines().len(), 60);
+    // Larger than the old 8,192-token response even under a generous 4 bytes/token.
+    assert!(serde_json::to_vec(&doc).unwrap().len() > 8192 * 4);
+    let key = doc.lines()[0].key.clone().unwrap();
+    let data = json!({"document":doc,"done":{"items":[{"id":"D1"},{"id":"D2"}]},"sourceIds":["R1"],"sourceLabels":["T1"]});
+    let patch = json!({"decisions":[{"ref":"R1","verdict":"accept","reason":"Clarify verification","appliedTo":[key],"removes":[]}],"edits":[{"op":"setText","key":key,"field":"risk","value":"Verify alert delivery"}]});
+    assert!(serde_json::to_vec(&patch).unwrap().len() < 512);
+    validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &patch).unwrap();
+    let edits: Vec<BassAckwardsPrdEdit> = serde_json::from_value(patch["edits"].clone()).unwrap();
+    let next = apply_edits(&doc, &edits).unwrap();
+    for (id, entity) in doc.entities() {
+        if id != key {
+            assert_eq!(next.entities()[&id], entity);
+        }
+    }
+    assert_eq!(next.order(), doc.order());
+    assert_eq!(next.lines()[0].text, doc.lines()[0].text);
+    assert_eq!(next.lines()[0].risk, "Verify alert delivery");
+}
+
+#[test]
+fn patches_reject_invalid_targets_identity_mutations_and_partial_documents() {
+    let mut doc: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    mint_keys(&mut doc);
+    let key = doc.lines()[0].key.clone().unwrap();
+    for edit in [
+        json!({"op":"setText","key":"unknown","field":"text","value":"changed"}),
+        json!({"op":"setText","key":key,"field":"key","value":"stolen"}),
+        json!({"op":"setText","key":key,"field":"localId","value":"stolen"}),
+        json!({"op":"setList","key":key,"field":"text","values":[]}),
+        json!({"op":"setList","key":key,"field":"dependsOn","values":[key]}),
+        json!({"op":"remove","key":"unknown"}),
+    ] {
+        let edits: Vec<BassAckwardsPrdEdit> = serde_json::from_value(json!([edit])).unwrap();
+        assert!(apply_edits(&doc, &edits).is_err());
+    }
+    let data = json!({"document":doc,"done":{"items":[{"id":"D1"},{"id":"D2"}]},"sourceIds":["R1"],"sourceLabels":["T1"]});
+    let mut patch = json!({"decisions":[{"ref":"R1","verdict":"reject","reason":"Covered","appliedTo":[],"removes":[]}],"edits":[{"op":"setText","key":"$document","field":"overview","value":"Unapproved rewrite"}]});
+    assert!(validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &patch).is_err());
+    patch["decisions"][0]["verdict"] = json!("accept");
+    patch["decisions"][0]["appliedTo"] = json!(["$document"]);
+    validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &patch).unwrap();
+    assert!(validate_output(&WorkKind::BassAckwardsPrdFinalize, &data, &patch).is_err());
+    patch["document"] = data["document"].clone();
+    assert!(validate_output(&WorkKind::BassAckwardsPrdRevise, &data, &patch).is_err());
+}
+
+#[test]
+fn accepted_sparse_addition_is_sourced_and_final_assembly_is_add_only() {
+    let mut doc: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    mint_keys(&mut doc);
+    let mut line = doc.lines()[0].clone();
+    line.key = None;
+    line.local_id = "new-guide".into();
+    line.text = "Publish operations guide".into();
+    line.sources = vec!["H1".into()];
+    let data = json!({"document":doc,"done":{"items":[{"id":"D1"},{"id":"D2"}]},"sourceIds":["H1"],"sourceLabels":["T1"],"additions":[{"ref":"H1","under":doc.milestones[0].key}]});
+    let mut patch = json!({"decisions":[{"ref":"H1","verdict":"accept","reason":"Document operations","appliedTo":["new-guide"],"removes":[]}],"edits":[{"op":"addLine","phaseKey":doc.milestones[0].phases[0].key,"line":line}]});
+    validate_output(&WorkKind::BassAckwardsPrdFinalize, &data, &patch).unwrap();
+    patch["edits"][0]["phaseKey"] = json!(doc.milestones[1].phases[0].key);
+    assert!(validate_output(&WorkKind::BassAckwardsPrdFinalize, &data, &patch).is_err());
+    patch["edits"][0]["phaseKey"] = json!(doc.milestones[0].phases[0].key);
+    patch["edits"][0]["line"]["sources"] = json!(["invented"]);
+    assert!(validate_output(&WorkKind::BassAckwardsPrdFinalize, &data, &patch).is_err());
+}
+
+#[test]
+fn sparse_edit_preserves_redacted_fields_on_the_same_item() {
+    let mut stored: BassAckwardsPrdDocument = serde_json::from_value(fixtures::document()).unwrap();
+    mint_keys(&mut stored);
+    stored.milestones[0].phases[0].line_items[0].text = "Ask @alpha to deploy".into();
+    let edits = vec![BassAckwardsPrdEdit::SetText {
+        key: stored.lines()[0].key.clone().unwrap(),
+        field: "risk".into(),
+        value: "Verify deployment".into(),
+    }];
+    let next = apply_edits(&stored, &edits).unwrap();
+    assert_eq!(next.lines()[0].text, "Ask @alpha to deploy");
+    assert_eq!(next.lines()[0].risk, "Verify deployment");
+}

@@ -81,7 +81,11 @@ fn ranking_is_prefix_then_substring_then_subsequence_and_stable() {
     assert_eq!(typeahead::rank("$debate", "@deb"), None);
     assert_eq!(typeahead::rank("@grok", "zz"), None);
     let c = CompletionState::with_starters("deb", 3, &context(), &Default::default(), true);
-    assert_eq!(c.items, ["@deborah", "$debate"]);
+    let mut expected = vec!["@deborah", "$debate"];
+    if squad_protocol::debugging::ENABLED {
+        expected.push("$debug");
+    }
+    assert_eq!(c.items, expected);
 }
 
 #[test]
@@ -137,7 +141,25 @@ fn empty_partial_and_next_token_tab_menus() {
         );
         assert!(!app.input.text().contains('\t'));
         if text.is_empty() {
-            assert_eq!(app.completion.items.len(), 4 + 7 + SLASH_COMMANDS.len());
+            assert_eq!(
+                app.completion.items.len(),
+                4 + typeahead::MODES.len() + SLASH_COMMANDS.len()
+            );
+            // Keep the released layout snapshot independent of optional modes;
+            // the registry and parser checks use the full menu above.
+            app.completion.items.retain(|item| {
+                !item.starts_with('$')
+                    || [
+                        "$debate",
+                        "$grill",
+                        "$tournament",
+                        "$census",
+                        "$crosscheck",
+                        "$survey",
+                        "$probe",
+                    ]
+                    .contains(&item.as_str())
+            });
             insta::assert_snapshot!("starter_menu", screen(&mut app, 80));
         }
     }
@@ -248,7 +270,9 @@ fn tips_parse_rotate_hide_and_respect_narrow_and_no_colour() {
     let examples = typeahead::examples(&context());
     assert_eq!(
         examples.len(),
-        6,
+        6 + typeahead::MODES.len()
+            - 7
+            - usize::from(squad_protocol::negotiate::ENABLED && context().roster.len() < 4),
         "every authored example must parse with this roster"
     );
     assert!(
@@ -297,6 +321,11 @@ fn descriptions_use_resolved_models_and_parser_command_hints() {
         let raw = match *name {
             "$debate" => "@grok @deepseek $debate topic @judge".to_string(),
             "$crosscheck" => "@all $crosscheck plan\n--\ngoal".to_string(),
+            "$tune" => "@all $tune prompt\n--\ntask".to_string(),
+            "$rank" => {
+                "@all $rank impact\n--\nrepair data loss\nimprove search\nrefresh icons".to_string()
+            }
+            "$trace" => "@all $trace opening hours\n--\nOpen Monday through Friday".to_string(),
             _ => format!("@all {name} topic"),
         };
         let mut ctx = context();

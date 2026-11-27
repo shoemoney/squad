@@ -4,20 +4,28 @@
 use squad_core::router::{Router, error};
 use squad_protocol::*;
 use squad_store::Store;
+#[path = "support/mode_starts.rs"]
+mod mode_starts;
 
 fn nick(s: &str) -> MemberNick {
     MemberNick::new(s).unwrap()
 }
 
 fn fixture() -> (Store, Router) {
+    fixture_with_members(&["alice", "bob", "carol"])
+}
+
+fn fixture_with_members(names: &[&str]) -> (Store, Router) {
     let store = Store::open(":memory:").unwrap();
     store.call(|db| {
         db.execute("INSERT INTO catalog VALUES ('test/model',131072,65536,'{\"prompt\":\"0\",\"completion\":\"0\"}','[]','2026-11-25T00:00:00Z')", [])?;
         Ok(())
     }).unwrap();
-    let roster = vec![nick("alice"), nick("bob"), nick("carol")];
-    let bindings = ["alice", "bob", "carol", "judge"]
-        .into_iter()
+    let roster = names.iter().map(|name| nick(name)).collect();
+    let bindings = names
+        .iter()
+        .copied()
+        .chain(std::iter::once("judge"))
         .map(|n| {
             (
                 n.into(),
@@ -411,4 +419,237 @@ async fn too_few_answers_end_the_collection_with_the_canonical_error() {
             .iter()
             .any(|e| matches!(e.content, EnvelopePayload::ContestPickRequested(_)))
     );
+}
+
+#[test]
+fn eighteen_kinds_share_exactly_one_active_claim() {
+    let (store, _) = fixture();
+    store.call(|db|{
+  let kinds=["debate","tournament","grill","census","crosscheck","survey","probe","forge","forecast","decide","negotiate","blow_it_up","readback","debug","trace","rank","tune","bass_ackwards_prd"];
+  for first in kinds {
+   db.execute("DELETE FROM contests",[])?;
+   db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES('first',?,1,1,'{}',1)",[first])?;
+   for second in kinds {assert!(db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES('second',?,1,1,'{}',1)",[second]).is_err(),"{first} and {second}");}
+  }Ok(())
+ }).unwrap();
+}
+
+#[test]
+fn new_mode_admission_names_each_active_kind_without_starting_work() {
+    let (store, router) = fixture_with_members(&["alice", "bob", "carol", "dave"]);
+    let starts = [
+        ("forge", "@all $forge Write a short launch post"),
+        (
+            "forecast",
+            "@all $forecast Will the project ship this year?",
+        ),
+        (
+            "decide",
+            "@all $decide Choose storage\n--\nSQLite\nPostgreSQL",
+        ),
+        ("negotiate", "@all $negotiate Agree a support contract"),
+        (
+            "blow_it_up",
+            "@all $blow_it_up Deploy without a rollback plan",
+        ),
+        ("readback", "@all $readback Keep records for thirty days"),
+        ("debug", "@all $debug Requests stall\n--\nInspect logs only"),
+        (
+            "trace",
+            "@all $trace When does it run?\n--\nIt runs on Mondays.",
+        ),
+        (
+            "rank",
+            "@all $rank Prioritize features\n--\nExport\nRecovery\nSearch",
+        ),
+        (
+            "tune",
+            "@all $tune Be concise\n--\nReturn one correct label",
+        ),
+        (
+            "bass_ackwards_prd",
+            "@all $bass_ackwards_prd A reliable status page",
+        ),
+    ];
+    for active in [
+        "debate",
+        "tournament",
+        "grill",
+        "census",
+        "crosscheck",
+        "survey",
+        "probe",
+        "forge",
+        "forecast",
+        "decide",
+        "negotiate",
+        "blow_it_up",
+        "readback",
+        "debug",
+        "trace",
+        "rank",
+        "tune",
+        "bass_ackwards_prd",
+    ] {
+        let contest = ContestId::new();
+        let state = if starts.iter().any(|(kind, _)| *kind == active) {
+            serde_json::json!({"contestId":contest,"stateVersion":1,"state":"PREFLIGHT",
+                "stepId":null,"round":0,"artifactEventIds":[],"terminalReason":null})
+            .to_string()
+        } else {
+            serde_json::to_string(&ContestSelectionState {
+                contest_id: contest,
+                kind: serde_json::from_value(serde_json::json!(active)).unwrap(),
+                state: ContestSelectionStatus::CollectingAnswers,
+                state_version: 1,
+                question_message_id: MessageId::new(),
+                addressed: vec![nick("alice"), nick("bob"), nick("carol")],
+                answers: vec![],
+                required_picks: 1,
+            })
+            .unwrap()
+        };
+        store.call(move |db| {
+            db.execute("DELETE FROM contests", [])?;
+            db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active) VALUES(?,?,1,1,?,1)",rusqlite::params![contest.to_string(),active,state])?;
+            Ok(())
+        }).unwrap();
+        for (kind, command) in starts {
+            let mode: ContestKind = serde_json::from_value(serde_json::json!(kind)).unwrap();
+            if !mode.is_built() {
+                continue;
+            }
+            let context = router.parse_context().unwrap();
+            let error = parse(command, &parser::SubmissionMeta::default(), &context)
+                .expect_err("an active contest must refuse a new mode");
+            assert_eq!(error.code, ErrorCode::CONTEST_BUSY, "{kind} vs {active}");
+            assert_eq!(
+                error.message,
+                format!("A {active} is already running. Stop it before starting another.")
+            );
+        }
+        assert_eq!(scalar(&store, "SELECT COUNT(*) FROM contests"), 1);
+        assert_eq!(scalar(&store, "SELECT COUNT(*) FROM work"), 0);
+    }
+}
+
+/// Exhaustive on purpose: adding a `ContestKind` breaks this match until the claim
+/// matrix below learns about the new kind.
+fn claim_name(kind: ContestKind) -> &'static str {
+    match kind {
+        ContestKind::Debate => "debate",
+        ContestKind::Tournament => "tournament",
+        ContestKind::Grill => "grill",
+        ContestKind::Census => "census",
+        ContestKind::Crosscheck => "crosscheck",
+        ContestKind::Survey => "survey",
+        ContestKind::Probe => "probe",
+        ContestKind::Forge => "forge",
+        ContestKind::Forecast => "forecast",
+        ContestKind::Decide => "decide",
+        ContestKind::Negotiate => "negotiate",
+        ContestKind::BlowItUp => "blow_it_up",
+        ContestKind::Readback => "readback",
+        ContestKind::Debugging => "debug",
+        ContestKind::Trace => "trace",
+        ContestKind::Rank => "rank",
+        ContestKind::Tune => "tune",
+        ContestKind::BassAckwardsPrd => "bass_ackwards_prd",
+    }
+}
+
+const ALL_KINDS: [ContestKind; 18] = [
+    ContestKind::Debate,
+    ContestKind::Tournament,
+    ContestKind::Grill,
+    ContestKind::Census,
+    ContestKind::Crosscheck,
+    ContestKind::Survey,
+    ContestKind::Probe,
+    ContestKind::Forge,
+    ContestKind::Forecast,
+    ContestKind::Decide,
+    ContestKind::Negotiate,
+    ContestKind::BlowItUp,
+    ContestKind::Readback,
+    ContestKind::Debugging,
+    ContestKind::Trace,
+    ContestKind::Rank,
+    ContestKind::Tune,
+    ContestKind::BassAckwardsPrd,
+];
+
+/// M8.P11.L1.T1 / M9.P4.L1.T1: the sixteen released kinds plus tune and PRD (eighteen
+/// in all) are the only kinds, every one is enabled, and the storage claim matrix is
+/// built from the enum itself.
+#[test]
+fn claim_matrix_covers_every_contest_kind_and_every_kind_is_enabled() {
+    let names: std::collections::BTreeSet<_> = ALL_KINDS.iter().map(|k| claim_name(*k)).collect();
+    assert_eq!(names.len(), 18);
+    for kind in ALL_KINDS {
+        assert_eq!(kind.as_str(), claim_name(kind));
+        assert!(kind.is_built(), "{} is not enabled", kind.as_str());
+        assert_eq!(
+            serde_json::to_value(kind).unwrap(),
+            serde_json::json!(kind.as_str())
+        );
+    }
+}
+
+/// A start parsed while the room was idle must still lose to a claim taken after it was
+/// parsed: the router, not just the parser, enforces the single active claim.
+#[test]
+fn a_start_parsed_before_another_claim_is_refused_by_the_router_for_every_new_kind() {
+    let starts = mode_starts::STARTS;
+    let meta = parser::SubmissionMeta::default();
+    for (first_kind, first) in starts {
+        for (second_kind, second) in starts {
+            let dir = tempfile::tempdir().unwrap();
+            let (store, mut router) = mode_starts::room(dir.path());
+            let idle = router.parse_context().unwrap();
+            let stale = parse(second, &meta, &idle).unwrap();
+            let winner = parse(first, &meta, &idle).unwrap();
+            let outcome = router
+                .process(
+                    Request::from_parsed_with_context(EventId::new(), winner, &meta, &idle, false)
+                        .unwrap(),
+                    None,
+                )
+                .unwrap();
+            assert!(
+                matches!(outcome.result, RequestResult::Accepted { .. }),
+                "{first_kind}: {:?}",
+                outcome.result
+            );
+            assert_eq!(
+                scalar(&store, "SELECT COUNT(*) FROM contests WHERE active=1"),
+                1,
+                "{first_kind} did not take the claim"
+            );
+            let work_before = scalar(&store, "SELECT COUNT(*) FROM work");
+            let refused = router.process(
+                Request::from_parsed_with_context(EventId::new(), stale, &meta, &idle, false)
+                    .unwrap(),
+                None,
+            );
+            let code = match refused {
+                Ok(out) => match out.result {
+                    RequestResult::Rejected { error, .. } => error.code,
+                    other => panic!("{second_kind} admitted behind {first_kind}: {other:?}"),
+                },
+                Err(squad_store::StoreError::Domain(code, _)) => code,
+                Err(other) => panic!("{other:?}"),
+            };
+            assert!(
+                matches!(code, ErrorCode::DEBATE_BUSY | ErrorCode::CONTEST_BUSY),
+                "{second_kind} behind {first_kind}: {code:?}"
+            );
+            assert_eq!(
+                scalar(&store, "SELECT COUNT(*) FROM contests WHERE active=1"),
+                1
+            );
+            assert_eq!(scalar(&store, "SELECT COUNT(*) FROM contests"), 1);
+            assert_eq!(scalar(&store, "SELECT COUNT(*) FROM work"), work_before);
+        }
+    }
 }

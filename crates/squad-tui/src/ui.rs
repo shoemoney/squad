@@ -244,7 +244,6 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     {
         frame.set_cursor_position((x, y));
     }
-    app.session.transcript.sync_activity();
     let new_activity = app.session.transcript.new_activity();
     let footer = if app.search_open {
         format!("{} · Enter Next · ↑ Prev · Esc Close", app.search.status())

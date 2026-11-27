@@ -632,7 +632,7 @@
     "row": 43,
     "input": "@judge Explain your decision",
     "condition": "`quote: [v1]`; v1 is a verdict",
-    "description": "Judge follow-up on v1’s sealed case.",
+    "description": "Judge follow-up on v1\u2019s sealed case.",
     "ast": {
       "kind": "judge",
       "raw": "@judge Explain your decision",
@@ -2273,7 +2273,7 @@
     "row": 142,
     "input": "@all $survey",
     "condition": "Most recent eligible parallel-answer set exists",
-    "description": "Survey reusing that set’s selected-member answers and original question.",
+    "description": "Survey reusing that set\u2019s selected-member answers and original question.",
     "ast": {
       "kind": "survey",
       "raw": "@all $survey",
@@ -2655,5 +2655,855 @@
       "start": 0,
       "end": 49
     }
+  },
+  {
+    "row": 167,
+    "input": "@all $forge build it",
+    "m8": true,
+    "kind": "forge"
+  },
+  {
+    "row": 168,
+    "input": "@all $forge build it\n--\nconstraints",
+    "m8": true,
+    "kind": "forge"
+  },
+  {
+    "row": 169,
+    "input": "@all $forge build it",
+    "m8": true,
+    "error": "Command $forge is disabled until its implementation lands.",
+    "condition": "disabled"
+  },
+  {
+    "row": 170,
+    "input": "@a $forge build it",
+    "m8": true,
+    "error": "$forge needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 171,
+    "input": "@all @judge $forge build it",
+    "m8": true,
+    "error": "@judge cannot be used with $forge."
+  },
+  {
+    "row": 172,
+    "input": "@all $forge build it",
+    "m8": true,
+    "error": "A forge is already running. Stop it before starting another.",
+    "condition": "busy:forge"
+  },
+  {
+    "row": 173,
+    "input": "/export forge",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 174,
+    "input": "@all $forecast will we ship?",
+    "m8": true,
+    "kind": "forecast"
+  },
+  {
+    "row": 175,
+    "input": "@all $forecast will we ship?\n--\nconstraints",
+    "m8": true,
+    "kind": "forecast"
+  },
+  {
+    "row": 176,
+    "input": "@all $forecast will we ship?",
+    "m8": true,
+    "kind": "forecast"
+  },
+  {
+    "row": 177,
+    "input": "@a $forecast will we ship?",
+    "m8": true,
+    "error": "$forecast needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 178,
+    "input": "@all @judge $forecast will we ship?",
+    "m8": true,
+    "error": "@judge cannot be used with $forecast."
+  },
+  {
+    "row": 179,
+    "input": "@all $forecast will we ship?",
+    "m8": true,
+    "error": "A forecast is already running. Stop it before starting another.",
+    "condition": "busy:forecast"
+  },
+  {
+    "row": 180,
+    "input": "/export forecast",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 181,
+    "input": "@all $decide select a plan",
+    "m8": true,
+    "kind": "decide"
+  },
+  {
+    "row": 182,
+    "input": "@all $decide select a plan\n--\nA\nB",
+    "m8": true,
+    "kind": "decide"
+  },
+  {
+    "row": 183,
+    "input": "@all $decide select a plan",
+    "m8": true,
+    "kind": "decide"
+  },
+  {
+    "row": 184,
+    "input": "@a $decide select a plan",
+    "m8": true,
+    "error": "$decide needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 185,
+    "input": "@all @judge $decide select a plan",
+    "m8": true,
+    "error": "@judge cannot be used with $decide."
+  },
+  {
+    "row": 186,
+    "input": "@all $decide select a plan",
+    "m8": true,
+    "error": "A decide is already running. Stop it before starting another.",
+    "condition": "busy:decide"
+  },
+  {
+    "row": 187,
+    "input": "/export decide",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 188,
+    "input": "@all $negotiate our terms",
+    "m8": true,
+    "kind": "negotiate"
+  },
+  {
+    "row": 189,
+    "input": "@all $negotiate our terms\n--\nconstraints",
+    "m8": true,
+    "kind": "negotiate"
+  },
+  {
+    "row": 190,
+    "input": "@all $negotiate our terms",
+    "m8": true,
+    "error": "Command $negotiate is disabled until its implementation lands.",
+    "condition": "disabled"
+  },
+  {
+    "row": 191,
+    "input": "@a $negotiate our terms",
+    "m8": true,
+    "error": "$negotiate needs at least four members.",
+    "condition": "small"
+  },
+  {
+    "row": 192,
+    "input": "@all @judge $negotiate our terms",
+    "m8": true,
+    "error": "@judge cannot be used with $negotiate."
+  },
+  {
+    "row": 193,
+    "input": "@all $negotiate our terms",
+    "m8": true,
+    "error": "A negotiate is already running. Stop it before starting another.",
+    "condition": "busy:negotiate"
+  },
+  {
+    "row": 194,
+    "input": "/export negotiate",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 195,
+    "input": "@all $blow_it_up target spec",
+    "m8": true,
+    "kind": "blow_it_up"
+  },
+  {
+    "row": 196,
+    "input": "@all $blow_it_up target spec\n--\nconstraints",
+    "m8": true,
+    "kind": "blow_it_up"
+  },
+  {
+    "row": 197,
+    "input": "@all $blow_it_up target spec",
+    "m8": true,
+    "error": "Command $blow_it_up is disabled until its implementation lands.",
+    "condition": "disabled"
+  },
+  {
+    "row": 198,
+    "input": "@a $blow_it_up target spec",
+    "m8": true,
+    "error": "$blow_it_up needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 199,
+    "input": "@all @judge $blow_it_up target spec",
+    "m8": true,
+    "error": "@judge cannot be used with $blow_it_up."
+  },
+  {
+    "row": 200,
+    "input": "@all $blow_it_up target spec",
+    "m8": true,
+    "error": "A blow_it_up is already running. Stop it before starting another.",
+    "condition": "busy:blow_it_up"
+  },
+  {
+    "row": 201,
+    "input": "/export blow_it_up",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 202,
+    "input": "@all $readback target spec",
+    "m8": true,
+    "kind": "readback"
+  },
+  {
+    "row": 203,
+    "input": "@all $readback target spec",
+    "m8": true,
+    "kind": "readback"
+  },
+  {
+    "row": 204,
+    "input": "@a $readback target spec",
+    "m8": true,
+    "error": "$readback needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 205,
+    "input": "@all @judge $readback target spec",
+    "m8": true,
+    "error": "@judge cannot be used with $readback."
+  },
+  {
+    "row": 206,
+    "input": "@all $readback target spec",
+    "m8": true,
+    "error": "A readback is already running. Stop it before starting another.",
+    "condition": "busy:readback"
+  },
+  {
+    "row": 207,
+    "input": "/export readback",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 208,
+    "input": "@all $debug requests stall",
+    "m8": true,
+    "kind": "debug"
+  },
+  {
+    "row": 209,
+    "input": "@all $debug requests stall\n--\nconstraints",
+    "m8": true,
+    "kind": "debug"
+  },
+  {
+    "row": 210,
+    "input": "@all $debug requests stall",
+    "m8": true,
+    "error": "Command $debug is disabled until its implementation lands.",
+    "condition": "disabled"
+  },
+  {
+    "row": 211,
+    "input": "@a $debug requests stall",
+    "m8": true,
+    "error": "$debug needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 212,
+    "input": "@all @judge $debug requests stall",
+    "m8": true,
+    "error": "@judge cannot be used with $debug."
+  },
+  {
+    "row": 213,
+    "input": "@all $debug requests stall",
+    "m8": true,
+    "error": "A debug is already running. Stop it before starting another.",
+    "condition": "busy:debug"
+  },
+  {
+    "row": 214,
+    "input": "/export debug",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 215,
+    "input": "@all $trace what happened?\n--\nsource one",
+    "m8": true,
+    "kind": "trace"
+  },
+  {
+    "row": 216,
+    "input": "@all $trace what happened?\n--\nsource one\n--\nsource two",
+    "m8": true,
+    "kind": "trace"
+  },
+  {
+    "row": 217,
+    "input": "@all $trace what happened?\n--\nsource one",
+    "m8": true,
+    "error": "Command $trace is disabled until its implementation lands.",
+    "condition": "disabled"
+  },
+  {
+    "row": 218,
+    "input": "@a $trace what happened?\n--\nsource one",
+    "m8": true,
+    "error": "$trace needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 219,
+    "input": "@all @judge $trace what happened?\n--\nsource one",
+    "m8": true,
+    "error": "@judge cannot be used with $trace."
+  },
+  {
+    "row": 220,
+    "input": "@all $trace what happened?\n--\nsource one",
+    "m8": true,
+    "error": "A trace is already running. Stop it before starting another.",
+    "condition": "busy:trace"
+  },
+  {
+    "row": 221,
+    "input": "/export trace",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 222,
+    "input": "@all $rank impact\n--\nA\nB\nC",
+    "m8": true,
+    "kind": "rank"
+  },
+  {
+    "row": 223,
+    "input": "@all $rank impact\n--\nA\nB\nC",
+    "m8": true,
+    "error": "Command $rank is disabled until its implementation lands.",
+    "condition": "disabled"
+  },
+  {
+    "row": 224,
+    "input": "@a $rank impact\n--\nA\nB\nC",
+    "m8": true,
+    "error": "$rank needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 225,
+    "input": "@all @judge $rank impact\n--\nA\nB\nC",
+    "m8": true,
+    "error": "@judge cannot be used with $rank."
+  },
+  {
+    "row": 226,
+    "input": "@all $rank impact\n--\nA\nB\nC",
+    "m8": true,
+    "error": "A rank is already running. Stop it before starting another.",
+    "condition": "busy:rank"
+  },
+  {
+    "row": 227,
+    "input": "/export rank",
+    "m8": true,
+    "kind": "slash"
+  },
+  {
+    "row": 228,
+    "input": "@a $blow_it_up",
+    "m8": true,
+    "kind": "blow_it_up",
+    "condition": "latest"
+  },
+  {
+    "row": 229,
+    "input": "@all $blow_it_up",
+    "m8": true,
+    "kind": "blow_it_up",
+    "condition": "quote"
+  },
+  {
+    "row": 230,
+    "input": "@a $readback",
+    "m8": true,
+    "kind": "readback",
+    "condition": "latest"
+  },
+  {
+    "row": 231,
+    "input": "@all $readback",
+    "m8": true,
+    "kind": "readback",
+    "condition": "quote"
+  },
+  {
+    "row": 232,
+    "input": "@all $forge",
+    "m8": true,
+    "error": "Add a brief after $forge."
+  },
+  {
+    "row": 233,
+    "input": "@all $forecast",
+    "m8": true,
+    "error": "Add a question after $forecast."
+  },
+  {
+    "row": 234,
+    "input": "@all $decide",
+    "m8": true,
+    "error": "Add the decision after $decide."
+  },
+  {
+    "row": 235,
+    "input": "@all $negotiate",
+    "m8": true,
+    "error": "Add your side of the negotiation after $negotiate."
+  },
+  {
+    "row": 236,
+    "input": "@all $debug",
+    "m8": true,
+    "error": "Add a symptom and the evidence after $debug."
+  },
+  {
+    "row": 237,
+    "input": "@all $trace",
+    "m8": true,
+    "error": "Add a question after $trace."
+  },
+  {
+    "row": 238,
+    "input": "@all $rank",
+    "m8": true,
+    "error": "Add what to rank by after $rank."
+  },
+  {
+    "row": 239,
+    "input": "@all $blow_it_up",
+    "m8": true,
+    "error": "Add something to attack for $blow_it_up: quote one message, paste it, or use @nick for that member's latest reply."
+  },
+  {
+    "row": 240,
+    "input": "@all $readback",
+    "m8": true,
+    "error": "Add a spec for $readback: quote one message, paste it, or use @nick for that member's latest reply."
+  },
+  {
+    "row": 241,
+    "input": "@all $decide choose\n--\nA",
+    "m8": true,
+    "error": "$decide takes two to four options after --, one per line."
+  },
+  {
+    "row": 242,
+    "input": "@all $rank impact\n--\nA\nB",
+    "m8": true,
+    "error": "$rank takes three to forty items after --, one per line."
+  },
+  {
+    "row": 243,
+    "input": "@all $trace question",
+    "m8": true,
+    "error": "Add at least one source after -- for $trace."
+  },
+  {
+    "row": 244,
+    "input": "@all $trace q\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx\n--\nx",
+    "m8": true,
+    "error": "$trace takes at most twelve sources."
+  },
+  {
+    "row": 245,
+    "input": "/set NEGOTIATE_ROUNDS 0",
+    "m8": true,
+    "error": "NEGOTIATE_ROUNDS must be an integer from 1 to 6."
+  },
+  {
+    "row": 246,
+    "input": "$NEGOTIATE_ROUNDS=6",
+    "m8": true,
+    "kind": "assignment"
+  },
+  {
+    "row": 247,
+    "input": "/set READBACK_ROUNDS 0",
+    "m8": true,
+    "error": "READBACK_ROUNDS must be an integer from 1 to 4."
+  },
+  {
+    "row": 248,
+    "input": "$READBACK_ROUNDS=4",
+    "m8": true,
+    "kind": "assignment"
+  },
+  {
+    "row": 249,
+    "input": "/set DEBUG_ROUNDS 0",
+    "m8": true,
+    "error": "DEBUG_ROUNDS must be an integer from 1 to 6."
+  },
+  {
+    "row": 250,
+    "input": "$DEBUG_ROUNDS=6",
+    "m8": true,
+    "kind": "assignment"
+  },
+  {
+    "row": 251,
+    "input": "/answer O2 actual result",
+    "m8": true,
+    "kind": "slash",
+    "condition": "debug"
+  },
+  {
+    "row": 252,
+    "input": "/answer unknown",
+    "m8": true,
+    "kind": "slash",
+    "condition": "debug"
+  },
+  {
+    "row": 253,
+    "input": "/answer other result",
+    "m8": true,
+    "kind": "slash",
+    "condition": "debug"
+  },
+  {
+    "row": 254,
+    "input": "/continue",
+    "m8": true,
+    "kind": "slash",
+    "condition": "debug"
+  },
+  {
+    "row": 255,
+    "input": "/answer @all $ROUNDS=99 /stop literal",
+    "m8": true,
+    "kind": "slash",
+    "condition": "debug_literal"
+  },
+  {
+    "row": 256,
+    "input": "/answer O1",
+    "m8": true,
+    "error": "Answer with an outcome label and what you saw, like /answer O2 p99 fell to 180 ms, or /answer other <what you saw>, or /answer unknown.",
+    "condition": "debug"
+  },
+  {
+    "row": 257,
+    "input": "/answer anything",
+    "m8": true,
+    "error": "Nothing is waiting for an answer."
+  },
+  {
+    "row": 258,
+    "input": "1b 2a",
+    "m8": true,
+    "kind": "humanchoices",
+    "condition": "readback"
+  },
+  {
+    "row": 259,
+    "input": "1b 2a",
+    "m8": true,
+    "error": "Add at least one recipient: @nick or @all."
+  },
+  {
+    "row": 260,
+    "input": "/answer 1: my reading",
+    "m8": true,
+    "kind": "slash",
+    "condition": "readback"
+  },
+  {
+    "row": 261,
+    "input": "/answer 1z",
+    "m8": true,
+    "error": "Entry 1 has no reading z.",
+    "condition": "readback"
+  },
+  {
+    "row": 262,
+    "input": "/answer no",
+    "m8": true,
+    "error": "Answer with entry and reading, like 1b 2a, or /answer 3: your own reading.",
+    "condition": "readback"
+  },
+  {
+    "row": 263,
+    "m8": true,
+    "input": "@all $tune prompt\n--\ntask",
+    "kind": "tune"
+  },
+  {
+    "row": 264,
+    "m8": true,
+    "input": "@all $bass_ackwards_prd finished result",
+    "kind": "bass_ackwards_prd"
+  },
+  {
+    "row": 265,
+    "m8": true,
+    "input": "@all $tune prompt\n--\ntask",
+    "condition": "disabled",
+    "error": "Command $tune is disabled until its implementation lands."
+  },
+  {
+    "row": 266,
+    "m8": true,
+    "input": "@all $bass_ackwards_prd finished result",
+    "condition": "disabled",
+    "error": "Command $bass_ackwards_prd is disabled until its implementation lands."
+  },
+  {
+    "row": 267,
+    "m8": true,
+    "input": "/export tune",
+    "kind": "slash"
+  },
+  {
+    "row": 268,
+    "m8": true,
+    "input": "/export bass_ackwards_prd",
+    "kind": "slash"
+  },
+  {
+    "row": 269,
+    "m8": true,
+    "input": "/set TUNE_GENERATIONS 6",
+    "kind": "slash"
+  },
+  {
+    "row": 270,
+    "m8": true,
+    "input": "/set TUNE_GENERATIONS 0",
+    "error": "TUNE_GENERATIONS must be an integer from 1 to 6."
+  },
+  {
+    "row": 271,
+    "m8": true,
+    "input": "@all $tune prompt",
+    "error": "Add the task after -- for $tune."
+  },
+  {
+    "row": 272,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune prompt\n--\ntask\n--\n@d",
+    "kind": "tune"
+  },
+  {
+    "row": 273,
+    "m8": true,
+    "m9": true,
+    "input": "@a @b @c $tune prompt\n--\ntask\n--\n@d",
+    "kind": "tune"
+  },
+  {
+    "row": 274,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune\n--\ntask",
+    "kind": "tune",
+    "condition": "quote"
+  },
+  {
+    "row": 275,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune\n--\ntask\n--\n@d",
+    "kind": "tune",
+    "condition": "quote"
+  },
+  {
+    "row": 276,
+    "m8": true,
+    "m9": true,
+    "input": "@all $bass_ackwards_prd the finished result\n--\nwhat exists today",
+    "kind": "bass_ackwards_prd"
+  },
+  {
+    "row": 277,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune prompt\n--\ntask",
+    "error": "A tune is already running. Stop it before starting another.",
+    "condition": "busy:tune"
+  },
+  {
+    "row": 278,
+    "m8": true,
+    "m9": true,
+    "input": "@a $tune prompt\n--\ntask",
+    "error": "$tune needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 279,
+    "m8": true,
+    "m9": true,
+    "input": "@all @judge $tune prompt\n--\ntask",
+    "error": "@judge cannot be used with $tune."
+  },
+  {
+    "row": 280,
+    "m8": true,
+    "m9": true,
+    "input": "@all $bass_ackwards_prd end result",
+    "error": "A bass_ackwards_prd is already running. Stop it before starting another.",
+    "condition": "busy:bass_ackwards_prd"
+  },
+  {
+    "row": 281,
+    "m8": true,
+    "m9": true,
+    "input": "@a $bass_ackwards_prd end result",
+    "error": "$bass_ackwards_prd needs at least three members.",
+    "condition": "small"
+  },
+  {
+    "row": 282,
+    "m8": true,
+    "m9": true,
+    "input": "@all @judge $bass_ackwards_prd end result",
+    "error": "@judge cannot be used with $bass_ackwards_prd."
+  },
+  {
+    "row": 283,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune",
+    "error": "Add the prompt to optimise after $tune."
+  },
+  {
+    "row": 284,
+    "m8": true,
+    "m9": true,
+    "input": "@all $bass_ackwards_prd",
+    "error": "Add the end result after $bass_ackwards_prd."
+  },
+  {
+    "row": 285,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune prompt\n--\ntask\n--\n@a",
+    "error": "$tune needs at least three members besides the executor.",
+    "condition": "small"
+  },
+  {
+    "row": 286,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune p\n--\nt\n--\n@d\n--\nextra",
+    "error": "$tune takes the prompt, then -- and the task, then an optional -- @nick executor."
+  },
+  {
+    "row": 287,
+    "m8": true,
+    "m9": true,
+    "input": "@all $tune p\n--\nt\n--\n@d extra",
+    "error": "The $tune executor must be one roster member, like -- @nick."
+  },
+  {
+    "row": 288,
+    "m8": true,
+    "m9": true,
+    "input": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+    "error": "$tune takes a prompt of at most 1,200 words.",
+    "admission": true
+  },
+  {
+    "row": 289,
+    "m8": true,
+    "m9": true,
+    "input": "{{input}} and {{input}}",
+    "error": "$tune allows {{input}} at most once in the prompt.",
+    "admission": true
+  },
+  {
+    "row": 290,
+    "m8": true,
+    "m9": true,
+    "input": "/set PRD_HUMAN_REVIEW 0",
+    "kind": "slash"
+  },
+  {
+    "row": 291,
+    "m8": true,
+    "m9": true,
+    "input": "$PRD_HUMAN_REVIEW=1",
+    "kind": "assignment"
+  },
+  {
+    "row": 292,
+    "m8": true,
+    "m9": true,
+    "input": "/set PRD_HUMAN_REVIEW 2",
+    "error": "PRD_HUMAN_REVIEW must be 0 or 1."
+  },
+  {
+    "row": 293,
+    "m8": true,
+    "m9": true,
+    "input": "/answer add a migration test",
+    "kind": "slash",
+    "condition": "prd"
+  },
+  {
+    "row": 294,
+    "m8": true,
+    "m9": true,
+    "input": "/continue",
+    "kind": "slash",
+    "condition": "prd"
+  },
+  {
+    "row": 295,
+    "m8": true,
+    "m9": true,
+    "input": "/answer",
+    "error": "Add your note after /answer, or use /continue to save the PRD as it is.",
+    "condition": "prd"
   }
 ]

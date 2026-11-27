@@ -44,7 +44,7 @@ squad doctor && squad
 
 <sub>Replace `your-key-here` with your [OpenRouter key](https://openrouter.ai/keys). Each block is complete on its own. More install routes and troubleshooting: [Install](#-quick-start).</sub>
 
-> 🚧 **Honest status:** Squad is an early release (0.1.x; **0.1.3 is out**). All **seven** contest modes run end to end against OpenRouter. **Eleven more modes ship with v0.2.0** and are not in any release yet: see [New modes](#-new-modes-in-v020). You need your own [OpenRouter key](https://openrouter.ai/keys) with credit on it. Every cost is measured and sourced in [docs/costs.md](docs/costs.md).
+> 🚧 **Honest status:** Squad is an early release (**v0.2.0 is out**). All **eighteen** contest modes, the seven originals and the [eleven added in v0.2.0](#-new-modes-in-v020), run end to end against OpenRouter. You need your own [OpenRouter key](https://openrouter.ai/keys) with credit on it. Every cost is measured and sourced in [docs/costs.md](docs/costs.md).
 
 **Jump to:** [Install](#-quick-start) · [Contest modes](#-the-arena-seven-contest-modes) · [New modes](#-new-modes-in-v020) · [The room](#-the-room) · [Costs](#-costs-and-the-safety-net) · [MCP](#-mcp-server) · [CLI](#-cli-one-shot-use) · [Config](#-configuration) · [Architecture](#-architecture) · [Manual](#-reference-manual) · [Troubleshooting](#-troubleshooting) · [Roadmap](#-roadmap)
 
@@ -225,7 +225,7 @@ Check the install any time with `squad --version` and `squad --help`.
 
 ## 🥋 The arena: seven contest modes
 
-Squad has **seven contest modes**. Each one is a script on the same shared engine, and **only one contest runs per room at a time**. Start one with a `$command` in a message. Every clip below is a real recording with the idle startup trimmed and the long model waits cut; full-length originals are in [`docs/media/full/`](docs/media/full/).
+Squad has **eighteen contest modes**: the seven below, then the [eleven added in v0.2.0](#-new-modes-in-v020). Each one is a script on the same shared engine, and **only one contest runs per room at a time**. Start one with a `$command` in a message. Every clip below is a real recording with the idle startup trimmed and the long model waits cut; full-length originals are in [`docs/media/full/`](docs/media/full/).
 
 | Mode | What it does |
 |:--|:--|
@@ -237,7 +237,7 @@ Squad has **seven contest modes**. Each one is a script on the same shared engin
 | 📊 **`$survey`** | Members vote on claims; the report sorts them into five bands. |
 | 🔬 **`$probe`** | A symptom becomes a decision tree of cheap checks you run yourself. |
 
-**Which one?** Two models disagree: `$debate`. A plan to test: `$grill` (question it), `$census` (hunt omissions) or `$crosscheck` (audit coverage). No plan: `$tournament` for one best answer, `$survey` for group agreement, `$probe` for a symptom.
+**Which one?** (The seven below; the [v0.2.0 modes](#-new-modes-in-v020) cover writing, forecasting, deciding, negotiating, red-teaming, debugging and more.) Two models disagree: `$debate`. A plan to test: `$grill` (question it), `$census` (hunt omissions) or `$crosscheck` (audit coverage). No plan: `$tournament` for one best answer, `$survey` for group agreement, `$probe` for a symptom.
 
 <details>
 <summary><b>🗺️ Decision map and the full comparison matrix (calls, blind steps, export)</b></summary>
@@ -267,8 +267,19 @@ flowchart TD
 | ✅ Crosscheck | `@all $crosscheck <plan>` plus a `--` goal | Plan-blind inventory, a cell-by-cell review, and audits | Yes | `2m + 4 + e` | Coverage ledger and bounded-stop status | `/export crosscheck [id]` |
 | 📊 Survey | `@all $survey <question>` or `@all $survey` | Members vote on claims; the report sorts them into five bands | Yes (votes and revotes) | `3m + 2` new, `2m + 2` reusing answers | Claim map by band | `/export survey [id]` |
 | 🔬 Probe | `@a @b @c @d $probe <brief>` | Explainers and checkers propose; explainers commit predictions; a decision tree of cheap checks | Yes | `3m/2 + 1` (m even) | Decision tree and prediction matrix | `/export probe [id]` |
+| Forge | `@all $forge` with its required source/segments | Write and fuse drafts | Yes | `2m + 3` | Winning original or fusion | `/export forge [id]` |
+| Forecast | `@all $forecast` with its required source/segments | Frame and pool a probabilistic forecast | Yes | `2m + 2` | Pooled probability, spread and cruxes | `/export forecast [id]` |
+| Decide | `@all $decide` with its required source/segments | Compare options against an agreed rubric | Yes | `2m + 2 given options; 3m + 3 generated` | App-computed totals and sensitivity | `/export decide [id]` |
+| Negotiate | `@all $negotiate <our side> -- <counterpart>` | Prepare and rehearse a negotiation | Yes | `2m - P + 2PR + 2 maximum` | Strategy and hypothetical table playbook | `/export negotiate [id]` |
+| Blow It Up | `@all $blow_it_up` with its required source/segments | Attack a plan and challenge the attacks | Yes | `2m + 1` | Ranked surviving findings | `/export blow_it_up [id]` |
+| Readback | `@all $readback` with its required source/segments | Resolve conflicting readings with the human | Yes | `R(m + 2) maximum` | Revised spec and open ambiguities | `/export readback [id]` |
+| Trace | `@all $trace <question> -- <source> [-- <source>]` | Audit claims against supplied evidence | Yes | `2m + 2 maximum` | Cited brief and source ledger | `/export trace [id]` |
+| Debug | `@all $debug <failure> -- <limits>` | Narrow a failure with human-run tests | Yes | `(R + 1)(m + 1) + 1 maximum` | Evidence differential and patch advice when justified | `/export debug [id]` |
+| Rank | `@all $rank` with its required source/segments | Order human-supplied items by pair comparison | Yes | `m + 1` | Bradley–Terry order and cycle audit | `/export rank [id]` |
+| Tune | `@all $tune` with its required source/segments | Improve a prompt against a frozen test suite | Yes | `m + 13G + 15 maximum` | Held-out winner, diff and reusable suite | `/export tune [id]` |
+| Bass Ackwards PRD | `@all $bass_ackwards_prd` with its required source/segments | Work backward from a finished result | Yes | `4m + 4; one extra for human notes` | Saved dependency-ordered PRD | `/export bass_ackwards_prd [id]` |
 
-**Key:** m = members in the contest, G = grillers, R = rounds, k = entrants, e = 1 when crosscheck must first extract a goal (no `--` goal given), otherwise 0. "Blind" means members or a judge get anonymised material.
+**Key:** m = members in the contest, G = grillers, R = rounds, k = entrants, e = 1 when crosscheck must first extract a goal (no `--` goal given), otherwise 0. "Blind" means members or a judge get anonymised material. For Tune, G means generations; for Readback and Debug, R is the loop limit. Negotiate uses P = min(3, floor(m/2)).
 
 > 💡 **Rule of thumb:** no blind steps means the members see each other's words. Blind steps mean nobody can tell who said what.
 
@@ -875,7 +886,7 @@ Census, crosscheck, survey and probe set their own judge effort. Every judge cal
 - **One active contest per room.** A competing start is refused with `A {kind} is already running. Stop it before starting another.`
 - **Admission:** every start goes through parsing, then preflight. Preflight estimates the cost and checks it against what's left of the **daily maximum**. If it doesn't fit, the contest is refused with `DAILY_MAX_REACHED`.
 - **Confirmation:** if the estimate is above the confirmation threshold (`SQUAD_DEBATE_CONFIRM_USD`), Squad asks you to confirm. Every preflight, for every mode, expires after **10 minutes**.
-- **Scripts:** all seven modes are scripts over the same moves. Those moves are fan-outs to members in parallel, barriers that commit a report, judge moves, tallies, and the final report.
+- **Scripts:** all modes are scripts over the same moves. Those moves are fan-outs to members in parallel, barriers that commit a report, judge moves, tallies, and the final report.
 - **Holds and fences:** participants are held for the contest. Stopping fences outstanding work, cancels it, and releases reservations for work that never started.
 - **Recovery:** contest progress is stored in SQLite and recovers after a restart.
 - **Blind text:** before anything blind is shown to a member or judge, every nick, configured or resolved model name, provider or family token, and persona is replaced with `[redacted]`.
@@ -899,11 +910,11 @@ A participants list on the left, the conversation on the right. Everything below
 
 ### ⌨️ Typeahead on `@`, `$` and `/`
 
-<p align="center"><img src="docs/media/typeahead.gif" alt="Typing @ opens a member list, $ opens the seven contest modes and / opens the supported slash commands; Tab picks the highlighted entry." width="900"></p>
+<p align="center"><img src="docs/media/typeahead.gif" alt="Typing @ opens a member list, $ opens the contest modes and / opens the supported slash commands; Tab picks the highlighted entry." width="900"></p>
 
 <p align="center"><sub><i>Scripted rehearsal (<a href="docs/demo/typeahead.tape"><code>docs/demo/typeahead.tape</code></a>); no API calls.</i></sub></p>
 
-- **Opens automatically** after `@` (live roster), `$` (seven contest modes), or `/` at the start (supported slash commands).
+- **Opens automatically** after `@` (live roster), `$` (18 contest modes), or `/` at the start (supported slash commands).
 - **`Tab` always opens suggestions**, including a starter menu in an empty draft, or matches for an unmarked word (`gro` → `@grok`, `deb` → `$debate`).
 - **Accept** with `Tab` again or `Enter`, which inserts the selection and a space. `Up`/`Down` and `Shift+Tab` choose entries; `Esc` dismisses. `Enter` accepts an open suggestion instead of sending.
 - **Still works:** `F6` switches message/composer focus, `Alt+Up`/`Alt+Down` recalls history, and `Ctrl+J` / `Alt+Enter` (or `Shift+Enter` with enhanced keyboards) inserts a newline.
@@ -959,11 +970,24 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `$crosscheck` | Independent coverage grid for a pasted plan. |
 | `$survey` | Claims and votes on one question, with a report. |
 | `$probe` | Predictions and a decision tree for a question. |
+| `$forge` | Write and fuse drafts. |
+| `$forecast` | Frame and pool a probabilistic forecast. |
+| `$decide` | Compare options against an agreed rubric. |
+| `$negotiate` | Prepare and rehearse a negotiation. |
+| `$blow_it_up` | Attack a plan and challenge the attacks. |
+| `$readback` | Resolve conflicting readings with the human. |
+| `$debug` | Narrow a failure with tests you run. |
+| `$trace` | Build a cited brief from a supplied source packet. |
+| `$rank` | Order human-supplied items by pair comparison. |
+| `$tune` | Improve a prompt against a frozen test suite. |
+| `$bass_ackwards_prd` | Work backward from a finished result. |
 | `/help` | Shows the grammar and examples. Makes no model call. |
 | `/who` | Shows the roster, resolved models and records. |
-| `/set NAME value` | Changes `ROUNDS`, `GRILL_ROUNDS` or `CENSUS_PASSES` in the room. |
+| `/set NAME value` | Changes a stored contest variable; see the configuration table. |
+| `/answer <text>` | Records the human's answer at a pending Readback, Debug or PRD review step. |
+| `/continue` | Continues a waiting census or closes a pending human step with the supplied answers. |
 | `/stop` or `/stop @nick` | Stops all work, or one member's work. |
-| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`. |
+| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `negotiate`, `blow_it_up`, `readback`, `debug`, `trace`, `rank`, `tune`, `bass_ackwards_prd`. |
 | `/clear` | **Wipes the stored room.** It is not a display-only action. |
 
 Each mode has its own rules and cost preview. Those are covered in the mode sections of this README.
@@ -1412,15 +1436,22 @@ Successful alias resolutions are stored in the local SQLite database. This avoid
 - Failed resolutions are never cached.
 - `squad models` reads the cache only. It makes no provider calls.
 
-### Stored `ROUNDS`, `GRILL_ROUNDS` and `CENSUS_PASSES`
+### Stored contest variables
 
-These three numbers live in the room. The environment only sets them the first time.
+These numbers live in the room. The environment only sets the original three the first time.
 
-| Stored name | Seed variable | Range | Default seed | Change it at runtime |
-|---|---|---|---|---|
-| `ROUNDS` | `SQUAD_ROUNDS` | 1 to 20 | `10` | `$ROUNDS=5` or `/set ROUNDS 5` |
-| `GRILL_ROUNDS` | `SQUAD_GRILL_ROUNDS` | 1 to 10 | `2` | `$GRILL_ROUNDS=3` or `/set GRILL_ROUNDS 3` |
-| `CENSUS_PASSES` | `SQUAD_CENSUS_PASSES` | 1 to 5 | `2` | `$CENSUS_PASSES=2` or `/set CENSUS_PASSES 2` |
+| Stored name | Default | Range | Change it at runtime |
+|---|---:|---|---|
+| `ROUNDS` | `10` | 1 to 20 | `$ROUNDS=5` or `/set ROUNDS 5` |
+| `GRILL_ROUNDS` | `2` | 1 to 10 | `$GRILL_ROUNDS=3` or `/set GRILL_ROUNDS 3` |
+| `CENSUS_PASSES` | `2` | 1 to 5 | `$CENSUS_PASSES=2` or `/set CENSUS_PASSES 2` |
+| `NEGOTIATE_ROUNDS` | `3` | 1 to 6 | `/set NEGOTIATE_ROUNDS 2` |
+| `READBACK_ROUNDS` | `2` | 1 to 4 | `/set READBACK_ROUNDS 1` |
+| `DEBUG_ROUNDS` | `3` | 1 to 6 | `/set DEBUG_ROUNDS 1` |
+| `TUNE_GENERATIONS` | `3` | 1 to 6 | `/set TUNE_GENERATIONS 2` |
+| `PRD_HUMAN_REVIEW` | `0` | 0 or 1 | `/set PRD_HUMAN_REVIEW 1` |
+
+Admission freezes the effective value for the contest. `SQUAD_ROUNDS`, `SQUAD_GRILL_ROUNDS` and `SQUAD_CENSUS_PASSES` seed the first three.
 
 The seed applies only when the room has no stored value yet. After that, the stored value wins. Editing `.env` does not change a room that already has a value. Change the value in the room instead.
 
@@ -1695,6 +1726,17 @@ Export a room or a contest as Markdown. You can do it from inside the room or fr
 | `crosscheck` | Yes, the contest ID | One crosscheck run. |
 | `survey` | Yes, the contest ID | One survey. |
 | `probe` | Yes, the contest ID | One probe. |
+| `forge` | Yes, the contest ID | Winning original or fusion. |
+| `forecast` | Yes, the contest ID | Pooled probability, spread and cruxes. |
+| `decide` | Yes, the contest ID | App-computed totals and sensitivity. |
+| `negotiate` | Yes, the contest ID | Hypothetical table transcripts and negotiation playbook. |
+| `blow_it_up` | Yes, the contest ID | Ranked surviving findings. |
+| `readback` | Yes, the contest ID | Revised spec and open ambiguities. |
+| `debug` | Yes, the contest ID | Differential, selected tests, results and report. |
+| `trace` | Yes, the contest ID | Cited brief, numbered packet, claim ledger and verifier evidence. |
+| `rank` | Yes, the contest ID | Bradley–Terry order and cycle audit. |
+| `tune` | Yes, the contest ID | Held-out winner, diff and reusable suite. |
+| `bass_ackwards_prd` | Yes, the contest ID | Saved dependency-ordered PRD. |
 
 Good to know:
 
@@ -1735,7 +1777,7 @@ Your room lives in one SQLite file.
 <summary><b>What is deleted, reset, kept and cancelled</b></summary>
 
 - **Deleted:** messages, history, contests, cases, work and scores.
-- **Reset:** `ROUNDS`, `GRILL_ROUNDS` and `CENSUS_PASSES` go back to their configured defaults.
+- **Reset:** the stored contest variables go back to their configured defaults.
 - **Kept:** your spending totals and unknown-cost counts. `/clear` does **not** reset today's spend.
 - **Released:** reservations for calls that never started. Calls already started keep theirs until their costs arrive.
 - **Cancelled:** queued and running work. Late results cannot land in the cleared room.
@@ -1776,6 +1818,8 @@ Squad reads the cap when it starts, so restart Squad after you change it.
 - **Machine-wide, per data directory.** Every Squad process that opens the same data directory shares one ledger, in that directory's `squad.db`. A different `SQUAD_DATA_DIR` has its own totals.
 
 ### 🔍 Unknown costs
+
+A delayed receipt can replace a pending hold while the room is open or when it is reopened. Failed and cancelled calls keep their original billing day. Charges whose cost remains unknown stay reserved.
 
 Sometimes a call finishes but its cost never arrives.
 

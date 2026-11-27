@@ -6,19 +6,87 @@ All notable changes to Squad will be documented in this file, following
 
 ## [Unreleased]
 
-### Changed
-
-- README redesign: a three-beat TL;DR (pain, potential, proof) with the hero GIF at the top,
-  an animated banner, a tested install section, a GIF for every mode and room feature,
-  Mermaid diagrams, a measured-cost chart and a labelled "Coming soon" table. All reference
-  material is kept, with the long mechanics folded into collapsibles. Corrected two stale
-  claims: release binaries are published (not pending), and typeahead, tips, the startup
-  checklist and the MCP server shipped in 0.1.2.
+## [0.2.0] - 2026-11-27
 
 ### Added
 
-- `docs/demo/install.tape` records the release-archive install; `docs/media/install.gif`,
-  `docs/media/doctor-pass.png`, `docs/media/banner.svg` and `docs/media/divider.svg`.
+- Eleven new contest modes: Forge, Forecast, Decide, Negotiate, Blow It Up,
+  Readback, Debug, Trace, Rank, Tune and Bass Ackwards PRD. Each has cost
+  previews, reports, offline export, crash recovery and private repairs; see
+  [docs/modes](docs/modes/).
+- Cross-mode regression suites: router fencing, blind-projection isolation over a
+  hostile roster for every mode (including the Negotiate table view), and
+  recovery at every boundary; plus store reader tests.
+- Public preflight regressions for script-derived call and reservation counts,
+  including Tune executors and optional PRD human review.
+- Live evidence on one release binary: eleven default six-member smoke runs, one
+  per mode ($10.13 total), and a final `$negotiate` and `$trace` pair, all `COMPLETE`
+  with zero reservations and zero unknown-cost calls left. See
+  [cost evidence](docs/costs.md) and the
+  [v0.2.0 live smoke](docs/live-smoke-2026-11-27-v0.2.0.md).
+
+### Performance
+
+- Composed rendering publishes only dirty transcript cards, reuses layout anchors
+  and releases completed syntax-fence state. On the macOS runner (Apple M3 Ultra,
+  10,000 history cards, twelve 40-delta/s streams) draw p95 fell from 10.8-11.6 ms
+  to 2.6 / 0.9 / 3.7 ms at 140x42 / 80x24 / 200x60, under the 6 ms target. See
+  [performance](docs/performance.md).
+
+### Fixed
+
+Accounting and cost safety
+
+- Delayed receipts for timed-out and cancelled attempts are reconciled (while a
+  room is open, after restart and clear, and in a bounded shutdown pass), so holds
+  no longer outlive their charges; unknown receipts keep their holds and known ones
+  update their original billing day once.
+- The receipt reconciler no longer ends the room: a bad row or transient store
+  error is logged and skipped, only cancellation stops it, and each unresolved
+  attempt backs off exponentially (10 s doubling to 5 min, 12 tries); the
+  conservative hold stays when it gives up.
+- Work that fails before its provider call (history or frozen-JSON read, decode,
+  render) fails and releases its hold at zero cost instead of leaking a reservation
+  and an unknown call against the daily cap. A store outage inside a new-mode
+  executor stops the worker like every other path.
+- Plan pricing refuses a catalog row without a price (`COST_UNKNOWN`) instead of
+  treating it as free.
+- `$tune` executor calls on reasoning models carry and reserve a separate reasoning
+  allowance, so hidden reasoning cannot consume the 1,024 visible tokens.
+- Inline `PRD_HUMAN_REVIEW=1` freezes the requested review and reserves its call;
+  startup identity-probe receipts keep their separate accounting owner.
+
+Blindness and isolation
+
+- Blind projections redact a short provider such as `x-ai` as a whole token and
+  write `[redacted]` in Forge and Negotiate (they left it readable and wrote `?`).
+- Trace freezes provider and family names, not only nicks, slugs and personas, so
+  `openai`, `claude` or `gpt` in a claim no longer reaches the blind judge.
+- Negotiate (D81): negotiator and counterpart prompts receive only a counterpart
+  turn's `message`, `response` and `counterOffer`; the hidden `violatedInterest`
+  stays with the judge's playbook input and the human report.
+- Blind judge prompts replace the identity header throughout the new modes.
+
+Mode correctness
+
+- Trace counts only verified supporting quotes toward claim status and independent
+  sources (counter-quotes stay in the ledger for contradictions), and the final
+  judge's ledger carries anonymous verdicts instead of member-nick keys.
+- Bass Ackwards PRD closes its human step through the versioned state save, and its
+  contribution labels (A, T, R, H) come from a persisted seeded permutation.
+- Offline Readback export of a contest without a terminal report says
+  `contest has no terminal report yet` instead of `contest not found`.
+- Shared new-mode judge dispatch and member validation repairs.
+
+Interface and tooling
+
+- Doctor warns when the data directory permits group/world access and prints a
+  quoted `chmod 700` fix, including macOS's shared config/data folder.
+- Negotiate tables use the actual viewport width for side-by-side layout, and
+  Debug eliminated rows keep their grey styling in the compositor.
+- Test fixtures observe stable completion state, startup probe concurrency is
+  checked through observed dispatch, and the doctor permission test holds on macOS
+  canonical `/private` temp paths.
 
 ## [0.1.3] - 2026-11-26
 

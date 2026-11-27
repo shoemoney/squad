@@ -3,6 +3,30 @@
   "source": "docs/prd/09-prompt-pack.md",
   "templates": [
     {
+      "id": "blow_it_up.attack",
+      "file": "blow_it_up.attack.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "blow_it_up.challenge",
+      "file": "blow_it_up.challenge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "blow_it_up.rule",
+      "file": "blow_it_up.rule.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
       "id": "census.final",
       "file": "census.final.md",
       "placeholders": [
@@ -180,6 +204,158 @@
       ]
     },
     {
+      "id": "debug.hypothesize",
+      "file": "debug.hypothesize.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.merge",
+      "file": "debug.merge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.report",
+      "file": "debug.report.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.select",
+      "file": "debug.select.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "debug.test",
+      "file": "debug.test.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.criteria",
+      "file": "decide.criteria.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.explain",
+      "file": "decide.explain.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.freeze",
+      "file": "decide.freeze.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.options",
+      "file": "decide.options.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.score",
+      "file": "decide.score.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "decide.shortlist",
+      "file": "decide.shortlist.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.cruxes",
+      "file": "forecast.cruxes.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.estimate",
+      "file": "forecast.estimate.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.frame",
+      "file": "forecast.frame.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forecast.revise",
+      "file": "forecast.revise.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.draft",
+      "file": "forge.draft.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.fuse",
+      "file": "forge.fuse.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.judge",
+      "file": "forge.judge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "forge.rank",
+      "file": "forge.rank.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
       "id": "grill.answer",
       "file": "grill.answer.md",
       "placeholders": [
@@ -270,11 +446,6 @@
       ]
     },
     {
-      "id": "judge.system.blind-prefix",
-      "file": "judge.system.blind-prefix.md",
-      "placeholders": []
-    },
-    {
       "id": "judge.system",
       "file": "judge.system.md",
       "placeholders": [
@@ -282,6 +453,11 @@
         "member_nicks_json",
         "user_name_json"
       ]
+    },
+    {
+      "id": "judge.system.blind-prefix",
+      "file": "judge.system.blind-prefix.md",
+      "placeholders": []
     },
     {
       "id": "judge.user",
@@ -300,6 +476,54 @@
         "invalid_output_json",
         "mode_step",
         "validation_errors_json"
+      ]
+    },
+    {
+      "id": "negotiate.brief",
+      "file": "negotiate.brief.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.counter",
+      "file": "negotiate.counter.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.map",
+      "file": "negotiate.map.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.move",
+      "file": "negotiate.move.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.package",
+      "file": "negotiate.package.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "negotiate.playbook",
+      "file": "negotiate.playbook.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
       ]
     },
     {
@@ -340,6 +564,46 @@
         "mode_data_json",
         "mode_schema_json",
         "step_word_limit"
+      ]
+    },
+    {
+      "id": "rank.compare",
+      "file": "rank.compare.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "rank.explain",
+      "file": "rank.explain.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "readback.diff",
+      "file": "readback.diff.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "readback.interpret",
+      "file": "readback.interpret.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "readback.rewrite",
+      "file": "readback.rewrite.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
       ]
     },
     {
@@ -458,6 +722,142 @@
         "contest_id",
         "round",
         "tournament_result_json"
+      ]
+    },
+    {
+      "id": "trace.assemble",
+      "file": "trace.assemble.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "trace.extract",
+      "file": "trace.extract.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "trace.merge",
+      "file": "trace.merge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "trace.verify",
+      "file": "trace.verify.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "tune.cases",
+      "file": "tune.cases.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "tune.freeze",
+      "file": "tune.freeze.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "tune.score",
+      "file": "tune.score.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "tune.mutate",
+      "file": "tune.mutate.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.done",
+      "file": "bass_ackwards_prd.done.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.freeze",
+      "file": "bass_ackwards_prd.freeze.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.tree",
+      "file": "bass_ackwards_prd.tree.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.merge",
+      "file": "bass_ackwards_prd.merge.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.review",
+      "file": "bass_ackwards_prd.review.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.revise",
+      "file": "bass_ackwards_prd.revise.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.must_have",
+      "file": "bass_ackwards_prd.must_have.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.finalize",
+      "file": "bass_ackwards_prd.finalize.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
+      ]
+    },
+    {
+      "id": "bass_ackwards_prd.apply",
+      "file": "bass_ackwards_prd.apply.md",
+      "placeholders": [
+        "mode_data_json",
+        "mode_schema_json"
       ]
     }
   ],
@@ -1317,6 +1717,798 @@
         "authorized input projection",
         "rendered composition hash"
       ]
+    },
+    {
+      "id": "forge.draft",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "forge.draft"
+      ],
+      "provider_user_name": "squad",
+      "step": "forge.draft",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "forge.rank",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "forge.rank"
+      ],
+      "provider_user_name": "squad",
+      "step": "forge.rank",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "forge.fuse",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "forge.fuse"
+      ],
+      "provider_user_name": "squad",
+      "step": "forge.fuse",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "forge.judge",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "forge.judge"
+      ],
+      "provider_user_name": "squad",
+      "step": "forge.judge",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "forecast.frame",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "forecast.frame"
+      ],
+      "provider_user_name": "squad",
+      "step": "forecast.frame",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "forecast.estimate",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "forecast.estimate"
+      ],
+      "provider_user_name": "squad",
+      "step": "forecast.estimate",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "forecast.revise",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "forecast.revise"
+      ],
+      "provider_user_name": "squad",
+      "step": "forecast.revise",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "forecast.cruxes",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "forecast.cruxes"
+      ],
+      "provider_user_name": "squad",
+      "step": "forecast.cruxes",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "decide.options",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "decide.options"
+      ],
+      "provider_user_name": "squad",
+      "step": "decide.options",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "decide.shortlist",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "decide.shortlist"
+      ],
+      "provider_user_name": "squad",
+      "step": "decide.shortlist",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "decide.criteria",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "decide.criteria"
+      ],
+      "provider_user_name": "squad",
+      "step": "decide.criteria",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "decide.freeze",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "decide.freeze"
+      ],
+      "provider_user_name": "squad",
+      "step": "decide.freeze",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "decide.score",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "decide.score"
+      ],
+      "provider_user_name": "squad",
+      "step": "decide.score",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "decide.explain",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "decide.explain"
+      ],
+      "provider_user_name": "squad",
+      "step": "decide.explain",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "negotiate.map",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "negotiate.map"
+      ],
+      "provider_user_name": "squad",
+      "step": "negotiate.map",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "negotiate.brief",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "negotiate.brief"
+      ],
+      "provider_user_name": "squad",
+      "step": "negotiate.brief",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "negotiate.package",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "negotiate.package"
+      ],
+      "provider_user_name": "squad",
+      "step": "negotiate.package",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "negotiate.move",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "negotiate.move"
+      ],
+      "provider_user_name": "squad",
+      "step": "negotiate.move",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "negotiate.counter",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "negotiate.counter"
+      ],
+      "provider_user_name": "squad",
+      "step": "negotiate.counter",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "negotiate.playbook",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "negotiate.playbook"
+      ],
+      "provider_user_name": "squad",
+      "step": "negotiate.playbook",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "blow_it_up.attack",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "blow_it_up.attack"
+      ],
+      "provider_user_name": "squad",
+      "step": "blow_it_up.attack",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "blow_it_up.challenge",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "blow_it_up.challenge"
+      ],
+      "provider_user_name": "squad",
+      "step": "blow_it_up.challenge",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "blow_it_up.rule",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "blow_it_up.rule"
+      ],
+      "provider_user_name": "squad",
+      "step": "blow_it_up.rule",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "readback.interpret",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "readback.interpret"
+      ],
+      "provider_user_name": "squad",
+      "step": "readback.interpret",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "readback.diff",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "readback.diff"
+      ],
+      "provider_user_name": "squad",
+      "step": "readback.diff",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "readback.rewrite",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "readback.rewrite"
+      ],
+      "provider_user_name": "squad",
+      "step": "readback.rewrite",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "debug.hypothesize",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "debug.hypothesize"
+      ],
+      "provider_user_name": "squad",
+      "step": "debug.hypothesize",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "debug.merge",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "debug.merge"
+      ],
+      "provider_user_name": "squad",
+      "step": "debug.merge",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "debug.test",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "debug.test"
+      ],
+      "provider_user_name": "squad",
+      "step": "debug.test",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "debug.select",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "debug.select"
+      ],
+      "provider_user_name": "squad",
+      "step": "debug.select",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "debug.report",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "debug.report"
+      ],
+      "provider_user_name": "squad",
+      "step": "debug.report",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "trace.extract",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "trace.extract"
+      ],
+      "provider_user_name": "squad",
+      "step": "trace.extract",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "trace.merge",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "trace.merge"
+      ],
+      "provider_user_name": "squad",
+      "step": "trace.merge",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "trace.verify",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "trace.verify"
+      ],
+      "provider_user_name": "squad",
+      "step": "trace.verify",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "trace.assemble",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "trace.assemble"
+      ],
+      "provider_user_name": "squad",
+      "step": "trace.assemble",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "rank.compare",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "rank.compare"
+      ],
+      "provider_user_name": "squad",
+      "step": "rank.compare",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "rank.explain",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "rank.explain"
+      ],
+      "provider_user_name": "squad",
+      "step": "rank.explain",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "tune.cases",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "tune.cases"
+      ],
+      "provider_user_name": "squad",
+      "step": "tune.cases",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "tune.freeze",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "tune.freeze"
+      ],
+      "provider_user_name": "squad",
+      "step": "tune.freeze",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "tune.score",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "tune.score"
+      ],
+      "provider_user_name": "squad",
+      "step": "tune.score",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "tune.mutate",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "tune.mutate"
+      ],
+      "provider_user_name": "squad",
+      "step": "tune.mutate",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.done",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.done"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.done",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.freeze",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.freeze"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.freeze",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "bass_ackwards_prd.tree",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.tree"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.tree",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.merge",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.merge"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.merge",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "bass_ackwards_prd.review",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.review"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.review",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.revise",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.revise"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.revise",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "bass_ackwards_prd.must_have",
+      "system": [
+        "room.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.must_have"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.must_have",
+      "repair_suffix": "mode.repair"
+    },
+    {
+      "id": "bass_ackwards_prd.finalize",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.finalize"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.finalize",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
+    },
+    {
+      "id": "bass_ackwards_prd.apply",
+      "system": [
+        "judge.system"
+      ],
+      "user": [
+        "bass_ackwards_prd.apply"
+      ],
+      "provider_user_name": "squad",
+      "step": "bass_ackwards_prd.apply",
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     }
   ],
   "rules": {

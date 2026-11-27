@@ -1,0 +1,14 @@
+Product: 659700128025546c20e3e2d5024ccaa678cbc3cb
+Benchmark-only Clippy spelling: 7970c22
+CARGO_BUILD_JOBS=4 cargo test --workspace --no-fail-fast: PASS (exit 0), 1302 passed, 4 ignored
+CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings: PASS (exit 0)
+cargo fmt --all -- --check: PASS
+git diff --check: PASS
+All existing insta snapshots unchanged.
+CARGO_BUILD_JOBS=4 COMPOSED_SECS=30 COMPOSED_ENFORCE=0 cargo bench -p squad-tui --bench composed_streams: 3/3 gate=PASS, 0 FAIL (inclusive resize)
+COMPOSED_HISTORICAL=1 COMPOSED_SECS=6 composed_streams: 3/3 gate=PASS
+Manual hueb CARGO_BUILD_JOBS=4 COMPOSED_SECS=300 COMPOSED_ENFORCE=0 composed_streams: 3/3 gate=PASS, all draw p95 <=6 ms; no threshold changes.
+Mac focused release library/Markdown/transcript/composed/dirty-card tests: PASS; snapshots unchanged.
+Required mac-perf.yml dispatch 45928957488: all performance/invariant steps PASS; overall FAIL from hard-coded demo artifact path.
+Workflow artifact path fixed using Cargo metadata; bash syntax and actual hueb metadata/copy check PASS.
+Replacement mac-perf.yml dispatch 45935575586 at 6f0aa45: PASS (exit 0), all steps green, demo artifact present; 3/3 composed gates PASS and all draw p95 <=6 ms.

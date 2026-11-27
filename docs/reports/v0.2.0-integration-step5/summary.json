@@ -1,0 +1,61 @@
+{
+  "head": "7753b71ff5928188e5b07d3643f9fdd847b52c4c",
+  "host": "dev2",
+  "seconds_per_viewport": 30,
+  "composed": [
+    {
+      "viewport": "140x42",
+      "draw_p95_ms": 0.808,
+      "draw_p99_ms": 1.084,
+      "key_p95_ms": 16.268,
+      "cpu_one_core_pct": 3.696,
+      "rss_kib": 195652,
+      "resize_frame_p95_ms": 40.029,
+      "resize_frame_max_ms": 40.029,
+      "resize_count": 6,
+      "visible_verdict_frames": 240
+    },
+    {
+      "viewport": "80x24",
+      "draw_p95_ms": 0.488,
+      "draw_p99_ms": 0.633,
+      "key_p95_ms": 16.298,
+      "cpu_one_core_pct": 3.915,
+      "rss_kib": 190372,
+      "resize_frame_p95_ms": 137.342,
+      "resize_frame_max_ms": 137.342,
+      "resize_count": 6,
+      "visible_verdict_frames": 240
+    },
+    {
+      "viewport": "200x60",
+      "draw_p95_ms": 1.109,
+      "draw_p99_ms": 1.46,
+      "key_p95_ms": 16.387,
+      "cpu_one_core_pct": 4.695,
+      "rss_kib": 200960,
+      "resize_frame_p95_ms": 32.014,
+      "resize_frame_max_ms": 32.014,
+      "resize_count": 6,
+      "visible_verdict_frames": 240
+    }
+  ],
+  "twelve_streams": [
+    {
+      "viewport": "120x36",
+      "draw_p95_ms": 0.176,
+      "draw_p99_ms": 0.206,
+      "key_p95_ms": 15.861,
+      "cpu_one_core_pct": 0.867,
+      "rss_kib": 10896
+    },
+    {
+      "viewport": "80x24",
+      "draw_p95_ms": 0.108,
+      "draw_p99_ms": 0.128,
+      "key_p95_ms": 15.814,
+      "cpu_one_core_pct": 0.533,
+      "rss_kib": 10952
+    }
+  ]
+}

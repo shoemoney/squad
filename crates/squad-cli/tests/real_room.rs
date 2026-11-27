@@ -309,3 +309,121 @@ fn doctor_without_a_credential_runs_independent_checks() {
     // A missing credential is diagnosed, while the remaining checks still run.
     assert!(!result.status.success());
 }
+
+#[tokio::test]
+async fn readback_answer_after_restart_waits_for_rewrite_and_fresh_round() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = config(root.path());
+    let mut third = config.agents[0].clone();
+    third.nick = "c".parse().unwrap();
+    config.agents.push(third);
+    config.budget.daily_max_usd = 200.;
+    config.budget.debate_confirm_usd = 100.;
+    let server = FakeOpenRouter::start().await;
+    let mut catalog = fake_openrouter::catalog();
+    catalog["data"][0]["context_length"] = serde_json::json!(1_000_000);
+    catalog["data"][0]["top_provider"]["max_completion_tokens"] = serde_json::json!(65_536);
+    server.catalog(catalog).await;
+    let interpretation = serde_json::json!({"build":"Implement retention","behaviours":[],"edgeCases":[],"assumptions":[]});
+    let ledger = serde_json::json!({"entries":[{"entryId":"retention","passage":"The service retains records.","question":"For how long?","readings":[{"readingId":"a","text":"Thirty days","sourceLabels":["Reader 1"]},{"readingId":"b","text":"Forever","sourceLabels":["Reader 2"]}],"behaviourChange":"Records expire or persist"}]});
+    let spec = "The service retains records. The operator deletes backups.";
+    let rewritten = "The service retains records for thirty days. The operator deletes backups.";
+    let rewrite = serde_json::json!({"spec":rewritten,"changes":[{"entryId":"retention","before":"The service retains records.","after":"The service retains records for thirty days."}]});
+    let replies = [
+        interpretation.clone(),
+        interpretation.clone(),
+        interpretation.clone(),
+        ledger,
+        rewrite,
+        interpretation.clone(),
+        interpretation.clone(),
+        interpretation,
+        serde_json::json!({"entries":[]}),
+    ];
+    server
+        .completions(
+            replies
+                .into_iter()
+                .map(|v| fake_openrouter::streaming(&v.to_string(), "stop"))
+                .collect(),
+        )
+        .await;
+    for (i, message) in [format!("@all $readback {spec}"), "1a".into()]
+        .into_iter()
+        .enumerate()
+    {
+        let room = RoomHandle::open_with_client(
+            config.clone(),
+            "main",
+            OpenMode::OneShot,
+            OpenRouterClient::new(&server.base_url(), "fake-room-key").unwrap(),
+        )
+        .await
+        .unwrap();
+        let mut args = send(false);
+        args.message = message;
+        args.yes = true;
+        let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+        let exit = tokio::time::timeout(
+            Duration::from_secs(15),
+            squad_cli::send::run_until(
+                &room,
+                &args,
+                &mut Output {
+                    json: true,
+                    stdout: &mut stdout,
+                    stderr: &mut stderr,
+                },
+                || None,
+                std::future::pending::<std::io::Result<()>>(),
+            ),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            exit,
+            0,
+            "step {i}: {} {}",
+            String::from_utf8_lossy(&stderr),
+            String::from_utf8_lossy(&stdout)
+        );
+        let store = squad_store::Store::open(config.data_dir.join("squad.db")).unwrap();
+        if i == 0 {
+            assert!(
+                store
+                    .call(|db| squad_store::contest_steps::pending_human(db))
+                    .unwrap()
+                    .is_some()
+            );
+        } else {
+            let active = store
+                .call(|db| {
+                    Ok(
+                        db.query_row("SELECT COUNT(*) FROM contests WHERE active=1", [], |r| {
+                            r.get::<_, i64>(0)
+                        })?,
+                    )
+                })
+                .unwrap();
+            assert_eq!(active, 0);
+            let contest = store
+                .call(|db| {
+                    Ok(db.query_row(
+                        "SELECT contest_id FROM contests WHERE kind='readback'",
+                        [],
+                        |r| r.get::<_, String>(0),
+                    )?)
+                })
+                .unwrap()
+                .parse()
+                .unwrap();
+            let report =
+                squad_core::export::export(&store, ExportScope::Readback, Some(contest)).unwrap();
+            assert!(report.contains(rewritten));
+            assert!(report.contains("converged"));
+            assert_eq!(server.captured_bodies().await.len(), 9);
+        }
+        room.shutdown().await.unwrap();
+    }
+}

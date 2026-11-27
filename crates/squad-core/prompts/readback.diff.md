@@ -1,0 +1,4 @@
+Compare the labelled independent readings of this spec. Log only divergences that would change observable behaviour or outcomes; behaviourChange must state the concrete difference. Wording, ordering and emphasis alone are not ambiguities. Do not choose the intended meaning or prefer the most popular reading.
+Return {entries: [...]} matching the schema. Order entries by impact; target at most ten. Empty entries means the readers converge. Each entry needs a distinct entryId, an exact contiguous passage from the spec (at least 12 characters), a question for the human, and 2 to 4 distinct readings. Each reading needs a distinct readingId, text and one or more supplied sourceLabels (exact labels only). Never infer a model's identity. Stay within proseWordLimit across all prose.
+Authorized input and frozen prose budget: {{mode_data_json}}
+Output schema: {{mode_schema_json}}

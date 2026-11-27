@@ -111,11 +111,15 @@ pub fn run(
             {
                 use std::os::unix::fs::PermissionsExt;
                 if let Ok(metadata) = std::fs::metadata(path) {
-                    let _ = writeln!(
-                        text,
-                        "Data directory mode: {:04o}",
-                        metadata.permissions().mode() & 0o777
-                    );
+                    let mode = metadata.permissions().mode() & 0o777;
+                    let _ = writeln!(text, "Data directory mode: {mode:04o}");
+                    if mode & 0o077 != 0 {
+                        let quoted_path = path.to_string_lossy().replace("'", "'\\''");
+                        let _ = writeln!(
+                            text,
+                            "Data directory permissions: WARN - group/world access enabled; run: chmod 700 '{quoted_path}'"
+                        );
+                    }
                 }
             }
             true

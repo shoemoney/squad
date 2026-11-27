@@ -48,6 +48,59 @@ pub async fn stream_attempt(
     forward_deltas: bool,
 ) -> Result<StreamOutput, ExecutionError> {
     request.policy = ExecutionPolicy::SingleAttempt(match grant.work.kind {
+        WorkKind::TuneCases => DeadlineClass::DebateTurn,
+        WorkKind::TuneFreeze => DeadlineClass::FinalJudge,
+        WorkKind::TuneExecute => DeadlineClass::Executor,
+        WorkKind::TuneScore => DeadlineClass::FinalJudge,
+        WorkKind::TuneMutate => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdDone => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdFreeze => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdTree => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdMerge => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdReview => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdRevise => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdMustHave => DeadlineClass::DebateTurn,
+        WorkKind::BassAckwardsPrdFinalize => DeadlineClass::FinalJudge,
+        WorkKind::BassAckwardsPrdApply => DeadlineClass::FinalJudge,
+
+        WorkKind::ForgeDraft => DeadlineClass::DebateTurn,
+        WorkKind::ForgeRank => DeadlineClass::DebateTurn,
+        WorkKind::ForgeFuse => DeadlineClass::DebateTurn,
+        WorkKind::ForgeJudge => DeadlineClass::FinalJudge,
+        WorkKind::ForecastFrame => DeadlineClass::FinalJudge,
+        WorkKind::ForecastEstimate => DeadlineClass::DebateTurn,
+        WorkKind::ForecastRevise => DeadlineClass::DebateTurn,
+        WorkKind::ForecastCruxes => DeadlineClass::FinalJudge,
+        WorkKind::DecideOptions => DeadlineClass::DebateTurn,
+        WorkKind::DecideShortlist => DeadlineClass::FinalJudge,
+        WorkKind::DecideCriteria => DeadlineClass::DebateTurn,
+        WorkKind::DecideFreeze => DeadlineClass::FinalJudge,
+        WorkKind::DecideScore => DeadlineClass::DebateTurn,
+        WorkKind::DecideExplain => DeadlineClass::FinalJudge,
+        WorkKind::NegotiateMap => DeadlineClass::DebateTurn,
+        WorkKind::NegotiateBrief => DeadlineClass::FinalJudge,
+        WorkKind::NegotiatePackage => DeadlineClass::DebateTurn,
+        WorkKind::NegotiateMove => DeadlineClass::DebateTurn,
+        WorkKind::NegotiateCounter => DeadlineClass::DebateTurn,
+        WorkKind::NegotiatePlaybook => DeadlineClass::FinalJudge,
+        WorkKind::BlowItUpAttack => DeadlineClass::DebateTurn,
+        WorkKind::BlowItUpChallenge => DeadlineClass::DebateTurn,
+        WorkKind::BlowItUpRule => DeadlineClass::FinalJudge,
+        WorkKind::ReadbackInterpret => DeadlineClass::DebateTurn,
+        WorkKind::ReadbackDiff => DeadlineClass::FinalJudge,
+        WorkKind::ReadbackRewrite => DeadlineClass::FinalJudge,
+        WorkKind::DebuggingHypothesize => DeadlineClass::DebateTurn,
+        WorkKind::DebuggingMerge => DeadlineClass::FinalJudge,
+        WorkKind::DebuggingTest => DeadlineClass::DebateTurn,
+        WorkKind::DebuggingSelect => DeadlineClass::FinalJudge,
+        WorkKind::DebuggingReport => DeadlineClass::FinalJudge,
+        WorkKind::TraceExtract => DeadlineClass::DebateTurn,
+        WorkKind::TraceMerge => DeadlineClass::FinalJudge,
+        WorkKind::TraceVerify => DeadlineClass::DebateTurn,
+        WorkKind::TraceAssemble => DeadlineClass::FinalJudge,
+        WorkKind::RankCompare => DeadlineClass::DebateTurn,
+        WorkKind::RankExplain => DeadlineClass::FinalJudge,
+
         WorkKind::CensusHunt | WorkKind::CensusRate => DeadlineClass::DebateTurn,
         WorkKind::CensusMerge | WorkKind::CensusFinal => DeadlineClass::FinalJudge,
         WorkKind::CrosscheckInventory | WorkKind::CrosscheckCell | WorkKind::CrosscheckAudit => {
@@ -72,14 +125,23 @@ pub async fn stream_attempt(
         WorkKind::JudgeRound => DeadlineClass::RoundJudge,
     });
     request.model = grant.binding.model.to_string();
-    let new_mode_judge = grant.work.kind.census_judge()
+    let structured_judge = grant.work.kind.census_judge()
         || grant.work.kind.is_crosscheck_judge()
         || matches!(
             grant.work.kind,
             WorkKind::SurveyExtract | WorkKind::SurveyReport | WorkKind::ProbeReport
         );
-    request.reasoning_effort = if new_mode_judge {
-        request.visible_ceiling = squad_protocol::constants::NEW_MODE_JUDGE_VISIBLE_TOKENS;
+    request.reasoning_effort = if structured_judge || grant.work.kind.new_mode_judge() {
+        request.visible_ceiling = if grant.work.kind.new_mode_judge() {
+            grant
+                .work
+                .kind
+                .new_mode_visible_tokens()
+                .expect("mode judge ceiling")
+        } else {
+            squad_protocol::constants::NEW_MODE_JUDGE_VISIBLE_TOKENS
+        };
+
         squad_protocol::constants::NEW_MODE_JUDGE_REASONING_EFFORT
     } else if grant.work.kind == WorkKind::JudgeRound {
         ReasoningEffort::Low
@@ -307,3 +369,108 @@ pub async fn failed_with(
 }
 
 pub mod tournament;
+
+pub mod forge;
+
+pub mod forecast;
+
+pub mod decide;
+
+pub mod negotiate;
+
+pub mod blow_it_up;
+
+pub mod readback;
+
+pub mod debugging;
+
+pub mod trace;
+
+pub mod rank;
+
+pub mod tune;
+
+pub mod bass_ackwards_prd;
+
+/// A frozen executor request has no prompt-pack, persona, history or redaction inputs.
+/// `supports_reasoning` is the resolved model's capability: a reasoning model gets a
+/// separate reasoning allowance on top of the 1,024 visible tokens (D90), so hidden
+/// reasoning can never consume the visible budget.
+pub fn bare_executor_request(
+    grant: &ExecutionGrant,
+    prompt: &str,
+    input: &str,
+    published_output_limit: u32,
+    supports_reasoning: bool,
+) -> Result<ChatRequest, TransportError> {
+    if !grant.work.kind.is_executor()
+        || grant.work.validate().is_err()
+        || !grant.owner.owns(&grant.work)
+        || prompt.matches("{{input}}").count() > 1
+    {
+        return Err(TransportError::InvalidConfiguration);
+    }
+    let message = |role: &str, content: String| ChatMessage {
+        role: role.into(),
+        name: None,
+        content,
+    };
+    let messages = if prompt.contains("{{input}}") {
+        vec![message("user", prompt.replacen("{{input}}", input, 1))]
+    } else {
+        vec![
+            message("system", prompt.into()),
+            message("user", input.into()),
+        ]
+    };
+    let request = ChatRequest {
+        model: grant.binding.model.to_string(),
+        messages,
+        visible_ceiling: constants::TUNE_EXEC_VISIBLE_TOKENS,
+        published_output_limit,
+        supports_reasoning,
+        reasoning_effort: constants::effective_effort(&grant.work.kind, grant.binding.effort),
+        reasoning_explicit: false,
+        response_format: None,
+        policy: ExecutionPolicy::SingleAttempt(DeadlineClass::Executor),
+    };
+    request.body()?;
+    Ok(request)
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutorOutput {
+    pub text: String,
+    pub truncated: bool,
+}
+pub fn executor_output(output: StreamOutput) -> Result<ExecutorOutput, ExecutionError> {
+    if output.content.trim().is_empty() {
+        return Err(ExecutionError::Reader(ReaderError::NotRunnable));
+    }
+    Ok(ExecutorOutput {
+        text: output.content,
+        truncated: output.finish_reason == FinishReason::Length,
+    })
+}
+
+/// Execute one already admitted bare attempt; the router owns any plain retry.
+#[allow(clippy::too_many_arguments)]
+pub async fn execute_bare(
+    context: &AgentContext,
+    grant: &ExecutionGrant,
+    client: &OpenRouterClient,
+    prompt: &str,
+    input: &str,
+    published_output_limit: u32,
+    supports_reasoning: bool,
+    cancel: CancellationToken,
+) -> Result<ExecutorOutput, ExecutionError> {
+    let request = bare_executor_request(
+        grant,
+        prompt,
+        input,
+        published_output_limit,
+        supports_reasoning,
+    )
+    .map_err(ExecutionError::Transport)?;
+    executor_output(stream_attempt(context, grant, client, request, cancel, false).await?)
+}

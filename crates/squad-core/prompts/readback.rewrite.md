@@ -1,0 +1,4 @@
+Rewrite only the passages for which the human supplied a choice. The choices are authoritative. Never resolve an unanswered entry. All other characters in the spec must remain byte for byte identical, including whitespace and punctuation. Do not tidy, reorganize or add commentary.
+Return {spec, changes: [{entryId, before, after}]} matching the schema. Changes must cover exactly the chosen entryIds. Each before must quote the entry's complete passage verbatim; after is its replacement. Applying those replacements must reconstruct spec exactly. Overlapping passages cannot be edited in this step. Leave every unresolved passage byte-identical. Keep spec within firstBytes * 2 bytes and wordLimit words; all prose including the change log must fit proseWordLimit. The final text is a spec, not a report.
+Authorized input and frozen prose budget: {{mode_data_json}}
+Output schema: {{mode_schema_json}}

@@ -466,8 +466,7 @@ impl App {
             source_grapheme: found.graphemes.start,
             row_in_header: row,
         });
-        self.session.transcript.sync_activity();
-        self.session.transcript.follow = false;
+        self.session.transcript.pause_follow();
     }
     fn search_key(&mut self, key: &crossterm::event::KeyEvent) -> bool {
         match key.code {
@@ -575,7 +574,6 @@ impl App {
             self.dirty = true;
         }
         self.dirty |= self.session.transcript.flush(now);
-        self.session.transcript.sync_activity();
     }
     pub fn ui_deadline(&self) -> Option<Duration> {
         [
@@ -587,6 +585,42 @@ impl App {
         .into_iter()
         .flatten()
         .min()
+    }
+    /// Select a source-backed claim marker in the latest Trace projection.
+    pub fn select_trace_claim(&mut self, marker: &str) -> bool {
+        let id = marker.trim_matches(['[', ']']);
+        let Some((_, contest)) = self
+            .session
+            .contests
+            .iter_mut()
+            .rev()
+            .find(|(_, contest)| contest.trace.claim_ids().iter().any(|claim| claim == id))
+        else {
+            return false;
+        };
+        contest.trace.select_claim(marker);
+        self.composed.invalidate_artifacts();
+        self.notice = Some(format!("Trace [{id}] · F9 next claim"));
+        self.dirty = true;
+        true
+    }
+    fn next_trace_claim(&mut self) {
+        let next = self.session.contests.values().rev().find_map(|contest| {
+            let ids = contest.trace.claim_ids();
+            if ids.is_empty() {
+                return None;
+            }
+            let index = contest
+                .trace
+                .selected_claim
+                .as_ref()
+                .and_then(|selected| ids.iter().position(|id| id == selected))
+                .map_or(0, |index| (index + 1) % ids.len());
+            Some(ids[index].clone())
+        });
+        if let Some(id) = next {
+            self.select_trace_claim(&id);
+        }
     }
     pub fn handle(&mut self, event: Event, now: Duration) {
         if let Event::Resize(_, _) = event {
@@ -722,6 +756,10 @@ impl App {
                         self.escape(now);
                         return;
                     }
+                    KeyCode::F(9) => {
+                        self.next_trace_claim();
+                        return;
+                    }
                     KeyCode::F(8) => {
                         self.participant_details = !self.participant_details;
                         self.dirty = true;
@@ -800,11 +838,14 @@ impl App {
                     }
                     KeyCode::F(7) => {
                         self.composed.toggle_verdict();
-                        self.session.transcript.follow = false;
+                        self.session.transcript.pause_follow();
                         for view in self.session.probes.values_mut() {
                             view.toggle_matrix();
                         }
                         for contest in self.session.contests.values_mut() {
+                            if matches!(contest.state, Some(ContestState::Decide(_))) {
+                                contest.decide.toggle();
+                            }
                             if let Some(view) = &mut contest.survey {
                                 view.collapsed = !view.collapsed;
                             }
@@ -903,7 +944,6 @@ impl App {
     /// Scrolls by rows, anchored to source; reaching the bottom resumes live following.
     pub fn scroll_transcript(&mut self, delta: isize) {
         if self.session.transcript.follow {
-            self.session.transcript.sync_activity();
             // Leave the live edge from where the bottom currently is.
             self.composed.top = self
                 .composed
@@ -915,7 +955,7 @@ impl App {
             self.resume_live();
             return;
         }
-        self.session.transcript.follow = false;
+        self.session.transcript.pause_follow();
         self.dirty = true;
     }
     /// One viewport page up or down (one row of overlap kept for orientation).

@@ -1779,6 +1779,11 @@ async fn assigned_artifacts_and_skipped_outcomes_commit_with_their_barriers() {
                 )
                 .unwrap();
             let artifact = ContestArtifact {
+                kind: None,
+                round: None,
+                actor: None,
+                audience: None,
+                body: None,
                 contest_id: state.debate_id,
                 step_id,
                 artifact_kind: Text::new("fixture.answer").unwrap(),

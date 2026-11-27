@@ -112,6 +112,17 @@ pub fn failure_policy(
     repair_used: bool,
     failure: super::types::FailureClass,
 ) -> AttemptDecision {
+    if kind.is_executor() {
+        return if attempt > 0 && attempt < 2 {
+            AttemptDecision::Retry {
+                work_id,
+                next_attempt: attempt + 1,
+                repair: false,
+            }
+        } else {
+            AttemptDecision::Forfeit(work_id)
+        };
+    }
     let invalid = failure == super::types::FailureClass::InvalidOutput;
     let ceiling = budget.min(attempt_limit(kind));
     if attempt > 0
@@ -124,22 +135,24 @@ pub fn failure_policy(
             work_id,
             next_attempt: attempt + 1,
             repair: invalid
-                && matches!(
-                    kind,
-                    WorkKind::Judge
-                        | WorkKind::JudgeRound
-                        | WorkKind::CrosscheckGoal
-                        | WorkKind::CrosscheckNormalize
-                        | WorkKind::CrosscheckRule
-                        | WorkKind::SurveyExtract
-                        | WorkKind::SurveyReport
-                        | WorkKind::ProbeReport
-                ),
+                && (kind.new_mode_kind().is_some()
+                    || matches!(
+                        kind,
+                        WorkKind::Judge
+                            | WorkKind::JudgeRound
+                            | WorkKind::CrosscheckGoal
+                            | WorkKind::CrosscheckNormalize
+                            | WorkKind::CrosscheckRule
+                            | WorkKind::SurveyExtract
+                            | WorkKind::SurveyReport
+                            | WorkKind::ProbeReport
+                    )),
         }
     } else {
         match kind {
             WorkKind::JudgeRound => AttemptDecision::Unscored(work_id),
             WorkKind::Judge | WorkKind::ProbeReport => AttemptDecision::JudgeFailed(work_id),
+            kind if kind.new_mode_judge() => AttemptDecision::JudgeFailed(work_id),
             _ => AttemptDecision::Forfeit(work_id),
         }
     }

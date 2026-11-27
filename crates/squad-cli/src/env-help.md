@@ -32,3 +32,12 @@
 | `SQUAD_PLAN_WORDS` | `1200` | Positive integer prompt limit for rebuilt grill plans |
 | `SQUAD_REASONING_EFFORT_<NICK>` | Unset | Optional `low`, `medium`, or `high` override for a configured member |
 | `SQUAD_FX_DEBUG` | Unset | `1` shows the effects-grade tag |
+
+Optional new-mode room seeds (frozen when admitted):
+- `SQUAD_NEGOTIATE_ROUNDS`: 3 by default; integer 1–6.
+- `SQUAD_READBACK_ROUNDS`: 2 by default; integer 1–4.
+- `SQUAD_DEBUG_ROUNDS`: 3 by default; integer 1–6.
+
+- `SQUAD_TUNE_GENERATIONS`: 3 by default; integer 1–6.
+
+- `SQUAD_PRD_HUMAN_REVIEW`: 0 by default; 0 (automatic save) or 1 (pause for notes).

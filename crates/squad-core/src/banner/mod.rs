@@ -20,6 +20,19 @@ static COMPACT: LazyLock<FIGlet> = LazyLock::new(|| {
 /// Presentation boundaries; callers derive these from committed contest state.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Banner {
+    Tune,
+    BassAckwardsPrd,
+
+    Forge,
+    Forecast,
+    Decide,
+    Negotiate,
+    BlowItUp,
+    Readback,
+    Debugging,
+    Trace,
+    Rank,
+
     Opening,
     Round(usize),
     FinalRound,
@@ -44,6 +57,17 @@ impl Banner {
     /// The ordinary label is retained even when FIGlet banners are disabled.
     pub fn text(self) -> String {
         match self {
+            Self::Forge => "FORGE".into(),
+            Self::Tune => "TUNE".into(),
+            Self::BassAckwardsPrd => "BASS ACKWARDS".into(),
+            Self::Forecast => "FORECAST".into(),
+            Self::Decide => "DECIDE".into(),
+            Self::Negotiate => "NEGOTIATE".into(),
+            Self::BlowItUp => "BLOW IT UP".into(),
+            Self::Readback => "READBACK".into(),
+            Self::Debugging => "DEBUG".into(),
+            Self::Trace => "TRACE".into(),
+            Self::Rank => "RANK".into(),
             Self::Opening => "OPENING".into(),
             Self::Round(n) => format!("ROUND {n}"),
             Self::FinalRound => "FINAL ROUND".into(),

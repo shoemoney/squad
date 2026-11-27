@@ -9,6 +9,40 @@ pub struct ScopedReaders {
     epoch: u64,
 }
 impl ScopedReaders {
+    pub fn artifact_for_work(
+        &self,
+        id: WorkId,
+        event: EventId,
+    ) -> Result<serde_json::Value, ReaderError> {
+        self.read(move |db, owner| {
+            let record = owned(db, owner, id)?;
+            if record.status != WorkStatus::Running || !record.runnable {
+                return Err(ReaderError::NotRunnable);
+            }
+            let (lease_owner, lease_until): (Option<String>, Option<String>) = db
+                .query_row(
+                    "SELECT lease_owner,lease_until FROM work WHERE work_id=?",
+                    [id.to_string()],
+                    |r| Ok((r.get(0)?, r.get(1)?)),
+                )
+                .map_err(|_| ReaderError::Forbidden)?;
+            if lease_owner.as_deref()
+                != Some(
+                    serde_json::to_string(owner)
+                        .map_err(|_| ReaderError::Forbidden)?
+                        .as_str(),
+                )
+                || lease_until
+                    .as_deref()
+                    .is_none_or(|until| until <= chrono::Utc::now().to_rfc3339().as_str())
+            {
+                return Err(ReaderError::StaleWork);
+            }
+            crate::contest_steps::artifact_for_work(db, id, event)
+                .map_err(|_| ReaderError::Forbidden)
+        })
+    }
+
     pub fn new(store: Store, owner: ExecutorKey, epoch: u64) -> Self {
         Self {
             store,
@@ -291,6 +325,14 @@ impl WorkReader for ScopedReaders {
         Box::pin(async move {
             self.read(move |db, owner| {
                 let record = owned(db, owner, id)?;
+                if let Some((work, _)) = crate::work::template(db, id).map_err(map_error)?
+                    && work.kind.new_mode_kind().is_some()
+                {
+                    if attempt == 0 || attempt > record.attempt {
+                        return Err(ReaderError::Forbidden);
+                    }
+                    return crate::judge_repairs::get_mode(db, id, attempt).map_err(map_error);
+                }
                 let ExecutorKey::Case(case) = owner else {
                     return Err(ReaderError::Forbidden);
                 };

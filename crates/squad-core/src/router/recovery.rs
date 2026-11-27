@@ -36,6 +36,12 @@ pub fn recover_on_open_mode(
         } else {
             tx.execute_batch("UPDATE work SET runnable=json_extract(scheduling_meta,'$.openModeDormant'),scheduling_meta=json_remove(scheduling_meta,'$.openModeDormant') WHERE json_type(scheduling_meta,'$.openModeDormant') IS NOT NULL;")?;
         }
+        let mut q=tx.prepare("SELECT contest_id,kind FROM contests WHERE active=1")?;
+        let modes=q.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?)))?.collect::<rusqlite::Result<Vec<_>>>()?;
+        drop(q);
+        for (id,kind) in modes {let kind:ContestKind=serde_json::from_value(serde_json::Value::String(kind))?;
+            if matches!(kind,ContestKind::Tune|ContestKind::BassAckwardsPrd|ContestKind::Forge|ContestKind::Forecast|ContestKind::Decide|ContestKind::Negotiate|ContestKind::BlowItUp|ContestKind::Readback|ContestKind::Debugging|ContestKind::Trace|ContestKind::Rank) {super::new_mode_recover(kind,&tx,id.parse().map_err(|_|StoreError::Unavailable)?)?;}
+        }
         let epoch:i64=tx.query_row("SELECT epoch FROM room_meta",[],|r|r.get(0))?;
         let boundaries=squad_store::events::boundaries(&tx)?;
         let eligible=if mode==OpenMode::Interactive {squad_store::leases::eligible_at(&tx,now)?}else{Vec::new()};
