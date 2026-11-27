@@ -353,10 +353,10 @@ fn doctor_reports_all_errors_and_uses_file_data_directory() {
 
 #[cfg(unix)]
 #[tokio::test]
-async fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() {
+async fn doctor_warns_about_existing_public_directory_and_send_accepts_symlinks() {
     use std::os::unix::fs::{PermissionsExt, symlink};
     let temp = tempfile::tempdir().unwrap();
-    let data = temp.path().join("data");
+    let data = temp.path().join("data's folder");
     std::fs::create_dir(&data).unwrap();
     std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o755)).unwrap();
     symlink(&data, temp.path().join("link")).unwrap();
@@ -365,11 +365,22 @@ async fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() 
         2
     ])
     .await;
-    for path in ["data", "link"] {
+    for path in ["data's folder", "link"] {
         let output = invoke(temp.path(), &["doctor", "--data-dir", path], None);
         let text = String::from_utf8(output.stdout).unwrap();
         assert!(text.contains("Data directory: writable"), "{text}");
         assert!(text.contains("Data directory mode: 0755"));
+        assert!(text.contains("Data directory permissions: WARN"), "{text}");
+        assert!(
+            text.contains(&format!(
+                "chmod 700 '{}'",
+                temp.path()
+                    .join(path)
+                    .to_string_lossy()
+                    .replace("'", "'\\''")
+            )),
+            "{text}"
+        );
         let output = invoke_provider(
             temp.path(),
             &["send", "@a hello", "--data-dir", path],
@@ -390,6 +401,11 @@ async fn doctor_and_send_preserve_existing_directory_mode_and_accept_symlinks() 
             .file_type()
             .is_symlink()
     );
+    std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let output = invoke(temp.path(), &["doctor", "--data-dir", "link"], None);
+    let text = String::from_utf8(output.stdout).unwrap();
+    assert!(text.contains("Data directory mode: 0700"), "{text}");
+    assert!(!text.contains("Data directory permissions: WARN"), "{text}");
     assert_eq!(server.captured_bodies().await.len(), 2);
     assert_eq!(user_messages(&data).len(), 2);
 }

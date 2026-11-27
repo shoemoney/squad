@@ -20,6 +20,8 @@ All notable changes to Squad will be documented in this file, following
 
 ### Fixed
 
+- Doctor warns when the data directory permits group/world access and prints
+  a quoted `chmod 700` fix, including macOS’s shared config/data folder.
 - Publish only dirty transcript cards and account for activity on events; reuse
   layout anchors and release completed syntax-fence state.
 - Negotiate tables use the actual viewport width for side-by-side layout.
