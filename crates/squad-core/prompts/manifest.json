@@ -1765,6 +1765,7 @@
       "provider_user_name": "squad",
       "step": "forge.judge",
       "repair_suffix": "mode.repair",
+      "system_placeholders": [],
       "system_transform": {
         "operation": "replace_exact_prefix",
         "template": "judge.system",

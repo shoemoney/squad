@@ -342,6 +342,10 @@ fn disabled_modes_are_rejected_before_admission_or_spend() {
         "trace",
         "rank",
     ] {
+        let kind: ContestKind = serde_json::from_value(serde_json::json!(mode)).unwrap();
+        if kind.is_built() {
+            continue;
+        }
         let raw = format!("@all ${mode} brief");
         let ctx = router.parse_context().unwrap();
         let e = parse(&raw, &Default::default(), &ctx).unwrap_err();
