@@ -120,7 +120,7 @@ impl Respond for Answers {
                 .filter(|h| h["status"] == "live")
                 .map(|h| h["hypothesis"]["hypothesisId"].as_str().unwrap())
                 .collect::<Vec<_>>();
-            serde_json::json!({"tests":if brief.contains("NO_TESTS"){vec![]}else{vec![serde_json::json!({"localId":"test","test":"Check DNS","procedure":"Read the resolver response","effort":"minutes","safety":"read_only","outcomes":["DNS fails","DNS works"],"predictions":ids.iter().enumerate().map(|(i,h)|serde_json::json!({"hypothesisId":h,"outcome":if i==0 || brief.contains("NO_SPLIT"){"DNS fails"}else{"DNS works"},"cannotPredictReason":null})).collect::<Vec<_>>()})]},"newHypothesis":null})
+            serde_json::json!({"tests":if brief.contains("NO_TESTS"){vec![]}else{vec![serde_json::json!({"localId":"test","test":"Check DNS","procedure":"Read the resolver response","effort":"minutes","safety":"read_only","outcomes":if brief.contains("THIRD_OUTCOME"){vec!["DNS fails","DNS works","Neither outcome"]}else{vec!["DNS fails","DNS works"]},"predictions":ids.iter().enumerate().map(|(i,h)|serde_json::json!({"hypothesisId":h,"outcome":if i==0 || brief.contains("NO_SPLIT"){"DNS fails"}else{"DNS works"},"cannotPredictReason":null})).collect::<Vec<_>>()})]},"newHypothesis":null})
         } else if brief.contains("REPAIR_MEMBER") && !repair || brief.contains("FAIL_MEMBERS") {
             serde_json::json!({"wrong":true})
         } else {
@@ -441,6 +441,7 @@ async fn unknown_other_continue_and_round_limit_do_not_allow_a_patch() {
 #[tokio::test]
 async fn repairs_skips_quorum_and_loop_endings() {
     for (marker, reason, state) in [
+        ("THIRD_OUTCOME", "all_eliminated", DebuggingStatus::Complete),
         (
             "REPAIR_MEMBER REPAIR_MERGE",
             "isolated",
@@ -469,7 +470,14 @@ async fn repairs_skips_quorum_and_loop_endings() {
         );
         d.pump(&f).await;
         if d.state().state == DebuggingStatus::AwaitingHuman {
-            d.send(&f, "/answer O1 resolver failed");
+            d.send(
+                &f,
+                if marker == "THIRD_OUTCOME" {
+                    "/answer O3 neither happened"
+                } else {
+                    "/answer O1 resolver failed"
+                },
+            );
             d.pump(&f).await;
         }
         assert_eq!(d.state().state, state, "{marker}");
@@ -478,6 +486,7 @@ async fn repairs_skips_quorum_and_loop_endings() {
             Some(reason),
             "{marker}"
         );
+        d.store.call(|db|{let plans:i64=db.query_row("SELECT COUNT(*) FROM reservations WHERE work_id IS NULL AND contest_id IS NOT NULL",[],|r|r.get(0))?;assert_eq!(plans,0);Ok(())}).unwrap();
     }
 }
 #[tokio::test]
@@ -517,4 +526,22 @@ async fn last_consumed_attempt_after_restart_settles_without_another_call() {
     assert_eq!(before, f.fake.captured_bodies().await.len());
     assert_eq!(d.state().state, DebuggingStatus::Failed);
     assert_eq!(d.state().terminal_reason.unwrap().as_str(), "judge_failed");
+}
+
+#[tokio::test]
+async fn stop_at_recovered_elimination_boundary_allocates_a_fresh_report_ordinal() {
+    let f = Fixture::new().await;
+    let d = Direct::new(&f);
+    d.send(&f, "@all $debug Network requests fail intermittently.");
+    d.pump(&f).await;
+    d.send(&f, "/answer unknown");
+    // This is the durable WAITING_FOR_PARTICIPANTS -> ELIMINATING boundary:
+    // recovery can expose it before the tally move runs.
+    d.store.call(|db|{db.execute("UPDATE contests SET state_version=state_version+1,state_json=json_set(state_json,'$.state','ELIMINATING','$.stepId',NULL,'$.stateVersion',state_version+1)",[])?;Ok(())}).unwrap();
+    squad_core::router::recovery::recover_on_open(&d.store).unwrap();
+    d.send(&f, "/stop");
+    assert_eq!(d.state().state, DebuggingStatus::Stopped);
+    let id = d.state().contest_id;
+    let export = squad_core::export::export(&d.store, ExportScope::Debugging, Some(id)).unwrap();
+    assert!(export.contains("unknown"));
 }

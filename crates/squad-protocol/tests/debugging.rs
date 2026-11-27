@@ -23,6 +23,7 @@ fn required_nullable_exclusive_predictions_and_unknown_fields() {
 }
 #[test]
 fn bounded_arrays_and_unique_ids() {
+    assert!(serde_json::from_value::<DebuggingHypothesisStatus>(json!("confirmed")).is_err());
     let mut p = proposal();
     p["tests"][0]["outcomes"] = json!(["Failure", "Failure"]);
     assert!(validate_artifact("debug.test", &p).is_err());

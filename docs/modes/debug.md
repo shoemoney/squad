@@ -71,9 +71,9 @@ On dev2 on 2026-11-26, exactly one paid release `squad send` used the repository
 
 Five hypothesis tables passed on their first attempt. Grok exhausted both provider attempts without a usable output. The barrier recorded the skipped seat and moved to `MERGING`, where the shared outer judge adapter refused the work before sending a provider request. The invocation was interrupted after approximately **301.8 seconds**. No merge, selected test or human-result loop completed. No output-token-limit failure occurred.
 
-The plan estimated **$9.208942**, reserved **$40.625187**, and allowed 29 calls / 63 attempts. Real provider cost was **$0.151144**: $0.001542 for four startup probes, $0.112316 for five accepted tables, and $0.037286 for Grok's two failed generations, verified through read-only generation lookups. The ledger had recorded $0.113858 and retained three unresolved records: the two Grok calls and the judge attempt started before the dispatch failure. After closing the temporary contest through the public router stop transaction offline, unused reservations were released; **$1.565995** remained reserved against those three records. No additional provider request or second mode send was made. This is a partial smoke, not a successful end-to-end run.
+The plan estimated **$9.208942**, reserved **$40.625187**, and allowed 29 calls / 63 attempts. Real provider cost was **$0.151144**: $0.001542 for four startup probes, $0.112316 for five accepted tables, and $0.037286 for Grok's two failed generations, verified through read-only generation lookups. The ledger had recorded $0.113858 and retained three unresolved records: the two Grok calls and the judge attempt started before the dispatch failure. After closing the temporary contest through the public router stop transaction offline, unused reservations were released; **$1.565995** remained reserved against those three records. No additional generation request or second mode send was made. This is a partial smoke, not a successful end-to-end run.
 
-The initial evidence collector used the wrong attempt-column name after the process exited. Cost and outcome were reconstructed offline from SQLite and provider generation records; wall time is approximate from the invocation's log timestamps. Evidence is in `/tmp/squad-debug-smoke.e5wzca1q/` on dev2: `summary.json`, `generation-costs.json`, `debug.md`, `stdout.log` and `stderr.log`. The read-only CLI export exited zero. The smoke used source `30e7407`; later changes only strengthened validation/tests and passed Clippy.
+The initial evidence collector used the wrong attempt-column name after the process exited. Cost and outcome were reconstructed offline from SQLite and provider generation records; wall time is approximate from the invocation's log timestamps. Evidence is in `/tmp/squad-debug-smoke.e5wzca1q/` on dev2: `summary.json`, `generation-costs.json`, `debug.md`, `stdout.log` and `stderr.log`. The read-only CLI export exited zero. The smoke used source `30e7407`; later validation and recovery hardening was verified with fake-provider tests; no second paid smoke was run.
 
 Excerpt from the exported partial report:
 
@@ -92,9 +92,9 @@ Table 1 · @muse
 
 ## Verification and integrator handoff
 
-The seven owned test targets run 24 tests without live calls: protocol validation and parser examples; scoped store access, repairs and cascade deletion; executor contracts; leased workflow/accounting/recovery tests; hand-computed elimination and patch gates; export/reference validation; and TUI state/discovery checks. Workspace Clippy for all targets with warnings denied and formatting pass.
+The seven owned test targets run 25 tests without live calls: protocol validation and parser examples; scoped store access, repairs and cascade deletion; executor contracts; leased workflow/accounting/recovery tests; hand-computed elimination and patch gates; export/reference validation; and TUI state/discovery checks. Workspace Clippy for all targets with warnings denied and formatting pass.
 
-The workspace gate exposes shared fixtures that still assume all scaffold modes are disabled, plus the shared human-step fixture that creates no debug run row. These files remain integrator-owned:
+The final workspace gate recorded 1,339 passing executions, four existing manual ignores and 11 failures across eight shared targets: ten fixture/enablement failures plus the inherited tournament snapshot race. Shared fixtures still assume all scaffold modes are disabled, and the human-step fixture creates no debug run row. These files remain integrator-owned:
 
 - `crates/squad-core/src/runtime/judge.rs`: include `grant.work.kind.new_mode_judge()` in `Executor::execute`'s direct-runner condition, so the already registered mode executor receives judge grants.
 - `crates/squad-tui/src/typeahead.rs`: add a parser-checked debug example to `examples()` so idle TIP rotation includes it.
@@ -103,5 +103,6 @@ The workspace gate exposes shared fixtures that still assume all scaffold modes 
 - `crates/squad-core/tests/router_validation.rs`, `crates/squad-protocol/src/parser/new_modes_tests.rs` and `crates/squad-protocol/tests/contests.rs`: derive disabled-mode assertions from each mode's switch.
 - `crates/squad-protocol/src/parser/examples.json`: update the two legacy `/export` usage examples for the enabled debug scope.
 - `crates/squad-tui/tests/actions_shell.rs`, `crates/squad-tui/tests/contest_actions.rs` and `crates/squad-tui/tests/typeahead.rs`: update enabled-mode membership, export/help/menu counts and `$deb` prefix matches.
+- `crates/squad-tui/tests/m4b_tournament_runtime_audit.rs`: wait for a committed `TournamentChampion` before snapshotting; waiting only for `TournamentResult` races the champion projection and intermittently unwraps `None`.
 
 The mode switch is enabled and parser/help/completion tests pass in the owned targets. Production judge dispatch, TIP inclusion, grey row styling and a fully green workspace gate remain integration work. The paid smoke does not establish the human-result loop in the production room runtime.

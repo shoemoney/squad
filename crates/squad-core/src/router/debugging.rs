@@ -540,7 +540,11 @@ pub fn finish(
         let step = ContestStep {
             contest_id: s.contest_id,
             step_id: StepId::new(),
-            ordinal: s.round * 4,
+            ordinal: tx.query_row(
+                "SELECT COALESCE(MAX(ordinal),0)+1 FROM contest_steps WHERE contest_id=?",
+                [s.contest_id.to_string()],
+                |r| r.get(0),
+            )?,
             script_version: "debug-v1".parse().expect("version"),
             move_name: ContestMove::Report,
             inputs: vec![],
