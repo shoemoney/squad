@@ -55,6 +55,7 @@ fn fixture(path: &std::path::Path, kind: ContestKind) -> (Store, Router, parser:
  db.execute("INSERT INTO contests(contest_id,kind,epoch,state_version,state_json,active,updated_seq) VALUES(?,?,1,1,?,1,?)",params![p.contest_id.to_string(),p.kind.as_str(),state.to_string(),seq.get()])?;
  db.execute("INSERT INTO contest_steps(step_id,contest_id,ordinal,script_version,move,state_json,inputs_json,updated_seq) VALUES(?,?,1,'v1','judge','{}','[]',?)",params![p.step_id.to_string(),p.contest_id.to_string(),seq.get()])?;
  if p.kind == ContestKind::Readback { seed_readback(db, &p)?; }
+ if p.kind == ContestKind::Debugging { seed_debugging(db, &p)?; }
  Ok(())}).unwrap();
     let held = pending.contest_id;
     store.call(move|db| {
@@ -139,6 +140,60 @@ fn seed_readback(
         ..Default::default()
     });
     squad_store::readback::save(db, pending.contest_id, &run)
+}
+fn seed_debugging(
+    db: &rusqlite::Connection,
+    pending: &parser::PendingHuman,
+) -> squad_store::Result<()> {
+    use squad_protocol::debugging::*;
+    let models = ["a", "b", "c", "judge"]
+        .map(|name| {
+            (
+                name.into(),
+                ExecutorBinding {
+                    model: "test/model".parse().unwrap(),
+                    effort: ReasoningEffort::Low,
+                },
+            )
+        })
+        .into();
+    let prompt_refs = [
+        "debug.hypothesize",
+        "debug.merge",
+        "debug.test",
+        "debug.select",
+        "debug.report",
+    ]
+    .map(|name| {
+        (
+            name.into(),
+            PromptRef {
+                pack_version: "fixture-v1".parse().unwrap(),
+                template_id: name.parse().unwrap(),
+                template_hash: "fixture-hash".parse().unwrap(),
+            },
+        )
+    })
+    .into();
+    let setup = DebuggingSetup {
+        brief: "Requests fail".into(),
+        limits: "Read only".into(),
+        participants: ["a", "b", "c"].map(|n| n.parse().unwrap()).to_vec(),
+        rounds: 3,
+        room_words: 120,
+        plan_words: 500,
+        models,
+        prompt_refs,
+    };
+    squad_store::debugging::insert(db, pending.contest_id, &setup)?;
+    let mut run = squad_store::debugging::run(db, pending.contest_id)?;
+    run.differential = serde_json::from_value(serde_json::json!([
+        {"hypothesis":{"hypothesisId":"H1","cause":"DNS","sources":["A:a"],"supporting":[],"contradicting":[],"priorSpread":["high"]},"status":"live","consistentResults":0,"failedPrediction":null},
+        {"hypothesis":{"hypothesisId":"H2","cause":"Server","sources":["A:b"],"supporting":[],"contradicting":[],"priorSpread":["low"]},"status":"live","consistentResults":0,"failedPrediction":null}
+    ]))?;
+    run.rounds.push(DebuggingRound {round:1,proposals:Default::default(),selection:Some(serde_json::from_value(serde_json::json!({"testRef":"A:t","instruction":"Read the resolver output","outcomes":[{"label":"O1","description":"DNS fails"},{"label":"O2","description":"DNS works"}],"predictions":[{"hypothesisId":"H1","outcome":"O1"},{"hypothesisId":"H2","outcome":"O2"}],"addedHypotheses":[],"notSelected":[]}))?),result:None,elimination:None});
+    run.resume = DebuggingStatus::AwaitingHuman;
+    squad_store::debugging::save(db, pending.contest_id, &run)
 }
 fn router(store: &Store) -> Router {
     let roster = ["a", "b", "c"].map(|n| Nick::new(n).unwrap()).to_vec();

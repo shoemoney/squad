@@ -10,7 +10,7 @@ All notable changes to Squad will be documented in this file, following
 
 ### Added
 
-- Forge, Forecast, Decide, Negotiate, Blow It Up, Readback, Rank, Tune and Bass Ackwards PRD
+- Forge, Forecast, Decide, Negotiate, Blow It Up, Readback, Debug, Rank, Tune and Bass Ackwards PRD
   modes, including reports, export, recovery, cost previews and private repairs.
 - Nine integrated default six-member smoke invocations, with measured cost,
   time and reservations in [cost evidence](docs/costs.md). Eight completed;

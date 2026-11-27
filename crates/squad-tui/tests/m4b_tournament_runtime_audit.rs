@@ -67,15 +67,16 @@ async fn fake_provider_tournament_reaches_the_static_tui_and_exports_the_same_ch
         matches!(result, RequestResult::Accepted { .. }),
         "{result:?}"
     );
-    tokio::time::timeout(Duration::from_secs(15), async {
+    let (state, events) = tokio::time::timeout(Duration::from_secs(15), async {
         loop {
             let events = support::page_all(&room, 256).await;
+            let state = room.state().await;
             if events
                 .iter()
                 .any(|e| matches!(e.content, EnvelopePayload::TournamentChampion(_)))
-                && room.state().await.active_contest.is_none()
+                && state.active_contest.is_none()
             {
-                break;
+                break (state, events);
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -83,8 +84,6 @@ async fn fake_provider_tournament_reaches_the_static_tui_and_exports_the_same_ch
     .await
     .unwrap();
     let mut session = Session::default();
-    let state = room.state().await;
-    let events = support::page_all(&room, 256).await;
     session.restore(room_adapter::snapshot(&state, events));
     assert!(!session.active_contest());
     let (id, view) = session.tournaments.iter().next().unwrap();

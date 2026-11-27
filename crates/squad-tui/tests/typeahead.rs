@@ -81,7 +81,11 @@ fn ranking_is_prefix_then_substring_then_subsequence_and_stable() {
     assert_eq!(typeahead::rank("$debate", "@deb"), None);
     assert_eq!(typeahead::rank("@grok", "zz"), None);
     let c = CompletionState::with_starters("deb", 3, &context(), &Default::default(), true);
-    assert_eq!(c.items, ["@deborah", "$debate"]);
+    let mut expected = vec!["@deborah", "$debate"];
+    if squad_protocol::debugging::ENABLED {
+        expected.push("$debug");
+    }
+    assert_eq!(c.items, expected);
 }
 
 #[test]

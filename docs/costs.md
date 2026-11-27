@@ -156,13 +156,14 @@ are recorded in [integration live evidence](live-smoke-2026-11-26-v0.2.0.md).
 ### Original timeout holds reconciled
 
 The integrated runtime reopened the original rooms with `/who` and reconciled
-their delayed receipts through the canonical writer. Attempt counts stayed 19 in
-each room; no new provider generation or manual ledger edit occurred.
+their delayed receipts through the canonical writer. Forecast and Decide stayed at nineteen attempts each; Debug stayed at twelve.
+No new provider generation or direct ledger SQL edit occurred.
 
 | Original smoke | Spent at exit | Held at exit | Late actual charge | Settled spent | Final held / unknown |
 |---|---:|---:|---:|---:|---|
 | Forecast, dev3 | $0.493022 | $0.510112 | $0.014302 | $0.507324 | $0 / 0 |
 | Decide, dev2 | $0.607680 | $0.583480 | $0.014226 | $0.621906 | $0 / 0 |
+| Debug, dev2 worker partial | $0.113858 | $1.565995 | $0.037286 | $0.151144 | $0 / 0 |
 
 ### Integrated Tune executor cost
 
@@ -188,3 +189,10 @@ four startup probes cost $1.591324. Both judge calls passed on the first attempt
 One table ended in a deal; two reached the round ceiling unfinished; none were
 abandoned. Final reservation and unknown calls are zero. The preflight bound is
 29 calls / 60 reserved attempts; the estimated cost was $12.431808.
+
+Debug's two delayed Grok charges reconciled automatically. Its third old hold
+was an undispatched judge attempt: the old work-kind guard proves the provider
+runner was never called. That exact record was reconciled at zero through the
+accounting writer after a backup dry run, with a system audit notice. This is
+source-backed repair, not a policy that treats missing generation IDs as free.
+See [audit source and summary](reports/v0.2.0-debug-reconciliation/).

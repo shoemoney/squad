@@ -513,11 +513,20 @@ impl Composed {
                     models.push(model);
                     continue;
                 }
-                if matches!(&contest.state, Some(ContestState::BlowItUp(_))) {
-                    let mut view = contest.blow_it_up.clone();
-                    view.killed_expanded = expanded;
-                    let mut model = TranscriptMessage::new(identity(id), "BLOW IT UP", "");
-                    let lines = widgets::blow_it_up::styled_lines(&view);
+                let styled = match &contest.state {
+                    Some(ContestState::BlowItUp(_)) => {
+                        let mut view = contest.blow_it_up.clone();
+                        view.killed_expanded = expanded;
+                        Some(("BLOW IT UP", widgets::blow_it_up::styled_lines(&view)))
+                    }
+                    Some(ContestState::Debugging(_)) => Some((
+                        "DEBUG",
+                        widgets::debugging::styled_lines(&contest.debugging),
+                    )),
+                    _ => None,
+                };
+                if let Some((title, lines)) = styled {
+                    let mut model = TranscriptMessage::new(identity(id), title, "");
                     let height = lines
                         .iter()
                         .map(|l| l.width().div_ceil(usize::from(body_width.max(1))) * 2 + 1)

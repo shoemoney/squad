@@ -16,7 +16,7 @@ _A real recording with the v0.1.2 release binary against OpenRouter, about 46 s.
 
 ## 📍 Status
 
-This branch includes **16 enabled contest modes** over one shared engine. The built-in default roster has six members. Integrated live-run evidence is recorded in [costs](docs/costs.md) as verification completes.
+This branch includes **17 enabled contest modes** over one shared engine. The built-in default roster has six members. Integrated live-run evidence is recorded in [costs](docs/costs.md) as verification completes.
 
 Features carried forward from 0.1.3:
 
@@ -52,6 +52,7 @@ Features carried forward from 0.1.3:
 - [Negotiate](#negotiate)
 - [Blow It Up](#blow-it-up)
 - [Readback](#readback)
+- [Debug](#debug)
 - [Rank](#rank)
 - [Tune](#tune)
 - [Bass Ackwards PRD](#bass-ackwards-prd)
@@ -290,6 +291,7 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `$negotiate` | Prepare and rehearse a negotiation. |
 | `$blow_it_up` | Attack a plan and challenge the attacks. |
 | `$readback` | Resolve conflicting readings with the human. |
+| `$debug` | Narrow a failure with tests you run. |
 | `$rank` | Order human-supplied items by pair comparison. |
 | `$tune` | Improve a prompt against a frozen test suite. |
 | `$bass_ackwards_prd` | Work backward from a finished result. |
@@ -299,7 +301,7 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `/answer <text>` | Records the human’s answer at a pending Readback, Debug or PRD review step. |
 | `/continue` | Continues a waiting census or closes a pending human step with the supplied answers. |
 | `/stop` or `/stop @nick` | Stops all work, or one member's work. |
-| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `negotiate`, `blow_it_up`, `readback`, `rank`, `tune`, `bass_ackwards_prd`. |
+| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `negotiate`, `blow_it_up`, `readback`, `debug`, `rank`, `tune`, `bass_ackwards_prd`. |
 | `/clear` | **Wipes the stored room.** It is not a display-only action. |
 
 Each mode has its own rules and cost preview. Those are covered in the mode sections of this README.
@@ -337,7 +339,7 @@ Question-first grills work the same way. Pick one member to be grilled.
 
 ### Composer suggestions
 
-Composer suggestions open automatically after `@` (live roster), `$` (16 contest modes),
+Composer suggestions open automatically after `@` (live roster), `$` (17 contest modes),
 or `/` at the start (supported slash commands). Tab always opens suggestions, including
 a starter menu in an empty draft or matches for an unmarked word (`gro` → `@grok`,
 `deb` → `$debate`). Press Tab again or Enter to insert the selection and a space.
@@ -623,7 +625,7 @@ Benchmark-only variables, read by `cargo bench` and not used by the app:
 
 ## 🎛️ Contest modes at a glance
 
-Squad has **16 contest modes**. Each one is a script that runs on the same shared engine, and **only one contest can run per room at a time**.
+Squad has **17 contest modes**. Each one is a script that runs on the same shared engine, and **only one contest can run per room at a time**.
 
 | Mode | Start with | What it's for | Blind steps? | Normal model calls | Ends with | Export |
 |---|---|---|---|---|---|---|
@@ -640,6 +642,7 @@ Squad has **16 contest modes**. Each one is a script that runs on the same share
 | Negotiate | `@all $negotiate <our side> -- <counterpart>` | Prepare and rehearse a negotiation | Yes | `2m - P + 2PR + 2 maximum` | Strategy and hypothetical table playbook | `/export negotiate [id]` |
 | Blow It Up | `@all $blow_it_up` with its required source/segments | Attack a plan and challenge the attacks | Yes | `2m + 1` | Ranked surviving findings | `/export blow_it_up [id]` |
 | Readback | `@all $readback` with its required source/segments | Resolve conflicting readings with the human | Yes | `R(m + 2) maximum` | Revised spec and open ambiguities | `/export readback [id]` |
+| Debug | `@all $debug <failure> -- <limits>` | Narrow a failure with human-run tests | Yes | `(R + 1)(m + 1) + 1 maximum` | Evidence differential and patch advice when justified | `/export debug [id]` |
 | Rank | `@all $rank` with its required source/segments | Order human-supplied items by pair comparison | Yes | `m + 1` | Bradley–Terry order and cycle audit | `/export rank [id]` |
 | Tune | `@all $tune` with its required source/segments | Improve a prompt against a frozen test suite | Yes | `m + 13G + 15 maximum` | Held-out winner, diff and reusable suite | `/export tune [id]` |
 | Bass Ackwards PRD | `@all $bass_ackwards_prd` with its required source/segments | Work backward from a finished result | Yes | `4m + 4; one extra for human notes` | Saved dependency-ordered PRD | `/export bass_ackwards_prd [id]` |
@@ -1421,6 +1424,72 @@ The report includes the final spec, per-round ledgers, reader attribution, chose
 Examples and verification: [mode guide](docs/modes/readback.md).
 
 
+## Debug
+
+Use debug for a persistent failure with competing explanations and observable tests. Members work independently; the judge merges the differential and selects a safe test. You run the test and paste the result. Squad runs no commands and applies no patches.
+
+```text
+@all $debug Requests time out after a deploy. Health checks pass. Rolling back fixes it.
+--
+Read-only checks only; production restarts are unavailable.
+```
+
+Select at least three members with mentions, or use `@all` (up to twelve). `@judge` cannot participate. Set `/set DEBUG_ROUNDS 3` before starting; the allowed range is 1–6. The default is three rounds.
+
+1. Every member independently proposes up to four hypotheses with supporting and contradicting quotes. Quotes that do not match the brief are retained as **unanchored**, never treated as evidence.
+2. A blind judge merges duplicate causes into up to eight hypotheses, preserving every source, opposing quote and prior spread.
+3. Each member independently proposes up to two tests and predicts an outcome for every live hypothesis. A prediction may explicitly say it cannot predict. Proposals include effort and safety.
+4. A blind judge selects a proposed test whose safety is `read_only` or `reversible` and which splits at least two live hypotheses. It cannot invent a test, alter the procedure, or select a `risky` test.
+5. `RUN THE TEST` shows the instruction and labels `O1`, `O2`, etc. The room waits without a timer and releases the participants for ordinary chat. Closing and reopening preserves the same instruction and labels.
+6. You answer. Application code updates the differential from the committed predictions and your result, then repeats or reports.
+
+```text
+/answer O2 The lookup returned the old address; here is the resolver output...
+/answer other The command returned a third result: permission denied.
+/answer unknown
+/continue
+```
+
+A listed outcome eliminates only hypotheses that predicted a different listed outcome. Matching predictions gain one consistent result. `disputed` and `cannot_predict` do not change. `other` eliminates nothing, records an unexpected result, and permits members to propose a new hypothesis next round. `unknown` and `/continue` record an inconclusive or unrun test and change nothing. Silence applies no default. Ordinary messages preserve the pending step.
+
+The loop ends with one live hypothesis (`isolated`), none (`all_eliminated`), no proposals (`no_tests`), no discriminating safe test (`no_discriminating_test`), or the round limit (`rounds_complete`). Failed members are named with the step and round; fewer than two initial hypothesis tables fails the run. Judge exhaustion fails with `judge_failed`. `/stop` fences outstanding work and retains committed evidence.
+
+A patch is advice for you to apply. It is allowed only when exactly one hypothesis remains live and at least one test you ran produced a consistent result for it. Otherwise the report states:
+
+> No patch: the evidence does not yet isolate a cause.
+
+The report contains the differential, live/eliminated status and consistent counts, every test and pasted result, failed predictions, the next test, risky unselected proposals, unanchored quotes and skipped members. No status means that a cause has been proved.
+
+### Cost
+
+For `m` members and `R` rounds the upper bound is `(R + 1)(m + 1) + 1` calls, reserving `2m(R + 1) + 3R + 6` attempts. Six members and three rounds plan 29 calls and 63 attempts; twelve members plan 53 calls and 111 attempts. Early termination releases unused reservations. Members get two attempts, including one invalid-output repair; judges get three attempts and at most one repair. Human waiting costs nothing.
+
+Preflight shows the estimate and worst-case reservation based on resolved model pricing and frozen prompts. Actual cost depends on models, output length and repairs. Later prompts include at most the first 400 words of each pasted result; the full answer remains in the transcript and export.
+
+### Report and export
+
+```text
+/export debug
+/export debug <contest-id>
+```
+
+From the shell:
+
+```sh
+squad send --yes '@all $debug Requests time out after deploy
+--
+Read-only checks only'
+squad send '/answer O2 The resolver returned the old address'
+squad export debug <contest-id> -o debug-report.md
+```
+
+The Markdown export includes the brief and limits, original hypothesis tables and attribution, all proposals and predictions, each selection, unanchored quotes, the full raw human answers, the differential and the report. Export while waiting includes the committed evidence and pending instruction. It contains no frozen provider prompts or credentials.
+
+
+Eliminated hypotheses appear grey, with explicit status labels retained.
+
+Examples and verification: [mode guide](docs/modes/debug.md).
+
 ## Rank
 
 Rank orders three to forty of your own items by a criterion you supply. Use it for feature priorities, bugs, risks, or candidates. Independent pair comparisons feed an application-computed ranking; a judge explains the top items and majority cycles.
@@ -1726,6 +1795,7 @@ Export a room or a contest as Markdown. You can do it from inside the room or fr
 | `negotiate` | Yes, the contest ID | Hypothetical table transcripts and negotiation playbook. |
 | `blow_it_up` | Yes, the contest ID | Ranked surviving findings. |
 | `readback` | Yes, the contest ID | Revised spec and open ambiguities. |
+| `debug` | Yes, the contest ID | Differential, selected tests, results and report. |
 | `rank` | Yes, the contest ID | Bradley–Terry order and cycle audit. |
 | `tune` | Yes, the contest ID | Held-out winner, diff and reusable suite. |
 | `bass_ackwards_prd` | Yes, the contest ID | Saved dependency-ordered PRD. |

@@ -545,3 +545,114 @@ async fn stop_at_recovered_elimination_boundary_allocates_a_fresh_report_ordinal
     let export = squad_core::export::export(&d.store, ExportScope::Debugging, Some(id)).unwrap();
     assert!(export.contains("unknown"));
 }
+
+#[tokio::test]
+async fn public_one_shot_reaches_human_then_isolates_and_exports() {
+    let f = Fixture::new().await;
+    let room = squad_core::room::RoomHandle::open_with_client(
+        f.config.clone(),
+        "main",
+        OpenMode::OneShot,
+        OpenRouterClient::new(&f.fake.base_url(), "fake-key").unwrap(),
+    )
+    .await
+    .unwrap();
+    let ctx = parser::ParseContext {
+        roster: f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        ..Default::default()
+    };
+    let meta = parser::SubmissionMeta::default();
+    let request = Request::from_parsed_with_context(
+        EventId::new(),
+        parse(
+            "@all $debug Network requests fail intermittently.",
+            &meta,
+            &ctx,
+        )
+        .unwrap(),
+        &meta,
+        &ctx,
+        true,
+    )
+    .unwrap();
+    let result = room.submit(request).await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    let state = |f: &Fixture| -> DebuggingState {
+        let db = rusqlite::Connection::open(f.config.data_dir.join("squad.db")).unwrap();
+        serde_json::from_str(
+            &db.query_row(
+                "SELECT state_json FROM contests WHERE kind='debug'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    };
+    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+        while state(&f).state != DebuggingStatus::AwaitingHuman {
+            assert!(!state(&f).state.is_terminal(), "{:?}", state(&f));
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("public Debug did not reach human selection");
+    let db = rusqlite::Connection::open(f.config.data_dir.join("squad.db")).unwrap();
+    let pending = squad_store::contest_steps::pending_human(&db)
+        .unwrap()
+        .unwrap();
+    let partial = room
+        .export(ExportScope::Debugging, Some(pending.contest_id))
+        .await
+        .unwrap();
+    assert!(partial.contains("Read the resolver response"));
+    let result = room
+        .submit(Request::HumanAnswer {
+            request_id: EventId::new(),
+            contest_id: pending.contest_id,
+            expected_state_version: pending.state_version,
+            text: Some("O1 resolver returned no address".into()),
+        })
+        .await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+        while !state(&f).state.is_terminal() {
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("public Debug did not complete after human result");
+    assert_eq!(
+        state(&f).state,
+        DebuggingStatus::Complete,
+        "{:?}",
+        state(&f)
+    );
+    let exported = room
+        .export(ExportScope::Debugging, Some(pending.contest_id))
+        .await
+        .unwrap();
+    for text in [
+        "isolated",
+        "resolver returned no address",
+        "Correct the DNS configuration",
+    ] {
+        assert!(exported.contains(text), "{text}");
+    }
+    assert_eq!(f.fake.captured_bodies().await.len(), 15);
+    room.shutdown().await.unwrap();
+    let held: i64 = db
+        .query_row(
+            "SELECT COALESCE(SUM(reserved_micros),0) FROM spend_daily",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(held, 0);
+}

@@ -222,23 +222,9 @@ pub fn prepare(
     let mut frozen = serde_json::Map::new();
     let mut refs = BTreeMap::new();
     for name in names {
-        let (mut system, user) = pack
+        let (system, user) = pack
             .composition_source(name, false)
             .map_err(|_| invalid())?;
-        if matches!(name, "debug.merge" | "debug.select") {
-            // The scaffold prepends a blind prefix but retains the identity header.
-            // Remove that known header before freezing, including its literal @fable.
-            let header = pack
-                .template("judge.system")
-                .map_err(|_| invalid())?
-                .split_once("You cannot see")
-                .ok_or_else(invalid)?
-                .0;
-            if system.matches(header).count() != 1 {
-                return Err(invalid());
-            }
-            system = system.replacen(header, "", 1);
-        }
         refs.insert(
             name.into(),
             PromptRef {

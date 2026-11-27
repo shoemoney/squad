@@ -61,11 +61,16 @@ The Markdown export includes the brief and limits, original hypothesis tables an
 
 ## Integration status
 
-This branch keeps the exact mode ownership boundary. The scaffold's outer judge executor currently omits new-mode judge routing in `crates/squad-core/src/runtime/judge.rs`; the integrator must route `new_mode_judge()` to the already registered structured runner. The owned executor is exercised through real leased grants, scoped readers, accounting and fake OpenRouter calls in `debugging_workflows.rs`.
+The integrated shared judge dispatcher routes Debug work to its structured runner,
+and its parser-checked TIP example is present. Public launcher and human-result
+coverage is included in the integrated gate run.
 
-The shared typeahead inventory and help follow the mode switch. The shared idle TIP example list still needs a debug example. The shared string-only transcript adapter also needs a styling hook to grey eliminated differential rows; this branch renders their explicit eliminated status.
+The compositor preserves differential-row styles: eliminated rows are grey,
+while status labels remain visible without color. The shared human-step fixture
+now seeds the real mode snapshot. The tournament audit captures the terminal
+state/events from its existing champion wait.
 
-## Example run
+## Worker-branch partial smoke
 
 On dev2 on 2026-11-26, exactly one paid release `squad send` used the repository's default **six** seats (the owner confirmed six), `SQUAD_DAILY_MAX_USD=150`, `--env-file /dev/null` and a fresh private directory. The key was fetched directly into the process environment through `aigate-key openrouter` on dev1, never printed or saved. The brief described deployment-related client timeouts, passing server health checks and rollback success; it requested read-only checks.
 
@@ -90,7 +95,7 @@ Table 1 · @muse
   Contradicting: ["Health checks on the server pass."]
 ```
 
-## Verification and integrator handoff
+## Worker verification and historical handoff
 
 The seven owned test targets run 25 tests without live calls: protocol validation and parser examples; scoped store access, repairs and cascade deletion; executor contracts; leased workflow/accounting/recovery tests; hand-computed elimination and patch gates; export/reference validation; and TUI state/discovery checks. Workspace Clippy for all targets with warnings denied and formatting pass.
 
@@ -106,3 +111,38 @@ The final workspace gate recorded 1,339 passing executions, four existing manual
 - `crates/squad-tui/tests/m4b_tournament_runtime_audit.rs`: wait for a committed `TournamentChampion` before snapshotting; waiting only for `TournamentResult` races the champion projection and intermittently unwraps `None`.
 
 The mode switch is enabled and parser/help/completion tests pass in the owned targets. Production judge dispatch, TIP inclusion, grey row styling and a fully green workspace gate remain integration work. The paid smoke does not establish the human-result loop in the production room runtime.
+
+## Original ledger reconciliation — 2026-11-27
+
+The integrated runtime reopened the stopped worker room with `/who`. Both Grok
+generation receipts reconciled automatically: spent became $0.151144 and held
+funds fell to $0.787385, with twelve attempt rows unchanged. The remaining row
+was the source-proven undispatched DebugMerge judge call. Old source `30e7407`
+routes it to ordinary JudgeExecutor, whose work-kind guard rejects before the
+provider runner. After a successful dry run on a backup, the authenticated
+Account writer recorded zero tokens/zero cost for that exact cancelled attempt
+and appended a system audit notice. Final held funds and unknown calls are zero;
+spent remains $0.151144 and no generation was started. Other ID-less attempts
+retain their conservative holds.
+
+The source-scoped repair and before/after summary are committed under
+`docs/reports/v0.2.0-debug-reconciliation/`. Private SQLite backups, the dry-run
+result and operator executable remain under
+`/tmp/squad-v020-reconcile-debug-hvquuycu/`.
+
+## Integrated validation — 2026-11-27
+
+All twenty-seven Debug checks pass. The new public OneShot workflow reaches
+the human step, exports pending evidence, accepts a fixture observation and
+isolates the cause with patch advice in fifteen calls, releasing the ledger.
+Actual compositor cells verify grey eliminated rows and normal live rows for
+both elimination and final report artifacts. The real shared human-step fixture
+now seeds its Debug snapshot. The tournament audit retains its champion wait
+and reuses the captured terminal state/events for the snapshot.
+
+Debug's local identity-header removal was redundant with the central manifest
+repair and made admission reject the already repaired compositions. It was
+removed; all twenty-four new-mode judge compositions keep the shared blind
+header regression. The exact `deb` prefix fixture now includes `$debug` when
+enabled. Full gates pass: fmt, Clippy, 1,658 Cargo passing executions, 1,657 unique
+Nextest passes with four inherited skips in 190.690 seconds and doc tests.
