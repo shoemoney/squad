@@ -269,3 +269,103 @@ async fn ordinary_missing_cost_must_retain_a_positive_priced_reservation() {
     room.shutdown().await.unwrap();
     assert!(state.daily_spend.reserved_usd > 0.);
 }
+#[tokio::test]
+async fn delayed_failed_receipt_releases_its_hold_without_another_completion() {
+    let f = Fixture::new().await;
+    let delayed_id = "gen-late-failed-charge";
+    f.fake
+        .completions(vec![
+            raw_sse(event(serde_json::json!({
+                "id": delayed_id, "model": "fixture/member0",
+                "choices": [{"delta": {"content": "partial"}, "finish_reason": null}]
+            }))),
+            streaming("replacement", "stop"),
+        ])
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(f.request("@member0 recover a disconnected call"))
+        .await;
+    f.finals(1).await;
+    assert_eq!(f.scalar("SELECT SUM(unknown_calls) FROM spend_daily"), 1);
+    assert!(f.scalar("SELECT SUM(reserved_micros) FROM spend_daily") > 0);
+    assert_eq!(f.fake.captured_bodies().await.len(), 2);
+    f.fake
+        .generation(
+            delayed_id,
+            serde_json::json!({
+                "tokens_prompt": 11, "tokens_completion": 17, "total_cost": 0.014
+            }),
+        )
+        .await;
+    f.wait(|| f.scalar("SELECT SUM(unknown_calls) FROM spend_daily") == 0)
+        .await;
+    assert_eq!(f.scalar("SELECT SUM(reserved_micros) FROM spend_daily"), 0);
+    assert_eq!(
+        f.scalar("SELECT SUM(spent_micros) FROM spend_daily"),
+        14_045
+    );
+    assert_eq!(
+        f.scalar(
+            "SELECT COUNT(*) FROM attempts WHERE outcome='failed' AND reported_cost_micros=14000"
+        ),
+        1
+    );
+    assert_eq!(f.fake.captured_bodies().await.len(), 2);
+    room.shutdown().await.unwrap();
+    assert_eq!(
+        f.scalar("SELECT SUM(spent_micros) FROM spend_daily"),
+        14_045
+    );
+}
+
+#[tokio::test]
+async fn delayed_receipt_survives_clear_and_reopen_with_its_original_attempt() {
+    let f = Fixture::new().await;
+    let delayed_id = "gen-late-cleared-charge";
+    f.fake
+        .completions(vec![
+            raw_sse(event(serde_json::json!({
+                "id": delayed_id, "model": "fixture/member0",
+                "choices": [{"delta": {"content": "partial"}, "finish_reason": null}]
+            }))),
+            streaming("replacement", "stop"),
+        ])
+        .await;
+    let room = f.open(OpenMode::Interactive).await;
+    room.submit(f.request("@member0 keep the original billing identity"))
+        .await;
+    f.finals(1).await;
+    assert_eq!(f.scalar("SELECT SUM(unknown_calls) FROM spend_daily"), 1);
+    let cleared = room
+        .submit(Request::Clear {
+            request_id: EventId::new(),
+        })
+        .await;
+    assert!(matches!(cleared, RequestResult::Accepted { .. }));
+    room.shutdown().await.unwrap();
+    drop(room);
+    assert_eq!(f.scalar("SELECT COUNT(*) FROM work"), 0);
+    assert_eq!(f.scalar("SELECT SUM(unknown_calls) FROM spend_daily"), 1);
+    f.fake
+        .generation(
+            delayed_id,
+            serde_json::json!({
+                "tokens_prompt": 11, "tokens_completion": 17, "total_cost": 0.014
+            }),
+        )
+        .await;
+    let reopened = f.open(OpenMode::OneShot).await;
+    f.wait(|| f.scalar("SELECT SUM(unknown_calls) FROM spend_daily") == 0)
+        .await;
+    assert_eq!(f.scalar("SELECT SUM(reserved_micros) FROM spend_daily"), 0);
+    assert_eq!(
+        f.scalar("SELECT SUM(spent_micros) FROM spend_daily"),
+        14_045
+    );
+    assert_eq!(f.fake.captured_bodies().await.len(), 2);
+    reopened.shutdown().await.unwrap();
+    assert_eq!(
+        f.scalar("SELECT SUM(spent_micros) FROM spend_daily"),
+        14_045
+    );
+}

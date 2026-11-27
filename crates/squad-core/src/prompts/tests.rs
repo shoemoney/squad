@@ -87,6 +87,49 @@ fn composition_fixture(pack: &PromptPack, id: &str, repair: bool) -> Inputs {
 }
 
 #[test]
+fn every_new_mode_judge_discards_the_identity_header() {
+    let pack = PromptPack::embedded().unwrap();
+    let prefix = pack
+        .template("judge.system.blind-prefix")
+        .unwrap()
+        .trim_end();
+    let mut checked = 0;
+    for composition in &pack.manifest().compositions {
+        let Ok(kind) = serde_json::from_value::<squad_protocol::WorkKind>(json!(composition.id))
+        else {
+            continue;
+        };
+        if !kind.new_mode_judge() {
+            continue;
+        }
+        let rendered = pack
+            .render_composition(
+                &composition.id,
+                &composition_fixture(&pack, &composition.id, false),
+                false,
+            )
+            .unwrap();
+        assert!(rendered.system.starts_with(prefix), "{}", composition.id);
+        assert_eq!(rendered.system.matches(prefix).count(), 1);
+        let (source, _) = pack.composition_source(&composition.id, false).unwrap();
+        for identity in [
+            "@fable",
+            "{{judge_model_slug}}",
+            "{{member_nicks_json}}",
+            "{{user_name_json}}",
+        ] {
+            assert!(
+                !source.contains(identity),
+                "{} exposes {identity}",
+                composition.id
+            );
+        }
+        checked += 1;
+    }
+    assert_eq!(checked, 24);
+}
+
+#[test]
 fn embedded_inventory_and_every_registered_composition_render() {
     let pack = PromptPack::embedded().unwrap();
     assert_eq!(pack.manifest().templates.len(), 96);

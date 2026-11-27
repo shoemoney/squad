@@ -137,3 +137,47 @@ Completed tournament work: all `M5.P5.*` and `M5.P3.L5.*`, `M2.P2.L7.T1–T3`, `
 The following shared rows retain unchecked boxes because they also require non-tournament modes or broader presentation fixtures. Their tournament execution, state, feed, export, privacy and accounting paths are integrated here; the remaining cross-mode assertions belong to the other mode work:
 
 `M1.P3.L1.T9`, `M2.P3.L2.T7`, `M2.P4.L1.T11`, `M2.P4.L2.T6`, `M3.P2.L1.T6`, `M3.P2.L2.T7`, `M3.P2.L2.T12`, `M3.P2.L3.T5`, `M3.P3.L2.T9`, `M3.P3.L3.T10`, `M3.P3.L5.T5`, `M4.P2.L7.T2`, `M4.P3.L2.T6`, `M4.P3.L8.T6`, `M4.P4.L4.T6`, `M4.P4.L4.T7`, `M4.P4.L4.T8`, `M4.P5.L2.T5`.
+
+## M8/M9 registered templates and output bounds
+
+The eleven additions register fifty templates. Every one declares exactly
+`mode_data_json` (the authorized, work-bound projection) and `mode_schema_json`
+(the owning protocol module's output schema). These are native JSON inputs;
+the renderer encodes each once. `mode.repair` adds `mode_step`,
+`validation_errors_json` and `invalid_output_json` only for the authorized repair.
+The shared blind prefix has no placeholders. All twenty-four new-mode judge
+compositions replace the original identity prefix exactly once and declare empty
+system placeholder lists.
+
+| Mode | Templates and output word allowances |
+|---|---|
+| Forge | `forge.draft.md` (output `W_plan`), `forge.rank.md` (`W_room`), `forge.fuse.md` (`W_plan`, further capped by `Lmax`), `forge.judge.md` (`W_room`). |
+| Forecast | `forecast.frame.md` (300 words), `forecast.estimate.md` (`W_room`), `forecast.revise.md` (200 words), `forecast.cruxes.md` (`W_plan`). |
+| Decide | `decide.options.md` (100 words), `decide.shortlist.md` (300), `decide.criteria.md` (300), `decide.freeze.md` (500), `decide.score.md` (700), `decide.explain.md` (`W_plan`). |
+| Negotiate | `negotiate.map.md` (`W_room`), `negotiate.brief.md` (`W_plan`), `negotiate.package.md` (200), `negotiate.move.md` (200), `negotiate.counter.md` (200), `negotiate.playbook.md` (`W_plan`). |
+| Blow It Up | `blow_it_up.attack.md` (700 words), `blow_it_up.challenge.md` (`W_plan`), `blow_it_up.rule.md` (`W_plan`). |
+| Readback | `readback.interpret.md` (`W_room`), `readback.diff.md` (`W_plan`), `readback.rewrite.md` (twice the spec's word count, at least `W_plan`). |
+| Debug | `debug.hypothesize.md` (`W_room`), `debug.merge.md` (`W_plan`), `debug.test.md` (`W_room`), `debug.select.md` (600), `debug.report.md` (`W_plan`). |
+| Trace | `trace.extract.md` (900 words including quotes), `trace.merge.md` (`W_plan`), `trace.verify.md` (`W_room`), `trace.assemble.md` (`W_plan`). |
+| Rank | `rank.compare.md` (800 words), `rank.explain.md` (`W_room`). |
+| Tune | `tune.cases.md` (output `W_room`), `tune.freeze.md` (`W_room`), `tune.score.md` (600), `tune.mutate.md` (`Lmax` for the prompt plus 150 for the changes). There is no template for `tune.execute`. |
+| Bass Ackwards PRD | `bass_ackwards_prd.done.md` (output 300), `bass_ackwards_prd.freeze.md` (`W_room`), `bass_ackwards_prd.tree.md` (`W_plan`), `bass_ackwards_prd.merge.md` (`W_prd`), `bass_ackwards_prd.review.md` (`W_room`), `bass_ackwards_prd.revise.md` (`W_prd` plus 25 per decision), `bass_ackwards_prd.must_have.md` (300), `bass_ackwards_prd.finalize.md` (`W_prd` plus 25 per decision), `bass_ackwards_prd.apply.md` (`W_prd`). |
+
+`W_room` and `W_plan` use the frozen configured limits. Forge also enforces the
+longest accepted draft cap; Readback bounds the rewritten specification by its
+frozen original size. Tune mutations use `Lmax` plus their stated change budget.
+PRD revision, finalization and human application return bounded sparse edits
+(≤120 operations), under D101 and the existing 8,192-visible-token ceiling; their
+word allowances bound those patches. The full merge uses `W_prd`.
+
+`tune.execute` has no Squad template: the frozen candidate and case input are
+sent byte-exact without persona, history or redaction, with a 1,024-visible-token
+output ceiling. Executor retries are plain attempts. Structured member calls
+have two attempts with one private validation repair; judge calls have three
+attempts with at most one private validation repair.
+
+Prompt provenance stores the selected composition source and output-schema
+identity. Frozen source, bindings and step input survive recovery. Repair text remains in attempt-private storage. Private label maps stay outside
+model-visible projections and ordinary member histories; human exports may
+include accepted provenance. The detailed stage budgets and reservation bounds are in
+sections 11 and 12 of the specification.

@@ -266,7 +266,9 @@ fn tips_parse_rotate_hide_and_respect_narrow_and_no_colour() {
     let examples = typeahead::examples(&context());
     assert_eq!(
         examples.len(),
-        6 + typeahead::MODES.len() - 7,
+        6 + typeahead::MODES.len()
+            - 7
+            - usize::from(squad_protocol::negotiate::ENABLED && context().roster.len() < 4),
         "every authored example must parse with this roster"
     );
     assert!(
@@ -316,6 +318,10 @@ fn descriptions_use_resolved_models_and_parser_command_hints() {
             "$debate" => "@grok @deepseek $debate topic @judge".to_string(),
             "$crosscheck" => "@all $crosscheck plan\n--\ngoal".to_string(),
             "$tune" => "@all $tune prompt\n--\ntask".to_string(),
+            "$rank" => {
+                "@all $rank impact\n--\nrepair data loss\nimprove search\nrefresh icons".to_string()
+            }
+            "$trace" => "@all $trace opening hours\n--\nOpen Monday through Friday".to_string(),
             _ => format!("@all {name} topic"),
         };
         let mut ctx = context();

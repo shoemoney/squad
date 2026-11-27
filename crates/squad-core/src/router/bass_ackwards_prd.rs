@@ -244,11 +244,19 @@ pub fn prepare(
         );
         prompts.insert(name, json!({"system":system,"user":user}));
     }
-    let human: i64 = tx.query_row(
+    let mut human: i64 = tx.query_row(
         "SELECT value FROM vars WHERE name='PRD_HUMAN_REVIEW'",
         [],
         |r| r.get(0),
     )?;
+    if let Some(update) = conversation
+        .variable_updates
+        .iter()
+        .rev()
+        .find(|update| update.name == VariableName::PrdHumanReview)
+    {
+        human = i64::from(update.value);
+    }
     let setup = BassAckwardsPrdSetup {
         contest_id: contest,
         end_result: end_result.clone(),

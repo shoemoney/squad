@@ -4,7 +4,9 @@
 deterministic frontend entry point. It performs no I/O or state changes. Context
 uses the protocol's roster, `BTreeMap<VariableName, u8>`, pending pick, full
 `RecordSummary` values and optional `ContestState`. Missing variable entries use
-defaults 10, 2 and 2; callers supply effective stored/environment values.
+defaults for ROUNDS (10), GRILL_ROUNDS (2), CENSUS_PASSES (2), NEGOTIATE_ROUNDS (3),
+READBACK_ROUNDS (2), DEBUG_ROUNDS (3), TUNE_GENERATIONS (3) and PRD_HUMAN_REVIEW (0);
+callers supply effective stored/environment values.
 `SubmissionMetadata` remains an alias of `SubmissionMeta` for existing consumers.
 
 `parser::validate_context(&parsed, &meta, &authoritative_context)` repeats reference,
@@ -50,9 +52,10 @@ Rule's exact text and canonical ErrorCode, including the different ordinary and
 survey codes for the same missing-recipient string. Busy errors select their code
 from the requested mode and print the currently active kind.
 
-Tests cover all seven modes, both pick kinds, quoting, standalone judging,
-explicit solution selections, source eligibility, all eight exports, atomic
-three-variable staging, Unicode spans, lexical precedence and contextual controls.
+Tests cover eighteen mode grammars and their enable switches, both pick kinds,
+quoting, standalone judging, explicit solution selections, source eligibility,
+nineteen export scopes, atomic eight-variable staging, Unicode spans, lexical
+precedence, segmented Tune/Rank/Trace inputs and version-bound human controls.
 The original generated round trips use unchanged context and metadata; additional
 properties preserve arbitrary literal continuation/acceptance text. Request tests
 exercise the public parser boundary and shared mapping without a store or engine.
@@ -69,3 +72,18 @@ exercise the public parser boundary and shared mapping without a store or engine
 - Standalone `@judge` overrides recipient-combination errors; other recipient errors
   compete by their token positions.
 - `/export room` accepts no ID; the other scopes accept an optional UUIDv7 ID.
+
+## M8/M9 availability and human controls
+
+`ENABLED` in each owned protocol module is authoritative for starts, help and
+completion. The original 166 released examples and snapshot retain their old
+export usage through a scoped test activation override; current enabled exports
+and help are checked separately. Override state is restored after each fixture.
+
+The full inventory adds forge, forecast, decide, negotiate, blow_it_up, readback,
+debug, trace, rank, tune and bass_ackwards_prd. The authoritative forms and stored
+variable ranges are in `docs/prd/03-command-grammar-and-parser.md` and sections
+11/12. Rank's public minimum stays three; D102 caps replication for the typed
+two-member design boundary. `/answer`, Readback choice tokens and `/continue`
+bind to the pending human step and its state version. Human silence supplies no
+answer. Inline PRD review is frozen before its extra call is priced.

@@ -1784,7 +1784,15 @@
       ],
       "provider_user_name": "squad",
       "step": "forecast.frame",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "forecast.estimate",
@@ -1813,7 +1821,6 @@
     {
       "id": "forecast.cruxes",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1821,7 +1828,15 @@
       ],
       "provider_user_name": "squad",
       "step": "forecast.cruxes",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "decide.options",
@@ -1845,7 +1860,15 @@
       ],
       "provider_user_name": "squad",
       "step": "decide.shortlist",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "decide.criteria",
@@ -1869,7 +1892,15 @@
       ],
       "provider_user_name": "squad",
       "step": "decide.freeze",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "decide.score",
@@ -1886,7 +1917,6 @@
     {
       "id": "decide.explain",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -1894,7 +1924,15 @@
       ],
       "provider_user_name": "squad",
       "step": "decide.explain",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "negotiate.map",
@@ -1918,7 +1956,15 @@
       ],
       "provider_user_name": "squad",
       "step": "negotiate.brief",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "negotiate.package",
@@ -1966,7 +2012,15 @@
       ],
       "provider_user_name": "squad",
       "step": "negotiate.playbook",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "blow_it_up.attack",
@@ -1995,7 +2049,6 @@
     {
       "id": "blow_it_up.rule",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2003,7 +2056,15 @@
       ],
       "provider_user_name": "squad",
       "step": "blow_it_up.rule",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "readback.interpret",
@@ -2020,7 +2081,6 @@
     {
       "id": "readback.diff",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2028,7 +2088,15 @@
       ],
       "provider_user_name": "squad",
       "step": "readback.diff",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "readback.rewrite",
@@ -2040,7 +2108,15 @@
       ],
       "provider_user_name": "squad",
       "step": "readback.rewrite",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "debug.hypothesize",
@@ -2057,7 +2133,6 @@
     {
       "id": "debug.merge",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2065,7 +2140,15 @@
       ],
       "provider_user_name": "squad",
       "step": "debug.merge",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "debug.test",
@@ -2082,7 +2165,6 @@
     {
       "id": "debug.select",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2090,7 +2172,15 @@
       ],
       "provider_user_name": "squad",
       "step": "debug.select",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "debug.report",
@@ -2102,7 +2192,15 @@
       ],
       "provider_user_name": "squad",
       "step": "debug.report",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "trace.extract",
@@ -2119,7 +2217,6 @@
     {
       "id": "trace.merge",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2127,7 +2224,15 @@
       ],
       "provider_user_name": "squad",
       "step": "trace.merge",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "trace.verify",
@@ -2151,7 +2256,15 @@
       ],
       "provider_user_name": "squad",
       "step": "trace.assemble",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "rank.compare",
@@ -2168,7 +2281,6 @@
     {
       "id": "rank.explain",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2176,7 +2288,15 @@
       ],
       "provider_user_name": "squad",
       "step": "rank.explain",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "tune.cases",
@@ -2193,7 +2313,6 @@
     {
       "id": "tune.freeze",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2201,12 +2320,19 @@
       ],
       "provider_user_name": "squad",
       "step": "tune.freeze",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "tune.score",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2214,7 +2340,15 @@
       ],
       "provider_user_name": "squad",
       "step": "tune.score",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "tune.mutate",
@@ -2243,7 +2377,6 @@
     {
       "id": "bass_ackwards_prd.freeze",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2251,7 +2384,15 @@
       ],
       "provider_user_name": "squad",
       "step": "bass_ackwards_prd.freeze",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "bass_ackwards_prd.tree",
@@ -2268,7 +2409,6 @@
     {
       "id": "bass_ackwards_prd.merge",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2276,7 +2416,15 @@
       ],
       "provider_user_name": "squad",
       "step": "bass_ackwards_prd.merge",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "bass_ackwards_prd.review",
@@ -2293,7 +2441,6 @@
     {
       "id": "bass_ackwards_prd.revise",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2301,7 +2448,15 @@
       ],
       "provider_user_name": "squad",
       "step": "bass_ackwards_prd.revise",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "bass_ackwards_prd.must_have",
@@ -2318,7 +2473,6 @@
     {
       "id": "bass_ackwards_prd.finalize",
       "system": [
-        "judge.system.blind-prefix",
         "judge.system"
       ],
       "user": [
@@ -2326,7 +2480,15 @@
       ],
       "provider_user_name": "squad",
       "step": "bass_ackwards_prd.finalize",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     },
     {
       "id": "bass_ackwards_prd.apply",
@@ -2338,7 +2500,15 @@
       ],
       "provider_user_name": "squad",
       "step": "bass_ackwards_prd.apply",
-      "repair_suffix": "mode.repair"
+      "repair_suffix": "mode.repair",
+      "system_placeholders": [],
+      "system_transform": {
+        "operation": "replace_exact_prefix",
+        "template": "judge.system",
+        "prefix": "You are Squad's summoned judge, running model {{judge_model_slug}}.\n\nThe complete configured room-member roster is {{member_nicks_json}}.\nThe human's name is {{user_name_json}}; their routing identity is @me.\nYou are @judge, separate from the room member @fable and every other\nmember.\n",
+        "replacement_template": "judge.system.blind-prefix",
+        "required_matches": 1
+      }
     }
   ],
   "rules": {

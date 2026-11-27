@@ -481,7 +481,7 @@ These are release acceptance measures, not claims of observed performance:
 - **Crosscheck:** inventories exclude the plan, cell assignments exclude the reviewer’s own inventory items, fresh audits exclude reviewer identities, and every retained cell has evidence, a justified exclusion, or an open gap; risk acceptance remains the human’s decision.
 - **Survey:** extraction, independent voting, anonymous reasons, second votes, and the five report bands preserve the specified visibility limits and distinguish agreement from verified truth.
 - **Probe:** random role assignment, blind contributions, locked predictions, and the decision tree preserve competing explanations and include an unexpected-result branch without declaring one explanation true.
-- **Shared scripts:** all seven modes use the shared engine moves, retain their prescribed behaviour, and enforce one active contest, script-derived preflight, stop, recovery, and export contracts.
+- **Shared scripts:** all eighteen modes use the shared engine moves, retain their prescribed behaviour, and enforce one active contest, script-derived preflight, stop, recovery, and export contracts.
 
 ### Glossary
 
@@ -523,3 +523,17 @@ These are release acceptance measures, not claims of observed performance:
 | Singleton | A census gap found by exactly one member during the blind hunt. |
 | Quiet census | A pass adding no new confirmed gap with an unseen-gap estimate below 2. |
 
+
+### M8/M9 mode inventory
+
+The full design has eighteen contest modes: debate, tournament, grill, census,
+crosscheck, survey, probe, forge, forecast, decide, negotiate, blow_it_up,
+readback, debug, trace, rank, tune and bass_ackwards_prd. Each new protocol
+module's `ENABLED` switch controls its public availability; disabled starts return
+`COMMAND_NOT_IMPLEMENTED` and stay out of help and completion.
+
+The nine M8 additions follow [New modes](11-new-modes.md), and the two M9 additions
+follow [Tune and backward PRDs](12-tune-and-bass-ackwards.md). Readback and Debug
+can pause for human evidence. PRD review is optional and off by default. Human
+steps keep the room's active claim, release participant holds and have no expiry.
+MCP exposure remains roster discovery and the tournament workflow (D87/D100).

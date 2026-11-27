@@ -111,6 +111,10 @@ pub fn examples(ctx: &ParseContext) -> Vec<String> {
         "@all $decide choose a database\n--\nSQLite\nManaged PostgreSQL".into(),
         "@all $blow_it_up ```All requests are accepted without authentication.```".into(),
         "@all $readback The service retains records.".into(),
+        "@all $debug Requests stall after deployment\n--\nInspect local logs only".into(),
+        "@all $trace When is support available?\n--\nSupport is available Monday through Friday."
+            .into(),
+        "@all $negotiate Agree a support contract\n--\nThe vendor wants predictable scope.".into(),
         "@all $rank impact for effort\n--\nfeature A\nfeature B\nfeature C".into(),
     ]);
     examples.extend([

@@ -1,4 +1,5 @@
 //! Private member workers and dynamically discovered case executors.
+mod accounting;
 pub mod contexts;
 mod crosscheck;
 mod judge;
@@ -175,6 +176,7 @@ fn launch_mode(
             }),
         ));
     }
+    let accounting_client = client.clone();
     let judge_model = resolution.judge.model;
     let judge = Arc::new(judge::Runner {
         client,
@@ -204,7 +206,12 @@ fn launch_mode(
     let handle_roster = roster.clone();
     let task = tokio::spawn(async move {
         let _cancel_on_exit = child_cancel.clone().drop_guard();
-        let mut tasks = Vec::new();
+        let mut tasks = vec![accounting::spawn(
+            store.clone(),
+            bus.clone(),
+            accounting_client.clone(),
+            child_cancel.child_token(),
+        )];
         for (nick, renderer, executor) in members {
             let context = contexts::agent_context(
                 store.clone(),
@@ -324,6 +331,7 @@ fn launch_mode(
                 result = Err(e);
             }
         }
+        accounting::finish(&store, &bus, &accounting_client).await;
         result
     });
     Ok(RuntimeHandle {

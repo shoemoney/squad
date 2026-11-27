@@ -379,9 +379,9 @@ Owns only the `rank` module files listed in **New modes → Files each mode work
   - [x] M8.P10.L4.T2 — Render the `RANK` banner, the three dividers, gap markers between neighbours and judgment progress, in crate `squad-tui`, files `crates/squad-tui/src/widgets/rank.rs` and `crates/squad-tui/src/fx/rank.rs`, with view tests in `crates/squad-tui/tests/rank_view.rs`.
 
 - **M8.P10.L5 — Verification and enable**
-  - [ ] M8.P10.L5.T1 — Verify the rank acceptance tests in **New modes**, including identical bits across two runs, plus stop fencing and export, in crate `squad-core`, files `crates/squad-core/tests/rank_workflows.rs` and `crates/squad-core/tests/rank_export.rs`, and executor tests in crate `squad-agents`, file `crates/squad-agents/tests/agents_rank.rs`.
+  - [x] M8.P10.L5.T1 — Verify the rank acceptance tests in **New modes**, including identical bits across two runs, plus stop fencing and export, in crate `squad-core`, files `crates/squad-core/tests/rank_workflows.rs` and `crates/squad-core/tests/rank_export.rs`, and executor tests in crate `squad-agents`, file `crates/squad-agents/tests/agents_rank.rs`.
   - [x] M8.P10.L5.T2 — Verify the pure functions against hand-computed fixtures: design fixtures for n of 3, 7, 8 and 40, Bradley-Terry fixtures to 1e-9, a planted cycle and a disconnected graph, in crate `squad-core`, file `crates/squad-core/tests/rank_tallies.rs`.
-  - [ ] M8.P10.L5.T3 — Write the user-facing mode section in `docs/modes/rank.md` in the README mode-section format, then set `ENABLED = true` in crate `squad-protocol`, file `crates/squad-protocol/src/rank.rs`.
+  - [x] M8.P10.L5.T3 — Write the user-facing mode section in `docs/modes/rank.md` in the README mode-section format, then set `ENABLED = true` in crate `squad-protocol`, file `crates/squad-protocol/src/rank.rs`.
 
 Rank worker evidence (2026-11-26): owned protocol/store/agents/core/TUI fixtures pass, including the direct-runtime seven-call workflow, judge schema repair and transport exhaustion, member skips/quorum, preserved design on recovery, stop fencing, schema/reference validation, scoped artifact/repair readers, deterministic tally fixtures and Markdown/view projections. See `docs/modes/rank.md` for the integration gates. L5.T1 and L5.T3 remain open: the public room judge dispatch and member D75 repair classification are shared-file blockers; no enablement or paid smoke is claimed. L5.T2 is verified with seven design/tally fixtures, including independent 60-digit decimal MM goldens at the specified stopping threshold, with 1e-9 comparisons. The two-member replication corner caps v at m pending an owner/integrator decision.
 
@@ -399,10 +399,14 @@ One worker, after P2 to P10 are merged.
 
 - **M8.P11.L2 — Documentation**
   - [ ] M8.P11.L2.T1 — Fold the nine `docs/modes/*.md` sections into `README.md`: the commands table, the `/set` and `/export` rows, **Contest modes at a glance** (sixteen modes), the contents list and one section per mode.
-  - [ ] M8.P11.L2.T2 — Update the seven-mode wording, the verb and export lists and the variable list in `docs/prd/01-product-overview.md`, `docs/prd/03-command-grammar-and-parser.md` and `crates/squad-protocol/src/parser/PARSER.md`, and add the nine modes' visibility rows to `docs/prd/02-message-protocol-store-and-bus.md`.
-  - [ ] M8.P11.L2.T3 — Add the new templates, their placeholders and word budgets to `docs/prd/09-prompt-pack.md` and `docs/prompt-pack.md`.
+  - [x] M8.P11.L2.T2 — Update the seven-mode wording, the verb and export lists and the variable list in `docs/prd/01-product-overview.md`, `docs/prd/03-command-grammar-and-parser.md` and `crates/squad-protocol/src/parser/PARSER.md`, and add the nine modes' visibility rows to `docs/prd/02-message-protocol-store-and-bus.md`.
+  - [x] M8.P11.L2.T3 — Add the new templates, their placeholders and word budgets to `docs/prd/09-prompt-pack.md` and `docs/prompt-pack.md`.
   - [ ] M8.P11.L2.T4 — Add call-count and cost examples for the nine modes to `docs/costs.md` and a changelog entry to `CHANGELOG.md`.
 
 - **M8.P11.L3 — Review and live check**
   - [ ] M8.P11.L3.T1 — One review pass over the whole milestone against **New modes** and D73 to D87, with findings fixed or recorded.
   - [ ] M8.P11.L3.T2 — Run one live smoke of each mode on low-cost models with the release binary and record calls, cost and any deviation in `docs/live-smoke-<date>.md`.
+
+Rank integration evidence (2026-11-26): M8.P10.L5.T1 and T3 now pass the public OneShot RoomHandle path, seven-call completion/export, private member repair, and all owned rank suites. Rank is enabled. D102 records the typed two-member replication cap; the public parser retains the three-member grammar. The integrated paid smoke is pending and will be recorded separately.
+
+Integration documentation evidence (2026-11-26): README folds the currently enabled mode guides with command, variable, contents and export rows. Product overview, command grammar and parser notes enumerate eighteen designed modes, nineteen scopes and eight stored variables while preserving enable switches. The protocol adds eleven step-visibility rows; Foundations documents automatic PRD exports. Both prompt-pack guides document all fifty new templates, their two shared JSON inputs, output bounds, bare Tune execution and the twenty-four blind judge compositions.

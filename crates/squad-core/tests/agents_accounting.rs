@@ -342,3 +342,103 @@ async fn missing_plan_reservation_rejects_dispatch_without_leaving_running_work(
     assert_eq!(f.status(id), WorkStatus::Failed);
     assert_eq!(f.counts().1, 0);
 }
+
+#[tokio::test]
+async fn cancelled_receipt_reconciles_after_clear_without_restarting_provider_work() {
+    let f = Fixture::new(2, 20_000_000).await;
+    let id = f.send("@member0 cancelled paid call").await[0];
+    f.store
+        .call(move |db| {
+            squad_store::accounting::reserve(
+                db,
+                "late-cancel",
+                Some(id),
+                &chrono::Local::now().format("%Y-%m-%d").to_string(),
+                583_480,
+                20_000_000,
+            )
+        })
+        .unwrap();
+    let grant = f.claim(id, ExecutorKey::Member(nick("member0"))).await;
+    let mut record = account(&grant, None);
+    record.outcome = UsageOutcome::Cancelled;
+    record.provider_request_id = Some("gen-delayed-cancel".into());
+    let result = f
+        .bus
+        .executor_submit(grant.owner.clone())
+        .submit(ExecutorRequest::Account {
+            fence: grant.fence,
+            epoch: grant.epoch,
+            record,
+        })
+        .await;
+    assert!(matches!(result, RequestResult::Accepted { .. }));
+    let pending = f
+        .store
+        .call(|db| {
+            squad_store::accounting::daily(db, &chrono::Local::now().format("%Y-%m-%d").to_string())
+        })
+        .unwrap();
+    assert_eq!(
+        (
+            pending.spent_micros,
+            pending.reserved_micros,
+            pending.unknown_calls
+        ),
+        (0, 583_480, 1)
+    );
+    f.bus
+        .send(Request::Stop {
+            request_id: EventId::new(),
+            target: None,
+        })
+        .await;
+    f.bus
+        .send(Request::Clear {
+            request_id: EventId::new(),
+        })
+        .await;
+    let mut runtime = f.start(OpenMode::OneShot);
+    runtime.ready().await.unwrap();
+    f.fake
+        .generation(
+            "gen-delayed-cancel",
+            serde_json::json!({
+                "tokens_prompt":11,"tokens_completion":17,"total_cost":0.014226,
+            }),
+        )
+        .await;
+    f.until(|| f.counts().2 == 14_226).await;
+    runtime.shutdown().await.unwrap();
+    let settled = f
+        .store
+        .call(|db| {
+            squad_store::accounting::daily(db, &chrono::Local::now().format("%Y-%m-%d").to_string())
+        })
+        .unwrap();
+    assert_eq!(
+        (
+            settled.spent_micros,
+            settled.reserved_micros,
+            settled.unknown_calls
+        ),
+        (14_226, 0, 0)
+    );
+    assert_eq!(f.counts(), (0, 1, 14_226));
+    assert!(f.fake.captured_bodies().await.is_empty());
+    f.store
+        .call(|db| {
+            let attempt: (i64, String, i64) = db.query_row(
+                "SELECT epoch,outcome,reported_cost_micros FROM attempts",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?;
+            assert_eq!(attempt, (1, "cancelled".into(), 14_226));
+            assert_eq!(
+                db.query_row("SELECT epoch FROM room_meta", [], |r| r.get::<_, i64>(0))?,
+                2
+            );
+            Ok(())
+        })
+        .unwrap();
+}

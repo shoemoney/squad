@@ -580,3 +580,130 @@ async fn judge_second_schema_failure_does_not_get_another_repair() {
     assert_eq!(d.state().state, RankStatus::Failed);
     d.store.call(|db|{let (repairs,calls):(i64,i64)=db.query_row("SELECT (SELECT COUNT(*) FROM mode_repairs),(SELECT COUNT(*) FROM attempts WHERE target='judge')",[],|r|Ok((r.get(0)?,r.get(1)?)))?;assert_eq!((repairs,calls),(1,2));Ok(())}).unwrap();
 }
+
+async fn public_run(f: &Fixture, expected_calls: usize) {
+    let room = squad_core::room::RoomHandle::open_with_client(
+        f.config.clone(),
+        "main",
+        OpenMode::OneShot,
+        OpenRouterClient::new(&f.fake.base_url(), "fake-key").unwrap(),
+    )
+    .await
+    .unwrap();
+    let ctx = parser::ParseContext {
+        roster: f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        ..Default::default()
+    };
+    let meta = Default::default();
+    let request = Request::from_parsed_with_context(
+        EventId::new(),
+        parse(START, &meta, &ctx).unwrap(),
+        &meta,
+        &ctx,
+        true,
+    )
+    .unwrap();
+    let result = room.submit(request).await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    let state = tokio::time::timeout(std::time::Duration::from_secs(30), async {
+        loop {
+            let db = rusqlite::Connection::open(f.config.data_dir.join("squad.db")).unwrap();
+            let raw: String = db
+                .query_row(
+                    "SELECT state_json FROM contests WHERE kind='rank'",
+                    [],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            let state: RankState = serde_json::from_str(&raw).unwrap();
+            if state.state.is_terminal() {
+                break state;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("public Rank workflow stalled");
+    assert_eq!(state.state, RankStatus::Complete, "{state:?}");
+    let exported = room
+        .export(ExportScope::Rank, Some(state.contest_id))
+        .await
+        .unwrap();
+    assert!(exported.contains("Win matrix and fitted strengths"));
+    let calls = f.fake.captured_bodies().await;
+    assert_eq!(calls.len(), expected_calls);
+    let judge = calls
+        .iter()
+        .find(|c| c["model"] == "fixture/judge")
+        .unwrap();
+    let system = judge["messages"][0]["content"].as_str().unwrap();
+    for identity in ["@fable", "fixture/judge", "PERSONA_", "member0"] {
+        assert!(
+            !system.contains(identity),
+            "judge header exposes {identity}"
+        );
+    }
+    room.shutdown().await.unwrap();
+    let db = rusqlite::Connection::open(f.config.data_dir.join("squad.db")).unwrap();
+    let totals: (i64, i64) = db.query_row("SELECT COALESCE(SUM(reserved_micros),0),COALESCE(SUM(unknown_calls),0) FROM spend_daily", [], |r| Ok((r.get(0)?,r.get(1)?))).unwrap();
+    assert_eq!(totals, (0, 0));
+}
+
+#[tokio::test]
+async fn public_one_shot_dispatch_completes_rank_and_exports() {
+    public_run(&Fixture::new().await, 7).await;
+}
+
+#[tokio::test]
+async fn public_member_invalid_output_gets_one_private_repair() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct RepairOnce(Arc<AtomicUsize>);
+    impl Respond for RepairOnce {
+        fn respond(&self, request: &HttpRequest) -> ResponseTemplate {
+            if self.0.fetch_add(1, Ordering::SeqCst) == 0 {
+                structured_judge(serde_json::json!({"choices": []}))
+            } else {
+                Answers.respond(request)
+            }
+        }
+    }
+    let f = Fixture::new().await;
+    let count = Arc::new(AtomicUsize::new(0));
+    Mock::given(method("POST"))
+        .and(path("/api/v1/chat/completions"))
+        .and(wiremock::matchers::body_partial_json(
+            serde_json::json!({"model":"fixture/member0"}),
+        ))
+        .respond_with(RepairOnce(count.clone()))
+        .with_priority(1)
+        .mount(&f.fake.server)
+        .await;
+    public_run(&f, 8).await;
+    assert_eq!(count.load(Ordering::SeqCst), 2);
+    let calls = f.fake.captured_bodies().await;
+    let member: Vec<_> = calls
+        .iter()
+        .filter(|c| c["model"] == "fixture/member0")
+        .collect();
+    assert!(
+        member[1]["messages"][1]["content"]
+            .as_str()
+            .unwrap()
+            .contains("Validation errors, encoded as data:")
+    );
+    assert!(
+        !calls
+            .iter()
+            .filter(|c| c["model"] != "fixture/member0")
+            .any(|c| c["messages"][1]["content"]
+                .as_str()
+                .unwrap()
+                .contains("Invalid output, encoded as data:"))
+    );
+}
