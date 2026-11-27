@@ -10,70 +10,83 @@ All notable changes to Squad will be documented in this file, following
 
 ### Added
 
-- Forge, Forecast, Decide, Negotiate, Blow It Up, Readback, Debug, Trace, Rank, Tune and Bass Ackwards PRD
-  modes, including reports, export, recovery, cost previews and private repairs.
-- Eleven integrated default six-member smoke invocations on one release binary
-  (`4bdcd35a…c8c613`), one per new mode, measured in [cost evidence](docs/costs.md).
-  All eleven reached `COMPLETE` with no `judge_failed`; total $10.13 and zero
-  reservations or unknown-cost calls left. Trace is enabled with structured judging
-  and claim selection.
+- Eleven new contest modes: Forge, Forecast, Decide, Negotiate, Blow It Up,
+  Readback, Debug, Trace, Rank, Tune and Bass Ackwards PRD. Each has cost
+  previews, reports, offline export, crash recovery and private repairs; see
+  [docs/modes](docs/modes/).
+- Cross-mode regression suites: router fencing, blind-projection isolation over a
+  hostile roster for every mode (including the Negotiate table view), and
+  recovery at every boundary; plus store reader tests.
 - Public preflight regressions for script-derived call and reservation counts,
   including Tune executors and optional PRD human review.
+- Live evidence on one release binary: eleven default six-member smoke runs, one
+  per mode ($10.13 total), and a final `$negotiate` and `$trace` pair, all `COMPLETE`
+  with zero reservations and zero unknown-cost calls left. See
+  [cost evidence](docs/costs.md) and the
+  [v0.2.0 live smoke](docs/live-smoke-2026-11-27-v0.2.0.md).
 
 ### Performance
 
-- Composed rendering publishes only dirty transcript cards and reuses layout anchors.
-  On the hueb macOS runner (Apple M3 Ultra, 300 s per viewport, 10,000 history
-  cards, twelve 40-delta/s streams) draw p95 fell from 10.8-11.6 ms to
-  2.6 / 0.9 / 3.7 ms at 140x42 / 80x24 / 200x60, under the 6 ms target; key p95
-  is 18.8-20.0 ms and the maximum resize frame 74 / 137 / 77 ms. See
+- Composed rendering publishes only dirty transcript cards, reuses layout anchors
+  and releases completed syntax-fence state. On the macOS runner (Apple M3 Ultra,
+  10,000 history cards, twelve 40-delta/s streams) draw p95 fell from 10.8-11.6 ms
+  to 2.6 / 0.9 / 3.7 ms at 140x42 / 80x24 / 200x60, under the 6 ms target. See
   [performance](docs/performance.md).
 
 ### Fixed
 
-- Blind projections of Forge and Negotiate left a short provider such as `x-ai` readable and substituted `?` where every other mode writes `[redacted]`. Both now redact the provider as a whole token and use `[redacted]`.
-- Trace froze nicks, slugs and personas but not provider or family names, so a word like `openai`, `claude` or `gpt` in a member's claim reached the blind judge. Its frozen token set now includes them.
-- Delayed receipts for timed-out and cancelled attempts are reconciled, so holds
-  no longer outlive their charges (every integrated run ended at $0 reserved).
-- Doctor warns when the data directory permits group/world access and prints
-  a quoted `chmod 700` fix, including macOS’s shared config/data folder.
-- Publish only dirty transcript cards and account for activity on events; reuse
-  layout anchors and release completed syntax-fence state.
-- Negotiate tables use the actual viewport width for side-by-side layout.
-- Negotiate blindness (D81): negotiator and counterpart prompts receive only a
-  counterpart turn's `message`, `response` and `counterOffer`; the hidden
-  `violatedInterest` stays with the judge's playbook input and the human report.
+Accounting and cost safety
+
+- Delayed receipts for timed-out and cancelled attempts are reconciled (while a
+  room is open, after restart and clear, and in a bounded shutdown pass), so holds
+  no longer outlive their charges; unknown receipts keep their holds and known ones
+  update their original billing day once.
 - The receipt reconciler no longer ends the room: a bad row or transient store
   error is logged and skipped, only cancellation stops it, and each unresolved
-  attempt backs off exponentially (10 s doubling to 5 min, 12 tries) instead of being
-  polled every 5 s forever; the conservative hold stays when it gives up.
+  attempt backs off exponentially (10 s doubling to 5 min, 12 tries); the
+  conservative hold stays when it gives up.
 - Work that fails before its provider call (history or frozen-JSON read, decode,
-  render) now fails and releases its hold at zero cost instead of leaking a
-  reservation and an unknown call against the daily cap. A store outage inside a
-  new-mode executor stops the worker like every other path.
+  render) fails and releases its hold at zero cost instead of leaking a reservation
+  and an unknown call against the daily cap. A store outage inside a new-mode
+  executor stops the worker like every other path.
 - Plan pricing refuses a catalog row without a price (`COST_UNKNOWN`) instead of
   treating it as free.
-- `$tune` executor calls on reasoning models carry a separate reasoning allowance
-  and reserve for it, so hidden reasoning cannot consume the 1,024 visible tokens.
-- Bass Ackwards PRD closes its human step through the versioned state save.
+- `$tune` executor calls on reasoning models carry and reserve a separate reasoning
+  allowance, so hidden reasoning cannot consume the 1,024 visible tokens.
+- Inline `PRD_HUMAN_REVIEW=1` freezes the requested review and reserves its call;
+  startup identity-probe receipts keep their separate accounting owner.
+
+Blindness and isolation
+
+- Blind projections redact a short provider such as `x-ai` as a whole token and
+  write `[redacted]` in Forge and Negotiate (they left it readable and wrote `?`).
+- Trace freezes provider and family names, not only nicks, slugs and personas, so
+  `openai`, `claude` or `gpt` in a claim no longer reaches the blind judge.
+- Negotiate (D81): negotiator and counterpart prompts receive only a counterpart
+  turn's `message`, `response` and `counterOffer`; the hidden `violatedInterest`
+  stays with the judge's playbook input and the human report.
+- Blind judge prompts replace the identity header throughout the new modes.
+
+Mode correctness
+
 - Trace counts only verified supporting quotes toward claim status and independent
   sources (counter-quotes stay in the ledger for contradictions), and the final
   judge's ledger carries anonymous verdicts instead of member-nick keys.
-- Bass Ackwards PRD contribution labels (A, T, R, H) come from a persisted seeded
-  permutation, not roster order.
+- Bass Ackwards PRD closes its human step through the versioned state save, and its
+  contribution labels (A, T, R, H) come from a persisted seeded permutation.
 - Offline Readback export of a contest without a terminal report says
   `contest has no terminal report yet` instead of `contest not found`.
-- Debug eliminated rows retain grey styling in the actual compositor.
-- Tournament and Blow It Up fixtures observe stable completion state.
 - Shared new-mode judge dispatch and member validation repairs.
-- Blind judge prompts replace the identity header throughout the new modes.
-- Delayed timeout/cancellation receipts reconcile while a room is open, after
-  restart and clear, and through a bounded shutdown pass. Unknown receipts retain
-  their holds; known receipts update their original billing day once.
-- Keep startup identity-probe receipts with their separate accounting owner.
-- Inline `PRD_HUMAN_REVIEW=1` freezes the requested review and reserves its call.
-- Startup probe concurrency is checked through observed dispatch rather than an
-  ambient wall-clock threshold.
+
+Interface and tooling
+
+- Doctor warns when the data directory permits group/world access and prints a
+  quoted `chmod 700` fix, including macOS's shared config/data folder.
+- Negotiate tables use the actual viewport width for side-by-side layout, and
+  Debug eliminated rows keep their grey styling in the compositor.
+- Test fixtures observe stable completion state, startup probe concurrency is
+  checked through observed dispatch, and the doctor permission test holds on macOS
+  canonical `/private` temp paths.
 
 ## [0.1.3] - 2026-11-26
 

@@ -82,3 +82,16 @@ directory, and the `/continue` send emitted `export.ready` with that path.
 blind-projection fixes (`4bdcd35…`, the integrated build). They completed too (Readback
 $1.448497; PRD reached `LAST LOOK` at $2.163536 after 405.187 s) and were discarded and redone
 on the final binary, so the owner-approved spend for this section is about $7.5 in total.
+
+## Release-candidate smoke: `$negotiate` and `$trace` on the merged tree (2026-11-27, dev2)
+
+Final run on the release build of the merged `release-v0.2.0` tree (fixes and cross-mode
+branches merged, `cargo build --release --locked -p squad-cli`, SHA-256
+`7e7ebbea17f174fcffb028dbbed2760371e06e93c13d147644082cd9a691bbd1`). Built-in six-member roster and
+judge, `SQUAD_DAILY_MAX_USD=150`, a fresh data directory per run, `--env-file /dev/null`, key
+from the vault into the child environment only (every output file was scanned for it).
+
+| Run | Outcome | Wall | Actual | Peak reserved | Final reserved / unknown |
+|---|---|---:|---:|---:|---|
+| `$negotiate` (renewal, weekly deliveries) | COMPLETE, rehearsed, 33 calls | 263.32 s | $1.422555 | $31.902540 | $0 / 0 |
+| `$trace` (three-source retention packet) | COMPLETE, 14 calls | 60.32 s | $0.350807 | $23.791536 | $0 / 0 |
