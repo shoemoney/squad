@@ -10,6 +10,7 @@
 # Each mode runs with its own temp HOME, SQUAD_DATA_DIR and working directory under /dev/shm, so no
 # home or /tmp path can appear on screen. Afterwards every GIF is OCR-scanned; a hit fails the run.
 #
+# SKIP_RECORD=1 re-cuts and re-scans existing raw recordings without calling any model.
 # Cut points default to START/HEAD/TAIL below. Override one mode with CUT_<mode>="a:b:speed ..."
 # (raw seconds, speed 1 = real time), e.g. CUT_debug="8:20:1 20:120:10 120:150:1".
 # Spend note: this calls real models on the default six-model roster. Run it once, on purpose.
@@ -155,7 +156,7 @@ scan() {
 
 failed=0
 for mode in "${MODES[@]}"; do
-  record "$mode"
+  [[ -n ${SKIP_RECORD:-} ]] || record "$mode"
   cut "$mode" || failed=1
   check_length "docs/media/$mode.gif" || failed=1
   scan "docs/media/$mode.gif" 2 || failed=1

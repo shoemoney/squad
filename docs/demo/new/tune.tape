@@ -25,7 +25,8 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 4s
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 2. One generation; original prompt, standalone --, then the goal (Ctrl+J = newline, Enter sends)
 Type '$TUNE_GENERATIONS=1 @all $tune Answer clearly and concisely.'
@@ -37,10 +38,11 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@480s /COMPLETE|tuned/
+Wait+Screen@1200s /Complete ·/
 # 3. Hold on the winning prompt and its held-out scores
 Sleep 10s
 

@@ -25,7 +25,8 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 4s
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 2. Prompt, then a standalone -- line, then one option per line (Ctrl+J = newline, Enter sends)
 Type "@all $decide Choose a database for a small internal service. Prefer low maintenance and reliable backups."
@@ -41,10 +42,11 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@600s /COMPLETE/
+Wait+Screen@1200s /Complete ·/
 # 3. Hold on the totals, contested cells and flip thresholds
 Sleep 10s
 

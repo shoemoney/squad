@@ -37,11 +37,12 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
 # 3. Human step: add one note at LAST LOOK, then continue to saving
-Wait+Screen@900s /LAST LOOK/
+Wait+Screen@1200s /LAST LOOK/
 Sleep 6s
 Type "/answer Add an explicit rollback step for the alerting rollout."
 Sleep 800ms
@@ -50,7 +51,7 @@ Sleep 2s
 Type "/continue"
 Sleep 500ms
 Enter
-Wait+Screen@300s /COMPLETE/
+Wait+Screen@1200s /Complete ·/
 # 4. Hold on the saved-file line and coverage summary
 Sleep 10s
 

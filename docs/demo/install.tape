@@ -11,11 +11,11 @@ Set Width 1200
 Set Height 760
 Set Padding 14
 Set Theme "Catppuccin Mocha"
-Set TypingSpeed 30ms
+Set TypingSpeed 8ms
 Set WindowBar Colorful
 
 Hide
-Type 'export HOME="$(mktemp -d)" && cd "$HOME" && export PS1="\$ " TERM=xterm-256color && clear'
+Type 'export HOME="$(mktemp -d -p /dev/shm)" && cd "$HOME" && export PS1="\$ " TERM=xterm-256color && clear'
 Enter
 Sleep 800ms
 Show
@@ -28,7 +28,7 @@ Enter
 Sleep 400ms
 Type "curl -fsSL -O $B/$A.tar.xz -O $B/$A.tar.xz.sha256"
 Enter
-Sleep 4s
+Sleep 2s
 Type "sha256sum -c $A.tar.xz.sha256"
 Enter
 Sleep 2s
@@ -43,6 +43,6 @@ Enter
 Sleep 2s
 Type "OPENROUTER_API_KEY=sk-or-v1-your-key-here squad doctor | grep -E '^(Config|Cred|Data dir|Overall)' | cut -c1-100"
 Enter
-Sleep 4s
+Sleep 2s
 Screenshot docs/media/doctor-pass.png
-Sleep 3s
+Sleep 2s

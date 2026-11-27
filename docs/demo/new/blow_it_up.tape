@@ -33,10 +33,11 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@480s /COMPLETE/
+Wait+Screen@1200s /Complete ·/
 
 # 2. Ranked findings on screen; the watcher presses F7 after 9 s to expand the killed appendix
 Sleep 20s

@@ -25,7 +25,8 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 4s
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 2. One round, a two-sentence spec with two deliberate ambiguities
 Type '@all $readback $READBACK_ROUNDS=1 The service retains records. The operator deletes backups.'
@@ -33,12 +34,13 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
 # 3. Human step: wait for the pause, then pick readings. Entry numbers and letters come from the
 #    ledger the judge produced; check the first raw take and adjust (1b 2a assumes two entries).
-Wait+Screen@300s /READ IT BACK/
+Wait+Screen@1200s /READ IT BACK/
 Sleep 6s
 Type "1b 2a"
 Sleep 800ms
@@ -48,7 +50,7 @@ Sleep 3s
 Type "/continue"
 Sleep 500ms
 Enter
-Wait+Screen@300s /COMPLETE|converged|rounds_complete/
+Wait+Screen@1200s /Complete ·/
 Sleep 10s
 
 # Done: leave the room

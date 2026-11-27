@@ -25,7 +25,8 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 4s
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 2. One round; symptom, standalone --, then constraints (Ctrl+J = newline, Enter sends)
 Type "/set DEBUG_ROUNDS 1"
@@ -41,12 +42,13 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
 # 3. Human step: the room shows the test and labels O1, O2...; report an outcome.
 #    Pick a label that exists in the first raw take (O2 assumes at least two outcomes).
-Wait+Screen@900s /RUN THE TEST/
+Wait+Screen@1200s /RUN THE TEST/
 Sleep 8s
 Type "/answer O2 The lookup returned the old address; the resolver still points at the retired host."
 Sleep 800ms
@@ -55,7 +57,7 @@ Sleep 2s
 Type "/continue"
 Sleep 500ms
 Enter
-Wait+Screen@600s /COMPLETE/
+Wait+Screen@1200s /Complete ·/
 Sleep 10s
 
 # Done: leave the room

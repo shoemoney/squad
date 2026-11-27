@@ -25,7 +25,8 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 4s
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 2. One round per table; goal, fallback and red line before --, counterpart facts after
 Type "/set NEGOTIATE_ROUNDS 1"
@@ -37,10 +38,11 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@600s /COMPLETE/
+Wait+Screen@1200s /Complete ·/
 # 3. Hold on the rehearsal outcome and the hypothetical-counterpart caveat
 Sleep 10s
 

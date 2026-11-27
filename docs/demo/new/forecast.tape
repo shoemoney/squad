@@ -25,7 +25,8 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 4s
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 2. A yes/no question with a deadline; context after --
 Type "@all $forecast Will the migration finish by 2027-03-31? -- The prototype works; production testing has not started."
@@ -33,10 +34,11 @@ Sleep 800ms
 Escape
 Sleep 300ms
 Enter
-Sleep 5s
+Wait+Screen@180s /Confirm/
+Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@600s /COMPLETE/
+Wait+Screen@1200s /Complete ·/
 # 3. Hold on the pooled probability, spread and signposts
 Sleep 10s
 
