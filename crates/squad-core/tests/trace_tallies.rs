@@ -198,3 +198,53 @@ fn blind_projections_remove_identity_prose_without_changing_evidence() {
     );
     assert!(!blind_system("You are @fable with private identity").contains("@fable"));
 }
+
+#[test]
+fn ledger_counts_support_and_counter_sources_independently() {
+    let sources = vec![
+        trace::TraceSource {
+            source_id: "S1".into(),
+            text: "Records are retained for thirty days.".into(),
+        },
+        trace::TraceSource {
+            source_id: "S2".into(),
+            text: "Retention applies only to production.".into(),
+        },
+    ];
+    let extraction = TraceExtraction {
+        claims: vec![TraceExtractedClaim {
+            local_id: "L1".into(),
+            claim: "Retention".into(),
+            quotes: vec![TraceQuote {
+                source_id: "S1".into(),
+                quote: sources[0].text.clone(),
+            }],
+            counter_quotes: vec![TraceQuote {
+                source_id: "S2".into(),
+                quote: sources[1].text.clone(),
+            }],
+            scope_note: String::new(),
+        }],
+    };
+    let checks = check_quotes("Reader 1", &extraction, &sources);
+    let mut claims = TraceClaims {
+        claims: vec![TraceCanonicalClaim {
+            claim_id: "C1".into(),
+            text: "Retention".into(),
+            sources: vec![TraceClaimRef {
+                member_label: "Reader 1".into(),
+                local_id: "L1".into(),
+            }],
+            shared_origin: vec![],
+        }],
+    };
+    let result = ledger(&claims, &checks, &BTreeMap::new());
+    assert_eq!(result.claims[0].independent_sources, 2);
+    assert_eq!(result.claims[0].status, TraceClaimStatus::Unverified);
+    assert!(result.claims[0].quotes.iter().any(|q| q.counter));
+    claims.claims[0].shared_origin = vec![vec!["S1".into(), "S2".into()]];
+    assert_eq!(
+        ledger(&claims, &checks, &BTreeMap::new()).claims[0].independent_sources,
+        1
+    );
+}

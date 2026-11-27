@@ -302,9 +302,7 @@ impl TraceExtraction {
             )?;
             for q in c.quotes.iter().chain(&c.counter_quotes) {
                 ensure(
-                    !q.source_id.is_empty()
-                        && !q.quote.trim().is_empty()
-                        && q.quote.split_whitespace().count() <= 60,
+                    !q.source_id.is_empty() && q.quote.split_whitespace().count() <= 60,
                     "invalid quote",
                 )?;
             }

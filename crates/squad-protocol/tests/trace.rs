@@ -64,6 +64,12 @@ fn source_aware_extraction_validation_rejects_unknown_source_but_not_missing_quo
     assert!(e.validate_sources(std::slice::from_ref(&source)).is_err());
     let mut known = e;
     known.claims[0].quotes[0].source_id = "S1".into();
+    assert!(
+        known
+            .validate_sources(std::slice::from_ref(&source))
+            .is_ok()
+    );
+    known.claims[0].quotes[0].quote.clear();
     assert!(known.validate_sources(&[source]).is_ok());
 }
 #[test]

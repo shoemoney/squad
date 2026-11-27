@@ -49,7 +49,7 @@ squad send '@all $trace What is the retention period? -- Records are retained fo
    verdict remains missing. Reviewers receive only their assigned claims and
    evidence, without contributor labels. They check entailment and scope; a
    missing qualifier requires a verbatim qualifier quote.
-5. The app freezes the ledger. A claim is **unsupported** with no verified support
+5. The app freezes the ledger. A claim is **unsupported** with no verified quotes
    or unanimous accepted `not_supported` verdicts; **unverified** with quotes but
    no verdicts; **supported** when every accepted verdict says `supported` and
    scope `ok`; otherwise it is **disputed**. A missing reviewer is never a vote.

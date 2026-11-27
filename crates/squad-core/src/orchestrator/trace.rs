@@ -182,8 +182,7 @@ pub fn ledger(
                             .map(|v| (n.clone(), v.clone()))
                     })
                     .collect::<BTreeMap<_, _>>();
-                let supporting = quotes.iter().filter(|q| !q.counter).collect::<Vec<_>>();
-                let ids = supporting
+                let ids = quotes
                     .iter()
                     .map(|q| q.quote.source_id.clone())
                     .collect::<Vec<_>>();
@@ -191,7 +190,7 @@ pub fn ledger(
                     claim_id: c.claim_id.clone(),
                     text: c.text.clone(),
                     status: claim_status(
-                        supporting.len(),
+                        quotes.len(),
                         &verdicts.values().cloned().collect::<Vec<_>>(),
                     ),
                     independent_sources: independent_sources(&ids, &c.shared_origin),
