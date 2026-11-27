@@ -1,6 +1,6 @@
 # Forge
 
-This branch keeps Forge disabled pending the shared integration fixes listed below.
+Forge is enabled. Start it from the composer or with `squad send` as shown below.
 
 `$forge` turns independent drafts into one finished deliverable: an email, launch post, design document or function. The authors of the two strongest drafts each write a fusion. A blind judge ranks those fusions alongside the best original. The original stands unless a fusion beats it.
 
@@ -36,30 +36,41 @@ The Markdown export also includes all accepted drafts, ballots with label maps, 
 
 ## Example run
 
-Not run: the shared outer judge dispatch currently rejects `ForgeJudge`. Live provider spend is $0; no observed wall time, actual cost or real report excerpt is available. Run the owner-approved six-model smoke after the integrator fixes that gate and the full-room test passes.
+One real OpenRouter run on dev2, 2026-11-26, used the default six-member roster and judge, release head `520d1a2`, a fresh private data directory, `--env-file /dev/null`, and `SQUAD_DAILY_MAX_USD=150`. The key was fetched directly into the process environment; no key or real environment file was saved.
 
-## Integration status (2026-11-26)
+```text
+squad send '@all $forge Write a three-sentence launch announcement for PocketNotes, an offline notes app -- Under 75 words. Say notes stay on the device, search works offline, and invite readers to try the free beta. No invented features or claims.' --yes --json
+```
 
-The mode-owned contracts, storage, policy, prompts, executor, report and view are implemented. The shared room runtime still blocks the judge phase. The Forge workflow suite therefore distinguishes direct execution of the owned runtime with real scoped readers and acknowledged router ingress from the pending full-room restart/stop test.
+The run exited zero and reached `COMPLETE` / `original_won` in **75.90 seconds**, including startup, provider work and shutdown. All six drafts and ballots, both fusions and the judge verdict were accepted. Both fusions used their one validation repair because they paraphrased a supplied flaw; the final prompt now explicitly requires copying that flaw's label and text exactly. The smoke's frozen prompts remain unchanged.
 
-Required integrator changes, outside the Forge worker's file ownership:
+- Plan: 15 normal calls, 31 reserved attempts; estimated **$6.410698**, reserved ceiling **$24.723887**.
+- Actual: 17 contest attempts cost **$0.372460**; four startup alias probes cost **$0.001526**; total recorded spend **$0.373986**.
+- Final reservations: **$0**; unresolved calls: **0**. Stored provider usage totals **$0.373985**, differing by one microdollar from per-attempt ledger rounding.
+- `squad export forge <contest-id> -o forge.md` succeeded. The report and export preserve the accepted winning draft byte for byte. No second live send was made.
 
-- `crates/squad-core/src/runtime/judge.rs`, `impl WorkExecutor for Executor`: extend the first structured-mode routing condition with `grant.work.kind.new_mode_judge()`. The inner `Runner` already dispatches new modes to `execute_new_mode`; the outer gate currently sends them to `squad_agents::judge::JudgeExecutor`, whose legacy allowlist rejects `ForgeJudge`. A six-seat full-room fixture completes all fourteen member calls, then leaves the judge work running without a judge HTTP request.
+Report excerpt:
 
-- `crates/squad-core/prompts/manifest.json`, composition `forge.judge`: use `system: ["judge.system"]` and the same `system_transform` as `judge.tournament` (`replace_exact_prefix` of the identity-bearing `judge.system` header with `judge.system.blind-prefix`). The current composition merely prepends a blind prefix and leaves the normal header, including literal `@fable`, intact. Anonymous input values do not remove that literal. Verify captured requests with the default roster after the transform.
-- `crates/squad-store/tests/new_mode_visibility.rs`, fixture history insertion: replace `meta='{}'` with `meta='{"anonymous":true}'` (escaped as needed in the Rust SQL string). Supplying Forge's real schema activates prompt provenance, which reads and validates that history row. All three shared tests currently fail in fixture setup. Equivalent mode-owned tests pass with valid metadata.
+> # FORGE
+>
+> The best draft by @openai stands. No fusion beat it.
+>
+> Meet PocketNotes, an offline notes app that keeps your notes on your device. Search your notes even when you’re offline. Try the free beta today.
 
-Two shared repair restrictions have mode-owned workarounds:
+Local evidence is retained under `/tmp/squad-forge-r2-smoke.nmUj0Z/`: SQLite ledger, stdout/stderr, wall time, summary and Markdown export. These temporary artifacts contain no saved credential.
 
-- `crates/squad-core/src/router/executor.rs`: the failure classifier should include `ErrorCode::MODE_INVALID_OUTPUT` alongside `JUDGE_INVALID_MODE_OUTPUT` in `FailureClass::InvalidOutput`. Forge currently submits the recognized structured-output code for members too, so their second attempt receives repair diagnostics.
-- `crates/squad-core/src/prompts/render.rs`: permit the new mode prefixes in the `mode_step` encoder. Forge currently freezes the admitted step name as a literal into the repair suffix, so it does not pass a rejected `forge.*` value through that legacy encoder.
+## Integration notes (2026-11-26)
 
-No shared source files were changed by this worker. Enablement and the live smoke require the outer judge dispatch fix, followed by the full-room acceptance test.
+The resumed worker applied the owner-approved shared fixes: new-mode judges now enter the structured runner, Forge replaces the judge identity header with the existing blind prefix, and shared visibility fixtures use valid anonymous history metadata. Shared parser and completion expectations now follow Forge enablement. Full-room tests cover fifteen blind requests, the default six roster names, and stop/restart in every provider phase. Restart preserves committed labels, tally, accepted work and fuser selection.
+
+Two mode-owned compatibility workarounds remain: Forge uses `JUDGE_INVALID_MODE_OUTPUT` for structured member repairs because the shared classifier does not yet recognize `MODE_INVALID_OUTPUT`, and it freezes its repair-step name as a literal because the shared `mode_step` encoder accepts only older mode prefixes.
 
 ## Validation evidence (2026-11-26)
 
-- Focused Forge checks: 24 passing; one full-room stop/restart test explicitly ignored pending the integration fixes.
+Source head `1721e3a` passed the final gates on dev2:
+
+- `CARGO_BUILD_JOBS=4 RUST_TEST_THREADS=4 cargo test --workspace --no-fail-fast`: passed, 1,352 unique tests, zero failures. Cargo reports 1,353 passing executions because the WAL subprocess appears twice. The four existing ignores are three manual performance/memory gates and the PTY child entry point exercised by its parent.
+- All 27 Forge checks passed across protocol, store, agents, core workflows/tallies/export and TUI, with no ignored Forge tests. The eleven workflows include the full shared room runtime and restart/stop in every provider phase.
 - `CARGO_BUILD_JOBS=4 cargo clippy --workspace --all-targets -- -D warnings`: passed.
 - `cargo fmt --all -- --check`: passed.
-- `CARGO_BUILD_JOBS=4 cargo test --workspace --no-fail-fast`: completed with four failures: the three malformed shared visibility fixtures above, plus `squad-tui/tests/m4b_tournament_runtime_audit.rs:90` (missing champion). The tournament audit also failed on an isolated rerun. Its wait predicate accepts any `TournamentResult` and then separately checks inactive state; the integrator should wait for the committed `TournamentChampion` before snapshotting, or handle terminal failure explicitly. This failure is outside Forge's owned files.
-- The workspace run built and exercised the release executable through the CLI release tests. No live provider smoke was run, and the mode stays disabled.
+- The workspace gate also rebuilt and exercised the final release CLI. Its enabled-mode usage fixtures, shared visibility checks and tournament champion audit all passed. No shared integration changes remain outstanding for Forge.
