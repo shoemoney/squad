@@ -371,14 +371,19 @@ async fn doctor_warns_about_existing_public_directory_and_send_accepts_symlinks(
         assert!(text.contains("Data directory: writable"), "{text}");
         assert!(text.contains("Data directory mode: 0755"));
         assert!(text.contains("Data directory permissions: WARN"), "{text}");
+        // The warning names the same directory the "writable" line reports (macOS temp
+        // dirs canonicalize under /private), and that directory is the one under test.
+        let reported = text
+            .lines()
+            .find_map(|l| l.strip_prefix("Data directory: writable - "))
+            .expect("writable line");
         assert!(
-            text.contains(&format!(
-                "chmod 700 '{}'",
-                temp.path()
-                    .join(path)
-                    .to_string_lossy()
-                    .replace("'", "'\\''")
-            )),
+            text.contains(&format!("chmod 700 '{}'", reported.replace("'", "'\\''"))),
+            "{text}"
+        );
+        assert_eq!(
+            std::fs::canonicalize(reported).unwrap(),
+            std::fs::canonicalize(&data).unwrap(),
             "{text}"
         );
         let output = invoke_provider(
