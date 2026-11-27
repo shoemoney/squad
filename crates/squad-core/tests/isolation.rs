@@ -360,3 +360,79 @@ async fn tune_executor_requests_are_exempt_and_byte_exact_while_blind_requests_a
     }
     assert!(blind > 10, "only {blind} blind requests were inspected");
 }
+
+/// The negotiator's table view carries only the counterpart's public move fields
+/// (`message`, `response`, `counterOffer`) AND scrubs the hostile roster, providers such
+/// as `x-ai` included, out of them.
+#[test]
+fn negotiate_table_projection_is_field_restricted_and_redacted() {
+    use squad_core::runtime::negotiate::projection;
+    const LEAK: &str = "HIDDEN_INTEREST_LEAK";
+    let (store, c) = started("negotiate");
+    let mut setup = store
+        .call(move |db| Ok(squad_store::negotiate::setup(db, c).unwrap()))
+        .unwrap();
+    let negotiator = setup.participants[0].clone();
+    let counterpart = setup.participants[1].clone();
+    let table = negotiate::NegotiateTable {
+        table: 1,
+        negotiator: negotiator.clone(),
+        counterpart: counterpart.clone(),
+        rounds_used: 1,
+        outcome: None,
+        turns: vec![
+            negotiate::NegotiateTurn {
+                table: 1,
+                round: 1,
+                actor: negotiator.clone(),
+                counterpart: false,
+                body: json!({"message": HOSTILE, "offer": "ten"}),
+            },
+            negotiate::NegotiateTurn {
+                table: 1,
+                round: 1,
+                actor: counterpart,
+                counterpart: true,
+                body: json!({
+                    "message": HOSTILE,
+                    "response": "counter",
+                    "counterOffer": HOSTILE,
+                    "violatedInterest": LEAK,
+                    "hiddenNote": LEAK,
+                }),
+            },
+        ],
+    };
+    setup.tables = vec![table.clone()];
+    let brief = negotiate::NegotiateBrief {
+        strategy_sheet: "s".into(),
+        public_scenario: "p".into(),
+        counterpart_briefs: vec![],
+        assumptions_to_confirm: vec![],
+    };
+    let data = projection(
+        &setup,
+        negotiate::NegotiateStatus::Rehearsing,
+        1,
+        &Target::Member(negotiator),
+        &WorkKind::NegotiateMove,
+        &Default::default(),
+        Some(&brief),
+        &Default::default(),
+        &[table],
+    )
+    .unwrap();
+    let turns = data["transcript"].as_array().unwrap();
+    let public = turns[1]["body"].as_object().unwrap();
+    let mut keys: Vec<_> = public.keys().map(String::as_str).collect();
+    keys.sort_unstable();
+    assert_eq!(keys, ["counterOffer", "message", "response"]);
+    let whole = data.to_string();
+    assert!(!whole.contains(LEAK) && !whole.contains("violatedInterest"));
+    assert_blind("negotiate message", public["message"].as_str().unwrap());
+    assert_blind(
+        "negotiate counterOffer",
+        public["counterOffer"].as_str().unwrap(),
+    );
+    assert!(public["response"].as_str().unwrap() == "counter");
+}
