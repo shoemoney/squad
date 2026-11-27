@@ -2,7 +2,7 @@
 
 `$tune` evolves a prompt against hidden cases, executes every candidate on one fixed model, and chooses a winner on unseen cases. Use it when prompt behavior can be measured against a task.
 
-**Status: implemented behind a disabled switch, pending the shared production judge dispatch fix described below.** The commands describe the enabled mode after integration.
+**Status: enabled.**
 
 ```text
 @all $tune Answer clearly and concisely.
@@ -39,26 +39,56 @@ Six members at the default three generations make at most **60 calls**: 15 membe
 
 ## Example run
 
-No live result or measured dollar cost is claimed. The production wrapper rejects new-mode judge work before the first tune freeze provider call, so the approved live smoke cannot exercise the mode until integration. The fake-provider workflow checks held-out promotion, original retention, perfect-baseline and no-improvement exits, failed proposals/judges/executions, repair, stop, restart and ledger conservation. Its scores and costs are fixtures, not live evidence. At default G=3 the call cap is 60 versus 34 at G=1; **1.765× is a call-count ratio, not a measured cost projection**.
+One release `squad send` ran on dev3 on 2026-11-26 with the default six-model roster, default executor (`anthropic/claude-fable-5.2`), `SQUAD_DAILY_MAX_USD=150`, `TUNE_GENERATIONS=1`, `--yes`, `--env-file /dev/null` and a fresh private data directory. The credential was fetched into the process environment off-screen from the documented aigate vault API, with its connection environment sourced privately (`aigate-key` was absent on this box); no real project `.env` was read.
 
-## Integration requirements
+```text
+$TUNE_GENERATIONS=1 @all $tune Reply with one helpful sentence.
+--
+Classify a support message as exactly one lowercase label: billing for payments, refunds or invoices; technical for errors, access or setup; other for everything else. If billing and technical both apply, billing wins. Return only the label.
+```
 
-Only tune-owned files and tune's milestone tasks were edited.
+The CLI exited **0**, reason **`tuned`**, after **149.53 seconds**. Actual reported spend was **$0.520068** across **31 Tune work calls / 31 Tune provider attempts**. Tune work cost $0.518620; 4 startup capability probes added $0.001448, for 35 total provider attempts. The initial worst-case reservation was **$24.999033** for 72 attempts; the final reservation was **$0.000000**, with **0 unknown-cost calls**. The retained suite had 3 train and 3 held-out cases. Skipped work: 0.
 
-- In `crates/squad-core/src/runtime/judge.rs`, `Executor::execute` must route `grant.work.kind.new_mode_kind().is_some()` through `self.crosscheck.execute`, including `TuneExecute`. `new_mode_judge()` alone misses the bare executor, whose target is also a case. The downstream runner already dispatches to `runtime::tune::execute`. The legacy `JudgeExecutor` currently rejects these grants and leaves them running.
-- In `crates/squad-protocol/src/envelopes.rs`, replace the unconditional rejection of `CaseMaterial::Tune(_)` with validation of the tune material. Then replace the standalone carrier in `router/tune.rs::allocate` with `CaseMaterial::Tune(input)`. The current compatibility carrier stores the same typed JSON with its scoped source step, preserving the capability boundary.
-- In `crates/squad-core/src/prompts/render.rs`, allow new-mode prefixes in the `mode_step` placeholder validator. Tune currently freezes the literal step name in the repair source and removes that unused slot before rendering, so repairs work without this shared edit.
-- In `crates/squad-core/src/router/executor.rs`, treat `MODE_INVALID_OUTPUT` as `FailureClass::InvalidOutput`. Tune uses the already recognized `JUDGE_INVALID_MODE_OUTPUT` for both member and judge structured validation so D75 repair policy works.
+| Work | Calls | Attempts | Actual reported cost |
+|---|---:|---:|---:|
+| `tune.cases` | 6 | 6 | $0.122862 |
+| `tune.execute` | 18 | 18 | $0.088840 |
+| `tune.freeze` | 1 | 1 | $0.093448 |
+| `tune.mutate` | 3 | 3 | $0.057406 |
+| `tune.score` | 3 | 3 | $0.156064 |
+| Startup capability probes | 4 | 4 | $0.001448 |
 
-After the judge dispatch change, enable `squad_protocol::tune::ENABLED`, switch the workflow fixture to the default launcher, verify parser/typeahead/help, rerun all gates, and run the approved release `squad send` with the default six-model roster, `SQUAD_DAILY_MAX_USD=150`, `TUNE_GENERATIONS=1`, `--env-file /dev/null` and a fresh private data directory. Fetch the credential directly into the process environment with `aigate-key openrouter`; never print it. Record measured spend, wall time, initial reservation, final reservation and report excerpt here. Project default-G cost using per-step measured class costs and the extra two generations, explicitly qualifying that estimate.
+Short excerpt from the actual exported report:
+
+> Tuned: 0.14 to 1.00 on held-out cases.
+>
+> Reason: `tuned`
+
+A conditional G=3 cost projection is **$0.827763**: the measured $0.520068, plus two generations of three mutations, 9 executions and one scoring call, priced using the observed per-work costs for those classes (all attempts included). This assumes the same 3 train cases, similar response lengths and retries, and no early saturation. It is an extrapolation, not another live run or a price guarantee. This run's train champion reached 1.00; if identical results recurred at G=3, saturation would skip the extra generations and keep the cost at the one-generation amount.
+
+The generated suite is a smoke check of this task, not a general prompt-quality benchmark. Local evidence on dev3: [full report and reusable suite](/tmp/squad-tune-r2-live-7ainb5hq/report.md), [accounting summary](/tmp/squad-tune-r2-live-7ainb5hq/summary.json), [CLI records](/tmp/squad-tune-r2-live-7ainb5hq/stdout.jsonl) and [run metadata](/tmp/squad-tune-r2-live-7ainb5hq/metadata.json).
+
+## Integration notes
+
+The owner explicitly authorized the minimal shared-file exception needed for enablement. `runtime/judge.rs` forwards new-mode grants to the existing runner, including bare `tune.execute`. The default launcher and public parser/room submission path are exercised in interactive and one-shot workflows. Parser/TUI fixtures now use enabled inventories, Tune's segmented grammar and additive export usage while keeping the original parser snapshots unchanged. The tournament audit waits for the final champion event in its captured page, fixing a race between reading earlier results and newer terminal state.
+
+The compatibility seams inherited from the original worker remain functional: scoped typed Tune JSON is carried in a standalone case envelope because the shared `CaseMaterial::Tune` validator is still disabled; repair sources freeze the literal step name because the shared renderer rejects that prefix in `mode_step`; structured member failures use `JUDGE_INVALID_MODE_OUTPUT` to enter D75 repair handling. No additional shared runtime change is required to run Tune. Optional integration cleanup:
+
+- `crates/squad-protocol/src/envelopes.rs`: validate `CaseMaterial::Tune` instead of rejecting it, then replace the owned standalone carrier with `CaseMaterial::Tune(input)`.
+- `crates/squad-core/src/prompts/render.rs`: accept the new-mode prefixes in `mode_step`, then remove the frozen-literal repair workaround.
+- `crates/squad-core/src/router/executor.rs`: classify `MODE_INVALID_OUTPUT` as `FailureClass::InvalidOutput`, then use that diagnostic for structured member failures.
+
+Authorized shared changes in this branch are `crates/squad-core/src/runtime/judge.rs`; the protocol parser fixtures `new_modes_tests.rs` and `parser_tests.rs`; and the TUI fixtures `actions_shell.rs`, `contest_actions.rs`, `typeahead.rs` and `m4b_tournament_runtime_audit.rs`.
 
 ## Validation
 
-On dev3, 2026-11-26, with `CARGO_BUILD_JOBS=4`, implementation commit `28f9c57d7a5958cc3988c6622319b65057ee20c5` passed:
+On dev3, 2026-11-26, implementation/test head `4682a4ec3645f9bf1d51ca27535458ac26fe9967` passed with `CARGO_BUILD_JOBS=4`:
 
-- `cargo test --workspace --no-fail-fast`: 1,352 unique passing tests, zero failures, four ignored entries. Cargo prints 1,353 passing summary entries because the WAL subprocess repeats one test.
+- `cargo test --workspace --no-fail-fast`: **1,360 unique passing tests**, zero failures, 4 ignored entries. Cargo prints 1,361 passing summary entries because the WAL child repeats one test.
 - `cargo clippy --workspace --all-targets -- -D warnings`.
-- `cargo fmt --all -- --check`.
-- The workspace's release CLI gate built `squad` with `cargo build --release --locked -p squad-cli` and passed its release behavior checks.
+- `cargo fmt --all -- --check` and `git diff --check`.
+- The workspace release gate built `cargo build --release --locked -p squad-cli` and exercised the optimized CLI. The paid smoke used that release binary.
 
-Twenty-seven tune tests were added across protocol, store, agents, core workflow/tally/export, blinding and TUI. The public mode remains disabled. Default-launcher acceptance, the remaining held-out/report crash boundaries, parser/typeahead/help enablement and the real live smoke remain integration work; green injected-runtime tests do not substitute for those checks.
+There are **35 Tune checks**, including **12 production-launcher workflows**; eight checks were added during the resume. Captures verify mutation/scoring privacy and bare executor requests; fixtures cover repairs, skipped members with failed step names, proposal quorum, failed judges/executions, partial case drops, incomplete and empty generations, perfect-baseline/no-improvement exits, named-executor completion, one-shot driving, export and ledger conservation.
+
+Restart and stop checks cover preflight, waiting for earlier ordinary replies, all seven paid phases (including both held-out phases), accepted execution pairs, immutable setup and accepted sheet maps. Reporting and completion share one transaction; reopening a completed run preserves its export and makes no new provider call. Stop releases unstarted reservations while preserving accounted holds for in-flight calls whose billing remains unknown. The failed-step journal field defaults to empty for earlier saved runs. Enabled parser, typeahead, TIP rotation and help checks pass.
