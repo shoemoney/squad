@@ -247,7 +247,7 @@ fn nine_mode_registries_roundtrip() {
     let json = serde_json::to_value(&state).unwrap();
     assert_eq!(json["kind"], "forge");
     assert_eq!(serde_json::from_value::<ContestState>(json).unwrap(), state);
-    assert!(!ContestKind::Forecast.is_built());
+    assert_eq!(ContestKind::Forecast.is_built(), forecast::ENABLED);
     assert_eq!(
         serde_json::to_value(ContestKind::Forecast).unwrap(),
         "forecast"

@@ -2717,8 +2717,7 @@
     "row": 176,
     "input": "@all $forecast will we ship?",
     "m8": true,
-    "error": "Command $forecast is disabled until its implementation lands.",
-    "condition": "disabled"
+    "kind": "forecast"
   },
   {
     "row": 177,
