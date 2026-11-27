@@ -30,8 +30,10 @@ impl CensusView {
         }
         if let Some(s) = &self.state {
             out.push_str(&format!(
-                "Pass {} · plan version {} · {:?}\n",
-                s.pass, s.plan_version, s.status
+                "Pass {} · plan version {} · {}\n",
+                s.pass,
+                s.plan_version,
+                squad_protocol::human::label(&s.status)
             ));
             if let Some(reason) = &s.terminal_reason {
                 out.push_str(&format!("{reason}\n"));

@@ -84,6 +84,10 @@ pub const IDLE_TIMEOUT_MS: u64 = 30_000;
 /// Ordinary reply total timeout in milliseconds.
 pub const TOTAL_TIMEOUT_MS: u64 = 300_000;
 
+/// Upper bound on one post-call provider cost lookup, in milliseconds. A lookup that
+/// does not answer leaves the call's cost unknown instead of stalling the step.
+pub const RECONCILE_TIMEOUT_MS: u64 = 15_000;
+
 /// Debate turn deadline in milliseconds.
 pub const DEBATE_TURN_DEADLINE_MS: u64 = 180_000;
 

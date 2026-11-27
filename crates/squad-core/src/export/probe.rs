@@ -31,7 +31,10 @@ pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
             }
         }
         EnvelopePayload::ProbeState(s) | EnvelopePayload::ContestState(ContestState::Probe(s)) => {
-            heading(out, &format!("Probe · {:?}", s.state));
+            heading(
+                out,
+                &format!("Probe · {}", squad_protocol::human::label(&s.state)),
+            );
             if let Some(reason) = &s.terminal_reason {
                 paragraph(out, reason.as_str());
             }

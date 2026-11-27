@@ -35,7 +35,7 @@ pub fn lines(s: &TuneState) -> Vec<String> {
         TuneStatus::Complete | TuneStatus::Failed | TuneStatus::Reporting | TuneStatus::Stopped => {
             "RESULT".into()
         }
-        _ => format!("{:?}", s.state),
+        _ => squad_protocol::human::label(&s.state),
     };
     vec!["TUNE".into(), divider]
 }

@@ -3,7 +3,11 @@ use squad_protocol::{decide::*, *};
 pub fn lines(state: &DecideState) -> Vec<String> {
     vec![
         "DECIDE".into(),
-        format!("{:?} · version {}", state.state, state.state_version),
+        format!(
+            "{} · version {}",
+            squad_protocol::human::label(&state.state),
+            state.state_version
+        ),
         state
             .terminal_reason
             .as_ref()

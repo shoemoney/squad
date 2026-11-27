@@ -49,6 +49,19 @@ impl FakeOpenRouter {
             .mount(&self.server)
             .await;
     }
+    /// A generation lookup whose response arrives an hour late: the provider never answers.
+    pub async fn generation_hangs(&self, id: &str) {
+        Mock::given(method("GET"))
+            .and(path("/api/v1/generation"))
+            .and(query_param("id", id))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(json!({"data": {}}))
+                    .set_delay(Duration::from_secs(3600)),
+            )
+            .mount(&self.server)
+            .await;
+    }
     /// Ordered scripted calls; when exhausted, fail loudly rather than fabricate success.
     pub async fn completions(&self, responses: Vec<ResponseTemplate>) {
         Mock::given(method("POST"))

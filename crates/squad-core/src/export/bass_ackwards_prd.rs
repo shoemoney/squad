@@ -155,8 +155,8 @@ pub fn render(
     {
         let _ = writeln!(
             out,
-            "# Bass ackwards PRD\n\nNo PRD saved. State: {:?}; result: {}.\n",
-            s.state,
+            "# Bass ackwards PRD\n\nNo PRD saved. State: {}; result: {}.\n",
+            squad_protocol::human::label(&s.state),
             s.terminal_reason.as_ref().map_or("pending", |r| r.as_str())
         );
     }

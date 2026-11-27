@@ -40,8 +40,8 @@ pub fn lines(s: &ForgeState) -> Vec<String> {
     vec![
         "FORGE".into(),
         format!(
-            "{:?}{}",
-            s.state,
+            "{}{}",
+            squad_protocol::human::label(&s.state),
             s.terminal_reason
                 .as_ref()
                 .map(|r| format!(" · {r}"))
@@ -65,7 +65,10 @@ pub fn render(v: &View) -> Vec<String> {
             .filter(|a| a.artifact_kind.as_str() == kind)
         {
             if kind == "forge.draft" {
-                out.push(format!("{:?} · draft (collapsed)", a.actor));
+                out.push(format!(
+                    "{} · draft (collapsed)",
+                    squad_protocol::human::actor_label(&a.actor)
+                ));
             } else if kind == "forge.report" {
                 if let Some(b) = &a.body
                     && let Ok(r) = validation::decode::<forge::ForgeReport>(b)
@@ -74,7 +77,10 @@ pub fn render(v: &View) -> Vec<String> {
                     out.extend(r.body.lines().map(str::to_owned));
                 }
             } else {
-                out.push(format!("{:?} · accepted", a.actor));
+                out.push(format!(
+                    "{} · accepted",
+                    squad_protocol::human::actor_label(&a.actor)
+                ));
             }
         }
     }

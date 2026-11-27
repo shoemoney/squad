@@ -111,6 +111,9 @@ fn full_export_maps_raw_judgments_and_honors_visibility() {
     };
     let output = render(&snapshot, id).unwrap();
     assert!(output.contains("winner=B; More impact"));
+    for leak in ["Some(", "Member(", "Nick("] {
+        assert!(!output.contains(leak), "export leaks {leak}: {output}");
+    }
     assert!(output.contains("A=I") && output.contains("B=I"));
     assert!(render(&snapshot, ContestId::new()).is_err());
     let mut hidden = a;

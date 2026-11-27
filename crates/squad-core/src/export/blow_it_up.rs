@@ -8,15 +8,15 @@ pub fn report_text(report: &BlowItUpReport, expanded: bool) -> String {
         let f = &row.finding;
         let _ = writeln!(
             out,
-            "### {:?} / {:?} · {} · score {}\n\n{}\n\nBlast radius: {}\n\nMitigation: {}\n\nRebuttal: {:?}. Residual: {}\n",
-            f.severity,
-            f.likelihood,
+            "### {} / {} · {} · score {}\n\n{}\n\nBlast radius: {}\n\nMitigation: {}\n\nRebuttal: {}. Residual: {}\n",
+            squad_protocol::human::label(&f.severity),
+            squad_protocol::human::label(&f.likelihood),
             f.title,
             row.score,
             f.exploit,
             f.blast_radius,
             f.mitigation,
-            f.rebuttal_status,
+            squad_protocol::human::label(&f.rebuttal_status),
             f.residual
         );
         let _ = writeln!(
@@ -109,8 +109,8 @@ pub fn render(
             EnvelopePayload::BlowItUpState(s) if s.contest_id == id => {
                 found = true;
                 status = Some(format!(
-                    "Status: {:?}{}\n\n",
-                    s.state,
+                    "Status: {}{}\n\n",
+                    squad_protocol::human::label(&s.state),
                     s.terminal_reason
                         .as_ref()
                         .map(|r| format!(" · {r}"))

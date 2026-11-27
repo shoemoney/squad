@@ -120,8 +120,11 @@ pub fn report_text(report: &RankReport, full: bool) -> String {
             for (i, row) in t.wins.iter().enumerate() {
                 let _ = writeln!(
                     out,
-                    "{}: {:?}; strength {:.17}; ln strength {:.17}",
-                    s.items[i].item_id, row, t.strengths[i], t.scores[i]
+                    "{}: {}; strength {:.17}; ln strength {:.17}",
+                    s.items[i].item_id,
+                    squad_protocol::human::label(&row),
+                    t.strengths[i],
+                    t.scores[i]
                 );
             }
         }
@@ -149,11 +152,11 @@ pub fn report_text(report: &RankReport, full: bool) -> String {
                 if let Some(d) = s.deal[nick].iter().find(|d| d.pair_id == choice.pair_id) {
                     let _ = writeln!(
                         out,
-                        "- @{nick} {}: A={} B={}; winner={:?}; {}",
+                        "- @{nick} {}: A={} B={}; winner={}; {}",
                         choice.pair_id,
                         s.items[d.a].item_id,
                         s.items[d.b].item_id,
-                        choice.winner,
+                        squad_protocol::human::label(&choice.winner),
                         choice.reason
                     );
                 }
@@ -197,7 +200,7 @@ pub fn render(
     }
     let mut out = format!("# RANK {id}\n\n");
     if let Some(s) = state {
-        let _ = writeln!(out, "State: {:?}", s.state);
+        let _ = writeln!(out, "State: {}", squad_protocol::human::label(&s.state));
     }
     for e in &snapshot.events {
         if let EnvelopePayload::ContestArtifact(a) = &e.content

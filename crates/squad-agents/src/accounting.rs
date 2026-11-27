@@ -170,7 +170,12 @@ impl AttemptAccounting {
         let Some(id) = self.record.provider_request_id.as_ref() else {
             return Ok(());
         };
-        let value = client.generation(id).await?;
+        let value = tokio::time::timeout(
+            std::time::Duration::from_millis(constants::RECONCILE_TIMEOUT_MS),
+            client.generation(id),
+        )
+        .await
+        .map_err(|_| crate::openrouter::TransportError::Deadline)??;
         let data = value.get("data").unwrap_or(&value);
         let old = self.record.usage.as_ref();
         let usage = ProviderUsage {

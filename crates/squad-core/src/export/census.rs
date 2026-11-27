@@ -22,8 +22,10 @@ pub fn report_text_with_details(report: &CensusReport, details: bool) -> String 
     for gap in &report.gaps {
         let _ = writeln!(
             out,
-            "- {:?}: {} — {}",
-            gap.disposition, gap.gap.omission, gap.gap.consequence
+            "- {}: {} — {}",
+            squad_protocol::human::label(&gap.disposition),
+            gap.gap.omission,
+            gap.gap.consequence
         );
         let _ = writeln!(
             out,
@@ -130,10 +132,10 @@ pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
         EnvelopePayload::CensusState(s) => super::paragraph(
             out,
             &format!(
-                "Pass {} · plan {} · {:?}{}",
+                "Pass {} · plan {} · {}{}",
                 s.pass,
                 s.plan_version,
-                s.status,
+                squad_protocol::human::label(&s.status),
                 s.terminal_reason
                     .as_ref()
                     .map(|r| format!(" · {r}"))
@@ -164,7 +166,15 @@ pub(super) fn render(out: &mut String, payload: &EnvelopePayload) -> bool {
         EnvelopePayload::CensusRating(r) => {
             super::heading(out, &format!("Rating · @{} · pass {}", r.member, r.pass));
             for g in &r.output.ratings {
-                super::paragraph(out, &format!("{}: {:?} — {}", g.gap_id, g.rating, g.reason));
+                super::paragraph(
+                    out,
+                    &format!(
+                        "{}: {} — {}",
+                        g.gap_id,
+                        squad_protocol::human::label(&g.rating),
+                        g.reason
+                    ),
+                );
                 if let Some(c) = &g.citation {
                     super::paragraph(out, &format!("{}: {}", c.location, c.quote));
                 }

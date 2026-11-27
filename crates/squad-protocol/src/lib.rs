@@ -6,6 +6,7 @@ pub use config::{Nick, ReasoningEffort, SquadConfig};
 pub use constants as limits;
 
 pub mod errors;
+pub mod human;
 pub mod identities;
 pub mod parser;
 pub use errors::ErrorCode;

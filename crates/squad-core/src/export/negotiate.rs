@@ -178,7 +178,12 @@ pub fn render(
         return Err(super::ExportError::ContestNotFound);
     }
     if let Some(s) = state {
-        let _ = writeln!(out, "\nState: {:?} · {:?}", s.state, s.terminal_reason);
+        let _ = writeln!(
+            out,
+            "\nState: {} · {}",
+            squad_protocol::human::label(&s.state),
+            squad_protocol::human::label(&s.terminal_reason)
+        );
     }
     for a in artifacts {
         if a.artifact_kind.as_str() == "negotiate.roles" {
@@ -187,9 +192,9 @@ pub fn render(
         section(
             &mut out,
             &format!(
-                "{} · {:?} · round {}",
+                "{} · {} · round {}",
                 a.artifact_kind,
-                a.actor,
+                squad_protocol::human::actor_label(&a.actor),
                 a.round.unwrap_or(0)
             ),
             &a.body,

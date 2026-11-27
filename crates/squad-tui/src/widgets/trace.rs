@@ -13,8 +13,8 @@ pub fn lines(s: &TraceState) -> Vec<String> {
         }
         .into(),
         format!(
-            "{:?}{}",
-            s.state,
+            "{}{}",
+            squad_protocol::human::label(&s.state),
             s.terminal_reason
                 .as_ref()
                 .map(|r| format!(" · {r}"))
@@ -97,16 +97,21 @@ impl View {
                 if let Some(l) = ledger
                     && let Some(c) = l.claims.iter().find(|c| c.claim_id == *id)
                 {
-                    return std::iter::once(format!("[{}] {:?}: {}", c.claim_id, c.status, c.text))
-                        .chain(c.quotes.iter().filter_map(|q| {
-                            q.span.as_ref().map(|s| {
-                                format!(
-                                    "{} bytes {}..{}: {}",
-                                    q.quote.source_id, s.start, s.end, q.quote.quote
-                                )
-                            })
-                        }))
-                        .collect();
+                    return std::iter::once(format!(
+                        "[{}] {}: {}",
+                        c.claim_id,
+                        squad_protocol::human::label(&c.status),
+                        c.text
+                    ))
+                    .chain(c.quotes.iter().filter_map(|q| {
+                        q.span.as_ref().map(|s| {
+                            format!(
+                                "{} bytes {}..{}: {}",
+                                q.quote.source_id, s.start, s.end, q.quote.quote
+                            )
+                        })
+                    }))
+                    .collect();
                 }
             }
         }

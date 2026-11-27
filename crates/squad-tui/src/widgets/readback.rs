@@ -4,7 +4,11 @@ use squad_protocol::*;
 pub fn lines(s: &ReadbackState) -> Vec<String> {
     vec![
         "READBACK".into(),
-        format!("ROUND {} · {:?}", s.round, s.state),
+        format!(
+            "ROUND {} · {}",
+            s.round,
+            squad_protocol::human::label(&s.state)
+        ),
         s.terminal_reason.as_ref().map_or_else(
             || match s.state {
                 ReadbackStatus::Interpreting => "READINGS".into(),

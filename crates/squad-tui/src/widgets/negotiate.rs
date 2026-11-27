@@ -40,8 +40,8 @@ pub fn lines(s: &NegotiateState) -> Vec<String> {
     vec![
         "NEGOTIATE".into(),
         format!(
-            "{:?}{}",
-            s.state,
+            "{}{}",
+            squad_protocol::human::label(&s.state),
             s.terminal_reason
                 .as_ref()
                 .map(|r| format!(" · {r}"))
@@ -155,8 +155,11 @@ pub fn render_width(v: &View, width: usize) -> Vec<String> {
                 out.push(format!("Walk away: {}", p.walk_away_line));
                 for z in p.zopa_map {
                     out.push(format!(
-                        "ZOPA {}: our limit {}; modelled counterpart {}; overlap {:?}",
-                        z.issue, z.our_limit, z.their_modelled_limit, z.overlap
+                        "ZOPA {}: our limit {}; modelled counterpart {}; overlap {}",
+                        z.issue,
+                        z.our_limit,
+                        z.their_modelled_limit,
+                        squad_protocol::human::label(&z.overlap)
                     ));
                 }
                 for q in p.questions_to_ask {
@@ -247,7 +250,11 @@ fn preparation(r: &negotiate::NegotiateReport) -> Vec<String> {
             m.counterpart_batna
         ));
         for i in &m.counterpart_interests {
-            out.push(format!("Counterpart interest ({:?}): {}", i.basis, i.text));
+            out.push(format!(
+                "Counterpart interest ({}): {}",
+                squad_protocol::human::label(&i.basis),
+                i.text
+            ));
         }
         for z in &m.zopa {
             out.push(format!(

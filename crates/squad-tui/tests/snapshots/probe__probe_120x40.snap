@@ -10,7 +10,7 @@ expression: rows
 Brief: Intermittent noise; fan ruled out; inspect exterior indicator only
 Explainers: alpha, beta, gamma, delta · Checkers: checker1, checker2, checker3, checker4
 Sitting out: @epsilon
-Complete
+complete
 Skipped member: @beta
 Skipped member: @checker3
 Skipped member: @checker4

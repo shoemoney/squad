@@ -5,7 +5,7 @@ expression: result
 Hunting
 CENSUS
 Estimate unavailable
-Pass 1 · plan version 1 · Hunting
+Pass 1 · plan version 1 · hunting
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
@@ -20,7 +20,7 @@ Send singletons to $grill. Stop census first to release its active-contest claim
 Rating
 CENSUS
 Estimate unavailable
-Pass 1 · plan version 1 · Rating
+Pass 1 · plan version 1 · rating
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
@@ -35,7 +35,7 @@ Send singletons to $grill. Stop census first to release its active-contest claim
 WaitingForPlan
 CENSUS
 Estimate unavailable
-Pass 1 · plan version 1 · WaitingForPlan
+Pass 1 · plan version 1 · waiting for plan
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
@@ -52,7 +52,7 @@ contest claim.
 Stopped
 CENSUS
 Estimate unavailable
-Pass 1 · plan version 1 · Stopped
+Pass 1 · plan version 1 · stopped
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
@@ -67,7 +67,7 @@ Send singletons to $grill. Stop census first to release its active-contest claim
 Failed
 CENSUS
 Estimate unavailable
-Pass 1 · plan version 1 · Failed
+Pass 1 · plan version 1 · failed
 Plan 1: Build a database.
 Sources:
 CENSUS · pass 1 · plan version 1
@@ -82,7 +82,7 @@ Send singletons to $grill. Stop census first to release its active-contest claim
 Complete
 CENSUS
 Estimate unavailable
-Pass 1 · plan version 1 · Complete
+Pass 1 · plan version 1 · complete
 Pass limit reached
 Plan 1: Build a database.
 Sources:

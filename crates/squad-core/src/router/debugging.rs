@@ -809,8 +809,12 @@ pub(crate) fn drive_move(
         .collect::<Vec<_>>();
     labelled.sort_by(|a, b| a.0.cmp(&b.0));
     for w in &skipped {
-        run.skipped
-            .push(format!("{} · {:?} · round {}", w.target, s.state, s.round));
+        run.skipped.push(format!(
+            "{} · {} · round {}",
+            w.target,
+            squad_protocol::human::label(&s.state),
+            s.round
+        ));
     }
     let frozen:String=tx.query_row("SELECT map_json FROM contest_private_maps WHERE contest_id=? AND scope_key='debug.prompts'",[s.contest_id.to_string()],|r|r.get(0))?;
     let frozen: serde_json::Value = serde_json::from_str(&frozen)?;
@@ -913,8 +917,9 @@ pub(crate) fn drive_move(
                     state_version: s.state_version + 2,
                     step_id: step,
                     prompt: format!(
-                        "RUN THE TEST\n{instruction}\nEffort: {:?} · Safety: {:?}\n/answer O1 <what you saw>",
-                        test.effort, test.safety
+                        "RUN THE TEST\n{instruction}\nEffort: {} · Safety: {}\n/answer O1 <what you saw>",
+                        squad_protocol::human::label(&test.effort),
+                        squad_protocol::human::label(&test.safety)
                     ),
                     items: selection
                         .outcomes

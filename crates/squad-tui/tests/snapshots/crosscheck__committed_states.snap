@@ -3,7 +3,7 @@ source: crates/squad-tui/tests/crosscheck.rs
 expression: "states.into_iter().map(render).collect::<Vec<_>>().join(\"\\n---\\n\")"
 ---
 CROSSCHECK
-Preflight · plan v1 · grid v1
+preflight · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -28,7 +28,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Extracting · plan v1 · grid v1
+extracting · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -53,7 +53,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Inventorying · plan v1 · grid v1
+inventorying · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -78,7 +78,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-BuildingGrid · plan v1 · grid v1
+building grid · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -103,7 +103,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Reviewing · plan v1 · grid v1
+reviewing · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -128,7 +128,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Auditing · plan v1 · grid v1
+auditing · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -153,7 +153,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Ruling · plan v1 · grid v1
+ruling · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -178,7 +178,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Reporting · plan v1 · grid v1
+reporting · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -203,7 +203,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Complete · plan v1 · grid v1
+complete · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -228,7 +228,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Stopped · plan v1 · grid v1
+stopped · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers
@@ -253,7 +253,7 @@ On COMPLETE: /accept <cellId…> -- <reason>
 
 ---
 CROSSCHECK
-Failed · plan v1 · grid v1
+failed · plan v1 · grid v1
 Plan: Deploy one region, then verify.
 Extracting goal and constraints before blind inventory.
 Blind inventories: 0 · plan hidden from writers

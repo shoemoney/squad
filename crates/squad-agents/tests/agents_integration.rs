@@ -340,6 +340,36 @@ async fn accounting_reconciles_same_attempt_and_keeps_unknown_cost() {
     );
     assert_eq!(server.server.received_requests().await.unwrap().len(), 1);
 }
+/// A cost lookup the provider never answers must not stall the finished call: it ends in
+/// a deadline error within the reconcile bound and the cost stays unknown.
+#[tokio::test(start_paused = true)]
+async fn reconcile_gives_up_when_the_generation_lookup_never_answers() {
+    let f = Fixture::new("alice", "current");
+    let grant = f.grant.lock().unwrap().clone();
+    let mut account = AttemptAccounting::new(&grant, chrono::Utc::now(), "2026-11-24".into());
+    account.usage(&squad_agents::openrouter::Usage {
+        prompt_tokens: Some(10),
+        completion_tokens: Some(20),
+        ..Default::default()
+    });
+    let server = fake::FakeOpenRouter::start().await;
+    server.generation_hangs("stuck").await;
+    let client = OpenRouterClient::new(&server.base_url(), "fixture-key").unwrap();
+    account.metadata(Some("stuck".into()), None);
+    let started = tokio::time::Instant::now();
+    let result = account.reconcile(&client).await;
+    assert!(
+        matches!(result, Err(TransportError::Deadline)),
+        "{result:?}"
+    );
+    assert!(
+        started.elapsed()
+            <= Duration::from_millis(constants::RECONCILE_TIMEOUT_MS) + Duration::from_secs(1),
+        "lookup ran past its bound: {:?}",
+        started.elapsed()
+    );
+    assert_eq!(account.record.usage.as_ref().unwrap().cost_usd, None);
+}
 #[tokio::test]
 async fn cancelled_queued_worker_makes_no_provider_call() {
     let server = fake::FakeOpenRouter::start().await;

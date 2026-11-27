@@ -35,8 +35,11 @@ impl Diagnostics {
         provider_status: Option<u16>,
     ) -> &mut Self {
         self.lines.push(match provider_status {
-            Some(s) => format!("error {code:?} · provider {s}"),
-            None => format!("error {code:?}"),
+            Some(s) => format!(
+                "error {} · provider {s}",
+                squad_protocol::human::label(&code)
+            ),
+            None => format!("error {}", squad_protocol::human::label(&code)),
         });
         self
     }

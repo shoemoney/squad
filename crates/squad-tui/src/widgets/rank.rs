@@ -3,7 +3,7 @@ use squad_protocol::*;
 pub fn lines(state: &RankState) -> Vec<String> {
     vec![
         "RANK".into(),
-        format!("{:?}", state.state),
+        squad_protocol::human::label(&state.state),
         state
             .terminal_reason
             .as_ref()

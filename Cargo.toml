@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/shoemoney/squad"
@@ -20,11 +20,11 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["registry"] }
 tempfile = "3"
-squad-protocol = { path = "crates/squad-protocol", version = "0.2.0" }
-squad-store = { path = "crates/squad-store", version = "0.2.0" }
-squad-agents = { path = "crates/squad-agents", version = "0.2.0" }
-squad-core = { path = "crates/squad-core", version = "0.2.0" }
-squad-tui = { path = "crates/squad-tui", version = "0.2.0" }
+squad-protocol = { path = "crates/squad-protocol", version = "0.2.1" }
+squad-store = { path = "crates/squad-store", version = "0.2.1" }
+squad-agents = { path = "crates/squad-agents", version = "0.2.1" }
+squad-core = { path = "crates/squad-core", version = "0.2.1" }
+squad-tui = { path = "crates/squad-tui", version = "0.2.1" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

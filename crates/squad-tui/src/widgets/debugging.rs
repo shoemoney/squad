@@ -4,7 +4,11 @@ use squad_protocol::*;
 pub fn lines(s: &DebuggingState) -> Vec<String> {
     vec![
         "DEBUG".into(),
-        format!("ROUND {} · {:?}", s.round, s.state),
+        format!(
+            "ROUND {} · {}",
+            s.round,
+            squad_protocol::human::label(&s.state)
+        ),
         match s.state {
             DebuggingStatus::Hypothesizing | DebuggingStatus::Merging => "DIFFERENTIAL",
             DebuggingStatus::AwaitingHuman => {
@@ -116,10 +120,10 @@ pub fn styled_lines(view: &View) -> Vec<ratatui::text::Line<'static>> {
                             };
                             out.push(
                                 Line::from(format!(
-                                    "{} | {} | {:?} | {}",
+                                    "{} | {} | {} | {}",
                                     h.hypothesis.hypothesis_id,
                                     h.hypothesis.cause,
-                                    h.status,
+                                    squad_protocol::human::label(&h.status),
                                     h.consistent_results
                                 ))
                                 .style(style),

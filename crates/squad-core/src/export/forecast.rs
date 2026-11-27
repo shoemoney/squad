@@ -48,8 +48,10 @@ pub fn report_text(r: &ForecastReport) -> String {
         for signpost in &c.signposts {
             let _ = writeln!(
                 out,
-                "- {} — {:?}, by {}",
-                signpost.observable, signpost.direction, signpost.by_when
+                "- {} — {}, by {}",
+                signpost.observable,
+                squad_protocol::human::label(&signpost.direction),
+                signpost.by_when
             );
         }
         out.push_str("\n## Shared assumptions\n\nModels share training data and blind spots.\n");
@@ -130,7 +132,11 @@ pub fn render(
         match &e.content {
             EnvelopePayload::ForecastState(s) => {
                 if let Some(reason) = &s.terminal_reason {
-                    let _ = writeln!(out, "\nOutcome: {:?} ({reason})", s.state);
+                    let _ = writeln!(
+                        out,
+                        "\nOutcome: {} ({reason})",
+                        squad_protocol::human::label(&s.state)
+                    );
                 }
             }
             EnvelopePayload::ContestArtifact(a)
@@ -144,9 +150,9 @@ pub fn render(
                 }
                 let _ = writeln!(
                     out,
-                    "\n## {} — {:?} — {}\n\n```json\n{}\n```",
+                    "\n## {} — {} — {}\n\n```json\n{}\n```",
                     a.artifact_kind,
-                    a.actor,
+                    squad_protocol::human::actor_label(&a.actor),
                     e.commit.accepted_at,
                     serde_json::to_string_pretty(body)
                         .map_err(|_| super::ExportError::InvalidSnapshot)?

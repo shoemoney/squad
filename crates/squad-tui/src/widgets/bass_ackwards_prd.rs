@@ -1,7 +1,10 @@
 //! Durable PRD view; trees remain collapsed in the transcript summary.
 use squad_protocol::*;
 pub fn lines(state: &BassAckwardsPrdState) -> Vec<String> {
-    vec!["BASS ACKWARDS".into(), format!("{:?}", state.state)]
+    vec![
+        "BASS ACKWARDS".into(),
+        squad_protocol::human::label(&state.state),
+    ]
 }
 #[derive(Debug, Clone, Default)]
 pub struct View {

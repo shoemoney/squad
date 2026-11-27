@@ -51,8 +51,13 @@ pub fn report_text(r: &DebuggingReport, details: bool) -> String {
                 if details || t.safety == DebuggingSafety::Risky {
                     let _ = writeln!(
                         out,
-                        "\n{}:{} · {:?} · {:?}\n{}\n{}",
-                        label, t.local_id, t.safety, t.effort, t.test, t.procedure
+                        "\n{}:{} · {} · {}\n{}\n{}",
+                        label,
+                        t.local_id,
+                        squad_protocol::human::label(&t.safety),
+                        squad_protocol::human::label(&t.effort),
+                        t.test,
+                        t.procedure
                     );
                     for prediction in &t.predictions {
                         let _ = writeln!(
@@ -118,8 +123,12 @@ pub fn report_text(r: &DebuggingReport, details: bool) -> String {
             for h in &t.hypotheses {
                 let _ = writeln!(
                     out,
-                    "- {}: {} · {:?}\n  Supporting: {:?}\n  Contradicting: {:?}",
-                    h.local_id, h.cause, h.prior, h.supporting, h.contradicting
+                    "- {}: {} · {}\n  Supporting: {}\n  Contradicting: {}",
+                    h.local_id,
+                    h.cause,
+                    squad_protocol::human::label(&h.prior),
+                    squad_protocol::human::list_label(&h.supporting),
+                    squad_protocol::human::list_label(&h.contradicting)
                 );
             }
         }

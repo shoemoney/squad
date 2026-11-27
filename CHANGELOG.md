@@ -4,7 +4,17 @@ All notable changes to Squad will be documented in this file, following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.1] - 2026-11-27
+
+### Fixed
+
+- Contest panels, transcripts and markdown exports no longer show Rust debug text such as
+  `Some(Member(Nick("claude")))` or raw enum names; states, verdicts and actors read as
+  plain labels and nicks. Regression tests render the new-mode widgets and exports and
+  reject those substrings.
+- The post-call provider cost lookup is bounded at 15 seconds. A lookup that never answered
+  could hold a finished judge call for up to five minutes (per attempt), which looked like a
+  judge that never returned. The cost now stays unknown and the step moves on.
 
 ## [0.2.0] - 2026-11-27
 
