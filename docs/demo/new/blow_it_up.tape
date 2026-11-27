@@ -20,11 +20,11 @@ Set WindowBar Colorful
 Hide
 Type 'unset NO_COLOR; export TERM=xterm-256color HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear'
 Enter
-Type '(until tmux -L demo capture-pane -p -t r 2>/dev/null | grep -q COMPLETE; do sleep 1; done; sleep 9; tmux -L demo send-keys -t r F7) >/dev/null 2>&1 &'
+Type '(until tmux -L demo capture-pane -p -t r 2>/dev/null | grep -q "Complete ·"; do sleep 1; done; sleep 9; tmux -L demo send-keys -t r F7) >/dev/null 2>&1 &'
 Enter
 Type "tmux -L demo -f /dev/null new-session -s r squad ';' set status off"
 Enter
-Sleep 4s
+Sleep 8s
 Show
 
 # 1. Red-team a one-line spec (target in a fenced block)

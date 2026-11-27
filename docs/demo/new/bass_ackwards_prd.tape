@@ -25,7 +25,8 @@ Show
 Type "squad"
 Sleep 600ms
 Enter
-Sleep 4s
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 2. Turn on the optional human review before starting
 Type "/set PRD_HUMAN_REVIEW 1"
