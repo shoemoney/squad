@@ -3,8 +3,8 @@ use crate::validation::{ValidationResult, ensure, unique};
 use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-// The integrator must repair the shared outer judge dispatch before public admission.
-pub const ENABLED: bool = false;
+// Public admission is backed by the shared structured runner.
+pub const ENABLED: bool = true;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum NegotiateStatus {

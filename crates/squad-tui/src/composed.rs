@@ -547,9 +547,10 @@ impl Composed {
                     }
                     Some(ContestState::Forecast(_)) => widgets::forecast::render(&contest.forecast),
                     Some(ContestState::Decide(_)) => widgets::decide::render(&contest.decide),
-                    Some(ContestState::Negotiate(_)) => {
-                        widgets::negotiate::render(&contest.negotiate)
-                    }
+                    Some(ContestState::Negotiate(_)) => widgets::negotiate::render_width(
+                        &contest.negotiate,
+                        usize::from(body_width),
+                    ),
                     Some(ContestState::BlowItUp(_)) => {
                         widgets::blow_it_up::render(&contest.blow_it_up)
                     }

@@ -5,9 +5,9 @@ interests, fallback (BATNA), possible overlap (ZOPA), conditional concessions an
 objections before speaking with the real counterpart. **Hypothetical counterpart,
 not a fact:** a rehearsal deal does not predict the other side's behavior.
 
-This branch keeps the public switch off until the integrator connects the shared
-judge executor. The owned engine and scoped provider workflows are implemented;
-production enable and the paid smoke remain pending that repair.
+The mode is enabled on the integration branch. The shared judge executor, TIP
+example and measured compositor width are connected; integrated validation and
+the paid smoke are recorded below as they complete.
 
 ## Start
 
@@ -29,7 +29,7 @@ NEGOTIATE_ROUNDS=1
 
 The default is three rounds per table; the allowed range is one through six.
 Counterpart text is optional. Without it, inferences are especially uncertain.
-The judge is implicit; do not address `@judge`. After integration, headless use is:
+The judge is implicit; do not address `@judge`. Headless use is:
 
 ```sh
 squad send '@all $negotiate Renew with weekly deliveries and no exclusivity -- Supplier wants faster payment'
@@ -105,17 +105,13 @@ members and committed table outcomes even when no playbook was completed.
 
 ## Example run
 
-A paid production run has **not** been performed. The shared outer judge executor
-routes neither `NegotiateBrief` nor `NegotiatePlaybook` to its existing new-mode
-runner. Enabling and spending on maps would therefore stop at briefing. Actual
-provider cost, wall time, initial reservation versus actual, final holds and a
-real report excerpt remain unmeasured. No fixture output is presented as live.
+The integrated release smoke is pending the current workspace gates.
 
 The credential-free six-member R=3 wiremock workflow completes 29 calls, reserves
 60 attempts and finishes three tables as `unfinished`. Separate workflows verify
 walk-away, all-abandoned, repair, stop and restart. These are test results only.
 
-## Integration handoff
+## Historical worker handoff
 
 - `crates/squad-core/src/runtime/judge.rs`, `Executor::execute`: include
   `grant.work.kind.new_mode_kind().is_some()` in the condition forwarding to
@@ -140,7 +136,10 @@ walk-away, all-abandoned, repair, stop and restart. These are test results only.
   data, the intended roster and `SQUAD_DAILY_MAX_USD=150`. Fetch credentials into
   process memory without printing them and record the ledger and report here.
 
-Only ownership-map files and the mode's M8.P5 task entries are changed.
+The worker changed only ownership-map files and its M8.P5 task entries.
+The integrator has since connected the shared judge dispatch, existing TIP
+example and compositor width, enabled the mode and added public-launcher and
+composed-layout regressions.
 
 ## Worker verification (2026-11-26)
 

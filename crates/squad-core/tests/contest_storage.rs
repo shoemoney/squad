@@ -10,14 +10,20 @@ fn nick(s: &str) -> MemberNick {
 }
 
 fn fixture() -> (Store, Router) {
+    fixture_with_members(&["alice", "bob", "carol"])
+}
+
+fn fixture_with_members(names: &[&str]) -> (Store, Router) {
     let store = Store::open(":memory:").unwrap();
     store.call(|db| {
         db.execute("INSERT INTO catalog VALUES ('test/model',131072,65536,'{\"prompt\":\"0\",\"completion\":\"0\"}','[]','2026-11-25T00:00:00Z')", [])?;
         Ok(())
     }).unwrap();
-    let roster = vec![nick("alice"), nick("bob"), nick("carol")];
-    let bindings = ["alice", "bob", "carol", "judge"]
-        .into_iter()
+    let roster = names.iter().map(|name| nick(name)).collect();
+    let bindings = names
+        .iter()
+        .copied()
+        .chain(std::iter::once("judge"))
         .map(|n| {
             (
                 n.into(),
@@ -428,7 +434,7 @@ fn eighteen_kinds_share_exactly_one_active_claim() {
 
 #[test]
 fn new_mode_admission_names_each_active_kind_without_starting_work() {
-    let (store, router) = fixture();
+    let (store, router) = fixture_with_members(&["alice", "bob", "carol", "dave"]);
     let starts = [
         ("forge", "@all $forge Write a short launch post"),
         (

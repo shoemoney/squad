@@ -10,7 +10,7 @@ All notable changes to Squad will be documented in this file, following
 
 ### Added
 
-- Forge, Forecast, Decide, Blow It Up, Readback, Rank, Tune and Bass Ackwards PRD
+- Forge, Forecast, Decide, Negotiate, Blow It Up, Readback, Rank, Tune and Bass Ackwards PRD
   modes, including reports, export, recovery, cost previews and private repairs.
 - Eight integrated default six-member smoke invocations, with measured cost,
   time and reservations in [cost evidence](docs/costs.md). Seven completed;
@@ -20,6 +20,9 @@ All notable changes to Squad will be documented in this file, following
 
 ### Fixed
 
+- Publish only dirty transcript cards and account for activity on events; reuse
+  layout anchors and release completed syntax-fence state.
+- Negotiate tables use the actual viewport width for side-by-side layout.
 - Shared new-mode judge dispatch and member validation repairs.
 - Blind judge prompts replace the identity header throughout the new modes.
 - Delayed timeout/cancellation receipts reconcile while a room is open, after

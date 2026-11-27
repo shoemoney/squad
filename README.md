@@ -16,7 +16,7 @@ _A real recording with the v0.1.2 release binary against OpenRouter, about 46 s.
 
 ## 📍 Status
 
-This branch includes **15 enabled contest modes** over one shared engine. The built-in default roster has six members. Integrated live-run evidence is recorded in [costs](docs/costs.md) as verification completes.
+This branch includes **16 enabled contest modes** over one shared engine. The built-in default roster has six members. Integrated live-run evidence is recorded in [costs](docs/costs.md) as verification completes.
 
 Features carried forward from 0.1.3:
 
@@ -49,6 +49,7 @@ Features carried forward from 0.1.3:
 - [Forge](#forge)
 - [Forecast](#forecast)
 - [Decide](#decide)
+- [Negotiate](#negotiate)
 - [Blow It Up](#blow-it-up)
 - [Readback](#readback)
 - [Rank](#rank)
@@ -286,6 +287,7 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `$forge` | Write and fuse drafts. |
 | `$forecast` | Frame and pool a probabilistic forecast. |
 | `$decide` | Compare options against an agreed rubric. |
+| `$negotiate` | Prepare and rehearse a negotiation. |
 | `$blow_it_up` | Attack a plan and challenge the attacks. |
 | `$readback` | Resolve conflicting readings with the human. |
 | `$rank` | Order human-supplied items by pair comparison. |
@@ -297,7 +299,7 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `/answer <text>` | Records the human’s answer at a pending Readback, Debug or PRD review step. |
 | `/continue` | Continues a waiting census or closes a pending human step with the supplied answers. |
 | `/stop` or `/stop @nick` | Stops all work, or one member's work. |
-| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `blow_it_up`, `readback`, `rank`, `tune`, `bass_ackwards_prd`. |
+| `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `negotiate`, `blow_it_up`, `readback`, `rank`, `tune`, `bass_ackwards_prd`. |
 | `/clear` | **Wipes the stored room.** It is not a display-only action. |
 
 Each mode has its own rules and cost preview. Those are covered in the mode sections of this README.
@@ -335,7 +337,7 @@ Question-first grills work the same way. Pick one member to be grilled.
 
 ### Composer suggestions
 
-Composer suggestions open automatically after `@` (live roster), `$` (15 contest modes),
+Composer suggestions open automatically after `@` (live roster), `$` (16 contest modes),
 or `/` at the start (supported slash commands). Tab always opens suggestions, including
 a starter menu in an empty draft or matches for an unmarked word (`gro` → `@grok`,
 `deb` → `$debate`). Press Tab again or Enter to insert the selection and a space.
@@ -621,7 +623,7 @@ Benchmark-only variables, read by `cargo bench` and not used by the app:
 
 ## 🎛️ Contest modes at a glance
 
-Squad has **15 contest modes**. Each one is a script that runs on the same shared engine, and **only one contest can run per room at a time**.
+Squad has **16 contest modes**. Each one is a script that runs on the same shared engine, and **only one contest can run per room at a time**.
 
 | Mode | Start with | What it's for | Blind steps? | Normal model calls | Ends with | Export |
 |---|---|---|---|---|---|---|
@@ -635,6 +637,7 @@ Squad has **15 contest modes**. Each one is a script that runs on the same share
 | Forge | `@all $forge` with its required source/segments | Write and fuse drafts | Yes | `2m + 3` | Winning original or fusion | `/export forge [id]` |
 | Forecast | `@all $forecast` with its required source/segments | Frame and pool a probabilistic forecast | Yes | `2m + 2` | Pooled probability, spread and cruxes | `/export forecast [id]` |
 | Decide | `@all $decide` with its required source/segments | Compare options against an agreed rubric | Yes | `2m + 2 given options; 3m + 3 generated` | App-computed totals and sensitivity | `/export decide [id]` |
+| Negotiate | `@all $negotiate <our side> -- <counterpart>` | Prepare and rehearse a negotiation | Yes | `2m - P + 2PR + 2 maximum` | Strategy and hypothetical table playbook | `/export negotiate [id]` |
 | Blow It Up | `@all $blow_it_up` with its required source/segments | Attack a plan and challenge the attacks | Yes | `2m + 1` | Ranked surviving findings | `/export blow_it_up [id]` |
 | Readback | `@all $readback` with its required source/segments | Resolve conflicting readings with the human | Yes | `R(m + 2) maximum` | Revised spec and open ambiguities | `/export readback [id]` |
 | Rank | `@all $rank` with its required source/segments | Order human-supplied items by pair comparison | Yes | `m + 1` | Bradley–Terry order and cycle audit | `/export rank [id]` |
@@ -1257,6 +1260,109 @@ The report contains options, the frozen rubric, scores, totals and margin, conte
 Examples and verification: [mode guide](docs/modes/decide.md).
 
 
+## Negotiate
+
+Prepare and rehearse a negotiation with models playing both sides. Explore
+interests, fallback (BATNA), possible overlap (ZOPA), conditional concessions and
+objections before speaking with the real counterpart. **Hypothetical counterpart,
+not a fact:** a rehearsal deal does not predict the other side's behavior.
+
+### Start
+
+Select four to twelve members. Put our goal, fallback and private limits before
+`--`, and known counterpart information after it:
+
+```text
+@all $negotiate Renew a supplier contract. Need reliable weekly deliveries.
+Fallback: retain our current supplier. Red line: no exclusive commitment.
+-- The supplier wants predictable volume and faster payment.
+```
+
+For a shorter rehearsal, set the room variable first:
+
+```text
+NEGOTIATE_ROUNDS=1
+@all $negotiate Ask for a paid trial with no exclusivity -- Buyer has a tight launch date
+```
+
+The default is three rounds per table; the allowed range is one through six.
+Counterpart text is optional. Without it, inferences are especially uncertain.
+The judge is implicit; do not address `@judge`. Headless use is:
+
+```sh
+squad send '@all $negotiate Renew with weekly deliveries and no exclusivity -- Supplier wants faster payment'
+```
+
+### What happens
+
+1. Admission freezes inputs, participants, models, prompts, limits and rounds.
+   The app randomly draws disjoint negotiator/counterpart pairs and shows them.
+   Four or five members make two tables; six through twelve make three.
+   Restart reuses the draw.
+2. Every member independently maps interests, BATNAs, tentative ZOPA and tactics.
+   Counterpart interests are marked `supplied` or `inferred`. Fewer than two
+   accepted maps fails with `insufficient_maps`.
+3. The judge reads anonymous maps and creates our strategy sheet, a safe public
+   scenario and one hidden hypothetical brief per counterpart.
+4. Everyone except counterpart players prepares a package from our side and the
+   strategy sheet. A negotiator whose package failed opens from the strategy.
+5. Tables rehearse in parallel waves. A round is a negotiator move and counterpart
+   reply. Each sees its own transcript. Negotiators never receive hidden briefs;
+   counterparts receive only the public scenario, their own brief and transcript.
+   Negotiators are instructed to keep private fallback and limits out of messages.
+6. `accept` ends a table with `deal`; `walk_away` with `no_deal`. At the round
+   ceiling it is `unfinished`. Exhausting either player's attempts means
+   `abandoned`; a failed reply is never a concession. Impossible future turns
+   release their reservations immediately.
+7. The judge writes a playbook, even if all tables were abandoned: opening,
+   anchors, conditional concession ladder, objections, walk-away line, ZOPA,
+   questions and assumptions. Table notes flag unrealistic accepted concessions
+   against hidden reservations. All-abandoned means no rehearsal evidence.
+
+Members have two attempts, judges three. A schema-invalid first member answer
+gets one repair with diagnostics; transport failures retry normally. Missing moves
+are never fabricated. Judge exhaustion fails while preserving committed evidence.
+Stop fences late replies; restart reuses committed inputs and turns. Interrupted
+unknown charges remain held until shared accounting reconciles them.
+
+### Cost
+
+For `m` members, `P = min(3, floor(m/2))` tables and `R` rounds, ceilings are
+`2m - P + 2PR + 2` calls and `4m - 2P + 4PR + 6` reserved attempts:
+
+| Members | Rounds | Maximum calls | Reserved attempts |
+|---|---|---|---|
+| 4 | 3 | 20 | 42 |
+| 6 | 3 | 29 | 60 |
+| 12 | 3 | 41 | 84 |
+
+These are counts, not measured dollar prices. Reservations cover worst permitted
+retry/repair inputs and outputs. Admission shows the cost plan and follows normal
+confirmation and daily-budget policy. Context overflow fails admission instead of
+dropping evidence. Early table endings reduce work.
+
+### Report and export
+
+The report contains roles, supplied/inferred interests, BATNAs, ZOPA, packages,
+table transcripts and outcomes, playbook, assumptions and skipped work. The human
+sees all briefs with the hypothetical warning. Outcome counts are application
+computed. Breach flags come from the judge's `unrealisticConcessions`, not a claim
+about the actual counterpart. Narrow layouts stack tables; the owned
+`render_width` supports side-by-side wide layouts.
+
+```text
+/export negotiate
+/export negotiate <contest-id>
+```
+
+Markdown adds every accepted map, briefing, package and turn with round/table
+information. Failed/stopped partial contests stay exportable without new calls.
+Exports exclude frozen prompt sources and model configuration. A failure or stop
+after work has begun also commits an assembled partial report, retaining skipped
+members and committed table outcomes even when no playbook was completed.
+
+Examples and verification: [mode guide](docs/modes/negotiate.md).
+
 ## Blow It Up
 
 `$blow_it_up` red-teams a plan, specification, prompt, configuration or diff. It asks how the target breaks or can be exploited, then challenges the attacks before reporting what survived. Use census or crosscheck to look for omissions.
@@ -1491,7 +1597,7 @@ Census, crosscheck, survey and probe set their own judge effort. Every judge cal
 - **One active contest per room.** A competing start is refused with `A {kind} is already running. Stop it before starting another.`
 - **Admission:** every start goes through parsing, then preflight. Preflight estimates the cost and checks it against what's left of the **daily maximum**. If it doesn't fit, the contest is refused with `DAILY_MAX_REACHED`.
 - **Confirmation:** if the estimate is above the confirmation threshold (`SQUAD_DEBATE_CONFIRM_USD`), Squad asks you to confirm. Every preflight, for every mode, expires after **10 minutes**.
-- **Scripts:** all seven modes are scripts over the same moves. Those moves are fan-outs to members in parallel, barriers that commit a report, judge moves, tallies, and the final report.
+- **Scripts:** all modes are scripts over the same moves. Those moves are fan-outs to members in parallel, barriers that commit a report, judge moves, tallies, and the final report.
 - **Holds and fences:** participants are held for the contest. Stopping fences outstanding work, cancels it, and releases reservations for work that never started.
 - **Recovery:** contest progress is stored in SQLite and recovers after a restart.
 - **Blind text:** before anything blind is shown to a member or judge, every nick, configured or resolved model name, provider or family token, and persona is replaced with `[redacted]`.
@@ -1618,6 +1724,7 @@ Export a room or a contest as Markdown. You can do it from inside the room or fr
 | `forge` | Yes, the contest ID | Winning original or fusion. |
 | `forecast` | Yes, the contest ID | Pooled probability, spread and cruxes. |
 | `decide` | Yes, the contest ID | App-computed totals and sensitivity. |
+| `negotiate` | Yes, the contest ID | Hypothetical table transcripts and negotiation playbook. |
 | `blow_it_up` | Yes, the contest ID | Ranked surviving findings. |
 | `readback` | Yes, the contest ID | Revised spec and open ambiguities. |
 | `rank` | Yes, the contest ID | Bradley–Terry order and cycle audit. |

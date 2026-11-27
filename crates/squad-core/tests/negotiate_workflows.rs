@@ -828,3 +828,70 @@ async fn exactly_two_maps_satisfy_quorum_and_skips_are_attributed() {
     assert_eq!(r.skipped.len(), 4);
     assert!(r.playbook.is_some());
 }
+
+#[tokio::test]
+async fn public_one_shot_dispatch_completes_and_exports_negotiate() {
+    let f = Fixture::scenario(6, Scenario::Happy).await;
+    let room = squad_core::room::RoomHandle::open_with_client(
+        f.config.clone(),
+        "main",
+        OpenMode::OneShot,
+        OpenRouterClient::new(&f.fake.base_url(), "fake-key").unwrap(),
+    )
+    .await
+    .unwrap();
+    let ctx = parser::ParseContext {
+        roster: f.config.agents.iter().map(|a| a.nick.clone()).collect(),
+        ..Default::default()
+    };
+    let meta = parser::SubmissionMeta::default();
+    let request = Request::from_parsed_with_context(
+        EventId::new(),
+        parse(BRIEF, &meta, &ctx).unwrap(),
+        &meta,
+        &ctx,
+        true,
+    )
+    .unwrap();
+    let result = room.submit(request).await;
+    assert!(
+        matches!(result, RequestResult::Accepted { .. }),
+        "{result:?}"
+    );
+    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+        while !terminal(&f) {
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .expect("public Negotiate workflow stalled");
+    let state: NegotiateState = serde_json::from_str(
+        &f.db()
+            .query_row(
+                "SELECT state_json FROM contests WHERE kind='negotiate'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(state.state, NegotiateStatus::Complete, "{state:?}");
+    let exported = room
+        .export(ExportScope::Negotiate, Some(state.contest_id))
+        .await
+        .unwrap();
+    assert!(exported.to_lowercase().contains("hypothetical counterpart"));
+    assert_eq!(report(&f).tables.len(), 3);
+    assert_eq!(f.fake.captured_bodies().await.len(), 29);
+    room.shutdown().await.unwrap();
+    f.assert_ledger();
+    let held: i64 = f
+        .db()
+        .query_row(
+            "SELECT COALESCE(SUM(reserved_micros),0) FROM spend_daily",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(held, 0);
+}
