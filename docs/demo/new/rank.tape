@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Pair comparisons, Bradley-Terry order, cycles and split pairs. Shortest run, about 40 s live.
 
-Output docs/media/full/rank.gif
 Output docs/media/full/rank.mp4
 
 Set Shell "bash"

@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Differential of hypotheses, a safe discriminating test, you run it and /answer. Human step. One round. About 150 s to the test.
 
-Output docs/media/full/debug.gif
 Output docs/media/full/debug.mp4
 
 Set Shell "bash"

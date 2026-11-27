@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Hidden cases, mutated prompts, held-out winner. One generation keeps it short. About 150 s live.
 
-Output docs/media/full/tune.gif
 Output docs/media/full/tune.mp4
 
 Set Shell "bash"

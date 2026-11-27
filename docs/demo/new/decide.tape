@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Room proposes criteria, scores every option, the app computes totals and flip points. About 240 s live.
 
-Output docs/media/full/decide.gif
 Output docs/media/full/decide.mp4
 
 Set Shell "bash"

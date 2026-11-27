@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Interest maps, strategy sheet, rehearsal tables with a hypothetical counterpart. One round. About 275 s live (three rounds).
 
-Output docs/media/full/negotiate.gif
 Output docs/media/full/negotiate.mp4
 
 Set Shell "bash"

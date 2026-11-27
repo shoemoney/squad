@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Numbered sources S1.., checked claims, a brief whose paragraphs cite quoted spans. About 100 s live (unmeasured).
 
-Output docs/media/full/trace.gif
 Output docs/media/full/trace.mp4
 
 Set Shell "bash"

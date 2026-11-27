@@ -5,7 +5,6 @@
 # VHS has no function keys, so the room runs inside tmux and a hidden watcher sends F7 after COMPLETE.
 # About 170 s live.
 
-Output docs/media/full/blow_it_up.gif
 Output docs/media/full/blow_it_up.mp4
 
 Set Shell "bash"

@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Dated probability, spread of the room, cruxes and signposts. About 260 s live.
 
-Output docs/media/full/census.gif
 Output docs/media/full/census.mp4
 
 Set Shell "bash"

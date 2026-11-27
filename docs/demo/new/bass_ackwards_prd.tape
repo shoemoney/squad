@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Acceptance tests, backward prerequisite trees, merged PRD, review, optional human LAST LOOK, saved file. Human step. About 410 to 500 s live.
 
-Output docs/media/full/bass_ackwards_prd.gif
 Output docs/media/full/bass_ackwards_prd.mp4
 
 Set Shell "bash"

@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Three-plus drafts, blind ranking, two fusions, blind verdict. About 80 s live.
 
-Output docs/media/full/forge.gif
 Output docs/media/full/forge.mp4
 
 Set Shell "bash"

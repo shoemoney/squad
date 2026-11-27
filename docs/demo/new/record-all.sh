@@ -4,7 +4,7 @@
 # usage: OPENROUTER_API_KEY=... docs/demo/new/record-all.sh /path/to/squad [mode ...]
 #
 # For each mode this writes
-#   docs/media/full/<mode>.gif and .mp4   the raw, full-length recording (VHS)
+#   docs/media/full/<mode>.mp4 (VHS) and .gif   the raw, full-length recording
 #   docs/media/<mode>.gif                 the README cut: <= 25 s, <= 1.5 MB, opens on activity,
 #                                         every sped-up stretch carries a "TIME CUT" label
 # Each mode runs with its own temp HOME, SQUAD_DATA_DIR and working directory under /dev/shm, so no
@@ -66,6 +66,14 @@ record() {
   DEMO_HOME=$dir/home DEMO_WORK=$dir/work SQUAD_DATA_DIR=$dir/data \
     PATH="$work_root/bin:$PATH" TMPDIR=$vhs_tmp \
     vhs "docs/demo/new/$mode.tape"
+}
+
+# The complete recording as a lighter GIF, made from the raw MP4 (VHS's own GIF encode of a long
+# 1400x860 take is memory-hungry and was killed on small hosts).
+full_gif() {
+  local mode=$1 src=docs/media/full/$1.mp4 out=docs/media/full/$1.gif
+  ffmpeg -loglevel error -y -i "$src" -filter_complex "fps=6,scale=1000:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" "$work_root/full.gif"
+  gifsicle -O3 --lossy=80 --colors 96 "$work_root/full.gif" -o "$out" 2>/dev/null
 }
 
 # Default cut: START..START+HEAD real time, the long wait sped up, last TAIL seconds real time.
@@ -157,6 +165,7 @@ scan() {
 failed=0
 for mode in "${MODES[@]}"; do
   [[ -n ${SKIP_RECORD:-} ]] || record "$mode"
+  full_gif "$mode"
   cut "$mode" || failed=1
   check_length "docs/media/$mode.gif" || failed=1
   scan "docs/media/$mode.gif" 2 || failed=1

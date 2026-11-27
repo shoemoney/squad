@@ -3,7 +3,6 @@
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Judge finds divergent readings, pauses at READ IT BACK, you choose meanings, spec is rewritten. Human step. About 60 s to the pause, 165 s total.
 
-Output docs/media/full/readback.gif
 Output docs/media/full/readback.mp4
 
 Set Shell "bash"
