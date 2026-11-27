@@ -45,6 +45,13 @@ pub fn save(
     s: &TraceState,
     expected: Option<u64>,
 ) -> Result<()> {
+    let mut canonical = s.clone();
+    let mut q=tx.prepare("SELECT e.id FROM contest_artifacts a JOIN events e ON e.seq=a.event_seq WHERE a.contest_id=? ORDER BY a.event_seq")?;
+    canonical.artifact_event_ids = q
+        .query_map([s.contest_id.to_string()], |r| r.get::<_, String>(0))?
+        .map(|raw| raw?.parse().map_err(|_| rusqlite::Error::InvalidQuery))
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    let s = &canonical;
     s.validate().map_err(|_| invalid())?;
     if let Some(v) = expected {
         let current: i64 = tx.query_row(

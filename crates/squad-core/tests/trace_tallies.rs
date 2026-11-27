@@ -167,3 +167,25 @@ fn oversized_packet_is_rejected_by_structure_derived_pricing() {
         squad_store::StoreError::Domain(ErrorCode::CONTEXT_TOO_LARGE, _)
     ));
 }
+
+#[test]
+fn blind_projections_remove_identity_prose_without_changing_evidence() {
+    let input = json!({"sources":[{"sourceId":"S1","text":"Fable wrote this evidence."}],"extractions":{"Reader 1":{"claims":[{"localId":"Fable1","claim":"FABLE says retention is conditional","scopeNote":"From fable","quotes":[{"sourceId":"S1","quote":"Fable wrote this evidence."}],"counterQuotes":[]}]}}});
+    let out = blind_input(input.clone(), &["fable".into()]);
+    assert_eq!(out["sources"], input["sources"]);
+    assert_eq!(
+        out["extractions"]["Reader 1"]["claims"][0]["quotes"],
+        input["extractions"]["Reader 1"]["claims"][0]["quotes"]
+    );
+    assert!(
+        out["extractions"]["Reader 1"]["claims"][0]["claim"]
+            .as_str()
+            .unwrap()
+            .contains("[redacted]")
+    );
+    assert_eq!(
+        out["extractions"]["Reader 1"]["claims"][0]["localId"],
+        "Fable1"
+    );
+    assert!(!blind_system("You are @fable with private identity").contains("@fable"));
+}

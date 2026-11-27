@@ -119,7 +119,7 @@ Records persist thirty days. [C1]
 
 [C1] Records retained thirty days
 Status: Supported; independent sources: 1; contributing members: 2
-Quote S1 bytes 0..36: > Records are retained for thirty days.
+Quote S1 bytes 0..37: > Records are retained for thirty days.
 ```
 
 This is test evidence, not a paid live run. No live cost or wall time is claimed.

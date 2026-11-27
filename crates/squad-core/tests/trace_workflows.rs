@@ -395,6 +395,15 @@ async fn owned_real_executors_complete_fourteen_calls_and_export() {
     let (f, store, c) = owned_run(Fault::None).await;
     let state = squad_core::router::trace::load_state(&f.db(), c).unwrap();
     assert_eq!(state.state, TraceStatus::Complete);
+    let stored_artifacts: i64 = f
+        .db()
+        .query_row(
+            "SELECT COUNT(*) FROM contest_artifacts WHERE contest_id=?",
+            [c.to_string()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(state.artifact_event_ids.len() as i64, stored_artifacts);
     let bodies = f.fake.captured_bodies().await;
     assert_eq!(bodies.len(), 14);
     let run = squad_store::trace::run(&f.db(), c).unwrap();

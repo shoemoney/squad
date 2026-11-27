@@ -369,7 +369,7 @@ pub fn blind_system(system: &str) -> String {
     let rest = system
         .find("You cannot see what room members say")
         .map(|i| &system[i..])
-        .unwrap_or(system);
+        .unwrap_or("");
     format!("You are an anonymous evidence editor. No author identities are available.\n{rest}")
 }
 pub fn blind_input(mut data: Value, tokens: &[String]) -> Value {
@@ -379,13 +379,7 @@ pub fn blind_input(mut data: Value, tokens: &[String]) -> Value {
                 for c in claims {
                     for key in ["claim", "scopeNote"] {
                         if let Some(s) = c[key].as_str() {
-                            let mut text = s.to_owned();
-                            for token in tokens {
-                                if !token.is_empty() {
-                                    text = text.replace(token, "[redacted]");
-                                }
-                            }
-                            c[key] = text.into();
+                            c[key] = super::tournament::redact(s, tokens).into();
                         }
                     }
                 }
