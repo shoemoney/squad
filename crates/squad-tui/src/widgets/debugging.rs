@@ -1,7 +1,24 @@
-//! debug view projection belongs here.
+//! Idempotent projection of committed debugging evidence.
+
 use squad_protocol::*;
-pub fn lines(_state: &DebuggingState) -> Vec<String> {
-    vec![]
+pub fn lines(s: &DebuggingState) -> Vec<String> {
+    vec![
+        "DEBUG".into(),
+        format!("ROUND {} · {:?}", s.round, s.state),
+        match s.state {
+            DebuggingStatus::Hypothesizing | DebuggingStatus::Merging => "DIFFERENTIAL",
+            DebuggingStatus::AwaitingHuman => {
+                "RUN THE TEST · answer pending · /answer O1 <what you saw>"
+            }
+            DebuggingStatus::Eliminating => "RESULT",
+            _ => "",
+        }
+        .into(),
+        s.terminal_reason
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_default(),
+    ]
 }
 
 #[derive(Debug, Clone, Default)]
@@ -14,15 +31,68 @@ impl View {
         match payload {
             EnvelopePayload::DebuggingState(s)
             | EnvelopePayload::ContestState(ContestState::Debugging(s)) => {
-                self.state = Some(s.clone())
+                if self.state.as_ref().is_none_or(|old| {
+                    old.contest_id != s.contest_id || old.state_version < s.state_version
+                }) {
+                    self.state = Some(s.clone());
+                }
             }
-            EnvelopePayload::ContestArtifact(a) if a.kind == Some(ContestKind::Debugging) => {
+            EnvelopePayload::ContestArtifact(a)
+                if a.kind == Some(ContestKind::Debugging)
+                    && a.audience == Some(ArtifactAudience::Human) =>
+            {
                 self.artifacts.insert(event, a.clone());
             }
             _ => {}
         }
     }
 }
-pub fn render(_view: &View) -> Vec<String> {
-    vec![]
+pub fn render(view: &View) -> Vec<String> {
+    let Some(state) = &view.state else {
+        return vec![];
+    };
+    let mut out = lines(state);
+    for a in view
+        .artifacts
+        .values()
+        .filter(|a| a.contest_id == state.contest_id)
+    {
+        if let Some(body) = &a.body {
+            match a.artifact_kind.as_str() {
+                "debug.report" if body.get("brief").is_some() => {
+                    if let Ok(r) = validation::decode::<debugging::DebuggingReport>(body) {
+                        out.extend(
+                            squad_core::export::debugging::report_text(&r, false)
+                                .lines()
+                                .map(str::to_owned),
+                        );
+                    }
+                }
+                "debug.merge" => {
+                    if let Ok(d) = validation::decode::<debugging::DebuggingDifferential>(body) {
+                        out.push("DIFFERENTIAL".into());
+                        for h in d.hypotheses {
+                            out.push(format!("{} | {} | live | 0", h.hypothesis_id, h.cause));
+                        }
+                    }
+                }
+                "debug.elimination" => {
+                    if let Ok(d) = validation::decode::<debugging::DebuggingElimination>(body) {
+                        out.push("RESULT · DIFFERENTIAL".into());
+                        for h in d.hypotheses {
+                            out.push(format!(
+                                "{} | {} | {:?} | {}",
+                                h.hypothesis.hypothesis_id,
+                                h.hypothesis.cause,
+                                h.status,
+                                h.consistent_results
+                            ));
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    out
 }
