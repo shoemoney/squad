@@ -78,6 +78,7 @@ fn percentile(samples: &mut [f64], percentile: f64) -> f64 {
 }
 
 fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
+    let historical = env::var("COMPOSED_HISTORICAL").is_ok_and(|v| v == "1");
     let startup = Instant::now();
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_time()
@@ -142,6 +143,9 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
     let mut celebration = 0u64;
     let mut draws = vec![];
     let mut work = vec![];
+    let mut resize_stalls = vec![];
+    let mut resize_frames = vec![];
+    let mut visible_verdict_frames = 0u64;
     let load_start = fs::read_to_string("/proc/loadavg").unwrap_or_default();
     let mut latency = vec![];
     let mut frame_count = 0u64;
@@ -224,7 +228,10 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
             app.session.transcript.anchor = Some((verdict, 0));
             scroll += 1;
         }
+        let mut resized = false;
         if elapsed >= Duration::from_secs(resize * 5) {
+            let resize_start = Instant::now();
+            resized = true;
             let current = if resize.is_multiple_of(2) {
                 width
             } else if width == squad_tui::layout::MIN_WIDTH {
@@ -234,10 +241,19 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
                 width - 1
             };
             app.fx.settle();
+            if !historical {
+                terminal.backend_mut().resize(current, height);
+            }
             terminal.resize(Rect::new(0, 0, current, height)).unwrap();
+            resize_stalls.push(resize_start.elapsed().as_secs_f64() * 1000.);
             resize += 1;
         }
         if elapsed >= Duration::from_secs(celebration * 8) {
+            if !historical {
+                app.session.transcript.follow = false;
+                app.session.transcript.anchor = Some((verdict, 0));
+                app.composed.anchor = None;
+            }
             let at = app.now();
             app.fx.queue_mut().push(
                 FeedOrigin::Live,
@@ -256,8 +272,23 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
         let now = app.now();
         app.expire(now);
         let draw_start = Instant::now();
+        let expected_width = terminal.backend().buffer().area.width;
         let completed = terminal.draw(|f| ui::render(&mut app, f, now)).unwrap();
         let area = completed.buffer.area;
+        if !historical {
+            assert_eq!(area.width, expected_width);
+            if let Some(graphics) = app.composed.graphics.get(&verdict) {
+                let visible = app.composed.graphic_rect(
+                    verdict,
+                    graphics.verdict,
+                    app.composed.top,
+                    app.composed.viewport,
+                );
+                if !visible.is_empty() && elapsed.as_secs() % 8 == 0 {
+                    visible_verdict_frames += 1;
+                }
+            }
+        }
         let geometry =
             squad_tui::layout::with_input_rows(area, app.input.desired_height(area.width));
         for (column, character) in app.input.text().chars().enumerate() {
@@ -271,6 +302,9 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
         let finish = Instant::now();
         draws.push(finish.duration_since(draw_start).as_secs_f64() * 1000.);
         work.push(finish.duration_since(frame_start).as_secs_f64() * 1000.);
+        if resized {
+            resize_frames.push(finish.duration_since(frame_start).as_secs_f64() * 1000.);
+        }
         latency.extend(
             pending
                 .into_iter()
@@ -281,6 +315,21 @@ fn run(width: u16, height: u16, seconds: u64) -> io::Result<()> {
         while next <= finish {
             next += Duration::from_secs_f64(1. / 60.);
         }
+    }
+    if !historical {
+        assert!(
+            visible_verdict_frames > 0,
+            "verdict must be visible during its painter window"
+        );
+    }
+    if !resize_frames.is_empty() {
+        eprintln!(
+            "{width}x{height}: resize_count={} resize_call_p95_ms={:.3} resize_frame_p95_ms={:.3} resize_frame_max_ms={:.3} visible_verdict_frames={visible_verdict_frames} historical={historical}",
+            resize_frames.len(),
+            percentile(&mut resize_stalls, 0.95),
+            percentile(&mut resize_frames, 0.95),
+            resize_frames.iter().copied().fold(0., f64::max)
+        );
     }
     let elapsed = start.elapsed().as_secs_f64();
     let cpu = (process_cpu_seconds()? - cpu_start) / elapsed * 100.;
