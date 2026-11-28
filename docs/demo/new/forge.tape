@@ -1,5 +1,5 @@
 # $forge raw recording (full length, uncut). Record with: docs/demo/new/record-all.sh <squad-binary>
-# Runs the v0.2.0 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
+# Runs the v0.2.1 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Three-plus drafts, blind ranking, two fusions, blind verdict. About 80 s live.
 
@@ -37,7 +37,7 @@ Wait+Screen@180s /Confirm/
 Sleep 1s
 # Preflight card: confirm
 Type "y"
-Wait+Screen@1200s /Complete · [a-z]/
+Wait+Screen@1200s /complete · [a-z]/
 # 3. Hold on the winning artifact
 Sleep 10s
 
