@@ -1210,7 +1210,16 @@ impl Session {
                         .entry(id)
                         .or_default()
                         .apply_payload(content, &base.sender);
-                } else {
+                } else if !c.contest_id.is_some_and(|id| {
+                    matches!(
+                        self.contests.get(&id).and_then(|view| view.state.as_ref()),
+                        Some(ContestState::Tune(_) | ContestState::BlowItUp(_))
+                    )
+                }) {
+                    // These cases scope internal judge work. Their accepted output
+                    // is a contest artifact, not a standalone case.ruling.
+                    // Tune currently uses Standalone material for these jobs, so
+                    // classify by the owning contest rather than case material.
                     self.cases.insert(c.case_id, c.into());
                 }
             }
@@ -1280,7 +1289,10 @@ impl Session {
                 });
             }
             EnvelopePayload::TuneState(s) => {
-                self.restore_contest(ContestState::Tune(s.clone()));
+                let state = ContestState::Tune(s.clone());
+                self.snapshot.context.active_contest =
+                    contest_active(&state).then(|| state.clone());
+                self.restore_contest(state);
             }
             EnvelopePayload::BassAckwardsPrdState(s) => {
                 self.restore_contest(ContestState::BassAckwardsPrd(s.clone()));
@@ -1298,7 +1310,10 @@ impl Session {
                 self.restore_contest(ContestState::Negotiate(s.clone()));
             }
             EnvelopePayload::BlowItUpState(s) => {
-                self.restore_contest(ContestState::BlowItUp(s.clone()));
+                let state = ContestState::BlowItUp(s.clone());
+                self.snapshot.context.active_contest =
+                    contest_active(&state).then(|| state.clone());
+                self.restore_contest(state);
             }
             EnvelopePayload::ReadbackState(s) => {
                 self.restore_contest(ContestState::Readback(s.clone()));
