@@ -730,3 +730,15 @@ Use the workspace checks defined by Foundations: `cargo nextest`, `insta`, `clip
 
 
 Census continuation uses Parser’s `/continue ["<plan>"]`, preserving a single quoted-plan attachment when supplied and mapping to `Request::CensusContinue`. Crosscheck residual-risk acceptance uses `/accept <cellId…> -- <reason>` on a COMPLETE crosscheck and maps to `Request::CrosscheckAccept` with the displayed plan, grid and state version. These controls retain Parser’s exact errors and become executable with their modes in M5.
+
+## App commands (M10)
+
+The composer accepts four app commands, typed with a leading dot. They are handled by `App::submit` before validation: they never reach the shared `/` parser, never build a `Request`, never call a model, and never write outside the current directory.
+
+| Command | Effect |
+|---|---|
+| `.quit`, `.exit` | Leave the room, same path as Ctrl+C. |
+| `.dump` | Write every loaded transcript message (author, status, source, widget rows) in order to `output-<YYYYMMDD-HHMMSS>.txt`. |
+| `.save` | Write the newest member reply to `saved-<YYYYMMDD-HHMMSS>.md`. Reports a notice and writes nothing when there is no agent output. |
+
+Matching is exact after trimming, so `.quit now`, `/quit` and `.5 is a number` stay ordinary input. Files are created with `create_new`; a name collision in the same second gets a `-1`, `-2` suffix and nothing is overwritten. A leading `.` in the composer opens the completion list with these four commands; they are offered only at the start of the draft. Tests: `crates/squad-tui/tests/system_commands.rs`. Plan: `docs/prd/milestones/M10-app-commands.md`.

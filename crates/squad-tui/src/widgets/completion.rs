@@ -161,6 +161,12 @@ impl CompletionState {
                     .map(str::to_string),
                 );
             }
+        } else if prefix.starts_with('.') && start == 0 {
+            candidates.extend(
+                crate::typeahead::SYSTEM_COMMANDS
+                    .iter()
+                    .map(|(name, _)| name.to_string()),
+            );
         } else if prefix.starts_with('/') && start == 0 {
             candidates.extend(
                 squad_protocol::parser::SLASH_COMMANDS

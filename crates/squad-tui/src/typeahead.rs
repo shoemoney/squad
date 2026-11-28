@@ -41,16 +41,27 @@ const MODE_INVENTORY: &[(&str, &str)] = &[
     ),
 ];
 
+/// App commands: typed with a leading dot, handled by the TUI itself, never sent to the room.
+pub const SYSTEM_COMMANDS: &[(&str, &str)] = &[
+    (
+        ".dump",
+        "Write the whole transcript buffer to output-<datetime>.txt",
+    ),
+    (".exit", "Leave the room"),
+    (".quit", "Leave the room"),
+    (".save", "Write the last agent reply to saved-<datetime>.md"),
+];
+
 /// Stable sorting keeps roster/pick priority within each match class.
 pub fn rank(candidate: &str, query: &str) -> Option<u8> {
     let candidate = candidate.to_lowercase();
     let query = query.to_lowercase();
     let (candidate, query) =
-        if let Some(marker) = query.chars().next().filter(|c| "@$/-".contains(*c)) {
+        if let Some(marker) = query.chars().next().filter(|c| "@$/-.".contains(*c)) {
             (candidate.strip_prefix(marker)?, &query[marker.len_utf8()..])
         } else {
             (
-                candidate.trim_start_matches(['@', '$', '/', '-']),
+                candidate.trim_start_matches(['@', '$', '/', '-', '.']),
                 query.as_str(),
             )
         };
@@ -82,6 +93,7 @@ pub fn describe(token: &str, models: &[Model]) -> String {
         .iter()
         .filter(|(token, _)| crate::typeahead::enabled(token))
         .chain(squad_protocol::parser::SLASH_COMMANDS.iter())
+        .chain(SYSTEM_COMMANDS.iter())
         .find(|(name, _)| *name == token)
         .map(|(_, hint)| hint.to_string())
         .unwrap_or_default()

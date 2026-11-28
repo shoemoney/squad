@@ -125,3 +125,33 @@ fn save_writes_only_the_last_agent_reply() {
     assert_ne!(path, app.save_last_output(&dir).unwrap());
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+fn ctx() -> (
+    squad_protocol::parser::ParseContext,
+    squad_protocol::parser::SubmissionMeta,
+) {
+    (Default::default(), Default::default())
+}
+#[test]
+fn a_leading_dot_lists_the_app_commands_and_narrows() {
+    use squad_tui::widgets::completion::CompletionState;
+    let (ctx, meta) = ctx();
+    let all = CompletionState::at(".", 1, &ctx, &meta);
+    assert_eq!(all.items, [".dump", ".exit", ".quit", ".save"]);
+    let narrowed = CompletionState::at(".s", 2, &ctx, &meta);
+    assert_eq!(narrowed.items, [".save"]);
+    assert_eq!(narrowed.replacement().as_deref(), Some(".save "));
+}
+#[test]
+fn dot_commands_are_offered_only_at_the_start_of_the_draft() {
+    use squad_tui::widgets::completion::CompletionState;
+    let (ctx, meta) = ctx();
+    for raw in ["@all .", "hello .", "x.s"] {
+        let state = CompletionState::at(raw, raw.len(), &ctx, &meta);
+        assert!(
+            state.items.iter().all(|item| !item.starts_with('.')),
+            "{raw}: {:?}",
+            state.items
+        );
+    }
+}
