@@ -52,7 +52,7 @@ squad doctor && squad
 
 <sub>Replace `your-key-here` with your [OpenRouter key](https://openrouter.ai/keys). Each block is complete on its own. More install routes and troubleshooting: [Install](#-quick-start).</sub>
 
-> 🚧 **Honest status:** Squad is an early release (**v0.2.0 is out**). All **eighteen** contest modes, the seven originals and the [eleven added in v0.2.0](#-new-modes-in-v020), run end to end against OpenRouter. You need your own [OpenRouter key](https://openrouter.ai/keys) with credit on it. Every cost is measured and sourced in [docs/costs.md](docs/costs.md).
+> 🚧 **Honest status:** Squad is an early release (**v0.2.1 is out**). All **eighteen** contest modes, the seven originals and the [eleven added in v0.2.0](#-new-modes-in-v020), run end to end against OpenRouter. You need your own [OpenRouter key](https://openrouter.ai/keys) with credit on it. Every cost is measured and sourced in [docs/costs.md](docs/costs.md).
 
 **Jump to:** [Install](#-quick-start) · [Contest modes](#-the-arena-the-original-seven-contest-modes) · [New modes](#-new-modes-in-v020) · [The room](#-the-room) · [Costs](#-costs-and-the-safety-net) · [MCP](#-mcp-server) · [CLI](#-cli-one-shot-use) · [Config](#-configuration) · [Architecture](#-architecture) · [Manual](#-reference-manual) · [Troubleshooting](#-troubleshooting) · [Roadmap](#-roadmap)
 
