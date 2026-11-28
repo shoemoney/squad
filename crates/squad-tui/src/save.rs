@@ -50,6 +50,7 @@ fn finished_ok(state: &ContestState) -> bool {
         return false;
     }
     let value = serde_json::to_value(state).unwrap_or_default();
+    let value = value.get("state").unwrap_or(&value);
     let status = ["state", "status"]
         .iter()
         .find_map(|k| value.get(k).and_then(|v| v.as_str()))
@@ -164,65 +165,68 @@ pub fn plan(
     })
 }
 
-fn sections(md: &str) -> (String, Vec<(String, String)>) {
-    let mut preface = String::new();
-    let mut out: Vec<(String, String)> = vec![];
-    for line in md.lines() {
-        if let Some(title) = line.strip_prefix("## ") {
-            out.push((title.trim().to_owned(), String::new()));
-        } else if let Some((_, body)) = out.last_mut() {
-            body.push_str(line);
-            body.push('\n');
-        } else {
-            preface.push_str(line);
-            preface.push('\n');
+/// Locate exporter-owned headings without interpreting headings inside code fences.
+fn heading_offsets(md: &str) -> Vec<(usize, &str)> {
+    let mut out = Vec::new();
+    let mut fence: Option<(char, usize)> = None;
+    let mut offset = 0;
+    for line in md.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        let marker = trimmed.chars().next().unwrap_or(' ');
+        let count = trimmed.chars().take_while(|c| *c == marker).count();
+        if matches!(marker, '`' | '~') && count >= 3 {
+            match fence {
+                Some((c, n)) if c == marker && count >= n => fence = None,
+                None => fence = Some((marker, count)),
+                _ => {}
+            }
+        } else if fence.is_none()
+            && let Some(title) = line.strip_prefix("## ")
+        {
+            out.push((offset, title.trim()));
         }
+        offset += line.len();
     }
-    (preface, out)
+    out
 }
-/// The part of a mode's report a person would copy, never the evidence appendix.
+/// Extract standalone artifacts only at known exporter boundaries. Reports with
+/// multiple substantive sections stay intact; unknown or ambiguous shapes are lossless.
 pub fn headline(md: &str, kind: ContestKind) -> String {
-    if kind == ContestKind::BassAckwardsPrd {
-        return md.trim().to_owned() + "\n";
-    }
-    let (preface, parts) = sections(md);
-    let pick = |needle: &str| {
-        parts
-            .iter()
-            .find(|(t, _)| t.to_lowercase().contains(needle))
-            .map(|(_, b)| b.trim().to_owned() + "\n")
+    let headings = heading_offsets(md);
+    let unique = |title: &str| {
+        let mut matches = headings.iter().filter(|(_, t)| *t == title);
+        let offset = matches.next()?.0;
+        matches.next().is_none().then_some(offset)
     };
-    let preferred: &[&str] = match kind {
-        ContestKind::Tune => &["winning prompt"],
-        ContestKind::Readback => &["final spec"],
-        ContestKind::Tournament | ContestKind::Debate | ContestKind::Grill => {
-            &["champion", "verdict", "final plan"]
-        }
-        _ => &[],
+    let section = |title: &str, end: &str| {
+        let start = unique(title)?;
+        let body = start + md[start..].find('\n')? + 1;
+        let stop = unique(end)?;
+        (stop >= body).then(|| md[body..stop].trim())
     };
-    for needle in preferred {
-        if let Some(body) = pick(needle) {
-            return body;
+    let picked = match kind {
+        ContestKind::Forge => unique("Borda").and_then(|end| {
+            // The exporter writes a title, a verdict paragraph, then the full artifact.
+            md[..end]
+                .strip_prefix("# FORGE\n\n")?
+                .split_once("\n\n")
+                .map(|(_, body)| body.trim())
+        }),
+        ContestKind::Tune => section("Winning prompt", "Diff"),
+        ContestKind::Readback => section("Final spec", "Convergence"),
+        ContestKind::Tournament => {
+            let mut champions = headings.iter().filter(|(_, t)| t.starts_with("Champion: "));
+            let first = champions.next();
+            champions
+                .next()
+                .is_none()
+                .then_some(first)
+                .flatten()
+                .map(|(start, _)| md[*start..].trim())
         }
-    }
-    let mut body: Vec<&str> = preface.lines().collect();
-    if body.first().is_some_and(|l| l.starts_with("# ")) {
-        body.remove(0);
-    }
-    let mut text = body.join("\n").trim().to_owned();
-    if kind == ContestKind::Forge {
-        // Forge: keep the winning artifact only, not the "who won" line.
-        text = text
-            .split_once("\n\n")
-            .map(|(_, rest)| rest.trim().to_owned())
-            .unwrap_or(text);
-    }
-    if text.is_empty()
-        && let Some((title, body)) = parts.first()
-    {
-        text = format!("## {title}\n\n{}", body.trim());
-    }
-    text + "\n"
+        _ => None,
+    };
+    picked.unwrap_or(md.trim()).to_owned() + "\n"
 }
 
 fn create_new(path: &Path) -> std::io::Result<std::fs::File> {

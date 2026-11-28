@@ -24,6 +24,9 @@ All notable changes to Squad will be documented in this file, following
 
 ### Fixed
 
+- `/save` preserves complete multi-section deliverables, including Debug reports and patches;
+  regression coverage checks newest-contest selection, live working indicators and retryable cap refusals.
+
 - Enter with the suggestion list open now submits a fully typed command. It accepts a
   completion only after Tab or an arrow selection, or when the token under the cursor is a
   prefix the selection would change.

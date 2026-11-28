@@ -183,3 +183,116 @@ async fn over_cap_tournament_is_refused_without_creating_a_contest() {
     assert_eq!(contests, 0, "no FAILED contest row for a refused request");
     room.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn cap_refusal_can_retry_same_id_and_concurrent_duplicates_admit_once() {
+    let root = tempfile::tempdir().unwrap();
+    let launcher = Launcher::default();
+    let (room, provider) = open4(root.path(), &launcher, OpenMode::Interactive).await;
+    room.shutdown().await.unwrap();
+    let mut config = config4(root.path());
+    config.budget.daily_max_usd = 0.05;
+    let room = RoomHandle::open_with_launcher(
+        config,
+        "main",
+        OpenMode::Interactive,
+        client(&provider),
+        &launcher,
+    )
+    .await
+    .unwrap();
+    let id = EventId::new();
+    let request = message4("@all $tournament Propose a plan", id);
+    for _ in 0..2 {
+        assert!(matches!(
+            room.submit(request.clone()).await,
+            RequestResult::Rejected {
+                error: ErrorPayload {
+                    code: ErrorCode::DAILY_MAX_REACHED,
+                    ..
+                },
+                ..
+            }
+        ));
+    }
+    let db = store(&launcher);
+    let receipts: i64 = db
+        .call(move |db| {
+            Ok(db.query_row(
+                "SELECT COUNT(*) FROM receipts WHERE request_id=?",
+                [id.to_string()],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(
+        receipts, 0,
+        "a rolled-back refusal leaves the request retryable"
+    );
+    assert!(launcher.wakes.lock().unwrap().is_empty());
+    room.shutdown().await.unwrap();
+
+    // Raising the cap on reopen must let the very same request create a plan.
+    let room = RoomHandle::open_with_launcher(
+        config4(root.path()),
+        "main",
+        OpenMode::Interactive,
+        client(&provider),
+        &launcher,
+    )
+    .await
+    .unwrap();
+    let (a, b) = tokio::join!(room.submit(request.clone()), room.submit(request.clone()));
+    assert_eq!(a, b, "duplicate submissions return the original receipt");
+    let pending_receipt = a.clone();
+    let RequestResult::PendingConfirmation {
+        preflight: PendingPreflight::Contest(plan),
+        ..
+    } = a
+    else {
+        panic!("retry should create one pending plan: {a:?}");
+    };
+    let confirm = Request::ContestConfirm {
+        request_id: EventId::new(),
+        contest_id: plan.contest_id,
+        plan_id: plan.plan_id,
+    };
+    let (a, b) = tokio::join!(room.submit(confirm.clone()), room.submit(confirm));
+    accepted(a.clone());
+    assert_eq!(a, b);
+    assert_eq!(room.submit(request).await, pending_receipt);
+    assert!(matches!(
+        room.submit(message4("@all $tournament Changed prompt", id))
+            .await,
+        RequestResult::Rejected {
+            error: ErrorPayload {
+                code: ErrorCode::IDEMPOTENCY_CONFLICT,
+                ..
+            },
+            ..
+        }
+    ));
+    let db = store(&launcher);
+    let (contests, work): (i64, i64) = db
+        .call(|db| {
+            Ok((
+                db.query_row("SELECT COUNT(*) FROM contests", [], |r| r.get(0))?,
+                db.query_row(
+                    "SELECT COUNT(*) FROM work WHERE contest_id IS NOT NULL",
+                    [],
+                    |r| r.get(0),
+                )?,
+            ))
+        })
+        .unwrap();
+    assert_eq!(
+        (contests, work),
+        (1, 4),
+        "one contest and one initial job per entrant"
+    );
+    let wakes = launcher.wakes.lock().unwrap().clone();
+    assert_eq!(wakes.len(), 4, "duplicates cannot dispatch a second time");
+    let unique: std::collections::BTreeSet<_> = wakes.into_iter().collect();
+    assert_eq!(unique.len(), 4);
+    room.shutdown().await.unwrap();
+}

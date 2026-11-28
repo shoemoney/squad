@@ -211,15 +211,174 @@ async fn no_contest_falls_back_to_last_assistant_message_or_the_focused_one() {
 }
 
 #[test]
-fn headline_picks_the_deliverable_per_mode() {
-    let tune =
-        "# TUNE\n\nresult\n\nReason: `x`\n\n## Winning prompt\n\nBe brief.\n\n## Diff\n\n+x\n";
-    assert_eq!(save::headline(tune, ContestKind::Tune), "Be brief.\n");
-    let decide = "# Decide 1\n\nThe answer is B.\n\n## Decision tree\n\nnode\n";
-    assert_eq!(
-        save::headline(decide, ContestKind::Decide),
-        "The answer is B.\n"
+fn newest_finished_contest_wins_over_older_finished_and_newer_unfinished() {
+    let mut app = app();
+    let ids: Vec<ContestId> = (1..=4)
+        .map(|n| format!("00000000-0000-7000-8000-{n:012}").parse().unwrap())
+        .collect();
+    for (id, status) in ids
+        .iter()
+        .zip(["COMPLETE", "COMPLETE", "FAILED", "RUNNING"])
+    {
+        app.session.contests.entry(*id).or_default().state =
+            Some(ContestState::Generic(GenericContestState {
+                contest_id: *id,
+                kind: ContestKind::Forge,
+                state_version: 3,
+                status: Text::new(status).unwrap(),
+                step_id: None,
+                artifact_event_ids: vec![],
+                terminal_reason: None,
+            }));
+    }
+    let selected = job(&app, None, PathBuf::from("."));
+    assert!(
+        matches!(selected.source, save::SaveSource::Export { id, .. } if id == ids[1]),
+        "must select the last successful contest, got {:?}",
+        selected.source
     );
+}
+
+// Export-shaped fixtures mirror the human report sections in squad-core/src/export.
+// Embedded Markdown headings belong to the artifact, not to the exporter.
+macro_rules! deliverable_test {
+    ($name:ident, $kind:ident, $md:expr, $expected:expr) => {
+        #[test]
+        fn $name() {
+            assert_eq!(save::headline($md, ContestKind::$kind), $expected);
+        }
+    };
+}
+deliverable_test!(
+    headline_forge,
+    Forge,
+    "# FORGE\n\nFusion by @alpha beat the best draft.\n\n## Launch plan\n\nShip the CLI.\n\n## Rollout\n\nCanary first.\n\n## Borda\n\nScores\n\n## Provenance\n\nDraft A\n",
+    "## Launch plan\n\nShip the CLI.\n\n## Rollout\n\nCanary first.\n"
+);
+deliverable_test!(
+    headline_tune,
+    Tune,
+    "# TUNE\n\nPromoted\n\nReason: `better`\n\n## Winning prompt\n\n## Instructions\nBe brief.\n```markdown\n## Diff\nkeep this literal\n```\n\n## Diff\n\n+Be brief\n\n## Lineage\nold\n",
+    "## Instructions\nBe brief.\n```markdown\n## Diff\nkeep this literal\n```\n"
+);
+deliverable_test!(
+    headline_readback,
+    Readback,
+    "# READBACK\n\nResult: converged\n\n## Final spec\n\n## API\nReturn 201.\n\n## Errors\nReturn 409 on conflict.\n\n## Convergence\n\nRound 2\n",
+    "## API\nReturn 201.\n\n## Errors\nReturn 409 on conflict.\n"
+);
+deliverable_test!(
+    headline_tournament,
+    Tournament,
+    "## Tournament 1\n\nPrompt\n\n## Accepted ranking · round 2 · replay 0\n\n1. alpha\n\n## Champion: alpha · trophies 1\n\n1. alpha\n\n2. beta\n",
+    "## Champion: alpha · trophies 1\n\n1. alpha\n\n2. beta\n"
+);
+macro_rules! complete_report_test {
+    ($name:ident, $kind:ident, $md:expr) => {
+        deliverable_test!($name, $kind, $md, $md);
+    };
+}
+complete_report_test!(
+    headline_picks_the_deliverable_per_mode_debug,
+    Debugging,
+    "# DEBUG\n\nResult: resolved\n\n## Brief\n\nZero is treated as missing.\n\nLimits: fixture only\n\n## DIFFERENTIAL\n\n| ID | Cause | Status | Consistent results | Failed prediction |\n| --- | --- | --- | --- | --- |\n| H1 | false default | live | 3 | |\n\n## ROUND 1\n\nRUN THE TEST: submit zero\n\nRESULT: O1\n\n[110.0]\n\n## Report\n\nThe truthiness check replaces valid zero values.\n\nNext test: None proposed\n\n## Suggested patch\n\n```diff\n- value = input || fallback\n+ value = input ?? fallback\n```\n\nUse null checks to preserve zero.\n- Risk: audit other callers\n"
+);
+complete_report_test!(
+    headline_bass_ackwards_prd,
+    BassAckwardsPrd,
+    "# Launch PRD\n\n**End result:** Shipped CLI\n**Starting point:** prototype\n\n## Overview\nDeliver a stable CLI.\n\n## Definition of done\n- Offline tests pass\n\n## Dependency order\n**Critical path:** M1.P1.L1\n\n## Milestones\n### M1 — Release\n#### Phase M1.P1 — Validate\n- L1 Run tests\n\n## Open questions\nNone\n\n## Appendix\n### Checks\n- No dependency cycle: true\n"
+);
+complete_report_test!(
+    headline_decide,
+    Decide,
+    "# Decide 1\n\nDECIDE\n\nOPTIONS\n- B: SQLite — embedded database\n\nWinner: B\nrobust · margin 0.2000 · 2 members rank the leader first\n\n| Option | Total |\n|---|---:|\n| B | 8 |\n\nWHAT FLIPS IT\n\nPrice weight above 0.7 favors A.\n\nRUBRIC\n\n| Criterion | Definition | Weight | Support |\n|---|---|---:|---:|\n| Price | Monthly cost | 0.5 | 2 |\n\nEvidence gaps\nUnmeasured latency.\n\n## Committed proposals and tally inputs\n\n### decide.ballot · 1\n```json\n{}\n```\n"
+);
+complete_report_test!(
+    headline_blow_it_up,
+    BlowItUp,
+    "BLOW IT UP\n\nWHAT SURVIVED\n\n### High / Likely · Missing auth · score 9\n\nAnonymous callers can delete records.\n\nBlast radius: all records\n\nMitigation: require ownership\n\nRebuttal: survived. Residual: cross-tenant risk\n\n## Target snapshot\n\nDELETE /records\n\nScope: API\n"
+);
+complete_report_test!(
+    headline_census,
+    Census,
+    "## Census 1\n\nCENSUS · pass 2 · plan version 1\n\n3 gaps found.\n\n- Must fix: no rollback — outage cannot be reversed\n  Finders (2): alpha, beta · lens: operations\n\nDiscovery curve\nPass 1: 2; pass 2: 1\n"
+);
+complete_report_test!(
+    headline_forecast,
+    Forecast,
+    "# FORECAST\n\nWill launch ship?\n\nResolution: 2026-12-01 — released tag\nSource: repository\nVoid rule: cancelled release\n\nMedian: 70%\n\n| Member | First | Final | Revision |\n|---|---:|---:|---|\n| alpha | 60 | 70 | pilot passed |\n\n## Cruxes\n\nBuild stability\n\n## Update if you see\n\nCI fails twice.\n\n## Shared assumptions\n\nModels share training data and blind spots.\n"
+);
+complete_report_test!(
+    headline_rank,
+    Rank,
+    "# RANK\n\nCriterion: reliability\n\nResult: complete\n\n## ORDER\n\n1. I2 — SQLite (score 0.9; 3–0)\n\n### Why the top items\n\n- I2: transactional\n\nCaveats: small sample\n\n## CYCLES\n\n0 total\n"
+);
+complete_report_test!(
+    headline_trace,
+    Trace,
+    "# TRACE\n\nRelease audit\n\nResult: complete\n\n## BRIEF\n\n### Status\n\nThe release passed tests [S1].\n\n## Disputed claims\n\nPerformance remains disputed.\n\n## Evidence gaps\n\nNo macOS benchmark.\n\n## Claim-to-source ledger\n\n### [C1] Tests passed\n\nS1: test log\n"
+);
+complete_report_test!(
+    headline_negotiate,
+    Negotiate,
+    "# NEGOTIATE\n\n## Strategy sheet\n\nCap spend at 100.\n\n## Public scenario\n\nVendor renewal\n\n## TABLE 1 — settled\n\nPrice 90.\n\n## PLAYBOOK\n\n### Opening\n\nOffer 80.\n\n### Walk-away line\n\nAbove 100.\n"
+);
+complete_report_test!(
+    headline_debate,
+    Debate,
+    "## Debate 1\n\nTopic\n\n## Verdict · debate 1 · judge fixture\n\nWinner: alpha\n\n## Decision\n\nAlpha supplied stronger evidence.\n\n## What to steal from loser\n\nBeta's rollback plan.\n"
+);
+complete_report_test!(
+    headline_grill,
+    Grill,
+    "## Grill round 2 · completed\n\n## Plan v2 · round 2\n\n## Launch\n\nCanary first.\n\n## Rollback\n\nRestore previous binary.\n"
+);
+complete_report_test!(
+    headline_probe,
+    Probe,
+    "## Probe 1\n\n## Diagnostic brief\n\nIntermittent timeout\n\n## Prediction matrix\n\n## Explanation E1\n\nC1: high predicts O1\n\n## Decision tree\n\nStart at N1\n\n## Node N1\n\nInspect active connections; O1 points to E1.\n"
+);
+complete_report_test!(
+    headline_survey,
+    Survey,
+    "## SURVEY 1\n\nCompare caches\n\nSource: room\n\n## Survey claim map\n\n### Consensus\n\n### C1\n\nBound cache growth.\n\nFirst: AGREE 2 · DISAGREE 0 · UNSURE 0 · MISSING 0\n"
+);
+complete_report_test!(
+    headline_crosscheck,
+    Crosscheck,
+    "## CROSSCHECK · 1\n\nPlan version 2\n\nRelease checklist\n\n### Extracted goal\n\nShip safely.\n\n### Ruling\n\nClose rollback gap.\n\n### Coverage ledger\n\nC1: covered by canary.\n"
+);
+
+#[test]
+fn ambiguous_exporter_headings_preserve_the_complete_artifact() {
+    for (kind, md) in [
+        (
+            ContestKind::Forge,
+            "# FORGE\n\nFusion by @alpha beat the best draft.\n\n## Borda\nExplain how ballots are counted.\n\n## Implementation\nKeep this winning implementation.\n\n## Borda\n\n| Author | Mean score |\n| alpha | 9 |\n",
+        ),
+        (
+            ContestKind::Tune,
+            "# TUNE\n\nPromoted\n\n## Winning prompt\n\n## Diff\nExplain the user's diff.\n\n## Response\nPreserve this response template.\n\n## Diff\n\n```diff\n+prompt\n```\n",
+        ),
+        (
+            ContestKind::Readback,
+            "# READBACK\n\nResult: converged\n\n## Final spec\n\n## Convergence\nStop after three matching readings.\n\n## Failure handling\nPreserve this recovery procedure.\n\n## Convergence\n\n| Round | Version |\n| 1 | 1 |\n",
+        ),
+        (
+            ContestKind::Tournament,
+            "## Proposal\n\n## Champion: a heading inside the proposal\n\nProposed design.\n\n## Champion: alpha · trophies 1\n\n1. alpha\n\n2. beta\n",
+        ),
+    ] {
+        assert_eq!(
+            save::headline(md, kind),
+            md,
+            "{kind:?}: ambiguous exporter headings must not discard content"
+        );
+    }
+}
+
+#[test]
+fn slug_omits_routing_and_caps_length() {
     assert_eq!(save::slug("  Hello, World -- ok?! "), "hello-world-ok");
     assert_eq!(save::slug(&"x".repeat(100)).len(), 20);
     assert_eq!(

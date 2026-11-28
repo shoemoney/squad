@@ -207,3 +207,69 @@ async fn feed_lag_recovers_authoritative_state_without_losing_draft() {
     assert_eq!(app.session.snapshot.daily_spend.spent_usd, 3.);
     assert_eq!(app.notice.as_deref(), Some("Room feed restored."));
 }
+
+#[tokio::test(start_paused = true)]
+async fn working_indicator_observes_replies_through_the_real_event_loop() {
+    use squad_protocol::*;
+    // Each run consumes one live committed event. Own echoes must preserve the
+    // indicator; a member reply must clear it via event_loop::reduce.
+    for sender in [Actor::Me, Actor::Member(Nick::new("alpha").unwrap())] {
+        let room = Arc::new(FakeRoom::new());
+        let mut app = App::new(TerminalCaps::resolve(|_| None, false, (80, 24).into()).unwrap());
+        app.composed.started = true;
+        app.working = Some("Waiting for the first response…".into());
+        let producer = room.clone();
+        let (tx, mut rx) = mpsc::channel(8);
+        let actor = sender.clone();
+        let task = tokio::spawn(async move {
+            // Let run subscribe and restore before publishing the live event.
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            let question = MessageId::new();
+            let content = if actor == Actor::Me {
+                EnvelopePayload::UserMessage(UserMessage {
+                    input: UserMessageInput {
+                        message_id: question,
+                        text: Text::new("@alpha hello").unwrap(),
+                        quote: None,
+                        reply_to: None,
+                    },
+                    body: "hello".into(),
+                    resolved_quotes: vec![],
+                    debate_id: None,
+                    case_id: None,
+                    contest_id: None,
+                })
+            } else {
+                EnvelopePayload::MessageFinal(Completion {
+                    completed: CompletedGeneration {
+                        generation: GenerationIdentity {
+                            message_id: MessageId::new(),
+                            work_id: WorkId::new(),
+                            trigger_event_id: EventId::new(),
+                            attempt: 1,
+                        },
+                        model: Text::new("fixture/model").unwrap(),
+                        finish_reason: FinishReason::Stop,
+                        usage: None,
+                    },
+                    in_reply_to_message_id: question,
+                    content: "Hello from alpha.".into(),
+                })
+            };
+            producer.commit(actor, content);
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            drop(tx);
+        });
+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+        event_loop::run(&mut app, room, &mut terminal, &mut rx)
+            .await
+            .unwrap();
+        task.await.unwrap();
+        assert_eq!(app.feed_items, 1, "the live feed must reach the reducer");
+        assert_eq!(
+            app.working.is_some(),
+            sender == Actor::Me,
+            "own echo preserves working; the first member event clears it"
+        );
+    }
+}
