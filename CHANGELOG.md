@@ -4,6 +4,32 @@ All notable changes to Squad will be documented in this file, following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `/save [path]` writes the headline result of the newest finished contest (or the focused
+  or last member message) to Markdown in the working directory. Default names are the first
+  20 characters of the prompt plus `-N.md`; existing files are never overwritten, an explicit
+  path that exists is refused with the next free name, and files are created with mode 0600.
+- A working indicator ("Sending to N members…", "Waiting for the first response…") shows
+  until the first visible reply.
+
+### Changed
+
+- The composer clears as soon as a request is accepted for sending and keeps it in history
+  (recall with Up). A rejected request restores the text and shows the reason.
+- A request refused by the daily cap no longer claims its request id, so a retry after
+  raising the cap is not an idempotency conflict.
+
+### Fixed
+
+- Enter with the suggestion list open now submits a fully typed command. It accepts a
+  completion only after Tab or an arrow selection, or when the token under the cursor is a
+  prefix the selection would change.
+- A tournament over the daily cap is rejected at admission with the exact reason, hint and
+  estimate. It no longer leaves a FAILED contest card with no visible explanation.
+
 ## [0.2.1] - 2026-11-27
 
 ### Fixed
