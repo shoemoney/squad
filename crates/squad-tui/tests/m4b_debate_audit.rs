@@ -210,3 +210,108 @@ async fn equal_and_late_scores_preserve_authoritative_tally_records_and_anchor()
     assert_eq!(app.session.snapshot.scoreboard, before);
     room.shutdown().await.unwrap();
 }
+
+#[tokio::test]
+async fn round_zero_queued_debaters_and_manual_judging_render_in_the_tui() {
+    use ratatui::{Terminal, backend::TestBackend};
+    use squad_tui::{
+        app::App,
+        fx::{FeedOrigin, FxQueue, TerminalCaps},
+        ui,
+        widgets::input::EditorAction,
+    };
+    use std::time::Duration;
+
+    let root = tempfile::tempdir().unwrap();
+    let launcher = support::Launcher::default();
+    let (room, _server) = support::open(root.path(), &launcher, OpenMode::OneShot).await;
+    let mut app = App::new(
+        TerminalCaps::resolve(
+            |k| (k == "SQUAD_FX").then(|| "off".into()),
+            true,
+            (80, 40).into(),
+        )
+        .unwrap(),
+    );
+    let mut queue = FxQueue::new();
+    let mut terminal = Terminal::new(TestBackend::new(80, 40)).unwrap();
+    let render = |app: &mut App, terminal: &mut Terminal<TestBackend>| -> String {
+        terminal
+            .draw(|f| ui::render(app, f, Duration::ZERO))
+            .unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|c| c.symbol())
+            .collect()
+    };
+    // Use the same committed SQLite fixtures as the other debate audit, then
+    // drive the production session reducer and composed renderer at each boundary.
+    let mut reduce = |app: &mut App, fixtures| {
+        for event in support::commit_each(&launcher, fixtures) {
+            app.session.reduce(
+                FeedItem::Committed(event),
+                FeedOrigin::Live,
+                Duration::ZERO,
+                &mut queue,
+            );
+        }
+    };
+    let unjudged_state = |status, round, version| {
+        let (sender, recipients, payload) = support::debate_state(status, round, version);
+        let EnvelopePayload::DebateState(mut state) = payload else {
+            unreachable!()
+        };
+        state.judge_requested = false;
+        (sender, recipients, EnvelopePayload::DebateState(state))
+    };
+    reduce(&mut app, vec![unjudged_state("WAITING_FOR_DEBATERS", 0, 1)]);
+    let queued = render(&mut app, &mut terminal);
+    assert!(queued.contains("@a · queued"), "{queued}");
+    assert!(queued.contains("@b · queued"), "{queued}");
+
+    reduce(&mut app, vec![unjudged_state("ROUND_RUNNING", 0, 2)]);
+    let opening = render(&mut app, &mut terminal);
+    assert!(opening.contains("Opening"), "{opening}");
+    assert!(opening.contains("@a · waiting"), "{opening}");
+    assert!(opening.contains("@b · waiting"), "{opening}");
+    assert!(!opening.contains("Judge scoring"), "{opening}");
+
+    // Reuse committed turn fixtures, but finish without an automatic judge.
+    let fixture = support::debate_fixture();
+    reduce(
+        &mut app,
+        vec![
+            fixture[2].clone(),
+            unjudged_state("COMPLETE_UNJUDGED", 1, 3),
+        ],
+    );
+    let unjudged = render(&mut app, &mut terminal);
+    assert!(unjudged.contains("Complete · unjudged"), "{unjudged}");
+    assert!(unjudged.contains("[/judge]"), "{unjudged}");
+    assert!(
+        unjudged.contains("Final verdict using existing scores"),
+        "{unjudged}"
+    );
+    app.input
+        .apply(EditorAction::Insert(format!("/judge {}", support::CONTEST)))
+        .unwrap();
+    app.submit();
+    assert!(
+        matches!(app.pending.take(), Some(Request::Judge { debate_id: Some(id), .. }) if id.to_string() == support::CONTEST)
+    );
+
+    reduce(&mut app, vec![support::debate_state("JUDGING", 1, 4)]);
+    let judging = render(&mut app, &mut terminal);
+    assert!(judging.contains("Judging · awaiting verdict"), "{judging}");
+    reduce(
+        &mut app,
+        vec![fixture[8].clone(), support::debate_state("COMPLETED", 1, 5)],
+    );
+    let ruled = render(&mut app, &mut terminal);
+    assert!(ruled.contains("a wins on the evidence."), "{ruled}");
+    assert!(!ruled.contains("[/judge]"), "{ruled}");
+    room.shutdown().await.unwrap();
+}
