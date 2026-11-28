@@ -38,6 +38,7 @@ pub struct App {
     pub export_path: Option<InputState>,
     pub export_scope: Option<(ExportScope, Option<ContestId>)>,
     pub pending_export: Option<actions::ExportJob>,
+    pub pending_save: Option<crate::save::SaveJob>,
     export_inflight: bool,
     pub awaiting_ack: bool,
     pub pending_updates: Vec<VariableUpdate>,
@@ -92,6 +93,7 @@ impl App {
             export_path: None,
             export_scope: None,
             pending_export: None,
+            pending_save: None,
             export_inflight: false,
             awaiting_ack: false,
             pending_updates: vec![],
@@ -148,7 +150,28 @@ impl App {
                         self.pending_updates = valid.updates;
                         self.submitted_recipients = valid.recipients;
                         self.submitted_draft = Some(self.input.text().into());
-                        if let Request::Export { scope, id } = request {
+                        if let Request::Save { path } = request {
+                            match crate::save::plan(
+                                &self.session,
+                                self.msg_focus,
+                                path,
+                                EventId::new(),
+                                std::env::current_dir().unwrap_or_default(),
+                            ) {
+                                Ok(job) => {
+                                    self.pending_save = Some(job);
+                                    self.export_inflight = true;
+                                    self.awaiting_ack = true;
+                                    self.clear_submitted_input();
+                                    self.working = Some("Saving…".into());
+                                }
+                                Err(message) => {
+                                    self.pending_updates.clear();
+                                    self.submitted_recipients.clear();
+                                    self.notice = Some(message);
+                                }
+                            }
+                        } else if let Request::Export { scope, id } = request {
                             let mut path = InputState::new();
                             let _ = path.apply(EditorAction::Insert("squad-export.md".into()));
                             let _ = path.apply(EditorAction::SelectAll);

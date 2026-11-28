@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 squad-protocol = { workspace = true }
 squad-core = { workspace = true }
+serde_json = { workspace = true }
 ratatui = "0.30"
 crossterm = { workspace = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "signal"] }

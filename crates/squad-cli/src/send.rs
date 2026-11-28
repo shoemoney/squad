@@ -150,6 +150,17 @@ async fn execute<R: RoomApi>(
                 }
                 return Ok(0);
             }
+            SlashAction::Save { .. } => {
+                output
+                    .error(
+                        Some(id),
+                        ErrorCode::COMMAND_NOT_IMPLEMENTED,
+                        "/save works in the TUI; use /export from the command line.",
+                        false,
+                    )
+                    .map_err(io_error)?;
+                return Ok(1);
+            }
             _ => {}
         }
     }

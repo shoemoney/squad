@@ -330,7 +330,7 @@ impl Router {
         }
         if matches!(
             request,
-            Request::Who | Request::Help | Request::Export { .. }
+            Request::Who | Request::Help | Request::Export { .. } | Request::Save { .. }
         ) {
             let text = match request {
                 Request::Who => self

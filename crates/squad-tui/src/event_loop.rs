@@ -68,6 +68,9 @@ where
             if let Some(request) = app.pending.take() {
                 let room = room.clone(); ack = Some(tokio::spawn(async move { room.submit(request).await }));
             }
+            if let Some(job) = app.pending_save.take() {
+                let room = room.clone(); ack = Some(tokio::spawn(async move { crate::save::save_file(&*room, job).await }));
+            }
             if let Some(job) = app.pending_export.take() {
                 let room = room.clone(); ack = Some(tokio::spawn(async move { crate::actions::export_file(&*room, job).await }));
             }

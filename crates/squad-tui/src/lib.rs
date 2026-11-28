@@ -9,6 +9,7 @@ pub mod input_events;
 pub mod layout;
 pub mod markdown;
 pub mod quotes;
+pub mod save;
 pub mod screens;
 pub mod search;
 pub mod selection;

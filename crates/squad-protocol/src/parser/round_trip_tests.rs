@@ -108,6 +108,10 @@ fn format_valid(ast: &ParsedInput, ctx: &ParseContext) -> String {
                 SlashAction::Clear => "/clear".into(),
                 SlashAction::Who => "/who".into(),
                 SlashAction::Help => "/help".into(),
+                SlashAction::Save { path } => match path {
+                    Some(path) => format!("/save {path}"),
+                    None => "/save".into(),
+                },
             };
         }
         ParsedInput::Debate {

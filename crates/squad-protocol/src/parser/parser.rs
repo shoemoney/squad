@@ -734,6 +734,7 @@ pub const SLASH_COMMANDS: &[(&str, &str)] = &[
         "/export",
         "room | debate|grill|tournament|census|crosscheck|survey|probe [id]",
     ),
+    ("/save", "[path]"),
     ("/continue", "[\"<plan>\"]"),
     ("/accept", "<cellId…> -- <reason>"),
 ];
@@ -911,6 +912,11 @@ fn slash(raw: &str, ctx: &ParserSnapshot) -> Result<SlashAction, ParseError> {
                 .transpose()?;
             SlashAction::Export { scope, id }
         }
+        "save" => SlashAction::Save {
+            path: spans
+                .first()
+                .map(|first| raw[first.start..].trim_end().to_owned()),
+        },
         "clear" | "who" | "help" => {
             if !args.is_empty() {
                 return Err(usage(&format!("/{name}")));
@@ -949,6 +955,8 @@ pub const HELP_EXAMPLES: &[&str] = &[
     "/continue",
     "/continue \"Updated plan\"",
     "/accept 550e8400-e29b-41d4-a716-446655440000 -- Accepted risk",
+    "/save",
+    "/save notes/plan.md",
     "/export census",
     "/export crosscheck",
     "/export survey",

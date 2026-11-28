@@ -164,6 +164,11 @@ pub enum SlashAction {
         cell_ids: Vec<CellId>,
         reason: String,
     },
+    /// Write the newest finished contest's headline result to a Markdown file.
+    Save {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        path: Option<String>,
+    },
     Clear,
     Who,
     Help,

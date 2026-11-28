@@ -110,6 +110,11 @@ pub enum Request {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         id: Option<ContestId>,
     },
+    /// Client-side file save; the room never executes it.
+    Save {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        path: Option<String>,
+    },
     Who,
     Help,
     Internal(InternalRequest),
@@ -363,6 +368,7 @@ impl Request {
                     SlashAction::Clear => Self::Clear { request_id },
                     SlashAction::Who => Self::Who,
                     SlashAction::Help => Self::Help,
+                    SlashAction::Save { path } => Self::Save { path: path.clone() },
                     SlashAction::Export { scope, id } => Self::Export {
                         scope: scope.clone(),
                         id: *id,
