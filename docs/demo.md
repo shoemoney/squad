@@ -14,7 +14,7 @@ This file is the timed script for the canonical Squad demonstration, the walkthr
 | Grill (live) | `docs/demo/grill.tape` | `grill.gif` | `~/squad-demo-raw/live-grill.mp4` (169 s) |
 | Census (live, v0.2.0) | `docs/demo/new/census.tape` | `census.gif` | `docs/media/full/census.gif` (complete, lighter GIF) |
 | Crosscheck (live) | `docs/demo/crosscheck.tape` | `crosscheck.gif` | `~/squad-demo-raw/live-crosscheck.mp4` (206 s) |
-| Install (release archive, v0.2.0) | `docs/demo/install.tape` | `install.gif`, `doctor-pass.png` | none (short, real time) |
+| Install (release archive, v0.2.1) | `docs/demo/install.tape` | `install.gif`, `doctor-pass.png` | none (short, real time) |
 | Survey (live v0.1.2) | `docs/demo/survey.tape` + `survey-report.tape` | [survey.gif](media/survey.gif) | `~/squad-demo-raw/audit-survey-v0.1.2.mp4` + report continuation |
 | Probe (live v0.1.2) | `docs/demo/probe.tape` + `probe-report.tape` | [probe.gif](media/probe.gif) | `~/squad-demo-raw/audit-probe-v0.1.2.mp4` + report continuation |
 
@@ -434,3 +434,11 @@ Two things to confirm when the first recording runs. The README's export table s
 The eleven new modes, the census and the install clip were recorded on the **v0.2.0 release binary** (SHA-256 verified against the published `.sha256` file) with the default six-model roster. Tapes are `docs/demo/new/<mode>.tape`; `docs/demo/new/record-all.sh <squad> [mode ...]` records each in a private temp home under `/dev/shm`, builds the full-length GIF in `docs/media/full/`, cuts the README GIF (25 s or less, 1.5 MB or less, every sped-up stretch labelled `TIME CUT`) and OCR-scans both for `/home/`, `/Users/`, `/tmp/` and `sk-or-`. `SKIP_RECORD=1` re-cuts existing raw recordings; `CUT_<mode>="a:b:speed ..."` sets the cut points (used for `readback`, `debug` and `bass_ackwards_prd` so the human step stays on screen at real time).
 
 Tape lessons: wait for the `Ask the squad` prompt before typing, wait for the preflight `Confirm` card before pressing `y`, press `Escape` before `Enter` after a bare slash command (an open suggestion list swallows Enter), and use fixed sleeps rather than a text marker for the end of a contest because a long report scrolls the status header off screen. The `/answer` in `debug` closes its step, so no `/continue` follows it. Long recordings run on a dev worker with enough memory: VHS's own GIF encode of a long take was killed on small hosts, so the full-length GIF is made from the MP4.
+
+---
+
+## Re-recorded on v0.2.1 (2026-11-27)
+
+Install (with `doctor-pass.png`), `$forge`, `$forecast`, `$tune`, `$blow_it_up` and `$bass_ackwards_prd` were re-recorded on the v0.2.1 Linux archive (sha256 verified, `squad --version` = 0.2.1) with the default six-model roster. `docs/demo/new/record-all.sh` now runs each tape in a private mount namespace with a scratch directory bind-mounted at `/home/demo`, so the only path on screen is the generic `/home/demo/...`. `$forge` and `$forecast` show plain nicks in the panel (the `Some(Member(Nick(...)))` text is gone). The empty shell-prompt tail was trimmed from the forge, forecast, decide, negotiate, trace, rank and census README GIFs.
+
+`$tune` and `$blow_it_up`: the contests finish (state COMPLETE, report committed, checked in the database) but the live room stays on "judge awaiting ruling". Their GIFs therefore run the live room first, then a labelled `squad export` of the same finished database (no new model call), as for survey and probe. The recorded tune run kept the original prompt (`original_kept`). Tape detail: `$tune` takes `--` on its own line and the goal on the next (Ctrl+J newlines); the earlier `SQUAD_JUDGE_REASONING_EFFORT=medium` setting is not used. Raw MP4s are kept outside git.

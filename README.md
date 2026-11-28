@@ -213,7 +213,7 @@ squad doctor      # offline checks; add --online to test OpenRouter reachability
 squad             # open the room
 ```
 
-<p align="center"><img src="docs/media/doctor-pass.png" alt="Terminal screenshot after installing: squad --version prints squad 0.2.0 and squad doctor reports Configuration PASS, Credential presence present, a writable data directory and Overall PASS." width="760"></p>
+<p align="center"><img src="docs/media/doctor-pass.png" alt="Terminal screenshot after installing: squad --version prints squad 0.2.1 and squad doctor reports Configuration PASS, Credential presence present, a writable data directory and Overall PASS." width="760"></p>
 
 <p align="center"><sub><i>What you should see: <code>Overall: PASS</code>. Without a key, <code>doctor</code> prints <code>Configuration: FAIL - OPENROUTER_API_KEY is required</code> and exits 1; see <a href="#-troubleshooting">Troubleshooting</a>.</i></sub></p>
 
@@ -1915,13 +1915,13 @@ Logs are written to `<data directory>/logs/squad.jsonl`. The file is created wit
 
 ## 🆕 New modes in v0.2.0
 
-> ✅ **Shipped in v0.2.0** (2026-11-27). Together with the seven modes above, Squad has **eighteen** contest modes. Every clip was recorded live on the v0.2.0 release binary with the default six-model roster; costs are the measured per-run figures in [docs/costs.md](docs/costs.md). Each mode has its own guide in [docs/modes](docs/modes/).
+> ✅ **Shipped in v0.2.0** (2026-11-27). Together with the seven modes above, Squad has **eighteen** contest modes. Every clip was recorded live with the default six-model roster on the v0.2.0 or v0.2.1 release binary (each caption says which); costs are the measured per-run figures in [docs/costs.md](docs/costs.md). Each mode has its own guide in [docs/modes](docs/modes/).
 
-Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`), one starter command and its measured cost. Nine of the eleven clips are finished runs; `$tune` and `$blow_it_up` have no clip yet and say so below. Every clip except the first sits in a collapsible so the page loads lighter: open the ones you want.
+Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled `TIME CUT`), one starter command and its measured cost. All eleven clips are finished runs. `$tune` and `$blow_it_up` end with a labelled offline export, because the live room stays on "awaiting ruling" after those contests are already complete. Every clip except the first sits in a collapsible so the page loads lighter: open the ones you want.
 
 - 🔨 **`$forge`**: One finished artifact that is better than any single draft.
 
-  ![Drafts, blind ranking, two fusions and a blind verdict. Recorded on v0.2.0.](docs/media/forge.gif)
+  ![Drafts, blind ranking, two fusions and a blind verdict. Recorded on v0.2.1.](docs/media/forge.gif)
 
   Starter command: `@all $forge Write a launch announcement for our offline notes app`
 
@@ -1932,7 +1932,7 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
   <details>
   <summary>▶️ Watch the <code>$forecast</code> clip</summary>
 
-  <img src="docs/media/forecast.gif" alt="The pooled probability, the spread of the room and what to watch. Recorded on v0.2.0." width="860" loading="lazy">
+  <img src="docs/media/forecast.gif" alt="The pooled probability, the spread of the room and what to watch. Recorded on v0.2.1." width="860" loading="lazy">
 
   </details>
 
@@ -1968,7 +1968,14 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 💣 **`$blow_it_up`**: An adversarial attack on a plan, spec, prompt, config or diff.
 
-  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished clip yet. The measured result and a worked example are in the [guide](docs/modes/blow_it_up.md)._
+  <details>
+  <summary>▶️ Watch the <code>$blow_it_up</code> clip</summary>
+
+  <img src="docs/media/blow_it_up.gif" alt="The room attacking a one-line spec, then the offline export with severity-ranked findings. Recorded on v0.2.1." width="860" loading="lazy">
+
+  </details>
+
+  _The live room stays on "awaiting ruling" even after this contest is complete in its database, so the clip ends with a labelled `squad export` of the same finished run (no new model call). Recorded on v0.2.1 with the default six-model roster._
 
   Starter command: `@all $blow_it_up <paste a plan here>`
 
@@ -2044,7 +2051,14 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
 
 - 🎛️ **`$tune`**: A prompt that measurably behaves better, checked on cases its authors never saw.
 
-  _No clip yet: on 2026-11-27 the judge call never returned in three live recordings of this mode, so there is no finished clip yet. The measured result and a worked example are in the [guide](docs/modes/tune.md)._
+  <details>
+  <summary>▶️ Watch the <code>$tune</code> clip</summary>
+
+  <img src="docs/media/tune.gif" alt="The room tuning a support prompt on hidden cases, then the offline export of the held-out result (this run kept the original). Recorded on v0.2.1." width="860" loading="lazy">
+
+  </details>
+
+  _The live room stays on "awaiting ruling" even after this contest is complete in its database, so the clip ends with a labelled `squad export` of the same finished run (no new model call). Recorded on v0.2.1 with the default six-model roster._
 
   Starter command (the `--` goes on its own line, then the goal):
 
@@ -2061,7 +2075,7 @@ Each mode has one GIF (25 s or less, 1.5 MB or less, every sped-up wait labelled
   <details>
   <summary>▶️ Watch the <code>$bass_ackwards_prd</code> clip</summary>
 
-  <img src="docs/media/bass_ackwards_prd.gif" alt="Acceptance tests, backward prerequisites, a human `LAST LOOK` and the saved file. Recorded on v0.2.0." width="860" loading="lazy">
+  <img src="docs/media/bass_ackwards_prd.gif" alt="Acceptance tests, backward prerequisites, a human `LAST LOOK` and the saved file. Recorded on v0.2.1." width="860" loading="lazy">
 
   </details>
 
