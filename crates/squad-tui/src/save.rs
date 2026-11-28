@@ -198,6 +198,11 @@ pub fn headline(md: &str, kind: ContestKind) -> String {
         let offset = matches.next()?.0;
         matches.next().is_none().then_some(offset)
     };
+    let unique_prefix = |prefix: &str| {
+        let mut matches = headings.iter().filter(|(_, t)| t.starts_with(prefix));
+        let offset = matches.next()?.0;
+        matches.next().is_none().then_some(offset)
+    };
     let section = |title: &str, end: &str| {
         let start = unique(title)?;
         let body = start + md[start..].find('\n')? + 1;
@@ -205,6 +210,14 @@ pub fn headline(md: &str, kind: ContestKind) -> String {
         (stop >= body).then(|| md[body..stop].trim())
     };
     let picked = match kind {
+        ContestKind::Debate => unique_prefix("Verdict · ").map(|start| md[start..].trim()),
+        ContestKind::Grill => unique_prefix("FINAL PLAN v").and_then(|start| {
+            let stop = unique("Complete attributed question-and-answer appendix")?;
+            (stop > start).then(|| md[start..stop].trim())
+        }),
+        ContestKind::Decide => {
+            unique("Committed proposals and tally inputs").map(|stop| md[..stop].trim())
+        }
         ContestKind::Forge => unique("Borda").and_then(|end| {
             // The exporter writes a title, a verdict paragraph, then the full artifact.
             md[..end]

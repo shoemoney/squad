@@ -288,11 +288,7 @@ complete_report_test!(
     BassAckwardsPrd,
     "# Launch PRD\n\n**End result:** Shipped CLI\n**Starting point:** prototype\n\n## Overview\nDeliver a stable CLI.\n\n## Definition of done\n- Offline tests pass\n\n## Dependency order\n**Critical path:** M1.P1.L1\n\n## Milestones\n### M1 — Release\n#### Phase M1.P1 — Validate\n- L1 Run tests\n\n## Open questions\nNone\n\n## Appendix\n### Checks\n- No dependency cycle: true\n"
 );
-complete_report_test!(
-    headline_decide,
-    Decide,
-    "# Decide 1\n\nDECIDE\n\nOPTIONS\n- B: SQLite — embedded database\n\nWinner: B\nrobust · margin 0.2000 · 2 members rank the leader first\n\n| Option | Total |\n|---|---:|\n| B | 8 |\n\nWHAT FLIPS IT\n\nPrice weight above 0.7 favors A.\n\nRUBRIC\n\n| Criterion | Definition | Weight | Support |\n|---|---|---:|---:|\n| Price | Monthly cost | 0.5 | 2 |\n\nEvidence gaps\nUnmeasured latency.\n\n## Committed proposals and tally inputs\n\n### decide.ballot · 1\n```json\n{}\n```\n"
-);
+
 complete_report_test!(
     headline_blow_it_up,
     BlowItUp,
@@ -323,16 +319,7 @@ complete_report_test!(
     Negotiate,
     "# NEGOTIATE\n\n## Strategy sheet\n\nCap spend at 100.\n\n## Public scenario\n\nVendor renewal\n\n## TABLE 1 — settled\n\nPrice 90.\n\n## PLAYBOOK\n\n### Opening\n\nOffer 80.\n\n### Walk-away line\n\nAbove 100.\n"
 );
-complete_report_test!(
-    headline_debate,
-    Debate,
-    "## Debate 1\n\nTopic\n\n## Verdict · debate 1 · judge fixture\n\nWinner: alpha\n\n## Decision\n\nAlpha supplied stronger evidence.\n\n## What to steal from loser\n\nBeta's rollback plan.\n"
-);
-complete_report_test!(
-    headline_grill,
-    Grill,
-    "## Grill round 2 · completed\n\n## Plan v2 · round 2\n\n## Launch\n\nCanary first.\n\n## Rollback\n\nRestore previous binary.\n"
-);
+
 complete_report_test!(
     headline_probe,
     Probe,
@@ -349,9 +336,192 @@ complete_report_test!(
     "## CROSSCHECK · 1\n\nPlan version 2\n\nRelease checklist\n\n### Extracted goal\n\nShip safely.\n\n### Ruling\n\nClose rollback gap.\n\n### Coverage ledger\n\nC1: covered by canary.\n"
 );
 
+// Render committed fixtures through the core exporter, so these tests exercise
+// its actual headings rather than invented report shapes.
+fn export_event(n: u32, kind: &str, payload: serde_json::Value) -> CommittedEnvelope {
+    serde_json::from_value(serde_json::json!({
+        "version": 1, "id": format!("01900000-0000-7000-8000-{n:012x}"),
+        "roomId": "main", "correlationId": EventId::new(), "sender": "system",
+        "recipients": ["me"], "createdAt": "2026-11-28T00:00:00Z",
+        "seq": n.to_string(), "acceptedAt": "2026-11-28T00:00:00Z",
+        "commitIndex": 0, "commitSize": 1, "kind": kind, "payload": payload
+    }))
+    .unwrap()
+}
+
+#[test]
+fn headline_debate() {
+    // Checked-in output of the real exporter, including completed rounds,
+    // adjudication and the terminal state following the verdict.
+    let snapshot = include_str!("../../squad-core/tests/snapshots/export__debate.snap");
+    let md = snapshot.split_once("\n---\n").unwrap().1;
+    assert!(md.contains("Index the pages.") && md.contains("round 1 score"));
+    let result = save::headline(md, ContestKind::Debate);
+    assert!(result.contains("Winner: alpha"));
+    assert!(result.contains("The design fits the brief."));
+    assert!(result.contains("Borrow the index."));
+    for evidence in [
+        "Index the pages.",
+        "round 1 score",
+        "Original solution",
+        "Timed out",
+    ] {
+        assert!(
+            !result.contains(evidence),
+            "retained debate evidence: {evidence}"
+        );
+    }
+}
+
+#[test]
+fn headline_grill() {
+    use serde_json::json;
+    let id = ContestId::new();
+    let plan = export_event(
+        2,
+        "grill.plan",
+        json!({
+            "contestId": id, "leader": "alpha", "round": 1, "version": 2,
+            "text": "## Launch\nCanary first.\n\n## Rollback\nRestore previous binary.\n\n```markdown\n## Complete attributed question-and-answer appendix\nPlan example\n```"
+        }),
+    );
+    let snapshot = squad_core::export::ExportSnapshot {
+        events: vec![
+            export_event(
+                1,
+                "grill.plan",
+                json!({
+                    "contestId": id, "leader": "alpha", "round": 0, "version": 1,
+                    "text": "Original plan before review"
+                }),
+            ),
+            plan.clone(),
+            export_event(
+                3,
+                "grill.complete",
+                json!({
+                    "contestId": id, "finalPlanEventId": plan.base.id, "finalPlanVersion": 2,
+                    "appendix": [{"questionEventId": EventId::new(), "questionIndex": 0,
+                        "griller": "beta", "question": "Who pays?", "answer": "Users pay",
+                        "planChanges": "Add pricing"}]
+                }),
+            ),
+        ],
+        ..Default::default()
+    };
+    let md = squad_core::export::render(&snapshot, ExportScope::Grill, Some(id)).unwrap();
+    assert!(md.contains("Who pays?") && md.contains("Users pay"));
+    let result = save::headline(&md, ContestKind::Grill);
+    assert!(result.contains("## Launch\nCanary first."));
+    assert!(result.contains("## Rollback\nRestore previous binary."));
+    assert!(result.contains("Plan example"));
+    assert_eq!(
+        result
+            .matches("Complete attributed question-and-answer appendix")
+            .count(),
+        1,
+        "only the fenced example belongs in the saved plan"
+    );
+    for evidence in [
+        "Original plan before review",
+        "Who pays?",
+        "Users pay",
+        "Add pricing",
+        "@beta",
+    ] {
+        assert!(
+            !result.contains(evidence),
+            "retained grill evidence: {evidence}"
+        );
+    }
+}
+
+#[test]
+fn headline_decide() {
+    use serde_json::json;
+    let id = ContestId::new();
+    let report = json!({
+        "proposers": {},
+        "options": [{"optionId": "B", "name": "SQLite", "description": "embedded database"}],
+        "rubric": {"kept": [], "dropped": []},
+        "matrix": {"cells": [], "ranking": [{"optionId": "B", "total": 8.0}],
+            "margin": 1.0, "winner": "B", "leaveOneOut": [], "flips": [],
+            "robust": true, "memberSupport": 2},
+        "explanation": {"flipConditions": [], "dissents": [], "evidenceGaps": ["Unmeasured latency."]},
+        "skipped": []
+    });
+    let artifact = |n, kind, body| {
+        export_event(
+            n,
+            "contest.artifact",
+            json!({
+                "contestId": id, "kind": "decide", "stepId": StepId::new(),
+                "artifactKind": kind, "audience": {"kind": "human"}, "sourceRefs": [], "data": {}, "body": body
+            }),
+        )
+    };
+    let snapshot = squad_core::export::ExportSnapshot {
+        events: vec![
+            export_event(
+                1,
+                "decide.setup",
+                json!({
+                    "contestId": id, "kind": "decide", "scriptVersion": "v1",
+                    "participants": ["alpha", "beta"], "sourceEventIds": [], "settings": {}
+                }),
+            ),
+            artifact(2, "decide.report", report),
+            artifact(
+                3,
+                "decide.ballot",
+                json!({"ballotEvidence": "raw score sheet"}),
+            ),
+        ],
+        ..Default::default()
+    };
+    let md = squad_core::export::render(&snapshot, ExportScope::Decide, Some(id)).unwrap();
+    assert!(md.contains("## Committed proposals and tally inputs"));
+    assert!(md.contains("ballotEvidence"));
+    let result = save::headline(&md, ContestKind::Decide);
+    for answer in [
+        "B: SQLite — embedded database",
+        "Winner: B",
+        "WHAT FLIPS IT",
+        "Unmeasured latency.",
+    ] {
+        assert!(
+            result.contains(answer),
+            "missing decision content: {answer}"
+        );
+    }
+    for evidence in [
+        "Committed proposals and tally inputs",
+        "decide.ballot",
+        "ballotEvidence",
+        "```json",
+    ] {
+        assert!(
+            !result.contains(evidence),
+            "retained decide evidence: {evidence}"
+        );
+    }
+}
+
 #[test]
 fn ambiguous_exporter_headings_preserve_the_complete_artifact() {
     for (kind, md) in [
+        (
+            ContestKind::Debate,
+            "## Verdict · example inside a round\nKeep this argument.\n\n## Verdict · debate 1 · judge fixture\nWinner: alpha\n",
+        ),
+        (
+            ContestKind::Grill,
+            "## FINAL PLAN v2 · 1\n## Complete attributed question-and-answer appendix\nA section inside the plan.\n## Complete attributed question-and-answer appendix\nEvidence\n",
+        ),
+        (
+            ContestKind::Decide,
+            "# Decide 1\n## Committed proposals and tally inputs\nA section inside the answer.\n## Committed proposals and tally inputs\nEvidence\n",
+        ),
         (
             ContestKind::Forge,
             "# FORGE\n\nFusion by @alpha beat the best draft.\n\n## Borda\nExplain how ballots are counted.\n\n## Implementation\nKeep this winning implementation.\n\n## Borda\n\n| Author | Mean score |\n| alpha | 9 |\n",
