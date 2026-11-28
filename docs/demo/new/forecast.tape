@@ -1,5 +1,5 @@
 # $forecast raw recording (full length, uncut). Record with: docs/demo/new/record-all.sh <squad-binary>
-# Runs the v0.2.0 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
+# Runs the v0.2.1 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Dated probability, spread of the room, cruxes and signposts. About 260 s live.
 
@@ -38,7 +38,7 @@ Sleep 1s
 # Preflight card: confirm
 Type "y"
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 360s
+Sleep 320s
 # 3. Hold on the pooled probability, spread and signposts
 Sleep 10s
 
