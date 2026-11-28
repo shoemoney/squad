@@ -344,9 +344,12 @@ Question-first grills work the same way. Pick one member to be grilled.
 Composer suggestions open automatically after `@` (live roster), `$` (17 contest modes),
 or `/` at the start (supported slash commands). Tab always opens suggestions, including
 a starter menu in an empty draft or matches for an unmarked word (`gro` → `@grok`,
-`deb` → `$debate`). Press Tab again or Enter to insert the selection and a space.
-Up/Down and Shift+Tab choose entries; Esc dismisses. Enter accepts an open suggestion
-instead of sending. F6 still switches message/composer focus, Alt+Up/Down recalls history,
+`deb` → `$debate`). Press Tab again to insert the selection and a space.
+Up/Down and Shift+Tab choose entries; Esc dismisses. Enter inserts the selection only
+after you picked one with Tab or the arrows, or while the word under the cursor is a
+partial prefix (`gro`); a fully typed command always sends. After Enter the box clears
+(Up recalls it), the status line shows that the message is sending, and a rejected
+request puts your text back with the reason. F6 still switches message/composer focus, Alt+Up/Down recalls history,
 and Ctrl+J / Alt+Enter (or Shift+Enter with enhanced keyboards) inserts a newline.
 `SQUAD_TIPS=off` disables the idle TIP line; tips hide while typing or completing.
 

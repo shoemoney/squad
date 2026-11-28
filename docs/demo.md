@@ -40,7 +40,7 @@ The GIF is 46 s at 1400 px. It is built by `docs/demo/tools/edit_hero.py`, and e
 
 Rebuild: `python3 docs/demo/tools/edit_hero.py docs/demo/squad-raw.mp4 docs/media/squad-demo.gif 1400 10 0.3:3.5:1 3.5:6.5:3 6.5:9.6:1 9.6:18.5:2 18.5:29:1 29:53:12 53:66:2.5 66:69.5:1 69.5:139:16 139:148:1`.
 
-The tape needs two typeahead workarounds. Escape closes an open suggestion list before Enter (an open list makes Enter accept the completion instead of sending), and `Ctrl+A` then Backspace clears a draft (Ctrl+U does nothing).
+The tape needs one typeahead workaround: `Ctrl+A` then Backspace clears a draft (Ctrl+U does nothing). Enter now sends a fully typed command even with the suggestion list open, so the older Escape-before-Enter step is no longer required.
 
 ---
 

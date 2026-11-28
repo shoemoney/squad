@@ -255,6 +255,17 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
         } else {
             "↓ back to live · End   |   PgUp/PgDn Scroll · F7 Scores · F6 Focus".into()
         }
+    } else if let Some(working) = &app.working {
+        format!(
+            "{working} {}",
+            app.pending_updates
+                .iter()
+                .map(|v| format!("{}={} pending", v.name.as_str(), v.value))
+                .collect::<Vec<_>>()
+                .join(" · ")
+        )
+        .trim_end()
+        .to_string()
     } else if app.awaiting_ack {
         format!(
             "Waiting for acknowledgement… {}",
@@ -298,6 +309,7 @@ pub fn render(app: &mut App, frame: &mut Frame<'_>, now: Duration) {
     };
     let help_style = if !app.session.transcript.follow
         || app.awaiting_ack
+        || app.working.is_some()
         || app.stop_confirmation.is_some_and(|until| now < until)
         || app.session.pick.is_some()
     {

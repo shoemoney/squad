@@ -217,6 +217,19 @@ impl InputState {
         self.draft = None;
         self.scroll = 0;
     }
+    /// Undo `accept_submission` for a rejected draft: drop its history entry
+    /// and put the text back with the cursor at the end.
+    pub fn restore_submission(&mut self, draft: &str) {
+        if self.history.last().is_some_and(|h| h == draft) {
+            self.history.pop();
+        }
+        self.text = draft.to_string();
+        self.cursor = self.text.len();
+        self.anchor = None;
+        self.history_index = None;
+        self.draft = None;
+        self.scroll = 0;
+    }
     pub fn cursor_in(&mut self, area: Rect) -> Option<(u16, u16)> {
         if area.width <= 2 || area.height == 0 {
             return None;

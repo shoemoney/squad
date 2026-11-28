@@ -143,7 +143,7 @@ async fn question_first_chat_pick_preflight_debate_verdict_and_restart() {
     };
     let plan = preflight.clone();
     app.acknowledge(pending);
-    assert!(app.input.text().contains("@alpha"));
+    assert!(app.input.text().is_empty(), "submitted text leaves the box");
     let view = squad_tui::widgets::preflight::PreflightView {
         plan: plan.clone(),
         pending: false,

@@ -673,8 +673,10 @@ async fn stdio_preconfirmation_still_obeys_the_daily_cap() {
         .await;
     let mut changed = args;
     changed["confirm"] = json!(false);
+    // A cap refusal rolls back and never claims the request id, so even a
+    // changed retry is judged on the cap, not as an idempotency conflict.
     session
-        .assert_tool_error("squad_tournament_start", changed, "IDEMPOTENCY_CONFLICT")
+        .assert_tool_error("squad_tournament_start", changed, "DAILY_MAX_REACHED")
         .await;
     session.finish().await;
     assert!(provider.captured_bodies().await.is_empty());

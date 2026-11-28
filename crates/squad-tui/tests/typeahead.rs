@@ -431,3 +431,156 @@ fn all_and_follow_on_menus_respect_recipient_and_slash_syntax() {
     let c = CompletionState::with_starters(raw, raw.len(), &context(), &Default::default(), true);
     assert!(c.items.iter().all(|s| s.starts_with('$')));
 }
+
+fn reopen_completion(app: &mut App) {
+    app.completion = CompletionState::with_starters(
+        app.input.text(),
+        app.input.cursor(),
+        &app.session.snapshot.context,
+        &Default::default(),
+        true,
+    );
+    app.completion_open = !app.completion.items.is_empty();
+}
+
+#[test]
+fn enter_submits_a_fully_typed_command_with_suggestions_open() {
+    let mut app = app();
+    type_text(
+        &mut app,
+        "give me an idea for an app that uses supabase @grok",
+    );
+    reopen_completion(&mut app);
+    assert!(
+        app.completion_open,
+        "suggestions must be open for this case"
+    );
+    assert_eq!(app.completion.items, ["@grok"]);
+    plain(&mut app, KeyCode::Enter);
+    assert!(
+        matches!(
+            app.pending,
+            Some(squad_protocol::Request::UserMessage { .. })
+        ),
+        "Enter must submit, got {:?}",
+        app.pending
+    );
+    assert!(app.awaiting_ack);
+    assert!(!app.completion_open);
+    assert_eq!(app.input.text(), "");
+}
+
+#[test]
+fn enter_accepts_after_tab_selection() {
+    let mut app = app();
+    type_text(&mut app, "@all $tou");
+    plain(&mut app, KeyCode::Tab);
+    assert!(app.completion_open);
+    plain(&mut app, KeyCode::Enter);
+    assert_eq!(app.input.text(), "@all $tournament ");
+    assert!(app.pending.is_none());
+}
+
+#[test]
+fn enter_accepts_after_arrow_selection() {
+    let mut app = app();
+    type_text(&mut app, "@");
+    plain(&mut app, KeyCode::Down);
+    let picked = app.completion.items[app.completion.selected].clone();
+    plain(&mut app, KeyCode::Enter);
+    assert_eq!(app.input.text(), format!("{picked} "));
+    assert!(app.pending.is_none());
+}
+
+#[test]
+fn enter_with_unchanged_token_submits_instead_of_accepting() {
+    let mut app = app();
+    type_text(&mut app, "@grok hello");
+    app.input.apply(EditorAction::Home(false)).ok();
+    for _ in 0..5 {
+        app.input.apply(EditorAction::Right(false)).unwrap();
+    }
+    reopen_completion(&mut app);
+    if app.completion_open {
+        plain(&mut app, KeyCode::Enter);
+        assert!(app.pending.is_some() || app.input.text() != "@grok  hello");
+    }
+}
+
+#[test]
+fn submit_clears_input_keeps_history_and_shows_working() {
+    let mut app = app();
+    type_text(&mut app, "@grok hello there");
+    plain(&mut app, KeyCode::Enter);
+    assert!(app.awaiting_ack);
+    assert_eq!(app.input.text(), "");
+    assert_eq!(app.working.as_deref(), Some("Sending to 1 member…"));
+    let screen = screen(&mut app, 100);
+    assert!(screen.contains("Sending to 1 member…"), "{screen}");
+    key(&mut app, KeyCode::Up, KeyModifiers::ALT);
+    assert_eq!(app.input.text(), "@grok hello there");
+}
+
+#[test]
+fn working_indicator_lasts_until_first_reply_and_rejection_restores_text() {
+    let mut app = app();
+    type_text(&mut app, "@grok hello there");
+    plain(&mut app, KeyCode::Enter);
+    app.acknowledge(squad_protocol::RequestResult::Accepted {
+        request_id: squad_protocol::EventId::new(),
+        event_ids: vec![],
+        cursor: None,
+    });
+    assert_eq!(
+        app.working.as_deref(),
+        Some("Waiting for the first response…")
+    );
+    app.observe_feed_sender(&squad_protocol::Actor::Me);
+    assert!(app.working.is_some(), "own echo is not a response");
+    app.observe_feed_sender(&squad_protocol::Actor::Member(
+        squad_protocol::MemberNick::new("grok").unwrap(),
+    ));
+    assert!(app.working.is_none());
+}
+
+#[test]
+fn parse_error_keeps_text() {
+    let mut app = app();
+    type_text(&mut app, "no recipient at all");
+    plain(&mut app, KeyCode::Enter);
+    assert_eq!(app.input.text(), "no recipient at all");
+    assert!(app.working.is_none());
+    assert!(app.pending.is_none());
+}
+
+#[test]
+fn cap_rejection_restores_text_and_shows_the_exact_reason() {
+    let mut app = app();
+    let prompt = "@all $tournament give me an idea";
+    type_text(&mut app, prompt);
+    plain(&mut app, KeyCode::Enter);
+    assert_eq!(app.input.text(), "");
+    let reason = "Daily max of $150.00 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $0.001592 today; this request needs up to $469.948754 reserved.)";
+    app.acknowledge(squad_protocol::RequestResult::Rejected {
+        request_id: squad_protocol::EventId::new(),
+        error: squad_protocol::ErrorPayload {
+            code: squad_protocol::ErrorCode::DAILY_MAX_REACHED,
+            text: squad_protocol::Text::new(reason).unwrap(),
+            retryable: false,
+            related_event_id: None,
+            work_id: None,
+            debate_id: None,
+            case_id: None,
+            earliest_cursor: None,
+            retry_action: None,
+            contest_id: None,
+            provider_status: None,
+            provider_message: None,
+        },
+    });
+    assert_eq!(app.input.text(), prompt, "rejected text is kept");
+    assert!(app.working.is_none());
+    assert_eq!(app.notice.as_deref(), Some(reason));
+    let screen = screen(&mut app, 200);
+    assert!(screen.contains("Daily max of $150.00 reached."), "{screen}");
+}

@@ -140,3 +140,46 @@ async fn pending_tournament(room: &RoomHandle) -> ContestPreflight {
         _ => panic!("expected a tournament preflight, got {start:?}"),
     }
 }
+
+#[tokio::test]
+async fn over_cap_tournament_is_refused_without_creating_a_contest() {
+    let root = tempfile::tempdir().unwrap();
+    let launcher = Launcher::default();
+    let (room, provider) = open4(root.path(), &launcher, OpenMode::Interactive).await;
+    room.shutdown().await.unwrap();
+
+    let mut config = config4(root.path());
+    config.budget.daily_max_usd = 0.05;
+    let room = RoomHandle::open_with_launcher(
+        config,
+        "main",
+        OpenMode::Interactive,
+        client(&provider),
+        &launcher,
+    )
+    .await
+    .unwrap();
+    let result = room
+        .submit(message4("@all $tournament Propose a plan", EventId::new()))
+        .await;
+    let RequestResult::Rejected { error, .. } = result else {
+        panic!("expected a cap rejection, got {result:?}");
+    };
+    assert_eq!(error.code, ErrorCode::DAILY_MAX_REACHED);
+    let text = error.text.as_str();
+    assert!(
+        text.starts_with(
+            "Daily max of $0.05 reached. Raise SQUAD_DAILY_MAX_USD or wait until tomorrow. (Spent $"
+        ) && text.contains(" today; this request needs up to $")
+            && text.ends_with(" reserved.)"),
+        "{text}"
+    );
+    let state = room.try_state().await.unwrap();
+    assert!(state.active_contest.is_none());
+    let store = store(&launcher);
+    let contests: i64 = store
+        .call(|db| Ok(db.query_row("SELECT COUNT(*) FROM contests", [], |r| r.get(0))?))
+        .unwrap();
+    assert_eq!(contests, 0, "no FAILED contest row for a refused request");
+    room.shutdown().await.unwrap();
+}

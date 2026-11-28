@@ -66,6 +66,7 @@ fn accepted_ack_cannot_erase_new_typing_and_recall_is_explicit() {
         .unwrap();
     app.submit();
     assert!(app.awaiting_ack);
+    assert_eq!(app.input.text(), "");
     app.input
         .apply(EditorAction::Insert(" more".into()))
         .unwrap();
@@ -74,7 +75,7 @@ fn accepted_ack_cannot_erase_new_typing_and_recall_is_explicit() {
         event_ids: vec![],
         cursor: None,
     });
-    assert_eq!(app.input.text(), "@claude hi more");
+    assert_eq!(app.input.text(), " more");
     assert_eq!(app.last_recipients, ["@claude"]);
 }
 #[test]

@@ -63,6 +63,8 @@ pub struct App {
     pub max_feed_batch: usize,
     submitted_draft: Option<String>,
     submitted_recipients: Vec<String>,
+    /// Status-line label shown from submit until the first visible response.
+    pub working: Option<String>,
 }
 impl App {
     pub fn new(caps: TerminalCaps) -> Self {
@@ -112,6 +114,7 @@ impl App {
             max_feed_batch: 0,
             submitted_draft: None,
             submitted_recipients: vec![],
+            working: None,
         }
     }
     pub fn now(&self) -> Duration {
@@ -153,6 +156,8 @@ impl App {
                             self.export_scope = Some((scope, id));
                         } else {
                             self.queue(request);
+                            self.clear_submitted_input();
+                            self.working = Some(self.sending_label());
                         }
                     }
                 }
@@ -160,20 +165,57 @@ impl App {
         }
         self.dirty = true;
     }
+    /// Enter moves the draft into history and empties the box at once, so a
+    /// sent message never sits in the input looking unsent.
+    fn clear_submitted_input(&mut self) {
+        self.input.accept_submission();
+        self.completion_open = false;
+        self.completion_tabbed = false;
+        self.refresh_preview();
+    }
+    fn sending_label(&self) -> String {
+        let roster = self.session.snapshot.context.roster.len();
+        let count = if self.submitted_recipients.iter().any(|r| r == "@all") {
+            roster
+        } else {
+            self.submitted_recipients.len()
+        };
+        match count {
+            0 => "Sending…".into(),
+            1 => "Sending to 1 member…".into(),
+            n => format!("Sending to {n} members…"),
+        }
+    }
+    /// Any reply from someone other than the human ends the working indicator.
+    pub fn observe_feed_sender(&mut self, sender: &Actor) {
+        if self.working.is_some() && *sender != Actor::Me {
+            self.working = None;
+            self.dirty = true;
+        }
+    }
     pub fn acknowledge(&mut self, result: RequestResult) {
         self.awaiting_ack = false;
         self.pending_updates.clear();
+        let accepted = matches!(result, RequestResult::Accepted { .. });
+        if accepted && self.working.is_some() && !self.submitted_recipients.is_empty() {
+            self.working = Some("Waiting for the first response…".into());
+        } else {
+            self.working = None;
+        }
         match result {
             RequestResult::Rejected { error, .. } => {
                 self.notice = Some(error.text.to_string());
+                // Put the rejected text back unless the user already started
+                // typing something new.
+                if let Some(draft) = self.submitted_draft.take()
+                    && self.input.text().is_empty()
+                {
+                    self.input.restore_submission(&draft);
+                    self.refresh_preview();
+                }
             }
             RequestResult::Accepted { .. } => {
-                // Typing during acknowledgement is preserved. Only the exact
-                // accepted draft is moved into history and cleared.
-                if self.submitted_draft.as_deref() == Some(self.input.text()) {
-                    self.input.accept_submission();
-                    self.quotes.clear();
-                }
+                self.quotes.clear();
                 if !self.submitted_recipients.is_empty() {
                     self.last_recipients = std::mem::take(&mut self.submitted_recipients);
                 }
@@ -740,7 +782,13 @@ impl App {
                             if self.completion_open
                                 && !key.modifiers.contains(KeyModifiers::SHIFT) =>
                         {
-                            self.accept_completion();
+                            if self.enter_accepts_completion() {
+                                self.accept_completion();
+                                return;
+                            }
+                            self.completion_open = false;
+                            self.completion_tabbed = false;
+                            self.submit();
                             return;
                         }
                         _ => {}
@@ -1006,6 +1054,23 @@ impl App {
             .iter()
             .map(|token| crate::typeahead::describe(token, &self.session.snapshot.models))
             .collect();
+    }
+    /// Enter takes the selection only when the user engaged the list
+    /// (Tab/arrows) or the token under the cursor is a prefix the selection
+    /// would change. A fully typed command submits instead.
+    fn enter_accepts_completion(&self) -> bool {
+        if self.completion_tabbed {
+            return true;
+        }
+        let Some(value) = self.completion.replacement() else {
+            return false;
+        };
+        let range = self.completion.replace.clone();
+        let text = self.input.text();
+        let Some(current) = text.get(range) else {
+            return false;
+        };
+        current != value.trim_end()
     }
     fn accept_completion(&mut self) {
         if let Some(value) = self.completion.replacement() {

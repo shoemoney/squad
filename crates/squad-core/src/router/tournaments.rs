@@ -174,7 +174,7 @@ pub fn prepare(
         judge_model: judge.model.to_string(),
         total_rounds: entrants.len() as u32 - 1,
     };
-    let mut state = TournamentState {
+    let state = TournamentState {
         contest_id: contest,
         state: TournamentStatus::Preflight,
         state_version: 0,
@@ -347,36 +347,9 @@ pub fn prepare(
         contest,
         EnvelopePayload::TournamentPreflight(plan.clone()),
     )?;
-    if let Err(StoreError::Domain(code, message)) =
-        squad_store::accounting::admit(tx, &day, priced.reserved_micros, max)
-    {
-        let rejection = if code == ErrorCode::DAILY_MAX_REACHED {
-            super::daily_cap_error(tx, &day, priced.reserved_micros, max)
-        } else {
-            error(code, message)
-        };
-        emit(
-            tx,
-            group,
-            id,
-            contest,
-            EnvelopePayload::ContestPreflightResult(ContestPreflightResult {
-                contest_id: contest,
-                plan_id: plan.base.plan_id,
-                status: PreflightStatus::Rejected,
-                confirmation: None,
-                error: Some(rejection.clone()),
-            }),
-        )?;
-        state.state = TournamentStatus::Failed;
-        state.state_version += 1;
-        state.terminal_reason = Some(message.into());
-        save(tx, group, id, &state, Some(0))?;
-        return Ok(RequestResult::Rejected {
-            request_id: id,
-            error: rejection,
-        });
-    }
+    // A request the daily cap cannot cover is refused outright: the error rolls
+    // the whole admission back, so no FAILED contest card is ever created.
+    squad_store::accounting::admit(tx, &day, priced.reserved_micros, max)?;
     if plan.base.confirmation_required && !preconfirmed {
         return Ok(RequestResult::PendingConfirmation {
             request_id: id,

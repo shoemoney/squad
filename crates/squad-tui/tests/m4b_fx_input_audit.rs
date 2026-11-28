@@ -104,7 +104,8 @@ fn every_effect_skips_without_consuming_text_or_submission() {
             app.pending
         );
         assert!(app.awaiting_ack);
-        assert_eq!(app.input.text(), "@alpha ordinary message");
+        assert_eq!(app.input.text(), "");
+        assert!(app.working.is_some());
     }
 }
 

@@ -134,6 +134,13 @@ fn reduce(app: &mut App, delivery: FeedDelivery) {
     let old_pick = app.session.pick.as_ref().map(|p| p.request.contest_id);
     let was_active = app.session.active_contest();
     // Successful completion is the result reveal's trigger, not a cancellation.
+    let sender = match &delivery.item {
+        squad_protocol::FeedItem::Committed(e) => &e.base.sender,
+        squad_protocol::FeedItem::Delta(e) | squad_protocol::FeedItem::Presence(e) => {
+            &e.base.sender
+        }
+    };
+    app.observe_feed_sender(sender);
     let completed = matches!(&delivery.item, squad_protocol::FeedItem::Committed(event)
         if matches!(&event.content, squad_protocol::EnvelopePayload::DebateState(state)
             if state.state == squad_protocol::DebateStatus::Completed));
