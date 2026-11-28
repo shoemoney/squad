@@ -706,7 +706,7 @@ impl EffectiveEnvironment {
         // squad-core/src/prompts/load.rs validates the prompt directory, templates and placeholders.
         let prompt_dir = take!(path_value("SQUAD_PROMPTS_DIR"), None);
         let data_dir = take!(self.data_dir(options), PathBuf::new());
-        // TODO(M3.P1): Room open creates and checks data-dir writability before locking.
+        // squad_core::room::check_data_dir checks creation and writability before room locking.
         let config = SquadConfig {
             room: ROOM.to_owned(),
             openrouter_api_key: OpenRouterApiKey(api_key),

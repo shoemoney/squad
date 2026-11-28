@@ -187,11 +187,9 @@ fn run(cli: Cli) -> Result<u8, CliFailure> {
                 .join("\n"),
         )
     })?;
-    paths::create_private_dir(&config.data_dir).map_err(|_| {
-        format!(
-            "Data directory is not writable: {}.",
-            config.data_dir.display()
-        )
+    squad_core::room::check_data_dir(&config.data_dir).map_err(|error| CliFailure {
+        code: error.code,
+        message: error.message,
     })?;
     let bus_log = cli
         .bus_log

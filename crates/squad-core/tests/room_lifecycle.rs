@@ -292,3 +292,32 @@ async fn stopping_a_new_mode_preflight_cancels_it_and_a_second_stop_is_rejected(
         room.shutdown().await.unwrap();
     }
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn read_only_data_dir_fails_before_creating_lock() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+    let root = tempfile::tempdir().unwrap();
+    if std::fs::metadata(root.path()).unwrap().uid() == 0 {
+        eprintln!("skipped: root bypasses directory write permissions");
+        return;
+    }
+    let cfg = config(root.path());
+    std::fs::create_dir_all(&cfg.data_dir).unwrap();
+    std::fs::set_permissions(&cfg.data_dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+    let result = RoomHandle::open(cfg.clone(), "main", OpenMode::OneShot).await;
+    // Restore permissions before assertions so TempDir can always clean up.
+    std::fs::set_permissions(&cfg.data_dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let error = match result {
+        Ok(_) => panic!("read-only room open succeeded"),
+        Err(error) => error,
+    };
+    assert!(!cfg.data_dir.join("main.lock").exists());
+    // Debug comparison lets this regression run against the unchanged base API.
+    assert_eq!(format!("{:?}", error.code), "DATA_DIR_NOT_WRITABLE");
+    assert!(error.message.contains(&cfg.data_dir.display().to_string()));
+    assert!(error.message.contains("grant write access"));
+    assert!(error.message.contains("--data-dir"));
+    assert_eq!(std::fs::read_dir(&cfg.data_dir).unwrap().count(), 0);
+}

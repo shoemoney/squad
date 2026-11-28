@@ -30,6 +30,65 @@ use squad_protocol::{config::SquadConfig, *};
 use squad_store::{Store, StoreError, room_lock::RoomLock};
 use std::{collections::BTreeMap, future::Future, pin::Pin, sync::Mutex};
 
+use std::{fs, io, path::Path};
+
+/// Create missing components privately; preserve permissions of existing directories.
+/// Existing parent directories (such as HOME or XDG_DATA_HOME) are not changed.
+pub fn create_private_dir(path: &Path) -> io::Result<()> {
+    let mut builder = fs::DirBuilder::new();
+    builder.recursive(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        builder.mode(0o700);
+    }
+    builder.create(path)?;
+    let metadata = fs::metadata(path)?;
+    if !metadata.is_dir() {
+        return Err(io::Error::other("application path must be a directory"));
+    }
+    Ok(())
+}
+
+pub fn check_writable(path: &Path) -> io::Result<()> {
+    use std::io::Write;
+    match fs::metadata(path) {
+        Ok(metadata) if metadata.is_dir() => {}
+        Ok(_) => return Err(io::Error::other("data path is not a directory")),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => create_private_dir(path)?,
+        Err(error) => return Err(error),
+    }
+    // Exclusive, private probe; never touches room rows or an existing file.
+    let probe = path.join(format!(".squad-write-check-{}", uuid::Uuid::new_v4()));
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(&probe)?;
+    let result = file
+        .write_all(b"squad doctor\n")
+        .and_then(|()| file.sync_all());
+    drop(file);
+    let cleanup = fs::remove_file(probe);
+    result.and(cleanup)
+}
+
+/// Check creation and writability before logging, locking or opening room state.
+pub fn check_data_dir(path: &Path) -> Result<(), RoomError> {
+    check_writable(path).map_err(|error| {
+        RoomError::new(
+            ErrorCode::DATA_DIR_NOT_WRITABLE,
+            format!(
+                "Data directory is not writable: {}. Please grant write access to this directory for the intended user, or choose a writable directory with --data-dir. Cause: {error}",
+                path.display()
+            ),
+        )
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoomError {
     pub code: ErrorCode,
@@ -284,9 +343,7 @@ impl RoomHandle {
             .map_err(|e| RoomError::new(ErrorCode::CONFIG_INVALID, e.to_string()))?;
         let daily_max = squad_store::accounting::reported_micros(config.budget.daily_max_usd)
             .map_err(|_| RoomError::new(ErrorCode::CONFIG_INVALID, "Invalid daily max"))?;
-        std::fs::create_dir_all(&config.data_dir).map_err(|_| {
-            RoomError::new(ErrorCode::UNAVAILABLE, "Cannot create room data directory")
-        })?;
+        check_data_dir(&config.data_dir)?;
         let lock = RoomLock::acquire(&config.data_dir.join("main.lock"))
             .map_err(|e| RoomError::new(ErrorCode::UNAVAILABLE, e.to_string()))?;
         let lock = RoomLease(lock);
