@@ -23,7 +23,7 @@ MAX_BYTES=1500000
 FORBIDDEN='/home/shoemoney|/Users/|/tmp/|/dev/shm|sk-or-|192\.168\.|Some\(|Member\(|Nick\('
 NEUTRAL_HOME=/home/demo
 # Seconds cut from the very end: the room has exited and an empty shell prompt is showing.
-END_TRIM=${END_TRIM:-1.6}
+END_TRIM=${END_TRIM:-1.6}   # offline-export modes: set END_TRIM higher to shorten the final hold
 
 # Seconds of raw start-up to skip, real-time head after it, real-time tail. The start-up checklist is
 # skipped so the clip opens on the prompt being sent (populated first).
@@ -104,15 +104,19 @@ encode() {
   local src=$1 out=$2 width=$3 fps=$4 lossy=$5; shift 5
   local filters="" labels="" i=0 seg a b sp real label
   for seg in "$@"; do
-    IFS=: read -r a b sp <<<"$seg"
+    IFS=: read -r a b sp custom <<<"$seg"
     filters+="[0:v]trim=$a:$b,setpts=(PTS-STARTPTS)/$sp"
-    if awk -v s="$sp" 'BEGIN { exit !(s > 1) }'; then
+    if [[ -n ${custom:-} ]] || awk -v s="$sp" 'BEGIN { exit !(s > 1) }'; then
       real=$(awk -v a="$a" -v b="$b" 'BEGIN { printf "%d", b - a }')
       label="TIME CUT - $real s of model wait sped up x$sp"
+      [[ -z ${custom:-} ]] || label=${custom//_/ }
       filters+=",drawbox=x=0:y=ih-44:w=iw:h=44:color=black@0.75:t=fill"
       filters+=",drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='$label':fontcolor=0xffd23f:fontsize=30:x=(w-text_w)/2:y=h-36"
     fi
-    filters+=",fps=$fps,scale=$width:-1:flags=lanczos[v$i];"
+    # Sped-up stretches change a lot per frame; 5 fps there keeps the GIF inside the size budget.
+    seg_fps=$fps
+    if awk -v s="$sp" 'BEGIN { exit !(s > 1) }'; then seg_fps=${SPED_FPS:-5}; fi
+    filters+=",fps=$seg_fps,scale=$width:-1:flags=lanczos[v$i];"
     labels+="[v$i]"
     i=$((i + 1))
   done
@@ -121,11 +125,32 @@ encode() {
   gifsicle -O3 --lossy="$lossy" --colors 128 "$work_root/cut.gif" -o "$out" 2>/dev/null
 }
 
+# OFFLINE_EXPORT=1 modes (tune, blow_it_up): the live room stays on "awaiting ruling" after the contest is
+# already COMPLETE in the database, so the tape leaves the room and runs `squad export` on that same
+# database. The room's exit is the last big luma step in the raw video; everything after it is the
+# export continuation, played in real time with its own on-screen label. Echoes the segment list.
+offline_segments() {
+  local src=$1 total=$2 b
+  # Room exit = the last time the mean luma of the frame (sampled at 2 fps) steps down by more than 5.
+  b=$(ffmpeg -loglevel error -i "$src" -vf "fps=2,scale=350:-1,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-" -f null - 2>/dev/null |
+    awk '/pts_time:/ { t = substr($0, index($0, "pts_time:") + 9) + 0 } /YAVG=/ { split($0, a, "="); y = a[2] + 0; if (have && prev - y > 5) b = t; prev = y; have = 1 } END { if (b != "") printf "%.2f", b }')
+  [[ -n $b ]] || { echo "no room-exit luma step found in $src" >&2; return 1; }
+  awk -v b="$b" -v t="$total" -v s="$START" 'BEGIN {
+    head_end = s + 5; tail_start = b - 1.5
+    budget = 25 - 5 - 1.5 - (t - b)
+    if (budget < 1) budget = 1
+    speed = int((tail_start - head_end) / budget) + 1
+    printf "%d:%d:1 %d:%.2f:%d %.2f:%.2f:1 %.2f:%.2f:1:OFFLINE_EXPORT_-_same_finished_contest,_no_new_model_call", s, head_end, head_end, tail_start, speed, tail_start, b, b, t
+  }'
+}
+
 cut() {
   local mode=$1 src=docs/media/full/$1.mp4 out=docs/media/$1.gif
   local total override="CUT_$mode" segs width fps lossy size
   total=$(awk -v t="$(duration "$src")" -v e="$END_TRIM" 'BEGIN { printf "%.2f", t - e }')
-  if [[ -n ${!override:-} ]]; then segs=${!override}; else segs=$(default_segments "$total"); fi
+  if [[ -n ${!override:-} ]]; then segs=${!override}
+  elif [[ -n ${OFFLINE_EXPORT:-} ]]; then segs=$(offline_segments "$src" "$total")
+  else segs=$(default_segments "$total"); fi
   echo "== cutting $mode (raw ${total}s) segments: $segs"
   # Shrink width, frame rate and add loss until the GIF fits the budget.
   for width in 1000 900 800 700; do
