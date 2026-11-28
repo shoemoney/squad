@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Record the eleven v0.2.0 mode tapes, cut the README GIFs and scan them for private strings.
+# Record the mode tapes (v0.2.1 release binary), cut the README GIFs and scan them for private strings.
 #
 # usage: OPENROUTER_API_KEY=... docs/demo/new/record-all.sh /path/to/squad [mode ...]
 #
@@ -7,8 +7,9 @@
 #   docs/media/full/<mode>.mp4 (VHS) and .gif   the raw, full-length recording
 #   docs/media/<mode>.gif                 the README cut: <= 25 s, <= 1.5 MB, opens on activity,
 #                                         every sped-up stretch carries a "TIME CUT" label
-# Each mode runs with its own temp HOME, SQUAD_DATA_DIR and working directory under /dev/shm, so no
-# home or /tmp path can appear on screen. Afterwards every GIF is OCR-scanned; a hit fails the run.
+# Each mode runs in a private mount namespace where a scratch directory is bind-mounted at the neutral
+# path /home/demo (HOME, default data dir and working directory), so the only path on screen is the
+# generic /home/demo/... and no real home, /dev/shm or /tmp path can appear. Needs passwordless sudo. Afterwards every GIF is OCR-scanned; a hit fails the run.
 #
 # SKIP_RECORD=1 re-cuts and re-scans existing raw recordings without calling any model.
 # Cut points default to START/HEAD/TAIL below. Override one mode with CUT_<mode>="a:b:speed ..."
@@ -19,7 +20,10 @@ set -euo pipefail
 MODES=(forge decide blow_it_up readback forecast tune bass_ackwards_prd rank negotiate debug trace)
 MAX_SECONDS=25
 MAX_BYTES=1500000
-FORBIDDEN='/home/|/Users/|/tmp/|sk-or-'
+FORBIDDEN='/home/shoemoney|/Users/|/tmp/|/dev/shm|sk-or-|192\.168\.|Some\(|Member\(|Nick\('
+NEUTRAL_HOME=/home/demo
+# Seconds cut from the very end: the room has exited and an empty shell prompt is showing.
+END_TRIM=${END_TRIM:-1.6}
 
 # Seconds of raw start-up to skip, real-time head after it, real-time tail. The start-up checklist is
 # skipped so the clip opens on the prompt being sent (populated first).
@@ -61,11 +65,16 @@ duration() { ffprobe -v error -show_entries format=duration -of csv=p=0 "$1"; }
 
 record() {
   local mode=$1 dir=$work_root/$1
-  mkdir -p "$dir/home" "$dir/data" "$dir/work"
+  mkdir -p "$dir/home/work" "$vhs_tmp"
   echo "== recording $mode"
-  DEMO_HOME=$dir/home DEMO_WORK=$dir/work SQUAD_DATA_DIR=$dir/data \
-    PATH="$work_root/bin:$PATH" TMPDIR=$vhs_tmp \
-    vhs "docs/demo/new/$mode.tape"
+  export OPENROUTER_API_KEY
+  sudo --preserve-env=OPENROUTER_API_KEY unshare -m bash -c '
+    mount --bind "$1" "$2" && shift 2 &&
+    exec sudo --preserve-env=OPENROUTER_API_KEY -u "$SUDO_USER" env "$@"
+  ' _ "$dir/home" "$NEUTRAL_HOME" \
+    DEMO_HOME="$NEUTRAL_HOME" DEMO_WORK="$NEUTRAL_HOME/work" \
+    PATH="$work_root/bin:$PATH" TMPDIR="$vhs_tmp" \
+    "$(command -v vhs)" "docs/demo/new/$mode.tape"
 }
 
 # The complete recording as a lighter GIF, made from the raw MP4 (VHS's own GIF encode of a long
@@ -115,7 +124,7 @@ encode() {
 cut() {
   local mode=$1 src=docs/media/full/$1.mp4 out=docs/media/$1.gif
   local total override="CUT_$mode" segs width fps lossy size
-  total=$(duration "$src")
+  total=$(awk -v t="$(duration "$src")" -v e="$END_TRIM" 'BEGIN { printf "%.2f", t - e }')
   if [[ -n ${!override:-} ]]; then segs=${!override}; else segs=$(default_segments "$total"); fi
   echo "== cutting $mode (raw ${total}s) segments: $segs"
   # Shrink width, frame rate and add loss until the GIF fits the budget.

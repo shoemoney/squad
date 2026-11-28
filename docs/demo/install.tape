@@ -1,4 +1,5 @@
-# Squad install walkthrough (README). Record with: vhs docs/demo/install.tape
+# Squad install walkthrough (README). Record with: vhs docs/demo/install.tape inside a mount namespace that binds a scratch dir at /home/demo
+# (see docs/demo/new/record-all.sh), so the path shown is the neutral /home/demo
 # Downloads the PUBLISHED release archive for Linux x64 into a throwaway HOME, verifies the
 # checksum, installs the binary, then runs `squad --version` and `squad doctor`.
 # The key shown is a placeholder, not a credential. Nothing here touches the network after the download.
@@ -15,12 +16,12 @@ Set TypingSpeed 15ms
 Set WindowBar Colorful
 
 Hide
-Type 'export HOME="$(mktemp -d -p /dev/shm)" && cd "$HOME" && export PS1="\$ " TERM=xterm-256color && clear'
+Type 'export HOME=/home/demo && cd "$HOME" && export PS1="\$ " TERM=xterm-256color && clear'
 Enter
 Sleep 800ms
 Show
 
-Type "B=https://github.com/shoemoney/squad/releases/latest/download"
+Type "B=https://github.com/shoemoney/squad/releases/download/v0.2.1"
 Enter
 Sleep 400ms
 Type "A=squad-cli-x86_64-unknown-linux-gnu"
