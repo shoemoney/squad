@@ -320,3 +320,203 @@ async fn d71_mode_fixtures_restore_preflight_and_cancel_in_order() {
     assert_eq!(fake.captured_bodies().await.len(), 1);
     room.shutdown().await.unwrap();
 }
+
+#[path = "../../squad-core/tests/room_support.rs"]
+mod mode_fixtures;
+
+/// Reuse the shared room artifacts, varying only their terminal transitions.
+/// ASSUMPTION: completed variants retain the fixtures' partial/skipped evidence;
+/// completion describes the script outcome, not unanimous member participation.
+#[tokio::test]
+async fn d71_mode_fixtures_integrate_completed_results_in_order() {
+    use mode_fixtures::*;
+    use squad_tui::widgets::contest_status::RunOutcome;
+
+    let root = tempfile::tempdir().unwrap();
+    let launcher = Launcher::default();
+    let (room, server) = open(root.path(), &launcher, OpenMode::OneShot).await;
+    let mut fixtures = debate_fixture();
+    fixtures.extend(tournament_grill_pick_fixture());
+    fixtures.extend(new_modes_fixture());
+    let order = [
+        (ContestKind::Debate, CONTEST.parse::<ContestId>().unwrap()),
+        (ContestKind::Grill, uuid(600).parse().unwrap()),
+        (ContestKind::Census, uuid(800).parse().unwrap()),
+        (ContestKind::Crosscheck, uuid(801).parse().unwrap()),
+        (ContestKind::Tournament, uuid(500).parse().unwrap()),
+        (ContestKind::Survey, uuid(802).parse().unwrap()),
+        (ContestKind::Probe, uuid(803).parse().unwrap()),
+    ];
+    let mut live = Session::default();
+    let mut cues = FxQueue::new();
+    let mut completed = Vec::new();
+    let mut result_events = Vec::new();
+    for (kind, id) in order {
+        let mut items = fixtures
+            .iter()
+            .filter(|(_, _, payload)| match payload {
+                EnvelopePayload::DebateSetup(s) => s.debate_id == id,
+                EnvelopePayload::DebateState(s) => s.debate_id == id,
+                EnvelopePayload::DebateTurn(t) => t.debate_id == id,
+                EnvelopePayload::DebateRoundScore(s) => s.debate_id == id,
+                EnvelopePayload::Verdict(v) => v.debate_id == id,
+                EnvelopePayload::ContestState(ContestState::Generic(s)) => s.contest_id == id,
+                EnvelopePayload::ContestArtifact(a) => a.contest_id == id,
+                EnvelopePayload::ContestReport(r) => r.contest_id == id,
+                _ => false,
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        assert!(!items.is_empty(), "{kind:?} must reuse a shared fixture");
+        if kind != ContestKind::Debate {
+            let mut terminal = items
+                .iter()
+                .rev()
+                .find_map(|(_, _, p)| match p {
+                    EnvelopePayload::ContestState(ContestState::Generic(s)) => Some(s.clone()),
+                    _ => None,
+                })
+                .unwrap();
+            terminal.state_version += 1;
+            terminal.status = Text::new("COMPLETED").unwrap();
+            // Keep all original artifacts/reports, replacing the old terminal
+            // state (or adding the missing terminal state for grill).
+            items.retain(|(_, _, p)| {
+                !matches!(p,
+                EnvelopePayload::ContestState(ContestState::Generic(s))
+                    if s.status.as_str() != "RUNNING")
+            });
+            items.push((
+                Actor::System,
+                vec![Recipient::Me],
+                EnvelopePayload::ContestState(ContestState::Generic(terminal)),
+            ));
+        }
+        let batch = commit_each(&launcher, items);
+        let results = batch
+            .iter()
+            .filter(|event| {
+                matches!(
+                    event.content,
+                    EnvelopePayload::Verdict(_)
+                        | EnvelopePayload::ContestArtifact(_)
+                        | EnvelopePayload::ContestReport(_)
+                )
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        assert!(
+            !results.is_empty(),
+            "{kind:?} needs completed result content"
+        );
+        result_events.extend(results);
+        for event in batch {
+            assert!(live.reduce(
+                FeedItem::Committed(event),
+                FeedOrigin::Live,
+                Duration::ZERO,
+                &mut cues
+            ));
+        }
+        completed.push((kind, id));
+        let all = page_all(&room, 256).await;
+        let mut restored = Session::default();
+        restored.restore(snapshot(&room.state().await, all.clone()));
+        // Check every prior result after each subsequent mode completes.
+        for session in [&live, &restored] {
+            assert_eq!(session.contests.len(), completed.len());
+            assert!(!session.active_contest(), "{kind:?}");
+            for (_, completed_id) in &completed {
+                let view = &session.contests[completed_id];
+                assert_eq!(view.outcome(), Some(RunOutcome::Complete));
+                assert_eq!(view.report_header(), "Report complete");
+            }
+            for event in &result_events {
+                match &event.content {
+                    EnvelopePayload::Verdict(v) => {
+                        assert_eq!(session.contests[&v.debate_id].verdict.as_ref(), Some(v));
+                        assert!(
+                            session
+                                .snapshot
+                                .context
+                                .records
+                                .iter()
+                                .any(|record| record.event_id == event.base.id
+                                    && record.content == v.verdict.verdict.reasoning)
+                        );
+                    }
+                    EnvelopePayload::ContestArtifact(a) => {
+                        assert_eq!(
+                            session.contests[&a.contest_id]
+                                .artifacts
+                                .get(&event.base.id),
+                            Some(a)
+                        );
+                    }
+                    EnvelopePayload::ContestReport(r) => {
+                        assert_eq!(
+                            session.contests[&r.contest_id].reports.get(&event.base.id),
+                            Some(r)
+                        );
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            let debate = &session.debates[&order[0].1];
+            assert_eq!(debate.state.state, DebateStatus::Completed);
+            assert!(matches!(&debate.rounds[0].scoring,
+                squad_tui::widgets::debate::Scoring::Accepted(score)
+                    if score.scores.as_ref().unwrap()[&nick("a")].score == 9));
+        }
+        // The committed completion sequence is the D71 sequence, independent
+        // of UUID/map sort order (tournament's UUID sorts before grill's).
+        let integrated = live
+            .snapshot
+            .events
+            .iter()
+            .filter_map(|event| match &event.content {
+                EnvelopePayload::DebateState(s) if s.state == DebateStatus::Completed => {
+                    Some(s.debate_id)
+                }
+                EnvelopePayload::ContestState(ContestState::Generic(s))
+                    if s.status.as_str() == "COMPLETED" =>
+                {
+                    Some(s.contest_id)
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            integrated,
+            completed.iter().map(|(_, id)| *id).collect::<Vec<_>>()
+        );
+        let cue_count = cues.len();
+        for event in all {
+            assert!(!live.reduce(
+                FeedItem::Committed(event),
+                FeedOrigin::Replay,
+                Duration::ZERO,
+                &mut cues
+            ));
+        }
+        assert_eq!(cues.len(), cue_count);
+        assert_eq!(
+            live.contests[&id].artifacts.len(),
+            restored.contests[&id].artifacts.len()
+        );
+        assert_eq!(
+            live.contests[&id].reports.len(),
+            restored.contests[&id].reports.len()
+        );
+    }
+    assert_eq!(completed, order);
+    assert!(
+        server
+            .received_requests()
+            .await
+            .unwrap()
+            .iter()
+            .all(|r| r.method.as_str() == "GET")
+    );
+    room.shutdown().await.unwrap();
+}
