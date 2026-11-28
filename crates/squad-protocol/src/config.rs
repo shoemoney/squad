@@ -703,10 +703,10 @@ impl EffectiveEnvironment {
                 .map(|value| configured_path(value, key, base))
                 .transpose()
         };
-        // TODO(M4.P1): Prompt pack validates directory contents, templates and placeholders.
+        // squad-core/src/prompts/load.rs validates the prompt directory, templates and placeholders.
         let prompt_dir = take!(path_value("SQUAD_PROMPTS_DIR"), None);
         let data_dir = take!(self.data_dir(options), PathBuf::new());
-        // TODO(M3.P1): Room open creates and checks data-dir writability before locking.
+        // squad_core::room::check_data_dir checks creation and writability before room locking.
         let config = SquadConfig {
             room: ROOM.to_owned(),
             openrouter_api_key: OpenRouterApiKey(api_key),
@@ -885,7 +885,7 @@ fn nick(value: &str, variable: &str) -> Result<Nick, ConfigError> {
     })
 }
 fn model(value: &str, variable: &str) -> Result<String, ConfigError> {
-    // TODO(M2.P1): Registry validates concrete slugs, probes aliases and checks capabilities.
+    // squad-agents/src/resolver.rs validates slugs and probes aliases; registry.rs checks capabilities.
     if value.trim().is_empty() {
         Err(ConfigError::EmptyModel(variable.to_owned()))
     } else {
