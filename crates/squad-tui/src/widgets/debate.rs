@@ -445,6 +445,11 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
             c.line(&format!("Instruction: {}", setup.instruction), body);
         }
     }
+    if view.state.state == DebateStatus::WaitingForDebaters {
+        for nick in &view.state.debaters {
+            c.line(&format!("@{nick} · queued"), body);
+        }
+    }
     for round in &view.rounds {
         let banner = Banner::debate_round(round.round as usize, view.state.total_rounds as usize);
         let label = if round.round == 0 {
@@ -628,7 +633,12 @@ pub fn render(view: &DebateView, area: Rect, buf: &mut Buffer, palette: &Palette
         c.line("Judging · awaiting verdict", body);
     }
     let start = c.row;
-    if view.can_judge {
+    if view.can_judge
+        || matches!(
+            view.state.state,
+            DebateStatus::Stopped | DebateStatus::CompleteUnjudged | DebateStatus::Failed
+        )
+    {
         c.line(
             if view.action_pending {
                 "Judge request pending acknowledgement"
