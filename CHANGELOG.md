@@ -9,7 +9,8 @@ All notable changes to Squad will be documented in this file, following
 ### Added
 
 - App-level dot commands in the TUI: `.dump` writes the whole transcript buffer to
-  `output-<YYYYMMDD-HHMMSS>.txt`, and `.quit` / `.exit` leave the room. They are handled by the
+  `output-<YYYYMMDD-HHMMSS>.txt`, and `.save` writes the newest agent reply to
+  `saved-<YYYYMMDD-HHMMSS>.md`, and `.quit` / `.exit` leave the room. They are handled by the
   TUI and never reach the shared `/` command parser.
 
 ## [0.2.1] - 2026-11-27

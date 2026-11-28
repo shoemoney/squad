@@ -18,6 +18,7 @@ fn dot_commands_parse_and_slash_or_prose_do_not() {
     assert_eq!(SystemCommand::parse(".quit"), Some(SystemCommand::Quit));
     assert_eq!(SystemCommand::parse("  .exit "), Some(SystemCommand::Quit));
     assert_eq!(SystemCommand::parse(".dump"), Some(SystemCommand::Dump));
+    assert_eq!(SystemCommand::parse(".save"), Some(SystemCommand::Save));
     for other in [
         "/quit",
         "/exit",
@@ -93,5 +94,34 @@ fn dot_dump_via_the_composer_clears_the_draft_and_reports_the_file() {
             .starts_with("Dumped the buffer to ")
     );
     assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn save_writes_only_the_last_agent_reply() {
+    let mut app = app();
+    let dir = std::env::temp_dir().join(format!("squad-save-test-{}", EventId::new()));
+    std::fs::create_dir_all(&dir).unwrap();
+    assert!(app.save_last_output(&dir).is_err(), "nothing to save yet");
+    for (author, text) in [
+        ("me", "question"),
+        ("claude", "older answer"),
+        ("grok", "the newest answer"),
+        ("me", "a follow-up the agents have not answered"),
+    ] {
+        app.composed.transcript.upsert(TranscriptMessage::new(
+            MessageId::from_event(EventId::new()),
+            author,
+            text,
+        ));
+    }
+    let path = app.save_last_output(&dir).unwrap();
+    let name = path.file_name().unwrap().to_str().unwrap();
+    assert!(
+        name.starts_with("saved-") && name.ends_with(".md"),
+        "{name}"
+    );
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "the newest answer");
+    assert_ne!(path, app.save_last_output(&dir).unwrap());
     std::fs::remove_dir_all(&dir).unwrap();
 }

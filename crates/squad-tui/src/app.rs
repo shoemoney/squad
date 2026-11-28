@@ -15,17 +15,51 @@ use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use squad_protocol::*;
 use std::time::Duration;
 
+/// Creates `<prefix>-<YYYYMMDD-HHMMSS>[-n].<ext>` in `dir` without overwriting anything.
+fn write_unique(
+    dir: &std::path::Path,
+    prefix: &str,
+    ext: &str,
+    contents: &str,
+) -> std::io::Result<std::path::PathBuf> {
+    use std::io::Write;
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    for attempt in 0.. {
+        let name = if attempt == 0 {
+            format!("{prefix}-{stamp}.{ext}")
+        } else {
+            format!("{prefix}-{stamp}-{attempt}.{ext}")
+        };
+        let path = dir.join(name);
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+        {
+            Ok(mut file) => {
+                file.write_all(contents.as_bytes())?;
+                return Ok(path);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => return Err(error),
+        }
+    }
+    unreachable!()
+}
+
 /// App-level commands, typed with a leading dot so they cannot collide with room `/` commands.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SystemCommand {
     Quit,
     Dump,
+    Save,
 }
 impl SystemCommand {
     pub fn parse(text: &str) -> Option<Self> {
         match text.trim() {
             ".quit" | ".exit" => Some(Self::Quit),
             ".dump" => Some(Self::Dump),
+            ".save" => Some(Self::Save),
             _ => None,
         }
     }
@@ -184,6 +218,13 @@ impl App {
     fn run_system_command(&mut self, command: SystemCommand) {
         match command {
             SystemCommand::Quit => self.quit = true,
+            SystemCommand::Save => {
+                self.notice = Some(match self.save_last_output(std::path::Path::new(".")) {
+                    Ok(path) => format!("Saved the last agent output to {}", path.display()),
+                    Err(error) => format!("Save failed: {error}"),
+                });
+                self.input.accept_submission();
+            }
             SystemCommand::Dump => {
                 self.notice = Some(match self.dump_buffer(std::path::Path::new(".")) {
                     Ok(path) => format!("Dumped the buffer to {}", path.display()),
@@ -197,8 +238,6 @@ impl App {
     /// Writes every loaded transcript message, widget rows included, to
     /// `output-<YYYYMMDD-HHMMSS>.txt` in `dir`. Never overwrites an existing file.
     pub fn dump_buffer(&self, dir: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
-        use std::io::Write;
-        let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
         let mut out = String::new();
         let line_text = |line: &ratatui::text::Line<'_>| -> String {
             line.spans.iter().map(|s| s.content.as_ref()).collect()
@@ -221,27 +260,19 @@ impl App {
             }
             out.push('\n');
         }
-        for attempt in 0.. {
-            let name = if attempt == 0 {
-                format!("output-{stamp}.txt")
-            } else {
-                format!("output-{stamp}-{attempt}.txt")
-            };
-            let path = dir.join(name);
-            match std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(&path)
-            {
-                Ok(mut file) => {
-                    file.write_all(out.as_bytes())?;
-                    return Ok(path);
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
-                Err(error) => return Err(error),
-            }
-        }
-        unreachable!()
+        write_unique(dir, "output", "txt", &out)
+    }
+    /// Writes the newest member reply (not the human's own message) to
+    /// `saved-<YYYYMMDD-HHMMSS>.md` in `dir`. Never overwrites an existing file.
+    pub fn save_last_output(&self, dir: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+        let last = self
+            .composed
+            .transcript
+            .messages()
+            .filter(|m| !m.human && !m.source.trim().is_empty())
+            .last()
+            .ok_or_else(|| std::io::Error::other("no agent output to save yet"))?;
+        write_unique(dir, "saved", "md", &last.source)
     }
     pub fn acknowledge(&mut self, result: RequestResult) {
         self.awaiting_ack = false;
