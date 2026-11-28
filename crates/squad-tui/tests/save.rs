@@ -110,8 +110,8 @@ async fn forge_winner_is_saved_alone_with_default_name_and_0600() {
     finished_forge(&mut app);
     let job = job(&app, None, dir.path().into());
     let text = saved(save::save_file(&Stub(FORGE_EXPORT.into()), job).await);
-    assert_eq!(text, "Saved forge-write-a-launch-plan-for-squad.md");
-    let path = dir.path().join("forge-write-a-launch-plan-for-squad.md");
+    assert_eq!(text, "Saved write-a-launch-plan-1.md");
+    let path = dir.path().join("write-a-launch-plan-1.md");
     let body = std::fs::read_to_string(&path).unwrap();
     assert_eq!(body, "The winning artifact body.\nSecond line.\n");
     assert!(!body.contains("@alpha") && !body.contains("hidden-provider"));
@@ -129,9 +129,9 @@ async fn saving_twice_never_overwrites() {
     finished_forge(&mut app);
     let room = Stub(FORGE_EXPORT.into());
     for expected in [
-        "Saved forge-write-a-launch-plan-for-squad.md",
-        "Saved forge-write-a-launch-plan-for-squad-2.md",
-        "Saved forge-write-a-launch-plan-for-squad-3.md",
+        "Saved write-a-launch-plan-1.md",
+        "Saved write-a-launch-plan-2.md",
+        "Saved write-a-launch-plan-3.md",
     ] {
         let text = saved(save::save_file(&room, job(&app, None, dir.path().into())).await);
         assert_eq!(text, expected);
@@ -139,7 +139,7 @@ async fn saving_twice_never_overwrites() {
 }
 
 #[tokio::test]
-async fn explicit_path_is_relative_to_cwd_and_still_never_overwrites() {
+async fn explicit_path_is_relative_to_cwd_and_refuses_existing_files() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir(dir.path().join("out")).unwrap();
     let mut app = app();
@@ -148,9 +148,19 @@ async fn explicit_path_is_relative_to_cwd_and_still_never_overwrites() {
     let first =
         saved(save::save_file(&room, job(&app, Some("out/plan.md"), dir.path().into())).await);
     assert_eq!(first, "Saved out/plan.md");
-    let second =
-        saved(save::save_file(&room, job(&app, Some("out/plan.md"), dir.path().into())).await);
-    assert_eq!(second, "Saved out/plan-2.md");
+    let second = save::save_file(&room, job(&app, Some("out/plan.md"), dir.path().into())).await;
+    let RequestResult::Rejected { error, .. } = second else {
+        panic!("existing explicit path must be refused");
+    };
+    assert!(
+        error.text.as_str().contains("try plan-1.md"),
+        "{}",
+        error.text
+    );
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("out/plan.md")).unwrap(),
+        "The winning artifact body.\nSecond line.\n"
+    );
     let missing = save::save_file(&room, job(&app, Some("nope/x.md"), dir.path().into())).await;
     assert!(matches!(missing, RequestResult::Rejected { .. }));
 }
@@ -180,7 +190,7 @@ async fn no_contest_falls_back_to_last_assistant_message_or_the_focused_one() {
     let latest = job(&app, None, dir.path().into());
     saved(save::save_file(&room, latest).await);
     assert_eq!(
-        std::fs::read_to_string(dir.path().join("message-the-newest-reply.md")).unwrap(),
+        std::fs::read_to_string(dir.path().join("the-newest-reply-1.md")).unwrap(),
         "the newest reply\n"
     );
     let focused = save::plan(
@@ -193,7 +203,7 @@ async fn no_contest_falls_back_to_last_assistant_message_or_the_focused_one() {
     .unwrap();
     saved(save::save_file(&room, focused).await);
     assert_eq!(
-        std::fs::read_to_string(dir.path().join("message-older-reply.md")).unwrap(),
+        std::fs::read_to_string(dir.path().join("older-reply-1.md")).unwrap(),
         "older reply\n"
     );
     app.session.snapshot.context.records.clear();
@@ -211,7 +221,11 @@ fn headline_picks_the_deliverable_per_mode() {
         "The answer is B.\n"
     );
     assert_eq!(save::slug("  Hello, World -- ok?! "), "hello-world-ok");
-    assert!(save::slug(&"x".repeat(100)).len() <= 40);
+    assert_eq!(save::slug(&"x".repeat(100)).len(), 20);
+    assert_eq!(
+        save::slug("@all $tournament Write a full plan for an idle-compute marketplace"),
+        "write-a-full-plan-fo"
+    );
 }
 
 #[test]
@@ -231,4 +245,18 @@ fn slash_save_runs_through_submit_without_reaching_the_room() {
     assert!(app.pending.is_none());
     assert!(app.pending_save.is_some());
     assert_eq!(app.input.text(), "");
+}
+
+#[test]
+fn numbering_continues_past_gaps() {
+    let dir = tempfile::tempdir().unwrap();
+    for n in [1, 3] {
+        std::fs::write(dir.path().join(format!("idea-{n}.md")), "x").unwrap();
+    }
+    std::fs::write(dir.path().join("idea-x.md"), "x").unwrap();
+    let path = save::write_numbered(dir.path(), "idea", "body\n").unwrap();
+    assert_eq!(path.file_name().unwrap(), "idea-4.md");
+    let fresh = tempfile::tempdir().unwrap();
+    let path = save::write_numbered(fresh.path(), "idea", "body\n").unwrap();
+    assert_eq!(path.file_name().unwrap(), "idea-1.md");
 }

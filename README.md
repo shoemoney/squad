@@ -304,7 +304,7 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `/continue` | Continues a waiting census or closes a pending human step with the supplied answers. |
 | `/stop` or `/stop @nick` | Stops all work, or one member's work. |
 | `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `negotiate`, `blow_it_up`, `readback`, `debug`, `trace`, `rank`, `tune`, `bass_ackwards_prd`. |
-| `/save [path]` | Saves the headline result of the newest finished contest (the winning artifact, plan or report, not the evidence) as Markdown in the folder squad was launched from. With no contest it saves the last reply, or the focused message. Default name `<mode>-<prompt-slug>.md`; never overwrites (adds `-2`, `-3`); file mode `0600`. |
+| `/save [path]` | Saves the headline result of the newest finished contest (the winning artifact, plan or report, not the evidence) as Markdown in the folder squad was launched from. With no contest it saves the last reply, or the focused message. Default name is the first 20 characters of your prompt (mentions and `$mode` dropped) as a slug plus a number, e.g. `write-a-full-plan-fo-1.md`; the number is one past the highest already there. Never overwrites, and an existing explicit path is refused with the next free name suggested; file mode `0600`. |
 | `/clear` | **Wipes the stored room.** It is not a display-only action. |
 
 Each mode has its own rules and cost preview. Those are covered in the mode sections of this README.

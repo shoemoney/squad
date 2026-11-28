@@ -62,16 +62,20 @@ fn finished_ok(state: &ContestState) -> bool {
 pub fn mode_name(kind: ContestKind) -> String {
     kind.as_str().into()
 }
+/// Slug of the first 20 characters of the prompt, once `@mentions` and `$mode`
+/// tokens are dropped. Lowercase, runs of non-alphanumerics become one hyphen.
 pub fn slug(text: &str) -> String {
+    let words = text
+        .split_whitespace()
+        .filter(|w| !w.starts_with('@') && !w.starts_with('$'))
+        .collect::<Vec<_>>()
+        .join(" ");
     let mut out = String::new();
-    for c in text.chars() {
+    for c in words.chars().take(20) {
         if c.is_ascii_alphanumeric() {
             out.push(c.to_ascii_lowercase());
-        } else if !out.ends_with('-') && !out.is_empty() {
+        } else if !out.ends_with('-') {
             out.push('-');
-        }
-        if out.len() >= 40 {
-            break;
         }
     }
     let out = out.trim_matches('-').to_owned();
@@ -80,6 +84,24 @@ pub fn slug(text: &str) -> String {
     } else {
         out
     }
+}
+/// One more than the highest `<stem>-N.<ext>` already in `dir` (1 when none).
+pub fn next_number(dir: &Path, stem: &str, ext: &str) -> u32 {
+    let prefix = format!("{stem}-");
+    let suffix = format!(".{ext}");
+    std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().into_owned();
+            name.strip_prefix(&prefix)?
+                .strip_suffix(&suffix)?
+                .parse::<u32>()
+                .ok()
+        })
+        .max()
+        .map_or(1, |n| n + 1)
 }
 
 /// Decide what to save from the current session. Pure: no I/O.
@@ -203,42 +225,64 @@ pub fn headline(md: &str, kind: ContestKind) -> String {
     text + "\n"
 }
 
-fn create_unique(base: &Path) -> std::io::Result<(PathBuf, std::fs::File)> {
-    use std::io::ErrorKind;
-    let stem = base
-        .file_stem()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "save".into());
-    let ext = base.extension().map(|e| e.to_string_lossy().into_owned());
-    for n in 1..10_000 {
-        let name = match (n, &ext) {
-            (1, Some(e)) => format!("{stem}.{e}"),
-            (1, None) => stem.clone(),
-            (n, Some(e)) => format!("{stem}-{n}.{e}"),
-            (n, None) => format!("{stem}-{n}"),
-        };
-        let candidate = base.with_file_name(name);
-        let mut options = std::fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
-        }
-        match options.open(&candidate) {
-            Ok(file) => return Ok((candidate, file)),
-            Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
+fn create_new(path: &Path) -> std::io::Result<std::fs::File> {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(path)
+}
+fn write_all(mut file: std::fs::File, markdown: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    file.write_all(markdown.as_bytes())?;
+    file.flush()
+}
+/// `<dir>/<slug>-N.md` with N one past the highest existing number; never overwrites.
+pub fn write_numbered(dir: &Path, slug: &str, markdown: &str) -> std::io::Result<PathBuf> {
+    let mut n = next_number(dir, slug, "md");
+    loop {
+        let path = dir.join(format!("{slug}-{n}.md"));
+        match create_new(&path) {
+            Ok(file) => {
+                write_all(file, markdown)?;
+                return Ok(path);
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => n += 1,
             Err(e) => return Err(e),
         }
     }
-    Err(std::io::Error::other("too many existing files"))
 }
-pub fn write_unique(base: &Path, markdown: &str) -> std::io::Result<PathBuf> {
-    use std::io::Write;
-    let (path, mut file) = create_unique(base)?;
-    file.write_all(markdown.as_bytes())?;
-    file.flush()?;
-    Ok(path)
+/// An explicit destination is used as given; an existing file is refused with the
+/// next free numbered name as a suggestion.
+pub fn write_explicit(path: &Path, markdown: &str) -> std::io::Result<PathBuf> {
+    match create_new(path) {
+        Ok(file) => {
+            write_all(file, markdown)?;
+            Ok(path.to_path_buf())
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            let dir = path.parent().unwrap_or_else(|| Path::new("."));
+            let stem = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "save".into());
+            let ext = path
+                .extension()
+                .map_or("md".into(), |e| e.to_string_lossy().into_owned());
+            let n = next_number(dir, &stem, &ext);
+            Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                format!(
+                    "{} already exists; try {stem}-{n}.{ext}",
+                    path.file_name().unwrap_or_default().to_string_lossy()
+                ),
+            ))
+        }
+        Err(e) => Err(e),
+    }
 }
 fn shown(path: &Path, cwd: &Path) -> String {
     path.strip_prefix(cwd).unwrap_or(path).display().to_string()
@@ -270,16 +314,23 @@ pub async fn save_file(room: &dyn RoomPort, job: SaveJob) -> RequestResult {
             Err(e) => return reject(job.request_id, e.message),
         },
     };
-    let base = match &job.explicit {
-        Some(p) if p.is_absolute() => p.clone(),
-        Some(p) => job.cwd.join(p),
-        None => job
-            .cwd
-            .join(format!("{}-{}.md", job.mode, slug(&job.prompt))),
-    };
     let cwd = job.cwd.clone();
+    let cwd2 = cwd.clone();
     let request_id = job.request_id;
-    match tokio::task::spawn_blocking(move || write_unique(&base, &markdown)).await {
+    let explicit = job.explicit.as_ref().map(|p| {
+        if p.is_absolute() {
+            p.clone()
+        } else {
+            job.cwd.join(p)
+        }
+    });
+    let name = slug(&job.prompt);
+    match tokio::task::spawn_blocking(move || match explicit {
+        Some(path) => write_explicit(&path, &markdown),
+        None => write_numbered(&cwd2, &name, &markdown),
+    })
+    .await
+    {
         Ok(Ok(path)) => RequestResult::Internal(InternalResult::Text {
             text: format!("Saved {}", shown(&path, &cwd)),
         }),
