@@ -15,6 +15,22 @@ use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use squad_protocol::*;
 use std::time::Duration;
 
+/// App-level commands, typed with a leading dot so they cannot collide with room `/` commands.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SystemCommand {
+    Quit,
+    Dump,
+}
+impl SystemCommand {
+    pub fn parse(text: &str) -> Option<Self> {
+        match text.trim() {
+            ".quit" | ".exit" => Some(Self::Quit),
+            ".dump" => Some(Self::Dump),
+            _ => None,
+        }
+    }
+}
+
 pub struct App {
     pub composed: crate::composed::Composed,
     pub session: Session,
@@ -128,6 +144,10 @@ impl App {
         if self.awaiting_ack {
             return;
         }
+        if let Some(command) = SystemCommand::parse(self.input.text()) {
+            self.run_system_command(command);
+            return;
+        }
         let meta = self.quotes.metadata();
         match validation::validate(self.input.text(), &meta, &self.session.snapshot.context) {
             Err(e) => self.notice = Some(e.message),
@@ -159,6 +179,69 @@ impl App {
             }
         }
         self.dirty = true;
+    }
+    /// `.quit`, `.exit` and `.dump` belong to the app, not the room: they never reach the parser.
+    fn run_system_command(&mut self, command: SystemCommand) {
+        match command {
+            SystemCommand::Quit => self.quit = true,
+            SystemCommand::Dump => {
+                self.notice = Some(match self.dump_buffer(std::path::Path::new(".")) {
+                    Ok(path) => format!("Dumped the buffer to {}", path.display()),
+                    Err(error) => format!("Dump failed: {error}"),
+                });
+                self.input.accept_submission();
+            }
+        }
+        self.dirty = true;
+    }
+    /// Writes every loaded transcript message, widget rows included, to
+    /// `output-<YYYYMMDD-HHMMSS>.txt` in `dir`. Never overwrites an existing file.
+    pub fn dump_buffer(&self, dir: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+        use std::io::Write;
+        let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+        let mut out = String::new();
+        let line_text = |line: &ratatui::text::Line<'_>| -> String {
+            line.spans.iter().map(|s| s.content.as_ref()).collect()
+        };
+        for message in self.composed.transcript.messages() {
+            out.push_str(&format!("== {}", message.author));
+            if !message.status.is_empty() {
+                out.push_str(&format!(" · {}", message.status));
+            }
+            out.push('\n');
+            for line in &message.before_body {
+                out.push_str(&line_text(line));
+                out.push('\n');
+            }
+            out.push_str(&message.source);
+            out.push('\n');
+            for line in message.widget_rows.iter().chain(&message.after_body) {
+                out.push_str(&line_text(line));
+                out.push('\n');
+            }
+            out.push('\n');
+        }
+        for attempt in 0.. {
+            let name = if attempt == 0 {
+                format!("output-{stamp}.txt")
+            } else {
+                format!("output-{stamp}-{attempt}.txt")
+            };
+            let path = dir.join(name);
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+            {
+                Ok(mut file) => {
+                    file.write_all(out.as_bytes())?;
+                    return Ok(path);
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error),
+            }
+        }
+        unreachable!()
     }
     pub fn acknowledge(&mut self, result: RequestResult) {
         self.awaiting_ack = false;

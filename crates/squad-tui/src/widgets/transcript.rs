@@ -246,6 +246,10 @@ impl TranscriptView {
             .get(&id)
             .map(|i| self.messages[*i].markdown.stats())
     }
+    /// Every loaded message in transcript order.
+    pub fn messages(&self) -> impl Iterator<Item = &TranscriptMessage> {
+        self.messages.iter().map(|cached| &cached.model)
+    }
     pub fn message(&self, id: MessageId) -> Option<&TranscriptMessage> {
         self.indexes.get(&id).map(|i| &self.messages[*i].model)
     }

@@ -3834,6 +3834,7 @@ dependencies = [
 name = "squad-tui"
 version = "0.2.1"
 dependencies = [
+ "chrono",
  "criterion",
  "crossterm",
  "insta",

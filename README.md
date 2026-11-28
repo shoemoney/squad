@@ -305,6 +305,8 @@ Commands start with `$` (contests) or `/` (room controls). `$` commands are only
 | `/stop` or `/stop @nick` | Stops all work, or one member's work. |
 | `/export <scope> [id]` | Writes a Markdown export. Scopes: `room`, `debate`, `grill`, `tournament`, `census`, `crosscheck`, `survey`, `probe`, `forge`, `forecast`, `decide`, `negotiate`, `blow_it_up`, `readback`, `debug`, `trace`, `rank`, `tune`, `bass_ackwards_prd`. |
 | `/clear` | **Wipes the stored room.** It is not a display-only action. |
+| `.dump` | App command, TUI only. Writes everything in the transcript buffer to `output-<YYYYMMDD-HHMMSS>.txt` in the current directory; never overwrites. Makes no model call. |
+| `.quit` or `.exit` | App command, TUI only. Leaves the room, same as Ctrl+C. |
 
 Each mode has its own rules and cost preview. Those are covered in the mode sections of this README.
 
