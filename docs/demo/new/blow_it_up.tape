@@ -1,9 +1,8 @@
 # $blow_it_up raw recording (full length, uncut). Record with: docs/demo/new/record-all.sh <squad-binary>
-# Runs the v0.2.0 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
+# Runs the v0.2.1 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
-# Attack vectors, blind challenge, severity-ranked findings, then F7 opens the killed appendix.
-# VHS has no function keys, so the room runs inside tmux and a hidden watcher sends F7 after COMPLETE.
-# About 170 s live.
+# Attack vectors, blind challenge, severity-ranked findings, then the offline export shows the ranked findings.
+# About 250 to 400 s live.
 
 Output docs/media/full/blow_it_up.mp4
 
@@ -17,14 +16,17 @@ Set TypingSpeed 45ms
 Set WindowBar Colorful
 
 Hide
-Type 'unset NO_COLOR; export TERM=xterm-256color HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_JUDGE_REASONING_EFFORT=medium SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear'
+Type `unset NO_COLOR; export PS1='$ ' TERM=xterm-256color HOME="$DEMO_HOME" SQUAD_DAILY_MAX_USD=150 SQUAD_DEBATE_CONFIRM_USD=0 && cd "$DEMO_WORK" && clear`
 Enter
-Type '(sleep 800; tmux -L demo send-keys -t r F7) >/dev/null 2>&1 &'
-Enter
-Type "tmux -L demo -f /dev/null new-session -s r squad ';' set status off"
-Enter
-Sleep 8s
+Sleep 1s
 Show
+
+# Open the room
+Type "squad"
+Sleep 600ms
+Enter
+Wait+Screen@180s /Ask the squad/
+Sleep 2s
 
 # 1. Red-team a one-line spec (target in a fenced block)
 Type '@all $blow_it_up ```All requests are accepted without authentication.```'
@@ -37,10 +39,22 @@ Sleep 1s
 # Preflight card: confirm
 Type "y"
 # Fixed wait: the report can scroll the status header off screen, so no text marker is reliable
-Sleep 780s
+Sleep 420s
 
-# 2. Ranked findings on screen; the watcher presses F7 after 9 s to expand the killed appendix
-Sleep 20s
-
+# Done: leave the room. The room can stay on "awaiting ruling" after the contest is COMPLETE, so the
+# clip continues OFFLINE with `squad export` on the same finished database (record-all.sh labels it).
 Ctrl+C
 Sleep 1s
+Hide
+Type `ID=$(python3 -I -c "import sqlite3,os;print(sqlite3.connect(os.path.expanduser('~/.local/share/squad/squad.db')).execute('select contest_id from contests').fetchone()[0])") && export PS1='$ ' && clear`
+Enter
+Sleep 1s
+Show
+Type "squad export blow_it_up $ID -o blow_it_up-report.md"
+Sleep 500ms
+Enter
+Sleep 2s
+Type "head -26 blow_it_up-report.md | cut -c1-150"
+Sleep 500ms
+Enter
+Sleep 9s
