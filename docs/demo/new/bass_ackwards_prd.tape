@@ -1,5 +1,5 @@
 # $bass_ackwards_prd raw recording (full length, uncut). Record with: docs/demo/new/record-all.sh <squad-binary>
-# Runs the v0.2.0 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
+# Runs the v0.2.1 release binary (`squad` on PATH). HOME, SQUAD_DATA_DIR and DEMO_WORK are
 # private temp dirs made by record-all.sh; the API key comes from the environment and is never typed.
 # Acceptance tests, backward prerequisite trees, merged PRD, review, optional human LAST LOOK, saved file. Human step. About 410 to 500 s live.
 
